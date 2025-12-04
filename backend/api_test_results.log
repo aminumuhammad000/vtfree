@@ -1,0 +1,162 @@
+========================================
+Endpoint: /health
+Status: PASSED (HTTP 200)
+Response: {"status":"ok","message":"Server is running"}
+========================================
+
+========================================
+Endpoint: /
+Status: PASSED (HTTP 200)
+Response: ✅ Connecta Backend (MongoDB) is running...
+========================================
+
+========================================
+Endpoint: /api/auth/register
+Status: FAILED (HTTP 400)
+Response: {"success":false,"message":"\"phone_number\" is required"}
+========================================
+
+========================================
+Endpoint: /api/auth/login
+Status: FAILED (HTTP 401)
+Response: {"success":false,"message":"Invalid credentials"}
+========================================
+
+========================================
+Endpoint: /api/auth/verify-otp
+Status: FAILED (HTTP 400)
+Response: {"success":false,"message":"Invalid or expired OTP"}
+========================================
+
+========================================
+Endpoint: /api/auth/resend-otp
+Status: FAILED (HTTP 500)
+Response: {"success":false,"message":"OTP validation failed: phone_number: Path `phone_number` is required."}
+========================================
+
+========================================
+Endpoint: /api/users/profile
+Status: FAILED (HTTP 401)
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/users/profile
+Status: FAILED (HTTP 401)
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/users
+Status: FAILED (HTTP 401)
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/wallet
+Status: FAILED (HTTP 401)
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/wallet/fund
+Status: FAILED (HTTP 401)
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/wallet/transactions
+Status: FAILED (HTTP 401)
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/transactions
+Status: FAILED (HTTP 401)
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/transactions/all
+Status: FAILED (HTTP 401)
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/admin/login
+Status: FAILED (HTTP 401)
+Response: {"success":false,"message":"Invalid credentials"}
+========================================
+
+========================================
+Endpoint: /api/admin/dashboard
+Status: FAILED (HTTP 401)
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/admin/users
+Status: FAILED (HTTP 401)
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/admin/audit-logs
+Status: FAILED (HTTP 401)
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/payment/banks
+Status: FAILED (HTTP 401)
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/payment/initiate
+Status: FAILED (HTTP 401)
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/payment/virtual-account
+Status: FAILED (HTTP 401)
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/notifications
+Status: FAILED (HTTP 401)
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/notifications/read-all
+Status: FAILED (HTTP 401)
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/promotions
+Status: FAILED (HTTP 401)
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/support
+Status: FAILED (HTTP 401)
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/support
+Status: FAILED (HTTP 401)
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/test-topupmate
+Status: FAILED (HTTP 500)
+Response: {"success":false,"message":"TopUpMate service error","error":"Failed to fetch network data: Request failed with status code 401"}
+========================================
+

@@ -1,0 +1,238 @@
+========================================
+Endpoint: /health
+Status: PASSED
+HTTP Code: 200
+Response: {"status":"ok","message":"Server is running"}
+========================================
+
+========================================
+Endpoint: /
+Status: PASSED
+HTTP Code: 200
+Response: ✅ Connecta Backend (MongoDB) is running...
+========================================
+
+========================================
+Endpoint: /api/test-topupmate
+Status: PASSED
+HTTP Code: 200
+Response: {"success":true,"message":"TopUpMate service is working!","data":{"status":"success","msg":"Network Retrieved","response":[{"id":"1","network":"MTN","status":"On"},{"id":"2","network":"AIRTEL","status":"On"},{"id":"3","network":"GLO","status":"On"},{"id":"4","network":"9MOBILE","status":"On"}]}}
+========================================
+
+========================================
+Endpoint: /api/auth/register
+Status: PASSED
+HTTP Code: 201
+Response: {"success":true,"message":"Registration successful","data":{"user":{"email":"testuser1762601771@example.com","phone_number":"08017626017","password_hash":"$2b$10$SI02d8r5G5s3CWLLaHoRF.G55xxoVCCMV41IQPQME05XIJW155WfC","first_name":"Test","last_name":"User","country":"Nigeria","kyc_status":"pending","referral_code":"DEGRT1I3","biometric_enabled":false,"status":"active","_id":"690f2b2e5a40022886ac061e","created_at":"2025-11-08T11:36:14.404Z","updated_at":"2025-11-08T11:36:14.405Z","__v":0},"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MGYyYjJlNWE0MDAyMjg4NmFjMDYxZSIsImlhdCI6MTc2MjYwMTc3NCwiZXhwIjoxNzYyNjg4MTc0fQ.h8Ep76kAJVR9ooV1Za-CtvHKK91s4bg7R1hFQrF2VqQ"}}
+========================================
+
+========================================
+Endpoint: /api/auth/register
+Status: FAILED
+HTTP Code: 400
+Response: {"success":false,"message":"User already exists"}
+========================================
+
+========================================
+Endpoint: /api/auth/resend-otp
+Status: PASSED
+HTTP Code: 200
+Response: {"success":true,"message":"OTP sent successfully","data":null}
+========================================
+
+========================================
+Endpoint: /api/auth/verify-otp
+Status: FAILED
+HTTP Code: 400
+Response: {"success":false,"message":"Invalid or expired OTP"}
+========================================
+
+========================================
+Endpoint: /api/auth/login
+Status: PASSED
+HTTP Code: 200
+Response: {"success":true,"message":"Login successful","data":{"user":{"_id":"690f2b2e5a40022886ac061e","email":"testuser1762601771@example.com","phone_number":"08017626017","password_hash":"$2b$10$SI02d8r5G5s3CWLLaHoRF.G55xxoVCCMV41IQPQME05XIJW155WfC","first_name":"Test","last_name":"User","country":"Nigeria","kyc_status":"pending","referral_code":"DEGRT1I3","biometric_enabled":false,"status":"active","created_at":"2025-11-08T11:36:14.404Z","updated_at":"2025-11-08T11:36:14.405Z","__v":0},"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MGYyYjJlNWE0MDAyMjg4NmFjMDYxZSIsImlhdCI6MTc2MjYwMTc3NCwiZXhwIjoxNzYyNjg4MTc0fQ.h8Ep76kAJVR9ooV1Za-CtvHKK91s4bg7R1hFQrF2VqQ"}}
+========================================
+
+========================================
+Endpoint: /api/users/profile
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/users/profile
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/users
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/users/kyc
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/wallet
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/wallet/fund
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/wallet/transactions
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/wallet/transfer
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/transactions
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/transactions/all
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/transactions
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/payment/banks
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/payment/initiate
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/payment/virtual-account
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/payment/virtual-account
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/admin/login
+Status: FAILED
+HTTP Code: 401
+Response: {"success":false,"message":"Invalid credentials"}
+========================================
+
+========================================
+Endpoint: /api/admin/dashboard
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/admin/users
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/admin/audit-logs
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/notifications
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/notifications/read-all
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/promotions
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/promotions
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/support
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/support
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
+========================================
+Endpoint: /api/support/all
+Status: PASSED
+HTTP Code: 401
+Response: {"success":false,"message":"No token provided"}
+========================================
+
