@@ -34,7 +34,13 @@ const SignIn = () => {
   };
 
   return (
-    <Stack mx="auto" direction="column" alignItems="center" width={1} maxWidth={450}>
+    <Stack
+      mx="auto"
+      direction="column"
+      alignItems="center"
+      width={1}
+      maxWidth={450}
+    >
       <ButtonBase LinkComponent={Link} href="/" sx={{ mt: 6 }} disableRipple>
         <Image src={Logo} alt="logo" height={92} width={92} />
       </ButtonBase>
@@ -56,7 +62,13 @@ const SignIn = () => {
           variant="contained"
           color="secondary"
           fullWidth
-          startIcon={<IconifyIcon icon="mage:facebook" color="secondary.dark" sx={{ mr: -0.75 }} />}
+          startIcon={
+            <IconifyIcon
+              icon="mage:facebook"
+              color="secondary.dark"
+              sx={{ mr: -0.75 }}
+            />
+          }
           sx={{ bgcolor: 'info.main', '&:hover': { bgcolor: 'info.main' } }}
         >
           Facebook
@@ -113,7 +125,9 @@ const SignIn = () => {
                   edge="end"
                 >
                   <IconifyIcon
-                    icon={showPassword ? 'mdi:visibility' : 'mdi:visibility-off'}
+                    icon={
+                      showPassword ? 'mdi:visibility' : 'mdi:visibility-off'
+                    }
                     color="neutral.main"
                   />
                 </IconButton>
@@ -124,16 +138,33 @@ const SignIn = () => {
 
         <Stack mt={1.5} alignItems="center" justifyContent="space-between">
           <FormControlLabel
-            control={<Checkbox id="checkbox" name="checkbox" size="large" color="primary" />}
+            control={
+              <Checkbox
+                id="checkbox"
+                name="checkbox"
+                size="large"
+                color="primary"
+              />
+            }
             label="Remember me"
             sx={{ ml: -0.75 }}
           />
-          <Link href={paths.resetPassword} fontSize="body2.fontSize" fontWeight={600}>
+          <Link
+            href={paths.resetPassword}
+            fontSize="body2.fontSize"
+            fontWeight={600}
+          >
             Reset password?
           </Link>
         </Stack>
 
-        <Button type="submit" variant="contained" size="large" sx={{ mt: 3 }} fullWidth>
+        <Button
+          type="submit"
+          variant="contained"
+          size="large"
+          sx={{ mt: 3 }}
+          fullWidth
+        >
           Sign In
         </Button>
       </Box>

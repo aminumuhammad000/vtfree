@@ -45,7 +45,9 @@ const Topbar = ({
         right: 0,
         width: {
           xs: 1,
-          lg: expand ? `calc(100% - ${drawerWidth}px)` : `calc(100% - ${miniDrawerWidth}px)`,
+          lg: expand
+            ? `calc(100% - ${drawerWidth}px)`
+            : `calc(100% - ${miniDrawerWidth}px)`,
         },
       }}
     >
@@ -55,7 +57,10 @@ const Topbar = ({
             component={Link}
             href="/"
             disableRipple
-            sx={{ lineHeight: 0, display: { xs: 'none', sm: 'block', lg: 'none' } }}
+            sx={{
+              lineHeight: 0,
+              display: { xs: 'none', sm: 'block', lg: 'none' },
+            }}
           >
             <Image src={Logo} alt="logo" height={40} width={40} />
           </ButtonBase>
@@ -68,7 +73,11 @@ const Topbar = ({
               edge="start"
               sx={{ display: { xs: 'none', lg: 'flex' } }}
             >
-              <IconifyIcon icon={expand ? 'line-md:menu-fold-left' : 'line-md:menu-fold-right'} />
+              <IconifyIcon
+                icon={
+                  expand ? 'line-md:menu-fold-left' : 'line-md:menu-fold-right'
+                }
+              />
             </IconButton>
 
             <IconButton

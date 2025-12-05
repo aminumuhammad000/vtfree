@@ -137,9 +137,20 @@ const DrawerItems = ({ expand }: DrawerItemsProps) => {
           display={expand ? 'block' : 'none'}
           sx={{ userSelect: 'none' }}
         >
-          <Image src={DrawerCardImg} height={1} width={1} sx={{ objectFit: 'cover' }} />
+          <Image
+            src={DrawerCardImg}
+            height={1}
+            width={1}
+            sx={{ objectFit: 'cover' }}
+          />
 
-          <Stack position="absolute" bottom={24} width={1} px={2} justifyContent="center">
+          <Stack
+            position="absolute"
+            bottom={24}
+            width={1}
+            px={2}
+            justifyContent="center"
+          >
             <Button variant="contained" fullWidth>
               Upgrade Now
             </Button>
@@ -153,12 +164,27 @@ const DrawerItems = ({ expand }: DrawerItemsProps) => {
           justifyContent="space-between"
         >
           <Stack component={Link} href="#!" spacing={1.5} alignItems="center">
-            <Image src={Profile} height={50} width={50} sx={{ borderRadius: 3 }} />
+            <Image
+              src={Profile}
+              height={50}
+              width={50}
+              sx={{ borderRadius: 3 }}
+            />
             <Box sx={[expand ? { display: 'block' } : { display: 'none' }]}>
-              <Typography mb={-0.5} variant="body2" color="text.primary" fontWeight={700}>
+              <Typography
+                mb={-0.5}
+                variant="body2"
+                color="text.primary"
+                fontWeight={700}
+              >
                 Easin Arafat
               </Typography>
-              <Typography mt={-0.5} variant="caption" color="text.disabled" fontWeight={400}>
+              <Typography
+                mt={-0.5}
+                variant="caption"
+                color="text.disabled"
+                fontWeight={400}
+              >
                 Free Account
               </Typography>
             </Box>

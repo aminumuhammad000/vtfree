@@ -1,7 +1,9 @@
 import { Theme } from '@mui/material';
 import { Components } from '@mui/material/styles/components';
 
-const ListItemButton: Components<Omit<Theme, 'components'>>['MuiListItemButton'] = {
+const ListItemButton: Components<
+  Omit<Theme, 'components'>
+>['MuiListItemButton'] = {
   styleOverrides: {
     root: ({ theme }) => ({
       color: theme.palette.text.disabled,

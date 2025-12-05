@@ -100,13 +100,20 @@ const ProfileMenu = () => {
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
         <Box p={1}>
-          <MenuItem onClick={handleProfileMenuClose} sx={{ '&:hover': { bgcolor: 'info.main' } }}>
+          <MenuItem
+            onClick={handleProfileMenuClose}
+            sx={{ '&:hover': { bgcolor: 'info.main' } }}
+          >
             <Avatar src={Profile} sx={{ mr: 1, height: 42, width: 42 }} />
             <Stack direction="column">
               <Typography variant="body2" color="text.primary" fontWeight={600}>
                 Easin Arafat
               </Typography>
-              <Typography variant="caption" color="text.secondary" fontWeight={400}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                fontWeight={400}
+              >
                 easin@example.com
               </Typography>
             </Stack>
@@ -118,11 +125,25 @@ const ProfileMenu = () => {
         <Box p={1}>
           {menuItems.map((item) => {
             return (
-              <MenuItem key={item.id} onClick={handleProfileMenuClose} sx={{ py: 1 }}>
-                <ListItemIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 'h5.fontSize' }}>
+              <MenuItem
+                key={item.id}
+                onClick={handleProfileMenuClose}
+                sx={{ py: 1 }}
+              >
+                <ListItemIcon
+                  sx={{
+                    mr: 1,
+                    color: 'text.secondary',
+                    fontSize: 'h5.fontSize',
+                  }}
+                >
                   <IconifyIcon icon={item.icon} />
                 </ListItemIcon>
-                <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  fontWeight={500}
+                >
                   {item.title}
                 </Typography>
               </MenuItem>

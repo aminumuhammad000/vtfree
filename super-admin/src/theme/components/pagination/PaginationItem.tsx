@@ -1,7 +1,9 @@
 import { Theme } from '@mui/material';
 import { Components } from '@mui/material/styles/components';
 
-const PaginationItem: Components<Omit<Theme, 'components'>>['MuiPaginationItem'] = {
+const PaginationItem: Components<
+  Omit<Theme, 'components'>
+>['MuiPaginationItem'] = {
   styleOverrides: {
     root: ({ theme }) => ({
       color: theme.palette.text.primary,
