@@ -1,0 +1,632 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import { useRouter } from 'expo-router';
+import { CheckCircle, Download, Globe, Monitor, Rocket, Smartphone, ArrowLeft } from 'lucide-react-native';
+import Colors from '../constants/Colors';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+    useSharedValue,
+    useAnimatedStyle,
+    withTiming,
+    withSpring,
+    withRepeat,
+    Easing,
+    FadeInDown,
+    FadeInRight,
+    useAnimatedProps,
+    interpolate
+} from 'react-native-reanimated';
+import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
+
+const { width } = Dimensions.get('window');
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+export default function BuildStatusScreen() {
+    const router = useRouter();
+    const [progress, setProgress] = useState(0);
+    const [currentPhase, setCurrentPhase] = useState(0);
+
+    const phases = [
+        { label: 'Initializing build environment', duration: 15 },
+        { label: 'Setting up branding and assets', duration: 20 },
+        { label: 'Configuring VTU services', duration: 25 },
+        { label: 'Building Android app', duration: 30 },
+        { label: 'Building web application', duration: 35 },
+        { label: 'Setting up admin panel', duration: 40 },
+        { label: 'Running tests', duration: 50 },
+        { label: 'Finalizing build', duration: 60 },
+        { label: 'Packaging files', duration: 80 },
+        { label: 'Build complete!', duration: 100 }
+    ];
+
+    // Animation values
+    const progressValue = useSharedValue(0);
+    const rotation = useSharedValue(0);
+    const scale = useSharedValue(0);
+    const completeScale = useSharedValue(0);
+
+    useEffect(() => {
+        // Start initial animations
+        scale.value = withSpring(1, { damping: 12 });
+        rotation.value = withRepeat(withTiming(360, { duration: 2000, easing: Easing.linear }), -1);
+
+        const interval = setInterval(() => {
+            setProgress((prev) => {
+                if (prev >= 100) {
+                    clearInterval(interval);
+                    return 100;
+                }
+                return prev + 1;
+            });
+        }, 150);
+
+        return () => clearInterval(interval);
+    }, []);
+
+    useEffect(() => {
+        progressValue.value = withTiming(progress, { duration: 150 });
+
+        const phase = phases.findIndex(p => progress < p.duration);
+        setCurrentPhase(phase === -1 ? phases.length - 1 : Math.max(0, phase - 1));
+
+        if (progress === 100) {
+            completeScale.value = withSpring(1, { damping: 12 });
+        }
+    }, [progress]);
+
+    const isComplete = progress === 100;
+    const radius = 45;
+    const circumference = 2 * Math.PI * radius;
+
+    const animatedCircleProps = useAnimatedProps(() => {
+        const strokeDashoffset = circumference - (progressValue.value / 100) * circumference;
+        return {
+            strokeDashoffset,
+        };
+    });
+
+    const rotationStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{ rotate: `${rotation.value}deg` }],
+        };
+    });
+
+    const scaleStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{ scale: scale.value }],
+        };
+    });
+
+    const completeStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{ scale: completeScale.value }, { rotate: `${interpolate(completeScale.value, [0, 1], [-180, 0])}deg` }],
+        };
+    });
+
+    const progressBarStyle = useAnimatedStyle(() => {
+        return {
+            width: `${progressValue.value}%`,
+        };
+    });
+
+    return (
+        <View style={styles.container}>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                    <ArrowLeft color={Colors.text.primary} size={24} />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Build Status</Text>
+                <View style={{ width: 40 }} />
+            </View>
+
+            <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
+                {/* Build Status Icon */}
+                <Animated.View style={[styles.statusIconContainer, scaleStyle]}>
+                    {isComplete ? (
+                        <Animated.View style={[styles.completeIcon, completeStyle]}>
+                            <LinearGradient
+                                colors={[Colors.primary, Colors.primaryLight]}
+                                style={styles.completeGradient}
+                            >
+                                <CheckCircle color={Colors.white} size={64} />
+                            </LinearGradient>
+                        </Animated.View>
+                    ) : (
+                        <View style={styles.buildingIcon}>
+                            <Animated.View style={[styles.spinnerContainer, rotationStyle]}>
+                                <Svg width={100} height={100} viewBox="0 0 100 100">
+                                    <Defs>
+                                        <SvgGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <Stop offset="0%" stopColor={Colors.primary} />
+                                            <Stop offset="100%" stopColor={Colors.primaryLight} />
+                                        </SvgGradient>
+                                    </Defs>
+                                    <Circle
+                                        cx="50"
+                                        cy="50"
+                                        r={radius}
+                                        stroke={Colors.primaryLighter}
+                                        strokeWidth="8"
+                                        fill="none"
+                                    />
+                                    <AnimatedCircle
+                                        cx="50"
+                                        cy="50"
+                                        r={radius}
+                                        stroke="url(#grad)"
+                                        strokeWidth="8"
+                                        fill="none"
+                                        strokeDasharray={circumference}
+                                        strokeLinecap="round"
+                                        animatedProps={animatedCircleProps}
+                                    />
+                                </Svg>
+                            </Animated.View>
+                            <View style={styles.rocketContainer}>
+                                <Rocket color={Colors.primary} size={48} />
+                            </View>
+                        </View>
+                    )}
+
+                    <Text style={styles.statusTitle}>
+                        {isComplete ? 'Build Complete!' : 'Building Your App'}
+                    </Text>
+                    <Text style={styles.statusSubtitle}>
+                        {isComplete
+                            ? 'Your app is ready to download and deploy'
+                            : phases[currentPhase]?.label || 'Processing...'}
+                    </Text>
+                </Animated.View>
+
+                {/* Progress Bar */}
+                <Animated.View entering={FadeInDown.delay(300)} style={styles.card}>
+                    <View style={styles.progressHeader}>
+                        <Text style={styles.cardLabel}>Progress</Text>
+                        <Text style={styles.progressText}>{progress}%</Text>
+                    </View>
+                    <View style={styles.progressBarBg}>
+                        <Animated.View style={[styles.progressBarFill, progressBarStyle]}>
+                            <LinearGradient
+                                colors={[Colors.primary, Colors.primaryLight]}
+                                style={StyleSheet.absoluteFill}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                            />
+                        </Animated.View>
+                    </View>
+                    {!isComplete && (
+                        <Text style={styles.etaText}>
+                            Estimated time remaining: {Math.max(1, Math.ceil((100 - progress) / 20))} minutes
+                        </Text>
+                    )}
+                </Animated.View>
+
+                {/* Build Phases */}
+                <Animated.View entering={FadeInDown.delay(500)} style={styles.card}>
+                    <Text style={styles.cardTitle}>Build Phases</Text>
+                    <View style={styles.phasesList}>
+                        {phases.slice(0, -1).map((phase, index) => (
+                            <Animated.View
+                                key={index}
+                                entering={FadeInRight.delay(600 + index * 50)}
+                                style={[
+                                    styles.phaseItem,
+                                    index < currentPhase && styles.phaseCompleted,
+                                    index === currentPhase && styles.phaseCurrent,
+                                    index > currentPhase && styles.phasePending
+                                ]}
+                            >
+                                <View style={[
+                                    styles.phaseIcon,
+                                    index < currentPhase && styles.phaseIconCompleted,
+                                    index === currentPhase && styles.phaseIconCurrent,
+                                    index > currentPhase && styles.phaseIconPending
+                                ]}>
+                                    {index < currentPhase ? (
+                                        <CheckCircle color={Colors.white} size={16} />
+                                    ) : index === currentPhase ? (
+                                        <Animated.View style={rotationStyle}>
+                                            <View style={styles.phaseSpinner} />
+                                        </Animated.View>
+                                    ) : (
+                                        <Text style={styles.phaseNumber}>{index + 1}</Text>
+                                    )}
+                                </View>
+                                <Text style={[
+                                    styles.phaseLabel,
+                                    index <= currentPhase ? styles.textPrimary : styles.textGray
+                                ]}>
+                                    {phase.label}
+                                </Text>
+                            </Animated.View>
+                        ))}
+                    </View>
+                </Animated.View>
+
+                {/* Download Links */}
+                {isComplete && (
+                    <Animated.View entering={FadeInDown.delay(300)} style={styles.downloadsSection}>
+                        <Text style={styles.downloadsTitle}>Download Your App</Text>
+
+                        <TouchableOpacity style={styles.downloadCard} activeOpacity={0.8}>
+                            <View style={[styles.downloadIcon, { backgroundColor: Colors.primary }]}>
+                                <Smartphone color={Colors.white} size={24} />
+                            </View>
+                            <View style={styles.downloadInfo}>
+                                <Text style={styles.downloadName}>Android App (APK)</Text>
+                                <Text style={styles.downloadDesc}>Download for Android devices</Text>
+                            </View>
+                            <Download color={Colors.primary} size={24} />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={[styles.downloadCard, { borderColor: Colors.primaryLight }]} activeOpacity={0.8}>
+                            <View style={[styles.downloadIcon, { backgroundColor: Colors.primaryLight }]}>
+                                <Globe color={Colors.white} size={24} />
+                            </View>
+                            <View style={styles.downloadInfo}>
+                                <Text style={styles.downloadName}>Web Application</Text>
+                                <Text style={styles.downloadDesc}>https://yourapp.vtfree.app</Text>
+                            </View>
+                            <Download color={Colors.primaryLight} size={24} />
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.downloadCard} activeOpacity={0.8}>
+                            <View style={[styles.downloadIcon, { backgroundColor: Colors.primary }]}>
+                                <Monitor color={Colors.white} size={24} />
+                            </View>
+                            <View style={styles.downloadInfo}>
+                                <Text style={styles.downloadName}>Admin Panel</Text>
+                                <Text style={styles.downloadDesc}>https://admin.yourapp.vtfree.app</Text>
+                            </View>
+                            <Download color={Colors.primary} size={24} />
+                        </TouchableOpacity>
+
+                        <View style={styles.actionButtons}>
+                            <TouchableOpacity
+                                style={styles.dashboardButton}
+                                onPress={() => router.push('/dashboard')}
+                                activeOpacity={0.8}
+                            >
+                                <LinearGradient
+                                    colors={[Colors.primary, Colors.primaryLight]}
+                                    style={styles.dashboardButtonGradient}
+                                >
+                                    <Text style={styles.dashboardButtonText}>Go to Dashboard</Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.buildAnotherButton}
+                                onPress={() => router.push('/create-app')}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.buildAnotherText}>Build Another</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.nextStepsCard}>
+                            <Text style={styles.nextStepsTitle}>Next Steps</Text>
+                            {[
+                                'Test your app thoroughly before distributing',
+                                'Set up your payment gateway credentials',
+                                'Configure your VTU API keys in the admin panel',
+                                'Share your app with customers'
+                            ].map((step, i) => (
+                                <View key={i} style={styles.stepItem}>
+                                    <CheckCircle color={Colors.primary} size={20} />
+                                    <Text style={styles.stepText}>{step}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    </Animated.View>
+                )}
+
+                <View style={{ height: 40 }} />
+            </ScrollView>
+        </View>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: Colors.background,
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        paddingTop: 48,
+        backgroundColor: Colors.white,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.gray[100],
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: Colors.text.primary,
+    },
+    content: {
+        flex: 1,
+    },
+    scrollContent: {
+        padding: 24,
+    },
+    statusIconContainer: {
+        alignItems: 'center',
+        marginBottom: 32,
+    },
+    buildingIcon: {
+        width: 128,
+        height: 128,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 24,
+    },
+    spinnerContainer: {
+        position: 'absolute',
+        width: 100,
+        height: 100,
+    },
+    rocketContainer: {
+        width: 128,
+        height: 128,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: Colors.white,
+        borderRadius: 64,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 5,
+    },
+    completeIcon: {
+        width: 128,
+        height: 128,
+        marginBottom: 24,
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 16,
+        elevation: 10,
+    },
+    completeGradient: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 64,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    statusTitle: {
+        fontSize: 24,
+        fontWeight: '700',
+        color: Colors.text.primary,
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    statusSubtitle: {
+        fontSize: 16,
+        color: Colors.gray[600],
+        textAlign: 'center',
+    },
+    card: {
+        backgroundColor: Colors.white,
+        borderRadius: 16,
+        padding: 24,
+        marginBottom: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    progressHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    cardLabel: {
+        fontSize: 16,
+        color: Colors.gray[700],
+        fontWeight: '500',
+    },
+    progressText: {
+        fontSize: 16,
+        color: Colors.primary,
+        fontWeight: '700',
+    },
+    progressBarBg: {
+        height: 12,
+        backgroundColor: Colors.gray[200],
+        borderRadius: 6,
+        overflow: 'hidden',
+    },
+    progressBarFill: {
+        height: '100%',
+        borderRadius: 6,
+    },
+    etaText: {
+        textAlign: 'center',
+        color: Colors.gray[500],
+        fontSize: 14,
+        marginTop: 16,
+    },
+    cardTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: Colors.text.primary,
+        marginBottom: 16,
+    },
+    phasesList: {
+        gap: 12,
+    },
+    phaseItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        padding: 12,
+        borderRadius: 12,
+    },
+    phaseCompleted: {
+        backgroundColor: Colors.primaryLighter,
+    },
+    phaseCurrent: {
+        backgroundColor: Colors.yellow[50],
+    },
+    phasePending: {
+        backgroundColor: Colors.gray[50],
+    },
+    phaseIcon: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    phaseIconCompleted: {
+        backgroundColor: Colors.primary,
+    },
+    phaseIconCurrent: {
+        backgroundColor: Colors.yellow[500],
+    },
+    phaseIconPending: {
+        backgroundColor: Colors.gray[300],
+    },
+    phaseSpinner: {
+        width: 16,
+        height: 16,
+        borderRadius: 8,
+        borderWidth: 2,
+        borderColor: Colors.white,
+        borderTopColor: 'transparent',
+    },
+    phaseNumber: {
+        color: Colors.white,
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    phaseLabel: {
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    textPrimary: {
+        color: Colors.text.primary,
+    },
+    textGray: {
+        color: Colors.gray[500],
+    },
+    downloadsSection: {
+        gap: 16,
+    },
+    downloadsTitle: {
+        fontSize: 20,
+        fontWeight: '600',
+        color: Colors.text.primary,
+        textAlign: 'center',
+        marginBottom: 16,
+    },
+    downloadCard: {
+        backgroundColor: Colors.white,
+        borderRadius: 16,
+        padding: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
+        borderWidth: 2,
+        borderColor: Colors.primary,
+    },
+    downloadIcon: {
+        width: 48,
+        height: 48,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    downloadInfo: {
+        flex: 1,
+    },
+    downloadName: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: Colors.text.primary,
+        marginBottom: 4,
+    },
+    downloadDesc: {
+        fontSize: 12,
+        color: Colors.gray[600],
+    },
+    actionButtons: {
+        flexDirection: 'row',
+        gap: 12,
+        marginTop: 16,
+    },
+    dashboardButton: {
+        flex: 1,
+        borderRadius: 12,
+        overflow: 'hidden',
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    dashboardButtonGradient: {
+        paddingVertical: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    dashboardButtonText: {
+        color: Colors.white,
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    buildAnotherButton: {
+        paddingHorizontal: 24,
+        paddingVertical: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Colors.primary,
+        backgroundColor: Colors.white,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    buildAnotherText: {
+        color: Colors.primary,
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    nextStepsCard: {
+        backgroundColor: Colors.primaryLighter,
+        borderRadius: 16,
+        padding: 20,
+        marginTop: 24,
+    },
+    nextStepsTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: Colors.text.primary,
+        marginBottom: 12,
+    },
+    stepItem: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 8,
+        marginBottom: 8,
+    },
+    stepText: {
+        flex: 1,
+        fontSize: 14,
+        color: Colors.gray[700],
+        lineHeight: 20,
+    },
+});
