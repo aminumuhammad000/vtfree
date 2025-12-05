@@ -3,7 +3,6 @@ import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
-import Divider from '@mui/material/Divider';
 import ButtonBase from '@mui/material/ButtonBase';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
@@ -53,7 +52,7 @@ const SignUp = () => {
         Sign Up
       </Typography>
       <Stack mt={6} spacing={2.5} width={1}>
-        <Button
+        {/* <Button
           variant="contained"
           color="secondary"
           size="large"
@@ -62,8 +61,8 @@ const SignUp = () => {
           sx={{ bgcolor: 'info.main', '&:hover': { bgcolor: 'info.main' } }}
         >
           Google
-        </Button>
-        <Button
+        </Button> */}
+        {/* <Button
           variant="contained"
           color="secondary"
           fullWidth
@@ -77,10 +76,10 @@ const SignUp = () => {
           sx={{ bgcolor: 'info.main', '&:hover': { bgcolor: 'info.main' } }}
         >
           Facebook
-        </Button>
+        </Button> */}
       </Stack>
 
-      <Divider sx={{ my: 4.5 }}>Or</Divider>
+      {/* <Divider sx={{ my: 4.5 }}>Or</Divider> */}
 
       <Box component="form" onSubmit={handleSubmit}>
         <TextField

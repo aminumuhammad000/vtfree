@@ -1,22 +1,22 @@
 export const rootPaths = {
   root: '/',
-  pageRoot: 'pages',
-  authRoot: 'auth',
+  pagesRoot: 'pages',
+  authRoot: 'authentication',
   errorRoot: 'error',
 };
 
 export default {
-  dashboard: `/`,
-  analytics: `/${rootPaths.pageRoot}/analytics`,
-  invoice: `/${rootPaths.pageRoot}/invoice`,
-  schedule: `/${rootPaths.pageRoot}/schedule`,
-  calendar: `/${rootPaths.pageRoot}/calendar`,
-  messages: `/${rootPaths.pageRoot}/messages`,
-  notification: `/${rootPaths.pageRoot}/notification`,
-  settings: `/${rootPaths.pageRoot}/settings`,
-
-  signin: `/${rootPaths.authRoot}/signin`,
-  signup: `/${rootPaths.authRoot}/signup`,
+  dashboard: rootPaths.root,
+  apps: `/${rootPaths.pagesRoot}/apps`,
+  users: `/${rootPaths.pagesRoot}/users`,
+  transactions: `/${rootPaths.pagesRoot}/transactions`,
+  payments: `/${rootPaths.pagesRoot}/payments`,
+  settings: `/${rootPaths.pagesRoot}/settings`,
+  profile: `/${rootPaths.pagesRoot}/profile`,
+  notifications: `/${rootPaths.pagesRoot}/notifications`,
+  help: `/${rootPaths.pagesRoot}/help`,
+  signin: `/${rootPaths.authRoot}/sign-in`,
+  signup: `/${rootPaths.authRoot}/sign-up`,
   resetPassword: `/${rootPaths.authRoot}/reset-password`,
   404: `/${rootPaths.errorRoot}/404`,
 };
