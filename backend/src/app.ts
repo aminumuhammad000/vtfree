@@ -13,7 +13,10 @@ import supportContentRoutes from "./routes/support_content.routes.js";
 import transactionsRoutes from "./routes/transactions.routes.js";
 import usersRoutes from "./routes/users.routes.js";
 import walletRoutes from "./routes/wallet.routes.js";
-
+import vtfreeAuthRoutes from "./routes/vtfree_auth.routes.js";
+import vtfreeAppRoutes from "./routes/vtfree_app.routes.js";
+import appAdminRoutes from "./routes/app_admin.routes.js";
+import superAdminRoutes from "./routes/super_admin.routes.js";
 
 
 // Import logging middleware
@@ -83,6 +86,12 @@ logger.info('🚀 VTU App Backend Starting...', {
   environment: process.env.NODE_ENV || 'development',
   nodeVersion: process.version
 });
+
+// VTfree Platform Routes
+app.use("/api/v1/vtfree/auth", vtfreeAuthRoutes);
+app.use("/api/v1/vtfree/apps", vtfreeAppRoutes);
+app.use("/api/v1/app-admin", appAdminRoutes);
+app.use("/api/v1/super-admin", superAdminRoutes);
 
 // Routes
 app.use("/api/auth", authRoutes);
