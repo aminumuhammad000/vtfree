@@ -68,13 +68,15 @@ export class UserController {
       const limit = parseInt(req.query.limit as string) || 10;
       const skip = (page - 1) * limit;
 
-      const users = await User.find()
+      const app_id = req.user?.app_id || 'default_app';
+
+      const users = await User.find({ app_id })
         .select('-password_hash')
         .skip(skip)
         .limit(limit)
         .sort({ created_at: -1 });
 
-      const total = await User.countDocuments();
+      const total = await User.countDocuments({ app_id });
 
       return ApiResponse.paginated(res, users, {
         page,

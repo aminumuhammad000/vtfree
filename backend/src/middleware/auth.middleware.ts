@@ -13,8 +13,14 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
       return ApiResponse.error(res, 'No token provided', 401);
     }
 
-    const decoded = jwt.verify(token, config.jwtSecret) as { id: string; role?: string };
-    req.user = decoded;
+    const decoded = jwt.verify(token, config.jwtSecret) as any;
+    req.user = {
+      id: decoded.user_id || decoded.id,
+      email: decoded.email,
+      role: decoded.role,
+      app_id: decoded.app_id,
+      type: decoded.type
+    };
     next();
   } catch (error) {
     return ApiResponse.error(res, 'Invalid token', 401);
@@ -24,16 +30,39 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
 // Alias for compatibility
 export const authenticate = authMiddleware;
 
+export const authenticateVTfreeUser = (req: AuthRequest, res: Response, next: NextFunction) => {
+  authMiddleware(req, res, () => {
+    if (req.user?.type === 'vtfree_user') {
+      next();
+    } else {
+      return ApiResponse.error(res, 'Unauthorized: VTfree User access required', 403);
+    }
+  });
+};
+
+export const authenticateAppAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
+  authMiddleware(req, res, () => {
+    if (req.user?.type === 'app_admin') {
+      next();
+    } else {
+      return ApiResponse.error(res, 'Unauthorized: App Admin access required', 403);
+    }
+  });
+};
+
+export const authenticateSuperAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
+  authMiddleware(req, res, () => {
+    if (req.user?.type === 'super_admin') {
+      next();
+    } else {
+      return ApiResponse.error(res, 'Unauthorized: Super Admin access required', 403);
+    }
+  });
+};
+
 export const authorize = (roles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user || (req.user.role && !roles.includes(req.user.role))) {
-      // If role is present but not in allowed list
-      return ApiResponse.error(res, 'Unauthorized access', 403);
-    }
-    // If no role in token, we might want to fetch user to check role, 
-    // but for now let's assume token has role or we proceed if we can't check.
-    // Better: if no role in token, assume unauthorized if roles are required.
-    if (!req.user || !req.user.role || !roles.includes(req.user.role)) {
       return ApiResponse.error(res, 'Unauthorized access', 403);
     }
     next();
