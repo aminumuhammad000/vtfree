@@ -173,3 +173,5 @@
 2025-11-26 12:32:46 [ERROR]: SMEPlug getWalletBalance error: 
 {"level":"error","message":"TopupMate API Response Error:","timestamp":"2025-11-26 12:33:06"}
 {"level":"error","message":"TopupMate getWalletBalance error:","timestamp":"2025-11-26 12:33:06"}
+{"duration":"138ms","ip":"127.0.0.1","level":"error","message":"📤 Response Error","method":"POST","statusCode":500,"timestamp":"2025-12-05 13:37:08","url":"/api/v1/vtfree/apps/create","userId":"6932d1f31e8c28d903391491"}
+{"duration":"116ms","ip":"127.0.0.1","level":"error","message":"📤 Response Error","method":"POST","statusCode":500,"timestamp":"2025-12-05 13:37:56","url":"/api/v1/vtfree/apps/create","userId":"6932d2241e8c28d903391496"}
