@@ -229,10 +229,37 @@ const columns: GridColDef<(typeof rows)[number]>[] = [
 
 interface TaskOverviewTableProps {
   searchText: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data?: any[];
 }
 
-const DataTable = ({ searchText }: TaskOverviewTableProps) => {
+interface TransactionItem {
+  reference_number: string;
+  _id: string;
+  type: string;
+  amount: number;
+  status: string;
+  total_charged: number;
+}
+
+const DataTable = ({ searchText, data }: TaskOverviewTableProps) => {
   const apiRef = useGridApiRef<GridApi>();
+
+  const rows =
+    data?.map((item: TransactionItem) => ({
+      id: item.reference_number || item._id,
+      product: {
+        name: item.type,
+        image: 'https://via.placeholder.com/30', // Placeholder for now
+      },
+      price: item.amount,
+      inStock: 1, // Not applicable for transactions
+      totalOrder: 1,
+      pending: item.status === 'pending' ? 1 : 0,
+      canceled: item.status === 'failed' ? 1 : 0,
+      delevered: item.status === 'successful' ? 1 : 0,
+      balance: item.total_charged,
+    })) || [];
 
   useEffect(() => {
     apiRef.current.setQuickFilterValues(
