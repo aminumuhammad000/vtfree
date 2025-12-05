@@ -9,11 +9,11 @@ export interface SubMenuItem {
 }
 
 export interface MenuItem {
-  id: string;
-  subheader: string;
-  path: string;
+  id: string | number;
+  subheader?: string;
+  path?: string;
+  name?: string;
   icon?: string;
-  avatar?: string;
   active?: boolean;
   items?: SubMenuItem[];
   messages?: number;
@@ -23,66 +23,38 @@ const sitemap: MenuItem[] = [
   {
     id: 'dashboard',
     subheader: 'Dashboard',
-    path: '/',
+    path: paths.dashboard,
     icon: 'solar:widget-bold',
-    active: true,
   },
   {
-    id: 'analytics',
-    subheader: 'Analytics',
-    path: '#!',
-    icon: 'solar:chart-square-bold',
+    id: 'payment',
+    name: 'Payment',
+    path: paths.payments,
+    icon: 'solar:card-bold',
   },
   {
-    id: 'invoice',
-    subheader: 'Invoice',
-    path: '#!',
-    icon: 'solar:ticket-bold',
+    id: 'transactions',
+    name: 'Transactions',
+    path: paths.transactions,
+    icon: 'solar:bill-list-bold',
   },
   {
-    id: 'schedule',
-    subheader: 'Schedule',
-    path: '#!',
-    icon: 'solar:document-text-bold',
+    id: 'apps',
+    name: 'Apps',
+    path: paths.apps,
+    icon: 'solar:smartphone-bold',
   },
   {
-    id: 'calendar',
-    subheader: 'Calendar',
-    path: '#!',
-    icon: 'mage:calendar-2-fill',
-  },
-  {
-    id: 'messages',
-    subheader: 'Messages',
-    path: '#!',
-    icon: 'mage:dashboard-chart-fill',
-    messages: 49,
-  },
-  {
-    id: 'notification',
-    subheader: 'Notification',
-    path: '#!',
-    icon: 'solar:bell-bold',
+    id: 'users',
+    name: 'Users',
+    path: paths.users,
+    icon: 'solar:users-group-rounded-bold',
   },
   {
     id: 'settings',
-    subheader: 'Settings',
-    path: '#!',
+    name: 'Settings',
+    path: paths.settings,
     icon: 'solar:settings-bold',
-  },
-  {
-    id: 'signin',
-    subheader: 'Sign In',
-    path: paths.signin,
-    icon: 'mage:lock-fill',
-    active: true,
-  },
-  {
-    id: 'signup',
-    subheader: 'Sign Up',
-    path: paths.signup,
-    icon: 'mage:user-plus-fill',
-    active: true,
   },
 ];
 

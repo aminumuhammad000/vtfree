@@ -4,7 +4,6 @@ import List from '@mui/material/List';
 import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Badge from '@mui/material/Badge';
-import Button from '@mui/material/Button';
 import ListItem from '@mui/material/ListItem';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
@@ -15,15 +14,19 @@ import ListItemButton from '@mui/material/ListItemButton';
 import IconifyIcon from 'components/base/IconifyIcon';
 import Image from 'components/base/Image';
 import sitemap from 'routes/sitemap';
-import Logo from 'assets/images/Logo.png';
 import Profile from 'assets/images/Profile.png';
-import DrawerCardImg from 'assets/images/lighting.png';
+import Logo from 'assets/images/Logo.png';
+import { useAuth } from 'contexts/AuthContext';
+import { useLocation } from 'react-router-dom';
 
 interface DrawerItemsProps {
   expand: boolean;
 }
 
 const DrawerItems = ({ expand }: DrawerItemsProps) => {
+  const { user, logout } = useAuth();
+  const location = useLocation();
+
   return (
     <>
       <Stack
@@ -43,120 +46,90 @@ const DrawerItems = ({ expand }: DrawerItemsProps) => {
             justifyContent="center"
           >
             <Image src={Logo} alt="logo" height={44} width={44} />
-            <Typography variant="h4" letterSpacing={1} fontWeight={600}>
-              Base
-            </Typography>
           </Stack>
         </ButtonBase>
       </Stack>
 
       <List component="nav" sx={{ mb: 30, pt: 1.5 }}>
-        {sitemap.map((item) => (
-          <ListItem key={item.id} disablePadding>
-            <ListItemButton
-              LinkComponent={Link}
-              href={item.path}
-              sx={(theme) => ({
-                minHeight: 48,
-                background:
-                  item.active && item.path === '/'
+        {sitemap.map((item) => {
+          const active = item.path ? location.pathname === item.path : false;
+          return (
+            <ListItem key={item.id} disablePadding>
+              <ListItemButton
+                LinkComponent={Link}
+                href={item.path || '#'}
+                sx={(theme) => ({
+                  minHeight: 48,
+                  background: active
                     ? `linear-gradient(90deg, ${theme.palette.gradients.secondary.main} 0%, ${theme.palette.gradients.secondary.state} ${expand ? '22.5%' : '62%'})`
                     : 'info.lighter',
-              })}
-            >
-              <ListItemIcon sx={{ width: 48 }}>
-                {item.icon &&
-                  (item.messages ? (
-                    <Badge
-                      variant="dot"
-                      sx={(theme) => ({
-                        '& .MuiBadge-badge': {
-                          top: 4,
-                          right: 3,
-                          border: 2,
-                          borderColor: theme.palette.info.lighter,
-                          bgcolor: expand ? 'text.disabled' : 'error.dark',
-                        },
-                      })}
-                    >
+                })}
+              >
+                <ListItemIcon sx={{ width: 48 }}>
+                  {item.icon &&
+                    (item.messages ? (
+                      <Badge
+                        variant="dot"
+                        sx={(theme) => ({
+                          '& .MuiBadge-badge': {
+                            top: 4,
+                            right: 3,
+                            border: 2,
+                            borderColor: theme.palette.info.lighter,
+                            bgcolor: expand ? 'text.disabled' : 'error.dark',
+                          },
+                        })}
+                      >
+                        <IconifyIcon
+                          icon={item.icon}
+                          color={active ? 'primary.main' : 'text.disabled'}
+                        />
+                      </Badge>
+                    ) : (
                       <IconifyIcon
                         icon={item.icon}
-                        color={item.active ? 'primary.main' : 'text.disabled'}
+                        color={active ? 'primary.main' : 'text.disabled'}
                       />
-                    </Badge>
-                  ) : (
-                    <IconifyIcon
-                      icon={item.icon}
-                      color={item.active ? 'primary.main' : 'text.disabled'}
-                    />
-                  ))}
-              </ListItemIcon>
+                    ))}
+                </ListItemIcon>
 
-              <ListItemText
-                primary={item.subheader}
-                sx={[
-                  expand
-                    ? {
-                        opacity: 1,
-                      }
-                    : {
-                        opacity: 0,
+                <ListItemText
+                  primary={item.subheader || item.name}
+                  sx={[
+                    expand
+                      ? {
+                          opacity: 1,
+                        }
+                      : {
+                          opacity: 0,
+                        },
+                    {
+                      '& .MuiListItemText-primary': {
+                        color: active ? 'primary.main' : 'text.disabled',
                       },
-                  {
-                    '& .MuiListItemText-primary': {
-                      color: item.active ? 'primary.main' : 'text.disabled',
                     },
-                  },
-                ]}
-              />
-              {item.messages && (
-                <Chip
-                  label={item.messages}
-                  color="error"
-                  size="small"
-                  sx={{
-                    minWidth: 32,
-                    height: 24,
-                    opacity: expand ? 1 : 0,
-                    transition: 'opacity 0.3s ease',
-                  }}
+                  ]}
                 />
-              )}
-            </ListItemButton>
-          </ListItem>
-        ))}
+                {item.messages && (
+                  <Chip
+                    label={item.messages}
+                    color="error"
+                    size="small"
+                    sx={{
+                      minWidth: 32,
+                      height: 24,
+                      opacity: expand ? 1 : 0,
+                      transition: 'opacity 0.3s ease',
+                    }}
+                  />
+                )}
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
       </List>
 
       <Box mt="auto" px={2.35} pb={5}>
-        <Stack
-          position="relative"
-          mt="auto"
-          mb={4}
-          width={1}
-          height="auto"
-          display={expand ? 'block' : 'none'}
-          sx={{ userSelect: 'none' }}
-        >
-          <Image
-            src={DrawerCardImg}
-            height={1}
-            width={1}
-            sx={{ objectFit: 'cover' }}
-          />
-
-          <Stack
-            position="absolute"
-            bottom={24}
-            width={1}
-            px={2}
-            justifyContent="center"
-          >
-            <Button variant="contained" fullWidth>
-              Upgrade Now
-            </Button>
-          </Stack>
-        </Stack>
-
         <Stack
           spacing={expand ? 1 : 2}
           direction={expand ? 'row' : 'column'}
@@ -177,7 +150,7 @@ const DrawerItems = ({ expand }: DrawerItemsProps) => {
                 color="text.primary"
                 fontWeight={700}
               >
-                Easin Arafat
+                {user?.name || 'Super Admin'}
               </Typography>
               <Typography
                 mt={-0.5}
@@ -185,12 +158,12 @@ const DrawerItems = ({ expand }: DrawerItemsProps) => {
                 color="text.disabled"
                 fontWeight={400}
               >
-                Free Account
+                {user?.email}
               </Typography>
             </Box>
           </Stack>
 
-          <IconButton LinkComponent={Link} href="#!">
+          <IconButton onClick={logout}>
             <IconifyIcon icon="majesticons:logout" color="text.disabled" />
           </IconButton>
         </Stack>
