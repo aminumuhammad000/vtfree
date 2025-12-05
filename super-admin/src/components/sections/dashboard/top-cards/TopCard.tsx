@@ -19,7 +19,11 @@ const TopCard = ({ data }: TopCardProps) => {
         bgcolor={data.iconBg}
         borderRadius="50%"
       >
-        <IconifyIcon icon={data.icon} fontSize="h4.fontSize" color={data.iconColor} />
+        <IconifyIcon
+          icon={data.icon}
+          fontSize="h4.fontSize"
+          color={data.iconColor}
+        />
       </Stack>
 
       <div>

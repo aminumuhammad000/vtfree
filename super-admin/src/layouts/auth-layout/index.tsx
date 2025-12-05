@@ -29,7 +29,10 @@ const AuthLayout = ({ children }: PropsWithChildren) => {
         direction="column"
         display={{ xs: 'none', lg: 'flex' }}
       >
-        <Image src={pathname === 'signin' ? SignInImage : SignUpImage} height="55%" />
+        <Image
+          src={pathname === 'signin' ? SignInImage : SignUpImage}
+          height="55%"
+        />
       </Stack>
     </Stack>
   );

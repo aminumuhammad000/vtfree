@@ -42,7 +42,13 @@ const ResetPassword = () => {
         <Typography mt={6} variant="h3" fontWeight={600}>
           Recover
         </Typography>
-        <Box mt={8} width={1} maxWidth={480} component="form" onSubmit={handleSubmit}>
+        <Box
+          mt={8}
+          width={1}
+          maxWidth={480}
+          component="form"
+          onSubmit={handleSubmit}
+        >
           <TextField
             id="email"
             name="email"
@@ -59,7 +65,13 @@ const ResetPassword = () => {
             autoFocus
             required
           />
-          <Button type="submit" variant="contained" size="large" sx={{ mt: 3 }} fullWidth>
+          <Button
+            type="submit"
+            variant="contained"
+            size="large"
+            sx={{ mt: 3 }}
+            fullWidth
+          >
             Reset Your Password
           </Button>
         </Box>

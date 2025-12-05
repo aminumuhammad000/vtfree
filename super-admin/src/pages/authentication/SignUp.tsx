@@ -21,7 +21,12 @@ interface User {
 }
 
 const SignUp = () => {
-  const [user, setUser] = useState<User>({ name: '', email: '', username: '', password: '' });
+  const [user, setUser] = useState<User>({
+    name: '',
+    email: '',
+    username: '',
+    password: '',
+  });
   const [showPassword, setShowPassword] = useState(false);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -34,7 +39,13 @@ const SignUp = () => {
   };
 
   return (
-    <Stack mx="auto" direction="column" alignItems="center" width={1} maxWidth={450}>
+    <Stack
+      mx="auto"
+      direction="column"
+      alignItems="center"
+      width={1}
+      maxWidth={450}
+    >
       <ButtonBase LinkComponent={Link} href="/" sx={{ mt: 6 }} disableRipple>
         <Image src={Logo} alt="logo" height={92} width={92} />
       </ButtonBase>
@@ -56,7 +67,13 @@ const SignUp = () => {
           variant="contained"
           color="secondary"
           fullWidth
-          startIcon={<IconifyIcon icon="mage:facebook" color="secondary.dark" sx={{ mr: -0.75 }} />}
+          startIcon={
+            <IconifyIcon
+              icon="mage:facebook"
+              color="secondary.dark"
+              sx={{ mr: -0.75 }}
+            />
+          }
           sx={{ bgcolor: 'info.main', '&:hover': { bgcolor: 'info.main' } }}
         >
           Facebook
@@ -143,7 +160,9 @@ const SignUp = () => {
                   edge="end"
                 >
                   <IconifyIcon
-                    icon={showPassword ? 'mdi:visibility' : 'mdi:visibility-off'}
+                    icon={
+                      showPassword ? 'mdi:visibility' : 'mdi:visibility-off'
+                    }
                     color="neutral.main"
                   />
                 </IconButton>
@@ -153,7 +172,14 @@ const SignUp = () => {
         />
 
         <FormControlLabel
-          control={<Checkbox id="checkbox" name="checkbox" size="large" color="primary" />}
+          control={
+            <Checkbox
+              id="checkbox"
+              name="checkbox"
+              size="large"
+              color="primary"
+            />
+          }
           label={
             <Typography variant="body1">
               By creating an account you agree to the{' '}
@@ -175,7 +201,13 @@ const SignUp = () => {
           }}
         />
 
-        <Button type="submit" variant="contained" size="large" sx={{ mt: 3 }} fullWidth>
+        <Button
+          type="submit"
+          variant="contained"
+          size="large"
+          sx={{ mt: 3 }}
+          fullWidth
+        >
           Create account
         </Button>
       </Box>

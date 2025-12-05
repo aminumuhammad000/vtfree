@@ -41,7 +41,7 @@ const TopSelling = () => {
         {topProductsData.slice(0, 2).map((item, index) => (
           <React.Fragment key={item.id}>
             <ProductCard data={item} />
-            {index !== 1 && <Divider  />}
+            {index !== 1 && <Divider />}
           </React.Fragment>
         ))}
       </Box>

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { SxProps, useTheme } from '@mui/material';
 import * as echarts from 'echarts/core';
 import ReactEchart from 'components/base/ReactEchart';
@@ -29,7 +29,7 @@ interface ClientChartProps {
 
 const ReportsChart = ({ data, ...rest }: ClientChartProps) => {
   const theme = useTheme();
-  let isTopOffset: boolean;
+  const isTopOffsetRef = useRef(false);
 
   const option = useMemo(
     () => ({
@@ -74,17 +74,19 @@ const ReportsChart = ({ data, ...rest }: ClientChartProps) => {
           const bottomOffset = y + 20;
 
           if (topOffset > 0) {
-            isTopOffset = true;
+            isTopOffsetRef.current = true;
             return [x - size.contentSize[0] / 2, topOffset];
           } else {
-            isTopOffset = false;
+            isTopOffsetRef.current = false;
             return [x - size.contentSize[0] / 2, bottomOffset];
           }
         },
         formatter: (params: Array<{ data: number }>) => {
           if (Array.isArray(params)) {
             const dataValue = Math.round(params[0].data);
-            const arrowPosition = isTopOffset ? 'bottom:-14px;' : 'top:-14px;';
+            const arrowPosition = isTopOffsetRef.current
+              ? 'bottom:-14px;'
+              : 'top:-14px;';
             return `<div style="position:relative; border-radius:10px;">
               <p style="font-size:${theme.typography.caption.fontSize}; font-weight:400; text-align:center;">Sales</p>
               <p style="font-size:${theme.typography.body2.fontSize}; font-weight:600; text-align:center;">${formatNumber(dataValue)}</p>
