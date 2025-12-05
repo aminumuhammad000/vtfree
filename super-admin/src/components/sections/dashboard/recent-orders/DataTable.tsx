@@ -55,7 +55,12 @@ const columns: GridColDef<(typeof rows)[number]>[] = [
     },
     renderCell: (params) => {
       return (
-        <Stack height={1} spacing={1.5} alignItems="center" justifyContent="flex-start">
+        <Stack
+          height={1}
+          spacing={1.5}
+          alignItems="center"
+          justifyContent="flex-start"
+        >
           <Image
             src={params.row.product.image}
             height={30}
@@ -104,8 +109,18 @@ const columns: GridColDef<(typeof rows)[number]>[] = [
     flex: 2,
     minWidth: 140,
     renderCell: (params) => (
-      <Stack direction="column" alignItems="flex-start" justifyContent="center" height={1}>
-        <Chip label={params.value} size="small" color="secondary" sx={{ borderRadius: 1.75 }} />
+      <Stack
+        direction="column"
+        alignItems="flex-start"
+        justifyContent="center"
+        height={1}
+      >
+        <Chip
+          label={params.value}
+          size="small"
+          color="secondary"
+          sx={{ borderRadius: 1.75 }}
+        />
       </Stack>
     ),
   },
@@ -118,8 +133,18 @@ const columns: GridColDef<(typeof rows)[number]>[] = [
     flex: 1,
     minWidth: 140,
     renderCell: (params) => (
-      <Stack direction="column" alignItems="flex-start" justifyContent="center" height={1}>
-        <Chip label={params.value} size="small" color="warning" sx={{ borderRadius: 1.75 }} />
+      <Stack
+        direction="column"
+        alignItems="flex-start"
+        justifyContent="center"
+        height={1}
+      >
+        <Chip
+          label={params.value}
+          size="small"
+          color="warning"
+          sx={{ borderRadius: 1.75 }}
+        />
       </Stack>
     ),
   },
@@ -132,8 +157,18 @@ const columns: GridColDef<(typeof rows)[number]>[] = [
     flex: 1,
     minWidth: 140,
     renderCell: (params) => (
-      <Stack direction="column" alignItems="flex-start" justifyContent="center" height={1}>
-        <Chip label={params.value} size="small" color="error" sx={{ borderRadius: 1.75 }} />
+      <Stack
+        direction="column"
+        alignItems="flex-start"
+        justifyContent="center"
+        height={1}
+      >
+        <Chip
+          label={params.value}
+          size="small"
+          color="error"
+          sx={{ borderRadius: 1.75 }}
+        />
       </Stack>
     ),
   },
@@ -146,8 +181,18 @@ const columns: GridColDef<(typeof rows)[number]>[] = [
     flex: 1,
     minWidth: 140,
     renderCell: (params) => (
-      <Stack direction="column" alignItems="flex-start" justifyContent="center" height={1}>
-        <Chip label={params.value} size="small" color="success" sx={{ borderRadius: 1.75 }} />
+      <Stack
+        direction="column"
+        alignItems="flex-start"
+        justifyContent="center"
+        height={1}
+      >
+        <Chip
+          label={params.value}
+          size="small"
+          color="success"
+          sx={{ borderRadius: 1.75 }}
+        />
       </Stack>
     ),
   },
@@ -190,8 +235,10 @@ const DataTable = ({ searchText }: TaskOverviewTableProps) => {
   const apiRef = useGridApiRef<GridApi>();
 
   useEffect(() => {
-    apiRef.current.setQuickFilterValues(searchText.split(/\b\W+\b/).filter((word) => word !== ''));
-  }, [searchText]);
+    apiRef.current.setQuickFilterValues(
+      searchText.split(/\b\W+\b/).filter((word) => word !== ''),
+    );
+  }, [searchText, apiRef]);
 
   return (
     <DataGrid

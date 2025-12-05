@@ -35,7 +35,11 @@ const ActionMenu = ({ actions }: ActionMenuProps) => {
 
   return (
     <>
-      <IconButton onClick={handleActionButtonClick} size="small" sx={{ zIndex: 1000 }}>
+      <IconButton
+        onClick={handleActionButtonClick}
+        size="small"
+        sx={{ zIndex: 1000 }}
+      >
         <IconifyIcon icon="solar:menu-dots-bold" color="neutral.dark" />
       </IconButton>
       <Menu

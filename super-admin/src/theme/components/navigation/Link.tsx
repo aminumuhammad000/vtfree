@@ -1,6 +1,9 @@
 import { Theme } from '@mui/material';
 import { Components } from '@mui/material/styles/components';
-import { Link as RouterLink, LinkProps as RouterLinkProps } from 'react-router-dom';
+import {
+  Link as RouterLink,
+  LinkProps as RouterLinkProps,
+} from 'react-router-dom';
 import { forwardRef } from 'react';
 
 const LinkBehavior = forwardRef<

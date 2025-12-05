@@ -48,7 +48,12 @@ const AnalyticsData = [
 const Analytics = () => {
   return (
     <Paper sx={{ px: 0, height: 410 }}>
-      <Stack mt={-0.5} px={3.75} alignItems="center" justifyContent="space-between">
+      <Stack
+        mt={-0.5}
+        px={3.75}
+        alignItems="center"
+        justifyContent="space-between"
+      >
         <Typography variant="h6" color="text.secondary" zIndex={1000}>
           Analytics
         </Typography>
@@ -56,7 +61,10 @@ const Analytics = () => {
         <ActionMenu actions={actions} />
       </Stack>
 
-      <AnalyticsChart data={AnalyticsData} sx={{ mt: -5.5, mx: 'auto', width: 300, height: '370px !important' }} />
+      <AnalyticsChart
+        data={AnalyticsData}
+        sx={{ mt: -5.5, mx: 'auto', width: 300, height: '370px !important' }}
+      />
     </Paper>
   );
 };
