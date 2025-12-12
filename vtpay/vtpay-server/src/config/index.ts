@@ -26,6 +26,11 @@ export const config = {
 
     // Webhook
     webhookBaseUrl: process.env.WEBHOOK_BASE_URL || '',
+
+    // App
+    app: {
+        url: process.env.APP_URL || 'http://localhost:5173',
+    },
 };
 
 export default config;

@@ -10,6 +10,7 @@ export interface ITransactionDocument extends Document {
     balanceBefore: number;
     balanceAfter: number;
     reference: string;
+    customerReference?: string;
     externalRef?: string;
     narration: string;
     status: 'pending' | 'success' | 'failed';
@@ -61,6 +62,10 @@ const TransactionSchema = new Schema<ITransactionDocument>(
             type: String,
             required: true,
             unique: true,
+        },
+        customerReference: {
+            type: String,
+            index: true,
         },
         externalRef: {
             type: String,

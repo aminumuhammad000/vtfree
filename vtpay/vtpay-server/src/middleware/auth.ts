@@ -20,11 +20,40 @@ export const authenticate = async (
 ): Promise<void> => {
     try {
         const authHeader = req.headers.authorization;
+        const apiKey = req.headers['x-api-key'] as string;
 
+        // 1. Check for API Key first
+        if (apiKey) {
+            const user = await User.findOne({ apiKey });
+            if (!user) {
+                res.status(401).json({
+                    success: false,
+                    message: 'Invalid API Key',
+                });
+                return;
+            }
+
+            if (user.status !== 'active') {
+                res.status(403).json({
+                    success: false,
+                    message: 'Account is not active',
+                });
+                return;
+            }
+
+            req.user = {
+                id: user._id.toString(),
+                email: user.email,
+            };
+            next();
+            return;
+        }
+
+        // 2. Check for Bearer Token
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             res.status(401).json({
                 success: false,
-                message: 'No token provided',
+                message: 'No token or API key provided',
             });
             return;
         }
