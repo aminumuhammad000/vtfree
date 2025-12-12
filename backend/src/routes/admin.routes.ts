@@ -3,9 +3,14 @@ import { AdminController } from '../controllers/admin.controller.js';
 import AdminFundingController from '../controllers/admin_funding.controller.js';
 import AdminPricingController from '../controllers/admin_pricing.controller.js';
 import AdminProviderController from '../controllers/admin_provider.controller.js';
+import { PayoutController } from '../controllers/payout.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
+import configRoutes from './config.routes.js';
 
 const router = Router();
+
+// System Config management
+router.use('/config', configRoutes);
 
 // Admin routes
 router.post('/login', AdminController.login);
@@ -79,5 +84,12 @@ router.post('/notifications/broadcast', authMiddleware, async (req, res) => {
     const { NotificationController } = await import('../controllers/notification.controller.js');
     return NotificationController.sendBroadcastNotification(req, res);
 });
+
+// Payout/VTPay routes
+router.get('/payout/banks', authMiddleware, PayoutController.getBanksList);
+router.post('/payout/validate-account', authMiddleware, PayoutController.validateAccount);
+router.get('/payout/balance', authMiddleware, PayoutController.getVTPayBalance);
+
+
 
 export default router;

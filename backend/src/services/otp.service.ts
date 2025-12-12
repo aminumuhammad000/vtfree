@@ -20,7 +20,11 @@ export class OTPService {
       is_used: false
     });
 
-    // TODO: Send OTP via SMS/Email service
+    if (email) {
+      const { EmailService } = await import('./email.service.js');
+      await EmailService.sendOTP(email, otp_code);
+    }
+
     return otp_code;
   }
 

@@ -76,6 +76,12 @@ interface VerifyTransactionResponse {
   message?: string;
 }
 
+import { configService } from './config.service.js';
+
+// ... (keep existing imports)
+
+// ... (keep interfaces)
+
 export class PayrantService {
   private config: PayrantConfig;
   private axiosInstance: AxiosInstance;
@@ -103,9 +109,10 @@ export class PayrantService {
     try {
       const provider: any = await ProviderConfig.findOne({ code: 'payrant' });
       const metaEnv = (provider?.metadata as any)?.env || {};
-      const apiKey = provider?.api_key || metaEnv.PAYRANT_API_KEY || process.env.PAYRANT_API_KEY || '';
-      const webhookSecret = provider?.secret_key || metaEnv.PAYRANT_WEBHOOK_SECRET || process.env.PAYRANT_WEBHOOK_SECRET || '';
-      const baseUrl = provider?.base_url || metaEnv.PAYRANT_BASE_URL || process.env.PAYRANT_BASE_URL || 'https://api-core.payrant.com';
+
+      const apiKey = provider?.api_key || metaEnv.PAYRANT_API_KEY || await configService.get('PAYRANT_API_KEY') || process.env.PAYRANT_API_KEY || '';
+      const webhookSecret = provider?.secret_key || metaEnv.PAYRANT_WEBHOOK_SECRET || await configService.get('PAYRANT_WEBHOOK_SECRET') || process.env.PAYRANT_WEBHOOK_SECRET || '';
+      const baseUrl = provider?.base_url || metaEnv.PAYRANT_BASE_URL || await configService.get('PAYRANT_BASE_URL') || process.env.PAYRANT_BASE_URL || 'https://api-core.payrant.com';
 
       this.config = { apiKey, webhookSecret, baseUrl };
       this.axiosInstance.defaults.baseURL = baseUrl;
@@ -129,9 +136,9 @@ export class PayrantService {
   private readonly MAX_RETRIES = 3;
   private readonly INITIAL_RETRY_DELAY = 1000; // 1 second
 
-  async createVirtualAccount(data: CreateVirtualAccountData, userId?: string): Promise<VirtualAccountResponse> {
+  async createVirtualAccount(data: CreateVirtualAccountData, userId?: string, forceRecreate: boolean = false): Promise<VirtualAccountResponse> {
     await this.ensureConfig();
-    if (userId) {
+    if (userId && !forceRecreate) {
       const VirtualAccount = (await import('../models/VirtualAccount.js')).default;
       const existingAccount = await VirtualAccount.findOne({ user: userId, provider: 'payrant' });
       if (existingAccount) {
@@ -156,7 +163,7 @@ export class PayrantService {
       try {
         attempt++;
         console.log(`🏦 Attempt ${attempt}/${this.MAX_RETRIES}: Creating Payrant virtual account for:`, data.email);
-        
+
         // Validate document type
         if (!['nin', 'bvn'].includes(data.documentType.toLowerCase())) {
           throw new Error('Invalid document type. Must be either NIN or BVN');
@@ -173,16 +180,19 @@ export class PayrantService {
 
         const url = `${this.config.baseUrl}/palmpay/`;
         console.log(`🌐 Sending request to: ${url}`);
-        
+
         // Prepare request data with webhook URL
         const requestData = {
           ...data,
-          webhookUrl: data.webhookUrl || `${process.env.BACKEND_URL || 'https://vtuapp-production.up.railway.app'}/api/payment/webhook/payrant`
+          webhookUrl: data.webhookUrl || `${process.env.BACKEND_URL || 'https://api.ibdata.com.ng'}/api/payment/webhook/payrant`
         };
-        
+
         console.log(`🔔 Webhook URL configured: ${requestData.webhookUrl}`);
-        
+
         // Make the API request with timeout and retry logic
+        console.log('📤 Request Payload:', JSON.stringify(requestData, null, 2));
+        console.log('🔑 Authorization Header:', `Bearer ${this.config.apiKey.substring(0, 10)}...`);
+
         const response = await this.axiosInstance.post<VirtualAccountResponse>(
           '/palmpay/',  // Updated endpoint path to match documentation
           requestData,
@@ -243,7 +253,7 @@ export class PayrantService {
 
       } catch (error: any) {
         lastError = error;
-        
+
         // Log the error with attempt number
         console.error(`❌ Attempt ${attempt} failed:`, {
           message: error.message,
@@ -278,7 +288,7 @@ export class PayrantService {
   private async saveVirtualAccountToDatabase(userId: string, virtualAccountDetails: any) {
     try {
       const VirtualAccount = (await import('../models/VirtualAccount.js')).default;
-      
+
       const account = await VirtualAccount.findOneAndUpdate(
         { user: userId, provider: 'payrant' },
         {
@@ -287,13 +297,13 @@ export class PayrantService {
           $setOnInsert: { createdAt: new Date() },
           updatedAt: new Date()
         },
-        { 
-          upsert: true, 
+        {
+          upsert: true,
           new: true,
           setDefaultsOnInsert: true
         }
       );
-      
+
       console.log('💾 Virtual account saved to database:', account);
       return account;
     } catch (dbError: any) {
@@ -324,7 +334,7 @@ export class PayrantService {
         email: data.email,
         amount: data.amount,
         callback_url: data.callback_url || `${process.env.FRONTEND_URL}/payment/callback`,
-        webhook_url: data.webhook_url || `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/payment/payrant/webhook`,
+        webhook_url: data.webhook_url || `${process.env.BACKEND_URL || 'https://api.ibdata.com.ng'}/api/payment/payrant/webhook`,
         metadata: data.metadata || {},
       };
 
@@ -414,7 +424,11 @@ export class PayrantService {
       if (maybePromise && typeof (maybePromise as any).then === 'function') {
         // We intentionally do not await in a sync verifier; config may already be set from env.
       }
-      if (!this.config.webhookSecret) {
+
+      // Try to get secret from loaded config, or sync config service, or env
+      const webhookSecret = this.config.webhookSecret || configService.getSync('PAYRANT_WEBHOOK_SECRET') || process.env.PAYRANT_WEBHOOK_SECRET;
+
+      if (!webhookSecret) {
         console.error('❌ Webhook secret is not configured');
         return false;
       }
@@ -425,18 +439,25 @@ export class PayrantService {
       }
 
       // Convert payload to string if it's an object
-      const payloadString = typeof payload === 'string' 
-        ? payload 
+      const payloadString = typeof payload === 'string'
+        ? payload
         : JSON.stringify(payload);
 
       // Create HMAC SHA256 hash
-      const hmac = crypto.createHmac('sha256', this.config.webhookSecret);
+      const hmac = crypto.createHmac('sha256', webhookSecret);
       const computedSignature = hmac.update(payloadString).digest('hex');
 
       // Compare the signatures in a timing-safe manner
+      const signatureBuffer = Buffer.from(signature);
+      const computedBuffer = Buffer.from(computedSignature);
+
+      if (signatureBuffer.length !== computedBuffer.length) {
+        return false;
+      }
+
       const isValid = crypto.timingSafeEqual(
-        Buffer.from(signature),
-        Buffer.from(computedSignature)
+        signatureBuffer,
+        computedBuffer
       );
 
       if (!isValid) {
@@ -536,7 +557,7 @@ export class PayrantService {
 
       const response = await this.axiosInstance.post('/payout/transfer', {
         ...data,
-        notify_url: data.notify_url || `${process.env.BACKEND_URL || 'http://192.168.43.204:5000'}/api/payment/payrant/transfer-webhook`,
+        notify_url: data.notify_url || `${process.env.BACKEND_URL || 'https://api.ibdata.com.ng'}/api/payment/payrant/transfer-webhook`,
       });
 
       if (response.data.status === 'success') {

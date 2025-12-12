@@ -28,33 +28,37 @@ async function startServer() {
     console.log('🔍 Loading app module...');
     const { default: app } = await import("./app.js");
     const { connectDB } = await import("./config/db.js");
-    
+
     const PORT = config.port || 5000;
     console.log(`🔌 Attempting to connect to MongoDB at: ${config.mongoUri}`);
 
     try {
       await connectDB();
       console.log('✅ MongoDB connected successfully');
+
+      // Initialize System Configs
+      const { configService } = await import("./services/config.service.js");
+      await configService.seedDefaults();
     } catch (dbError) {
       console.error('❌ MongoDB connection error:', dbError);
       throw dbError; // Re-throw to be caught by the outer catch
     }
-    
+
     // const server = app.listen(PORT, () => {
     //   console.log(`✅ Server running on http://localhost:${PORT}`);
     //   console.log(`🔧 Environment: ${config.nodeEnv}`);
     // });
 
     const server = app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ Server running on port ${PORT}`);
-  console.log(`🔧 Environment: ${config.nodeEnv}`);
-});
+      console.log(`✅ Server running on port ${PORT}`);
+      console.log(`🔧 Environment: ${config.nodeEnv}`);
+    });
 
 
     // Handle server errors
     server.on('error', (error: NodeJS.ErrnoException) => {
       if (error.syscall !== 'listen') throw error;
-      
+
       // Handle specific listen errors with friendly messages
       switch (error.code) {
         case 'EACCES':

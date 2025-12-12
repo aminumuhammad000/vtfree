@@ -247,5 +247,8 @@ export interface AuthRequest extends Request {
   user?: {
     id: string;
     role?: string;
+    type?: string;
+    app_id?: string;
+    email?: string;
   };
 }

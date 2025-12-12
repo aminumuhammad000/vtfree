@@ -5,6 +5,7 @@ import { Request, Response } from 'express';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { config } from '../config/bootstrap.js';
 import { User } from '../models/index.js';
+import { configService } from '../services/config.service.js';
 import { OTPService } from '../services/otp.service.js';
 import { WalletService } from '../services/wallet.service.js';
 import { ApiResponse } from '../utils/response.js';
@@ -51,7 +52,7 @@ export class AuthController {
       await WalletService.createWallet(user._id);
       await OTPService.createOTP(phone_number, email, user._id.toString());
 
-      const token = jwt.sign({ id: user._id }, config.jwtSecret as string, { expiresIn: config.jwtExpiry } as SignOptions);
+      const token = jwt.sign({ id: user._id }, configService.getSync('JWT_SECRET') || config.jwtSecret, { expiresIn: configService.getSync('JWT_EXPIRY') || config.jwtExpiry } as SignOptions);
 
       return ApiResponse.success(res, { user, token }, 'Registration successful', 201);
     } catch (error: any) {
@@ -82,7 +83,7 @@ export class AuthController {
         return ApiResponse.error(res, 'Account is inactive', 403);
       }
 
-      const token = jwt.sign({ id: user._id }, config.jwtSecret as string, { expiresIn: config.jwtExpiry } as SignOptions);
+      const token = jwt.sign({ id: user._id }, configService.getSync('JWT_SECRET') || config.jwtSecret, { expiresIn: configService.getSync('JWT_EXPIRY') || config.jwtExpiry } as SignOptions);
 
       return ApiResponse.success(res, { user, token }, 'Login successful');
     } catch (error: any) {

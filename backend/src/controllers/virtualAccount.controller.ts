@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
-import { IUser } from '../types/index.js';
 import VirtualAccount from '../models/VirtualAccount.js';
+import { configService } from '../services/config.service.js';
+import { IUser } from '../types/index.js';
 
 // Extend Express Request type to include user
 interface AuthRequest extends Request {
@@ -16,12 +17,12 @@ export const createOrUpdateVirtualAccount = async (req: AuthRequest, res: Respon
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    const { 
-      accountNumber, 
-      accountName, 
-      bankName = 'PalmPay', 
-      provider = 'payrant', 
-      reference, 
+    const {
+      accountNumber,
+      accountName,
+      bankName = 'PalmPay',
+      provider = 'payrant',
+      reference,
       status = 'active',
       metadata = {}
     } = req.body;
@@ -31,16 +32,16 @@ export const createOrUpdateVirtualAccount = async (req: AuthRequest, res: Respon
     }
 
     // Check if user already has a virtual account with this provider
-    let virtualAccount = await VirtualAccount.findOne({ 
-      user: req.user._id, 
-      provider 
+    let virtualAccount = await VirtualAccount.findOne({
+      user: req.user._id,
+      provider
     });
 
     if (virtualAccount) {
       // Update existing virtual account
       virtualAccount = await VirtualAccount.findOneAndUpdate(
         { _id: virtualAccount._id },
-        { 
+        {
           accountNumber,
           accountName,
           bankName,
@@ -76,7 +77,7 @@ export const createOrUpdateVirtualAccount = async (req: AuthRequest, res: Respon
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to process virtual account',
-      error: process.env.NODE_ENV === 'development' ? error : undefined
+      error: configService.getSync('NODE_ENV') === 'development' ? error : undefined
     });
   }
 };
@@ -88,14 +89,14 @@ export const getUserVirtualAccount = async (req: AuthRequest, res: Response) => 
       return res.status(401).json({ success: false, message: 'User not authenticated' });
     }
 
-    const virtualAccount = await VirtualAccount.findOne({ 
+    const virtualAccount = await VirtualAccount.findOne({
       user: req.user._id,
       isActive: true
     });
 
     if (!virtualAccount) {
-      return res.status(404).json({ 
-        success: true, 
+      return res.status(404).json({
+        success: true,
         data: { exists: false },
         message: 'No virtual account found for this user'
       });
@@ -110,7 +111,7 @@ export const getUserVirtualAccount = async (req: AuthRequest, res: Response) => 
     res.status(500).json({
       success: false,
       message: 'Failed to fetch virtual account',
-      error: process.env.NODE_ENV === 'development' ? error : undefined
+      error: configService.getSync('NODE_ENV') === 'development' ? error : undefined
     });
   }
 };
@@ -129,9 +130,9 @@ export const deactivateVirtualAccount = async (req: AuthRequest, res: Response) 
     );
 
     if (!virtualAccount) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'No active virtual account found' 
+      return res.status(404).json({
+        success: false,
+        message: 'No active virtual account found'
       });
     }
 
@@ -145,7 +146,7 @@ export const deactivateVirtualAccount = async (req: AuthRequest, res: Response) 
     res.status(500).json({
       success: false,
       message: 'Failed to deactivate virtual account',
-      error: process.env.NODE_ENV === 'development' ? error : undefined
+      error: configService.getSync('NODE_ENV') === 'development' ? error : undefined
     });
   }
 };

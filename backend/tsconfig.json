@@ -1,9 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-  "module": "Node16",
-  "moduleResolution": "Node16",
-    "lib": ["ES2022"],
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "lib": [
+      "ES2022"
+    ],
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": false,
@@ -15,14 +17,17 @@
     "noImplicitAny": false,
     "allowJs": true,
     "checkJs": false,
-  "noEmitOnError": false,
+    "noEmitOnError": false,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "isolatedModules": true,
-  "noEmit": false,
+    "noEmit": false,
     "baseUrl": "./src",
     "paths": {
-      "*": ["*", "types/*"]
+      "*": [
+        "*",
+        "types/*"
+      ]
     }
   },
   "ts-node": {
