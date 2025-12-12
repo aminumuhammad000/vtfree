@@ -8,7 +8,12 @@ import InputAdornment from '@mui/material/InputAdornment';
 import IconifyIcon from 'components/base/IconifyIcon';
 import DataTable from './DataTable';
 
-const RecentOrders = () => {
+interface RecentOrdersProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data?: any[];
+}
+
+const RecentOrders = ({ data }: RecentOrdersProps) => {
   const [searchText, setSearchText] = useState('');
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -25,7 +30,7 @@ const RecentOrders = () => {
         justifyContent="space-between"
       >
         <Typography variant="h6" color="text.secondary">
-          Recent Orders
+          Recent Transactions
         </Typography>
 
         <TextField
@@ -46,7 +51,7 @@ const RecentOrders = () => {
       </Stack>
 
       <Box mt={{ xs: 1.5, sm: 0.75 }} height={305} flex={1}>
-        <DataTable searchText={searchText} />
+        <DataTable searchText={searchText} data={data} />
       </Box>
     </Paper>
   );

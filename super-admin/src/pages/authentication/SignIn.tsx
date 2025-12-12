@@ -1,9 +1,10 @@
 import { useState, ChangeEvent, FormEvent } from 'react';
+import { useAuth } from 'contexts/AuthContext';
+import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
-import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import ButtonBase from '@mui/material/ButtonBase';
 import InputAdornment from '@mui/material/InputAdornment';
@@ -24,13 +25,23 @@ const SignIn = () => {
   const [user, setUser] = useState<User>({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
 
+  const { login, isLoading } = useAuth();
+  const [error, setError] = useState('');
+
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     setUser({ ...user, [e.target.name]: e.target.value });
+    setError('');
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log(user);
+    try {
+      await login(user.email, user.password);
+      window.location.href = '/';
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Login failed');
+    }
   };
 
   return (
@@ -48,7 +59,7 @@ const SignIn = () => {
         Sign In
       </Typography>
       <Stack mt={6} spacing={2.5} width={1}>
-        <Button
+        {/* <Button
           variant="contained"
           color="secondary"
           size="large"
@@ -72,10 +83,10 @@ const SignIn = () => {
           sx={{ bgcolor: 'info.main', '&:hover': { bgcolor: 'info.main' } }}
         >
           Facebook
-        </Button>
+        </Button> */}
       </Stack>
 
-      <Divider sx={{ my: 4.5 }}>Or</Divider>
+      {/* <Divider sx={{ my: 4.5 }}>Or</Divider> */}
 
       <Box component="form" onSubmit={handleSubmit}>
         <TextField
@@ -158,14 +169,21 @@ const SignIn = () => {
           </Link>
         </Stack>
 
+        {error && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {error}
+          </Alert>
+        )}
+
         <Button
           type="submit"
           variant="contained"
           size="large"
           sx={{ mt: 3 }}
           fullWidth
+          disabled={isLoading}
         >
-          Sign In
+          {isLoading ? 'Signing In...' : 'Sign In'}
         </Button>
       </Box>
 

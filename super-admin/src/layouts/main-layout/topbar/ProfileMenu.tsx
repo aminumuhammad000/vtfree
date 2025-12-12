@@ -9,12 +9,16 @@ import Typography from '@mui/material/Typography';
 import ButtonBase from '@mui/material/ButtonBase';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import IconifyIcon from 'components/base/IconifyIcon';
+import { Link as RouterLink } from 'react-router-dom';
+import paths from 'routes/paths';
 import Profile from 'assets/images/Profile.png';
+import { useAuth } from 'contexts/AuthContext';
 
 interface MenuItems {
   id: number;
   title: string;
   icon: string;
+  path?: string;
 }
 
 const menuItems: MenuItems[] = [
@@ -22,26 +26,31 @@ const menuItems: MenuItems[] = [
     id: 1,
     title: 'View Profile',
     icon: 'mdi:user-circle-outline',
+    path: paths.profile,
   },
   {
     id: 2,
     title: 'Account Settings',
     icon: 'mdi:account-cog-outline',
+    path: paths.settings,
   },
   {
     id: 3,
     title: 'Notifications',
     icon: 'mdi:bell-outline',
+    path: paths.notifications,
   },
   {
     id: 4,
     title: 'Switch Account',
     icon: 'mdi:account-box-multiple-outline',
+    path: '#!',
   },
   {
     id: 5,
     title: 'Help Center',
     icon: 'mdi:help-circle-outline',
+    path: paths.help,
   },
   {
     id: 6,
@@ -53,6 +62,7 @@ const menuItems: MenuItems[] = [
 const ProfileMenu = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
+  const { user, logout } = useAuth();
 
   const handleProfileClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -60,6 +70,11 @@ const ProfileMenu = () => {
 
   const handleProfileMenuClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    handleProfileMenuClose();
+    logout();
   };
 
   return (
@@ -107,14 +122,14 @@ const ProfileMenu = () => {
             <Avatar src={Profile} sx={{ mr: 1, height: 42, width: 42 }} />
             <Stack direction="column">
               <Typography variant="body2" color="text.primary" fontWeight={600}>
-                Easin Arafat
+                {user?.name || 'Super Admin'}
               </Typography>
               <Typography
                 variant="caption"
                 color="text.secondary"
                 fontWeight={400}
               >
-                easin@example.com
+                {user?.email}
               </Typography>
             </Stack>
           </MenuItem>
@@ -127,7 +142,13 @@ const ProfileMenu = () => {
             return (
               <MenuItem
                 key={item.id}
-                onClick={handleProfileMenuClose}
+                component={item.path ? RouterLink : 'li'}
+                to={item.path}
+                onClick={
+                  item.title === 'Logout'
+                    ? handleLogout
+                    : handleProfileMenuClose
+                }
                 sx={{ py: 1 }}
               >
                 <ListItemIcon
