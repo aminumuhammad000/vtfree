@@ -24,10 +24,11 @@ echarts.use([
 
 interface ClientChartProps {
   data: number[];
+  categories?: string[];
   sx?: SxProps;
 }
 
-const ReportsChart = ({ data, ...rest }: ClientChartProps) => {
+const ReportsChart = ({ data, categories, ...rest }: ClientChartProps) => {
   const theme = useTheme();
   const isTopOffsetRef = useRef(false);
 
@@ -98,7 +99,7 @@ const ReportsChart = ({ data, ...rest }: ClientChartProps) => {
       },
       xAxis: {
         type: 'category',
-        data: [
+        data: categories || [
           '10am',
           '11am',
           '12pm',
@@ -190,7 +191,7 @@ const ReportsChart = ({ data, ...rest }: ClientChartProps) => {
         },
       ],
     }),
-    [theme, data],
+    [theme, data, categories],
   );
 
   return <ReactEchart echarts={echarts} option={option} {...rest} />;

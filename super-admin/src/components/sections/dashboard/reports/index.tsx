@@ -22,7 +22,15 @@ const actions = [
   },
 ];
 
-const Reports = () => {
+interface ReportsProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data?: any[];
+}
+
+const Reports = ({ data }: ReportsProps) => {
+  const chartData = data?.map((item) => item.total) || [];
+  const chartCategories = data?.map((item) => item._id) || [];
+
   return (
     <Paper sx={{ pr: 0, height: 410 }}>
       <Stack
@@ -32,17 +40,15 @@ const Reports = () => {
         justifyContent="space-between"
       >
         <Typography variant="h6" color="text.secondary">
-          Reports
+          Reports (Last 7 Days Revenue)
         </Typography>
 
         <ActionMenu actions={actions} />
       </Stack>
 
       <ReportsChart
-        data={[
-          56000, 32000, 66000, 52000, 88000, 44000, 58000, 34000, 65000, 56000,
-          86000,
-        ]}
+        data={chartData.length > 0 ? chartData : [0, 0, 0, 0, 0, 0, 0]}
+        categories={chartCategories}
         sx={{ height: '320px !important' }}
       />
     </Paper>

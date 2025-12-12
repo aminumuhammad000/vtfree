@@ -5,10 +5,11 @@ import Rating from '@mui/material/Rating';
 import CardMedia from '@mui/material/CardMedia';
 import Typography from '@mui/material/Typography';
 import IconifyIcon from 'components/base/IconifyIcon';
-import { TopProduct } from 'data/topProductsData';
+// import { TopProduct } from 'data/topProductsData';
 
 interface ProductCardProps {
-  data: TopProduct;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: any;
 }
 
 const ProductCard = ({ data }: ProductCardProps) => {
@@ -18,39 +19,38 @@ const ProductCard = ({ data }: ProductCardProps) => {
         <Stack spacing={2} alignItems="center" minWidth={190}>
           <CardMedia
             component="img"
-            src={data.image}
-            sx={{ height: 100, width: 100 }}
-            alt="product_img"
+            src={data.logo || 'https://via.placeholder.com/100'}
+            sx={{ height: 100, width: 100, borderRadius: '50%' }}
+            alt="app_logo"
           />
           <div>
             <Typography
               component={Link}
-              href={data.link}
+              href={`/apps/${data._id}`}
               variant="body1"
               color="text.primary"
               fontWeight={500}
               display="block"
               mb={0.75}
             >
-              {data.title}
+              {data.app_name}
             </Typography>
             <Rating
               name="half-rating-read"
               size="small"
-              defaultValue={data.rating}
+              defaultValue={5}
               icon={<IconifyIcon icon="iconamoon:star-fill" />}
               emptyIcon={<IconifyIcon icon="iconamoon:star-fill" />}
               precision={1}
               readOnly
             />
             <Typography
-              variant="body1"
-              color="text.primary"
-              fontWeight={700}
+              variant="body2"
+              color="text.secondary"
               display="block"
               mt={0.5}
             >
-              {data.price}
+              Owner: {data.owner_id?.first_name} {data.owner_id?.last_name}
             </Typography>
           </div>
         </Stack>
