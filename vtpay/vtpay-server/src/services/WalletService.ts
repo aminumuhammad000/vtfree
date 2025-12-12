@@ -48,7 +48,8 @@ export class WalletService {
         category: 'deposit' | 'refund',
         narration: string,
         externalRef?: string,
-        metadata?: Record<string, any>
+        metadata?: Record<string, any>,
+        customerReference?: string
     ): Promise<typeof Transaction.prototype> {
         const session = await mongoose.startSession();
         session.startTransaction();
@@ -81,6 +82,7 @@ export class WalletService {
                 narration,
                 status: 'success',
                 metadata,
+                customerReference,
             });
             await transaction.save({ session });
 
@@ -104,7 +106,8 @@ export class WalletService {
         category: 'transfer' | 'withdrawal',
         narration: string,
         externalRef?: string,
-        metadata?: Record<string, any>
+        metadata?: Record<string, any>,
+        customerReference?: string
     ): Promise<typeof Transaction.prototype> {
         const session = await mongoose.startSession();
         session.startTransaction();
@@ -144,6 +147,7 @@ export class WalletService {
                 narration,
                 status: 'success',
                 metadata,
+                customerReference,
             });
             await transaction.save({ session });
 
@@ -295,6 +299,43 @@ export class WalletService {
             },
             { new: true }
         );
+    }
+
+    /**
+     * Get balance by customer reference
+     */
+    async getBalanceByReference(userId: string, customerReference: string): Promise<number> {
+        const result = await Transaction.aggregate([
+            {
+                $match: {
+                    userId: new mongoose.Types.ObjectId(userId),
+                    customerReference: customerReference,
+                    status: 'success',
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalCredit: {
+                        $sum: {
+                            $cond: [{ $eq: ['$type', 'credit'] }, '$amount', 0],
+                        },
+                    },
+                    totalDebit: {
+                        $sum: {
+                            $cond: [{ $eq: ['$type', 'debit'] }, { $add: ['$amount', '$fee'] }, 0],
+                        },
+                    },
+                },
+            },
+            {
+                $project: {
+                    balance: { $subtract: ['$totalCredit', '$totalDebit'] },
+                },
+            },
+        ]);
+
+        return result.length > 0 ? result[0].balance : 0;
     }
 }
 

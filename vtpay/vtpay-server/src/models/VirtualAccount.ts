@@ -8,6 +8,8 @@ export interface IVirtualAccountDocument extends Document {
     bankType: string;
     zainboxCode: string;
     email: string;
+    alias?: string;
+    reference?: string;
     status: 'active' | 'inactive';
     createdAt: Date;
 }
@@ -43,6 +45,15 @@ const VirtualAccountSchema = new Schema<IVirtualAccountDocument>(
         email: {
             type: String,
             required: true,
+        },
+        alias: {
+            type: String,
+            required: false,
+        },
+        reference: {
+            type: String,
+            required: false,
+            index: true,
         },
         status: {
             type: String,

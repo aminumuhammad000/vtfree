@@ -9,6 +9,9 @@ import {
     transactionRoutes,
     bankRoutes,
     webhookRoutes,
+    developerRoutes,
+    payoutRoutes,
+    kycRoutes,
 } from './routes';
 import config from './config';
 
@@ -73,6 +76,9 @@ app.use('/api/wallet', walletRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/banks', bankRoutes);
 app.use('/api/webhooks', webhookRoutes);
+app.use('/api/developer', developerRoutes);
+app.use('/api/payout', payoutRoutes);
+app.use('/api/kyc', kycRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

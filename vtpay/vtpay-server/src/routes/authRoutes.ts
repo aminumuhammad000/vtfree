@@ -1,8 +1,9 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { User, Wallet } from '../models';
 import { generateToken } from '../middleware/auth';
-import { walletService } from '../services';
+import { walletService, emailService } from '../services';
 
 const router = Router();
 
@@ -12,10 +13,20 @@ const router = Router();
  */
 router.post('/register', async (req: Request, res: Response): Promise<void> => {
     try {
-        const { email, password, firstName, lastName, phone, bvn } = req.body;
+        const { email, password, firstName, lastName, fullName, phone } = req.body;
 
         // Validate required fields
-        if (!email || !password || !firstName || !lastName || !phone) {
+        // If fullName is provided, we can derive firstName and lastName if they are missing
+        let finalFirstName = firstName;
+        let finalLastName = lastName;
+
+        if (fullName && (!firstName || !lastName)) {
+            const names = fullName.trim().split(' ');
+            finalFirstName = names[0];
+            finalLastName = names.slice(1).join(' ') || '';
+        }
+
+        if (!email || !password || !finalFirstName || !phone) {
             res.status(400).json({
                 success: false,
                 message: 'Missing required fields',
@@ -37,34 +48,42 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
 
+        // Generate verification token
+        const verificationToken = crypto.randomBytes(32).toString('hex');
+
         // Create user
         const user = new User({
             email: email.toLowerCase(),
             passwordHash,
-            firstName,
-            lastName,
+            firstName: finalFirstName,
+            lastName: finalLastName,
+            fullName: fullName || `${finalFirstName} ${finalLastName}`,
             phone,
-            bvn,
-            kycLevel: bvn ? 1 : 0,
-            status: 'active',
+            kycLevel: 0, // 0: Registered (Email Unverified)
+            status: 'active', // Active but limited by kycLevel
+            verificationToken,
         });
         await user.save();
 
         // Create wallet for user
         await walletService.createWallet(user._id.toString());
 
-        // Generate token
+        // Send verification email
+        await emailService.sendVerificationEmail(user.email, verificationToken);
+
+        // Generate token (can login immediately but with limited access)
         const token = generateToken(user._id.toString(), user.email);
 
         res.status(201).json({
             success: true,
-            message: 'User registered successfully',
+            message: 'User registered successfully. Please check your email to verify your account.',
             data: {
                 user: {
                     id: user._id,
                     email: user.email,
                     firstName: user.firstName,
                     lastName: user.lastName,
+                    fullName: user.fullName,
                     phone: user.phone,
                     kycLevel: user.kycLevel,
                     status: user.status,
@@ -77,6 +96,50 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
         res.status(500).json({
             success: false,
             message: 'Registration failed',
+        });
+    }
+});
+
+/**
+ * Verify email
+ * GET /api/auth/verify-email
+ */
+router.get('/verify-email', async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { token } = req.query;
+
+        if (!token) {
+            res.status(400).json({
+                success: false,
+                message: 'Verification token is required',
+            });
+            return;
+        }
+
+        const user = await User.findOne({ verificationToken: token });
+
+        if (!user) {
+            res.status(400).json({
+                success: false,
+                message: 'Invalid or expired verification token',
+            });
+            return;
+        }
+
+        // Update user status
+        user.kycLevel = 1; // 1: Email Verified
+        user.verificationToken = undefined;
+        await user.save();
+
+        res.json({
+            success: true,
+            message: 'Email verified successfully',
+        });
+    } catch (error) {
+        console.error('Email verification error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Email verification failed',
         });
     }
 });

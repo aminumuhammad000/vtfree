@@ -5,9 +5,15 @@ export interface IUserDocument extends Document {
     passwordHash: string;
     firstName: string;
     lastName: string;
+    fullName: string; // Added for combined name
     phone: string;
     bvn?: string;
-    kycLevel: number;
+    nin?: string; // Added for KYC
+    idCardPath?: string; // Added for KYC
+    verificationToken?: string; // Added for email verification
+    apiKey?: string;
+    businessName?: string;
+    kycLevel: number; // 0: Registered, 1: Verified, 2: Submitted, 3: Approved
     status: 'active' | 'suspended' | 'pending';
     createdAt: Date;
     updatedAt: Date;
@@ -36,12 +42,35 @@ const UserSchema = new Schema<IUserDocument>(
             required: true,
             trim: true,
         },
+        fullName: {
+            type: String,
+            trim: true,
+        },
         phone: {
             type: String,
             required: true,
             trim: true,
         },
         bvn: {
+            type: String,
+            trim: true,
+        },
+        nin: {
+            type: String,
+            trim: true,
+        },
+        idCardPath: {
+            type: String,
+        },
+        verificationToken: {
+            type: String,
+        },
+        apiKey: {
+            type: String,
+            unique: true,
+            sparse: true,
+        },
+        businessName: {
             type: String,
             trim: true,
         },
@@ -64,6 +93,7 @@ const UserSchema = new Schema<IUserDocument>(
 
 // Index for faster queries (email index is implicit from unique: true)
 UserSchema.index({ phone: 1 });
+UserSchema.index({ verificationToken: 1 });
 
 export const User = mongoose.model<IUserDocument>('User', UserSchema);
 export default User;
