@@ -170,15 +170,26 @@ export class AdminController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
+      const search = req.query.search as string;
       const skip = (page - 1) * limit;
 
-      const users = await User.find()
+      const query: any = {};
+      if (search) {
+        const searchRegex = new RegExp(search, 'i');
+        query.$or = [
+          { first_name: searchRegex },
+          { last_name: searchRegex },
+          { email: searchRegex }
+        ];
+      }
+
+      const users = await User.find(query)
         .select('-password_hash')
         .skip(skip)
         .limit(limit)
         .sort({ created_at: -1 });
 
-      const total = await User.countDocuments();
+      const total = await User.countDocuments(query);
 
       return ApiResponse.paginated(res, users, {
         page,

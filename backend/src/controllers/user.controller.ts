@@ -68,13 +68,45 @@ export class UserController {
       const limit = parseInt(req.query.limit as string) || 10;
       const skip = (page - 1) * limit;
 
-      const users = await User.find()
-        .select('-password_hash')
-        .skip(skip)
-        .limit(limit)
-        .sort({ created_at: -1 });
+      // Build search query
+      const search = req.query.search as string;
+      const matchStage: any = {};
+      if (search) {
+        matchStage.$or = [
+          { first_name: { $regex: search, $options: 'i' } },
+          { last_name: { $regex: search, $options: 'i' } },
+          { email: { $regex: search, $options: 'i' } },
+          { phone_number: { $regex: search, $options: 'i' } }
+        ];
+      }
 
-      const total = await User.countDocuments();
+      const users = await User.aggregate([
+        { $match: matchStage },
+        { $sort: { created_at: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $lookup: {
+            from: 'wallets',
+            localField: '_id',
+            foreignField: 'user_id',
+            as: 'wallet'
+          }
+        },
+        {
+          $addFields: {
+            wallet_balance: { $ifNull: [{ $arrayElemAt: ['$wallet.balance', 0] }, 0] }
+          }
+        },
+        {
+          $project: {
+            password_hash: 0,
+            wallet: 0
+          }
+        }
+      ]);
+
+      const total = await User.countDocuments(matchStage);
 
       return ApiResponse.paginated(res, users, {
         page,
@@ -94,7 +126,39 @@ export class UserController {
         return ApiResponse.error(res, 'User not found', 404);
       }
 
-      return ApiResponse.success(res, user, 'User retrieved successfully');
+      // Fetch wallet balance manually since we're not using aggregation here for simplicity
+      // (or we could import Wallet model, but let's assume we can import it or use aggregation)
+      // To keep it consistent with getAllUsers, let's use aggregation or a separate query.
+      // Since we need to import Wallet, let's just use aggregation for consistency.
+
+      const userWithWallet = await User.aggregate([
+        { $match: { _id: user._id } },
+        {
+          $lookup: {
+            from: 'wallets',
+            localField: '_id',
+            foreignField: 'user_id',
+            as: 'wallet'
+          }
+        },
+        {
+          $addFields: {
+            wallet_balance: { $ifNull: [{ $arrayElemAt: ['$wallet.balance', 0] }, 0] }
+          }
+        },
+        {
+          $project: {
+            password_hash: 0,
+            wallet: 0
+          }
+        }
+      ]);
+
+      if (!userWithWallet.length) {
+        return ApiResponse.error(res, 'User not found', 404);
+      }
+
+      return ApiResponse.success(res, userWithWallet[0], 'User retrieved successfully');
     } catch (error: any) {
       return ApiResponse.error(res, error.message, 500);
     }

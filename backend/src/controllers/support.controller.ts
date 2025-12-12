@@ -44,6 +44,14 @@ export class SupportController {
       if (req.query.status) filter.status = req.query.status;
       if (req.query.priority) filter.priority = req.query.priority;
 
+      if (req.query.search) {
+        const searchRegex = new RegExp(req.query.search as string, 'i');
+        filter.$or = [
+          { subject: searchRegex },
+          { description: searchRegex }
+        ];
+      }
+
       const tickets = await SupportTicket.find(filter)
         .populate('user_id', 'first_name last_name email')
         .populate('admin_id', 'first_name last_name')

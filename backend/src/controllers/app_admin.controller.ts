@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import AppAdmin from '../models/app_admin.model.js';
 import CreatedApp from '../models/created_app.model.js';
+import { User } from '../models/user.model.js';
+import { Transaction } from '../models/transaction.model.js';
 
 export const login = async (req: Request, res: Response) => {
     try {
@@ -67,18 +69,41 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     try {
         const app_id = (req as any).user.app_id;
 
-        // TODO: Aggregate stats from User, Transaction, Wallet models filtering by app_id
-        // This is a placeholder
+        // Run aggregations in parallel
+        const [
+            totalUsers,
+            activeUsers,
+            totalTransactions,
+            successfulTransactions,
+            dataSales,
+            airtimeSales
+        ] = await Promise.all([
+            User.countDocuments({}),
+            User.countDocuments({ status: 'active' }),
+            Transaction.countDocuments({}),
+            Transaction.countDocuments({ status: 'successful' }),
+            Transaction.aggregate([
+                { $match: { type: 'data_purchase', status: 'successful' } },
+                { $group: { _id: null, total: { $sum: '$amount' } } }
+            ]),
+            Transaction.aggregate([
+                { $match: { type: 'airtime_topup', status: 'successful' } },
+                { $group: { _id: null, total: { $sum: '$amount' } } }
+            ])
+        ]);
+
         const stats = {
-            total_users: 150,
-            total_transactions: 1200,
-            revenue: 50000,
-            active_users: 45
+            totalUsers,
+            activeUsers,
+            totalTransactions,
+            successfulTransactions,
+            totalDataSales: dataSales[0]?.total || 0,
+            totalAirtimeSales: airtimeSales[0]?.total || 0
         };
 
         res.json({
             success: true,
-            data: { stats }
+            data: stats
         });
     } catch (error) {
         console.error('Dashboard stats error:', error);
