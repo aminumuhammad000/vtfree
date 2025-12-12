@@ -8,6 +8,14 @@ const router = express.Router();
 router.post('/login', AppAdminController.login);
 
 // Protected routes
+// Dashboard
 router.get('/dashboard', authenticateAppAdmin, AppAdminController.getDashboardStats);
 
+// Disputes
+router.get('/disputes', authenticateAppAdmin, DisputeController.getDisputes);
+router.get('/disputes/:id', authenticateAppAdmin, DisputeController.getDisputeById);
+router.put('/disputes/:id/resolve', authenticateAppAdmin, DisputeController.resolveDispute);
+router.post('/disputes', authenticateAppAdmin, DisputeController.createDispute); // For testing
+
 export default router;
+```
