@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
-import { getDashboardStats } from '../api/adminApi';
+import { getDashboardStats, getTransactions } from '../api/adminApi';
 import Layout from '../components/Layout';
 
 const Dashboard: React.FC = () => {
@@ -9,22 +9,38 @@ const Dashboard: React.FC = () => {
     queryFn: getDashboardStats,
   });
 
+  // Fetch recent transactions for activity feed
+  const { data: recentTransactionsData } = useQuery({
+    queryKey: ['recent-transactions'],
+    queryFn: () => getTransactions({ page: 1, limit: 5 }),
+  });
+
+  // Get stats data from API response
+  // Backend returns: { success: true, message: "...", data: { totalUsers, activeUsers, ... } }
+  // Axios returns the full response, so we need: response.data.data
+  console.log('Dashboard API Response:', data);
+  console.log('Full data:', data?.data);
+  console.log('Stats Data:', data?.data?.data);
+
+  const statsData = data?.data?.data;
+  const recentTransactions = recentTransactionsData?.data?.data || [];
+
   const stats = [
     {
       label: 'Total Users',
-      value: data?.data?.data?.totalUsers || 0,
+      value: statsData?.totalUsers || 0,
       icon: (
         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.856-1.487M15 10a3 3 0 11-6 0 3 3 0 016 0zM6 20a9 9 0 0118 0v-2a9 9 0 00-18 0v2z" />
         </svg>
       ),
-      bgGradient: 'from-blue-500 to-blue-600',
-      lightBg: 'bg-blue-50',
-      textColor: 'text-blue-600',
+      bgGradient: 'from-green-500 to-green-600',
+      lightBg: 'bg-green-50',
+      textColor: 'text-green-600',
     },
     {
       label: 'Active Users',
-      value: data?.data?.data?.activeUsers || 0,
+      value: statsData?.activeUsers || 0,
       icon: (
         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -36,7 +52,7 @@ const Dashboard: React.FC = () => {
     },
     {
       label: 'Total Transactions',
-      value: data?.data?.data?.totalTransactions || 0,
+      value: statsData?.totalTransactions || 0,
       icon: (
         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -48,7 +64,7 @@ const Dashboard: React.FC = () => {
     },
     {
       label: 'Successful Transactions',
-      value: data?.data?.data?.successfulTransactions || 0,
+      value: statsData?.successfulTransactions || 0,
       icon: (
         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -60,7 +76,7 @@ const Dashboard: React.FC = () => {
     },
     {
       label: 'Total Data Sales',
-      value: data?.data?.data?.totalDataSales || 0,
+      value: statsData?.totalDataSales || 0,
       icon: (
         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -73,7 +89,7 @@ const Dashboard: React.FC = () => {
     },
     {
       label: 'Total Airtime Sales',
-      value: data?.data?.data?.totalAirtimeSales || 0,
+      value: statsData?.totalAirtimeSales || 0,
       icon: (
         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
@@ -91,16 +107,16 @@ const Dashboard: React.FC = () => {
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="mb-6 lg:mb-8">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 mb-2">Dashboard</h1>
-            <p className="text-sm sm:text-base text-slate-600">Monitor your VTU application metrics and activity</p>
+          <div className="mb-8">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 mb-3">Dashboard</h1>
+            <p className="text-base sm:text-lg text-slate-600">Monitor your VTU application metrics and activity</p>
           </div>
 
           {/* Stats Grid */}
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="bg-white rounded-xl shadow-sm p-6 animate-pulse">
+                <div key={i} className="bg-white rounded-2xl shadow-md p-6 animate-pulse border border-slate-100">
                   <div className="h-12 bg-slate-200 rounded mb-4 w-12"></div>
                   <div className="h-8 bg-slate-200 rounded mb-2"></div>
                   <div className="h-4 bg-slate-200 rounded w-20"></div>
@@ -108,7 +124,7 @@ const Dashboard: React.FC = () => {
               ))}
             </div>
           ) : isError ? (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-red-700">
+            <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-red-700 shadow-sm">
               <div className="flex items-center gap-3">
                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
@@ -117,7 +133,7 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {stats.map((stat, index) => (
                 <StatCard key={index} {...stat} />
               ))}
@@ -125,60 +141,130 @@ const Dashboard: React.FC = () => {
           )}
 
           {/* Charts Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 mt-6 lg:mt-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
             {/* Recent Activity */}
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
-              <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <svg className="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Recent Activity
-              </h2>
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex items-center justify-between pb-4 border-b border-slate-100 last:border-0">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="font-medium text-slate-900">User Activity #{i}</p>
-                        <p className="text-xs text-slate-500">Just now</p>
-                      </div>
-                    </div>
-                    <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">Completed</span>
+            <div className="relative bg-gradient-to-br from-white to-slate-50/50 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 p-6 border border-slate-100 overflow-hidden group">
+              {/* Decorative gradient */}
+              <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-green-400/10 to-green-600/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+              <div className="relative">
+                <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                   </div>
-                ))}
+                  Recent Activity
+                </h2>
+                <div className="space-y-4">
+                  {recentTransactions.length === 0 ? (
+                    <p className="text-sm text-slate-500 text-center py-4">No recent activity</p>
+                  ) : (
+                    recentTransactions.map((txn: any) => {
+                      const getTypeIcon = (type: string) => {
+                        switch (type?.toLowerCase()) {
+                          case 'data':
+                            return (
+                              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                              </svg>
+                            );
+                          case 'airtime':
+                            return (
+                              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                              </svg>
+                            );
+                          default:
+                            return (
+                              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            );
+                        }
+                      };
+
+                      const getStatusBadge = (status: string) => {
+                        switch (status?.toLowerCase()) {
+                          case 'successful':
+                          case 'success':
+                            return <span className="px-3 py-1.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">Success</span>;
+                          case 'pending':
+                            return <span className="px-3 py-1.5 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-full">Pending</span>;
+                          case 'failed':
+                            return <span className="px-3 py-1.5 bg-red-100 text-red-700 text-xs font-bold rounded-full">Failed</span>;
+                          default:
+                            return <span className="px-3 py-1.5 bg-slate-100 text-slate-700 text-xs font-bold rounded-full">{status}</span>;
+                        }
+                      };
+
+                      return (
+                        <div key={txn._id || txn.id} className="flex items-center justify-between pb-4 border-b border-slate-100 last:border-0 hover:bg-slate-50/50 -mx-2 px-2 py-1 rounded-lg transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center shadow-md">
+                              {getTypeIcon(txn.type)}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-slate-900">{txn.type?.toUpperCase()} - ₦{txn.amount?.toLocaleString()}</p>
+                              <p className="text-xs text-slate-500">{new Date(txn.created_at).toLocaleString()}</p>
+                            </div>
+                          </div>
+                          {getStatusBadge(txn.status)}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Quick Stats */}
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
-              <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                <svg className="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-                Quick Stats
-              </h2>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-600">Success Rate</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
-                      <div className="h-full bg-green-500 w-4/5"></div>
-                    </div>
-                    <span className="text-sm font-medium text-slate-900">80%</span>
+            <div className="relative bg-gradient-to-br from-white to-slate-50/50 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 p-6 border border-slate-100 overflow-hidden group">
+              {/* Decorative gradient */}
+              <div className="absolute top-0 left-0 w-40 h-40 bg-gradient-to-br from-purple-400/10 to-purple-600/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+              <div className="relative">
+                <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
                   </div>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-600">Active Sessions</span>
-                  <span className="text-sm font-bold text-slate-900">24</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-600">Avg. Response Time</span>
-                  <span className="text-sm font-bold text-slate-900">245ms</span>
+                  Quick Stats
+                </h2>
+                <div className="space-y-5">
+                  <div className="flex justify-between items-center group/item hover:bg-slate-50/50 -mx-2 px-2 py-2 rounded-lg transition-colors">
+                    <span className="text-slate-700 font-medium">Success Rate</span>
+                    <div className="flex items-center gap-3">
+                      <div className="w-32 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full shadow-sm"
+                          style={{
+                            width: `${statsData?.totalTransactions > 0
+                              ? Math.round((statsData?.successfulTransactions / statsData?.totalTransactions) * 100)
+                              : 0}%`
+                          }}
+                        ></div>
+                      </div>
+                      <span className="text-sm font-bold text-slate-900 min-w-[3rem] text-right">
+                        {statsData?.totalTransactions > 0
+                          ? Math.round((statsData?.successfulTransactions / statsData?.totalTransactions) * 100)
+                          : 0}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center group/item hover:bg-slate-50/50 -mx-2 px-2 py-2 rounded-lg transition-colors">
+                    <span className="text-slate-700 font-medium">Total Revenue</span>
+                    <span className="text-lg font-bold text-green-600 bg-green-50 px-3 py-1 rounded-lg">
+                      ₦{((statsData?.totalDataSales || 0) + (statsData?.totalAirtimeSales || 0)).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center group/item hover:bg-slate-50/50 -mx-2 px-2 py-2 rounded-lg transition-colors">
+                    <span className="text-slate-700 font-medium">Pending Transactions</span>
+                    <span className="text-lg font-bold text-slate-900 bg-slate-100 px-3 py-1 rounded-lg">
+                      {(statsData?.totalTransactions || 0) - (statsData?.successfulTransactions || 0)}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -206,20 +292,35 @@ const StatCard = ({
   textColor: string;
   isCurrency?: boolean;
 }) => (
-  <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
+  <div className="group relative bg-white rounded-2xl shadow-md border border-slate-100 overflow-hidden hover-lift">
+    {/* Gradient accent bar at top */}
+    <div className={`h-1.5 bg-gradient-to-r ${bgGradient}`}></div>
+
     <div className="p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className={`${lightBg} p-3 rounded-lg ${textColor}`}>{icon}</div>
-        <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded">Total</span>
+      <div className="flex items-start justify-between mb-4">
+        {/* Icon with gradient background and glow */}
+        <div className={`relative ${lightBg} p-4 rounded-xl ${textColor} group-hover:scale-110 transition-transform duration-300`}>
+          <div className={`absolute inset-0 bg-gradient-to-br ${bgGradient} opacity-0 group-hover:opacity-20 rounded-xl transition-opacity duration-300`}></div>
+          <div className="relative">{icon}</div>
+        </div>
+
+        {/* Badge */}
+        <span className={`text-xs font-bold ${textColor} ${lightBg} px-3 py-1.5 rounded-full opacity-80`}>
+          Live
+        </span>
       </div>
-      <div>
-        <p className="text-2xl font-bold text-slate-900 mb-1">
+
+      {/* Value and Label */}
+      <div className="space-y-2">
+        <p className="text-3xl font-extrabold text-slate-900 tracking-tight">
           {isCurrency ? `₦${value.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : value.toLocaleString()}
         </p>
-        <p className={`text-sm ${textColor} font-medium`}>{label}</p>
+        <p className={`text-sm font-semibold ${textColor} uppercase tracking-wide`}>{label}</p>
       </div>
+
+      {/* Decorative gradient orb */}
+      <div className={`absolute -bottom-8 -right-8 w-32 h-32 bg-gradient-to-br ${bgGradient} opacity-5 rounded-full blur-2xl group-hover:opacity-10 transition-opacity duration-500`}></div>
     </div>
-    <div className={`h-1 bg-gradient-to-r ${bgGradient}`}></div>
   </div>
 );
 

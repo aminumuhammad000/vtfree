@@ -85,7 +85,7 @@ const Users: React.FC = () => {
       case 'verified':
         return 'bg-emerald-100 text-emerald-800';
       case 'pending':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-green-100 text-green-800';
       case 'rejected':
         return 'bg-red-100 text-red-800';
       default:
@@ -104,12 +104,18 @@ const Users: React.FC = () => {
             <div className="mb-8">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h1 className="text-4xl font-bold text-slate-900 mb-2">Users Management</h1>
-                  <p className="text-slate-600">Manage and monitor all user accounts</p>
+                  <h1 className="text-4xl font-extrabold text-slate-900 mb-2 tracking-tight">Users Management</h1>
+                  <p className="text-slate-600 text-lg">Manage and monitor all user accounts</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-3xl font-bold text-blue-600">{users.length}</p>
-                  <p className="text-sm text-slate-600">Active Users</p>
+
+                {/* Modern stats card */}
+                <div className="relative bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-lg p-6 text-white overflow-hidden group hover-lift">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+                  <div className="relative">
+                    <p className="text-4xl font-extrabold mb-1">{users.length}</p>
+                    <p className="text-green-100 text-sm font-semibold uppercase tracking-wide">Active Users</p>
+                  </div>
+                  <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-white/5 rounded-full"></div>
                 </div>
               </div>
 
@@ -124,18 +130,20 @@ const Users: React.FC = () => {
                     placeholder="Search by name or email..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
                   />
                 </div>
               </div>
             </div>
 
             {/* Users Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-gradient-to-br from-white to-slate-50/30 rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+              {/* Gradient accent line */}
+              <div className="h-1 bg-gradient-to-r from-green-400 via-green-500 to-green-600"></div>
               {status === 'pending' && (
                 <div className="p-12 text-center">
                   <div className="inline-block animate-spin">
-                    <svg className="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                   </div>
@@ -175,11 +183,11 @@ const Users: React.FC = () => {
                             </td>
                           </tr>
                         )}
-                        {users.map((user: any) => (
-                          <tr key={user._id} className="hover:bg-slate-50 transition-colors">
+                        {users.map((user: any, index: number) => (
+                          <tr key={user._id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'} hover:bg-green-50/30 transition-colors duration-150`}>
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                                <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
                                   {`${user.first_name?.[0] || 'U'}${user.last_name?.[0] || 'U'}`.toUpperCase()}
                                 </div>
                                 <div>
@@ -189,7 +197,7 @@ const Users: React.FC = () => {
                               </div>
                             </td>
                             <td className="px-6 py-4">
-                              <a href={`mailto:${user.email}`} className="text-blue-600 hover:underline text-sm">
+                              <a href={`mailto:${user.email}`} className="text-green-600 hover:underline text-sm">
                                 {user.email}
                               </a>
                             </td>
@@ -211,7 +219,7 @@ const Users: React.FC = () => {
                               <div className="flex items-center gap-2">
                                 <button
                                   onClick={() => setViewUser(user)}
-                                  className="p-2 hover:bg-blue-100 text-blue-600 rounded-lg transition"
+                                  className="p-2 hover:bg-green-100 text-green-600 rounded-lg transition"
                                   title="View"
                                 >
                                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

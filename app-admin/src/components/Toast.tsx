@@ -60,7 +60,7 @@ const Toast: React.FC<ToastProps> = ({ id, message, type, duration = 5000, onClo
         return 'bg-yellow-50 border-yellow-200';
       case 'info':
       default:
-        return 'bg-blue-50 border-blue-200';
+        return 'bg-green-50 border-green-200';
     }
   };
 
@@ -74,7 +74,7 @@ const Toast: React.FC<ToastProps> = ({ id, message, type, duration = 5000, onClo
         return 'text-yellow-800';
       case 'info':
       default:
-        return 'text-blue-800';
+        return 'text-green-800';
     }
   };
 
@@ -88,23 +88,23 @@ const Toast: React.FC<ToastProps> = ({ id, message, type, duration = 5000, onClo
         return 'text-yellow-500';
       case 'info':
       default:
-        return 'text-blue-500';
+        return 'text-green-500';
     }
   };
 
   return (
     <div
-      className={`flex items-start gap-3 px-4 py-3 rounded-lg border shadow-md animate-fade-in-up ${getBackgroundColor()}`}
+      className={`flex items-start gap-3 px-5 py-4 rounded-xl border shadow-lg backdrop-blur-md bg-white/90 animate-slide-in-right ${getBackgroundColor()}`}
       role="alert"
       aria-live="polite"
     >
       <div className={`flex-shrink-0 ${getIconColor()}`}>{getIcon()}</div>
-      <div className={`flex-1 text-sm font-medium ${getTextColor()}`}>
+      <div className={`flex-1 text-sm font-semibold ${getTextColor()}`}>
         {message}
       </div>
       <button
         onClick={() => onClose(id)}
-        className={`flex-shrink-0 inline-flex ${getTextColor()} hover:opacity-75 transition-opacity`}
+        className={`flex-shrink-0 inline-flex ${getTextColor()} hover:opacity-75 transition-all duration-200 hover:scale-110`}
       >
         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />

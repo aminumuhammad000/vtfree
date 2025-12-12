@@ -100,7 +100,7 @@ const AdminManagement: React.FC = () => {
               <div className="flex justify-between items-center mb-6">
                 <div>
                   <h1 className="text-4xl font-bold text-slate-900 mb-2 flex items-center gap-3">
-                    <svg className="w-10 h-10 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                    <svg className="w-10 h-10 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                       <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
                     </svg>
                     Admin Management
@@ -108,7 +108,7 @@ const AdminManagement: React.FC = () => {
                   <p className="text-slate-600">Create and manage admin users</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-3xl font-bold text-blue-600">{total}</p>
+                  <p className="text-3xl font-bold text-green-600">{total}</p>
                   <p className="text-sm text-slate-600">Total Admins</p>
                 </div>
               </div>
@@ -120,7 +120,7 @@ const AdminManagement: React.FC = () => {
                   setErrors({});
                   setGeneratedPassword('');
                 }}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-all shadow-lg hover:shadow-xl"
+                className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-all shadow-lg hover:shadow-xl"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -150,7 +150,7 @@ const AdminManagement: React.FC = () => {
                         className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                           errors.first_name
                             ? 'border-red-500 focus:ring-red-500'
-                            : 'border-slate-300 focus:ring-blue-500'
+                            : 'border-slate-300 focus:ring-green-500'
                         }`}
                         placeholder="John"
                       />
@@ -171,7 +171,7 @@ const AdminManagement: React.FC = () => {
                         className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                           errors.last_name
                             ? 'border-red-500 focus:ring-red-500'
-                            : 'border-slate-300 focus:ring-blue-500'
+                            : 'border-slate-300 focus:ring-green-500'
                         }`}
                         placeholder="Doe"
                       />
@@ -192,7 +192,7 @@ const AdminManagement: React.FC = () => {
                         className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                           errors.email
                             ? 'border-red-500 focus:ring-red-500'
-                            : 'border-slate-300 focus:ring-blue-500'
+                            : 'border-slate-300 focus:ring-green-500'
                         }`}
                         placeholder="admin@example.com"
                       />
@@ -214,7 +214,7 @@ const AdminManagement: React.FC = () => {
                           className={`flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                             errors.password
                               ? 'border-red-500 focus:ring-red-500'
-                              : 'border-slate-300 focus:ring-blue-500'
+                              : 'border-slate-300 focus:ring-green-500'
                           }`}
                           placeholder="Generate or enter password"
                         />
@@ -251,7 +251,7 @@ const AdminManagement: React.FC = () => {
                       <button
                         type="submit"
                         disabled={createMutation.isPending}
-                        className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition disabled:opacity-50"
+                        className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition disabled:opacity-50"
                       >
                         {createMutation.isPending ? 'Creating...' : 'Create'}
                       </button>
@@ -279,7 +279,7 @@ const AdminManagement: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="text-blue-600 hover:text-blue-700 ml-auto"
+                          className="text-green-600 hover:text-green-700 ml-auto"
                         >
                           {showPassword ? '🙈' : '👁️'}
                         </button>
@@ -302,8 +302,8 @@ const AdminManagement: React.FC = () => {
 
             {/* Admins List */}
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-              <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200">
-                <h2 className="text-xl font-bold text-blue-900 flex items-center gap-2">
+              <div className="px-6 py-4 bg-gradient-to-r from-green-50 to-green-100 border-b border-green-200">
+                <h2 className="text-xl font-bold text-green-900 flex items-center gap-2">
                   <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM9 12a9 9 0 01-9-9h18a9 9 0 01-9 9z" />
                   </svg>
@@ -386,9 +386,9 @@ const AdminManagement: React.FC = () => {
             </div>
 
             {/* Info Box */}
-            <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-semibold text-blue-900 mb-2">ℹ️ How to use:</h3>
-              <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800">
+            <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
+              <h3 className="font-semibold text-green-900 mb-2">ℹ️ How to use:</h3>
+              <ol className="list-decimal list-inside space-y-1 text-sm text-green-800">
                 <li>Click "Create Admin" button to add a new administrator</li>
                 <li>Fill in the admin details or generate a secure password</li>
                 <li>Copy the credentials and send them securely to the new admin</li>

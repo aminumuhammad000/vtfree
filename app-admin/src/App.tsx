@@ -11,6 +11,7 @@ import PricingPlans from './pages/PricingPlans';
 import Profile from './pages/Profile';
 import Providers from './pages/Providers';
 import Settings from './pages/Settings';
+import Support from './pages/Support';
 import Transactions from './pages/Transactions';
 import Users from './pages/Users';
 import WalletCredit from './pages/WalletCredit';
@@ -32,6 +33,7 @@ function App() {
           <Route path="/wallet-credit" element={<WalletCredit />} />
           <Route path="/audit-logs" element={<AuditLogs />} />
           <Route path="/notifications" element={<Notifications />} />
+          <Route path="/support" element={<Support />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
 

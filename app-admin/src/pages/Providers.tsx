@@ -158,13 +158,13 @@ const Providers: React.FC = () => {
                   <p className="text-slate-600">Manage external bill payment APIs (Topupmate, VTpass, SME Plug, etc.)</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-3xl font-bold text-blue-600">{total}</p>
+                  <p className="text-3xl font-bold text-green-600">{total}</p>
                   <p className="text-sm text-slate-600">Total Providers</p>
                 </div>
               </div>
 
               <div className="flex gap-3 mb-6">
-                <button onClick={() => { resetForm(); setIsCreateOpen(true); }} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg font-medium">
+                <button onClick={() => { resetForm(); setIsCreateOpen(true); }} className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg font-medium">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                   Add Provider
                 </button>
@@ -210,7 +210,7 @@ const Providers: React.FC = () => {
                               <span className={`px-2 py-1 rounded text-xs font-semibold ${p.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{p.active ? 'Active' : 'Inactive'}</span>
                             </td>
                             <td className="px-6 py-4 text-sm space-x-3">
-                              <button onClick={() => setEditItem(p)} className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-900 font-medium">
+                              <button onClick={() => setEditItem(p)} className="inline-flex items-center gap-1.5 text-green-600 hover:text-green-900 font-medium">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                                 Edit
                               </button>
@@ -256,43 +256,43 @@ const Providers: React.FC = () => {
                   <form onSubmit={onSubmit} className="space-y-4">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Name</label>
-                      <input value={form.name} onChange={(e) => { setForm({ ...form, name: e.target.value }); if (errors.name) setErrors({ ...errors, name: '' }); }} className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.name ? 'border-red-500 focus:ring-red-500' : 'border-slate-300 focus:ring-blue-500'}`} placeholder="Topupmate" />
+                      <input value={form.name} onChange={(e) => { setForm({ ...form, name: e.target.value }); if (errors.name) setErrors({ ...errors, name: '' }); }} className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.name ? 'border-red-500 focus:ring-red-500' : 'border-slate-300 focus:ring-green-500'}`} placeholder="Topupmate" />
                       {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Code</label>
-                      <input value={form.code} onChange={(e) => { setForm({ ...form, code: e.target.value }); if (errors.code) setErrors({ ...errors, code: '' }); }} className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.code ? 'border-red-500 focus:ring-red-500' : 'border-slate-300 focus:ring-blue-500'}`} placeholder="topupmate | vtpass | smeplug" />
+                      <input value={form.code} onChange={(e) => { setForm({ ...form, code: e.target.value }); if (errors.code) setErrors({ ...errors, code: '' }); }} className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.code ? 'border-red-500 focus:ring-red-500' : 'border-slate-300 focus:ring-green-500'}`} placeholder="topupmate | vtpass | smeplug" />
                       {errors.code && <p className="text-red-500 text-sm mt-1">{errors.code}</p>}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Base URL</label>
-                        <input value={form.base_url} onChange={(e) => setForm({ ...form, base_url: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-blue-500" placeholder="https://api.example.com" />
+                        <input value={form.base_url} onChange={(e) => setForm({ ...form, base_url: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" placeholder="https://api.example.com" />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">API Key</label>
-                        <input value={form.api_key} onChange={(e) => setForm({ ...form, api_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-blue-500" placeholder="sk_..." />
+                        <input value={form.api_key} onChange={(e) => setForm({ ...form, api_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" placeholder="sk_..." />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Secret Key</label>
-                        <input value={form.secret_key} onChange={(e) => setForm({ ...form, secret_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-blue-500" placeholder="secret..." />
+                        <input value={form.secret_key} onChange={(e) => setForm({ ...form, secret_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" placeholder="secret..." />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Username</label>
-                        <input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-blue-500" placeholder="optional" />
+                        <input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" placeholder="optional" />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Password</label>
-                        <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-blue-500" placeholder="optional" />
+                        <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" placeholder="optional" />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Priority</label>
-                        <input type="number" value={form.priority} onChange={(e) => setForm({ ...form, priority: Number(e.target.value || 1) })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-blue-500" />
+                        <input type="number" value={form.priority} onChange={(e) => setForm({ ...form, priority: Number(e.target.value || 1) })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Active</label>
-                        <select value={String(form.active)} onChange={(e) => setForm({ ...form, active: e.target.value === 'true' })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-blue-500">
+                        <select value={String(form.active)} onChange={(e) => setForm({ ...form, active: e.target.value === 'true' })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500">
                           <option value="true">Yes</option>
                           <option value="false">No</option>
                         </select>
@@ -301,7 +301,7 @@ const Providers: React.FC = () => {
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Supported Services</label>
                         <div className="flex flex-wrap gap-2">
                           {ALL_SERVICES.map(s => (
-                            <label key={s} className={`px-3 py-1 rounded border cursor-pointer text-sm ${form.supported_services.includes(s) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-300'}`}>
+                            <label key={s} className={`px-3 py-1 rounded border cursor-pointer text-sm ${form.supported_services.includes(s) ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-700 border-slate-300'}`}>
                               <input type="checkbox" className="hidden" checked={form.supported_services.includes(s)} onChange={() => {
                                 setForm(f => ({ ...f, supported_services: f.supported_services.includes(s) ? f.supported_services.filter(x => x !== s) : [...f.supported_services, s] }));
                               }} />
@@ -314,7 +314,7 @@ const Providers: React.FC = () => {
 
                     <div className="flex gap-3 pt-2">
                       <button type="button" onClick={() => { setIsCreateOpen(false); resetForm(); }} className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition font-semibold">Cancel</button>
-                      <button type="submit" disabled={!canSubmit || createMutation.status === 'pending'} className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition disabled:opacity-50">{createMutation.status === 'pending' ? 'Saving...' : 'Save'}</button>
+                      <button type="submit" disabled={!canSubmit || createMutation.status === 'pending'} className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition disabled:opacity-50">{createMutation.status === 'pending' ? 'Saving...' : 'Save'}</button>
                     </div>
                   </form>
                 </div>
@@ -371,40 +371,40 @@ const Providers: React.FC = () => {
                   <form onSubmit={(e) => { e.preventDefault(); updateMutation.mutate({ id: editItem._id, payload: editItem }); }} className="space-y-4">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Name</label>
-                      <input value={editItem.name || ''} onChange={(e) => setEditItem({ ...editItem, name: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-blue-500" />
+                      <input value={editItem.name || ''} onChange={(e) => setEditItem({ ...editItem, name: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Code</label>
-                      <input value={editItem.code || ''} onChange={(e) => setEditItem({ ...editItem, code: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-blue-500" />
+                      <input value={editItem.code || ''} onChange={(e) => setEditItem({ ...editItem, code: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Base URL</label>
-                        <input value={editItem.base_url || ''} onChange={(e) => setEditItem({ ...editItem, base_url: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-blue-500" />
+                        <input value={editItem.base_url || ''} onChange={(e) => setEditItem({ ...editItem, base_url: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">API Key</label>
-                        <input value={editItem.api_key || ''} onChange={(e) => setEditItem({ ...editItem, api_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-blue-500" />
+                        <input value={editItem.api_key || ''} onChange={(e) => setEditItem({ ...editItem, api_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Secret Key</label>
-                        <input value={editItem.secret_key || ''} onChange={(e) => setEditItem({ ...editItem, secret_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-blue-500" />
+                        <input value={editItem.secret_key || ''} onChange={(e) => setEditItem({ ...editItem, secret_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Username</label>
-                        <input value={editItem.username || ''} onChange={(e) => setEditItem({ ...editItem, username: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-blue-500" />
+                        <input value={editItem.username || ''} onChange={(e) => setEditItem({ ...editItem, username: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Password</label>
-                        <input value={editItem.password || ''} onChange={(e) => setEditItem({ ...editItem, password: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-blue-500" />
+                        <input value={editItem.password || ''} onChange={(e) => setEditItem({ ...editItem, password: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Priority</label>
-                        <input type="number" value={editItem.priority || 1} onChange={(e) => setEditItem({ ...editItem, priority: Number(e.target.value || 1) })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-blue-500" />
+                        <input type="number" value={editItem.priority || 1} onChange={(e) => setEditItem({ ...editItem, priority: Number(e.target.value || 1) })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Active</label>
-                        <select value={String(editItem.active)} onChange={(e) => setEditItem({ ...editItem, active: e.target.value === 'true' })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-blue-500">
+                        <select value={String(editItem.active)} onChange={(e) => setEditItem({ ...editItem, active: e.target.value === 'true' })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500">
                           <option value="true">Yes</option>
                           <option value="false">No</option>
                         </select>
@@ -413,7 +413,7 @@ const Providers: React.FC = () => {
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Supported Services</label>
                         <div className="flex flex-wrap gap-2">
                           {ALL_SERVICES.map(s => (
-                            <label key={s} className={`px-3 py-1 rounded border cursor-pointer text-sm ${(editItem.supported_services || []).includes(s) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-300'}`}>
+                            <label key={s} className={`px-3 py-1 rounded border cursor-pointer text-sm ${(editItem.supported_services || []).includes(s) ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-700 border-slate-300'}`}>
                               <input type="checkbox" className="hidden" checked={(editItem.supported_services || []).includes(s)} onChange={() => {
                                 setEditItem((f: any) => ({ ...f, supported_services: (f.supported_services || []).includes(s) ? f.supported_services.filter((x: string) => x !== s) : [...(f.supported_services || []), s] }));
                               }} />
@@ -426,7 +426,7 @@ const Providers: React.FC = () => {
 
                     <div className="flex gap-3 pt-2">
                       <button type="button" onClick={() => setEditItem(null)} className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition font-semibold">Cancel</button>
-                      <button type="submit" disabled={updateMutation.status === 'pending'} className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition disabled:opacity-50">{updateMutation.status === 'pending' ? 'Saving...' : 'Save'}</button>
+                      <button type="submit" disabled={updateMutation.status === 'pending'} className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition disabled:opacity-50">{updateMutation.status === 'pending' ? 'Saving...' : 'Save'}</button>
                     </div>
                   </form>
                 </div>
@@ -489,8 +489,8 @@ const Providers: React.FC = () => {
                           )}
 
                           {!testResults.balanceStatus && !testResults.networksStatus && (
-                            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                              <p className="text-blue-800 text-sm">ℹ️ No tests were performed. This provider may not support balance or network queries.</p>
+                            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                              <p className="text-green-800 text-sm">ℹ️ No tests were performed. This provider may not support balance or network queries.</p>
                             </div>
                           )}
                         </div>
