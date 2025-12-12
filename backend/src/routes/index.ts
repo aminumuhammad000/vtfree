@@ -10,6 +10,10 @@ export { default as notificationsRoutes } from './notifications.routes.js';
 export { default as promotionsRoutes } from './promotions.routes.js';
 export { default as supportRoutes } from './support.routes.js';
 export { default as walletRoutes } from './wallet.routes.js';
+export { default as appAdminRoutes } from './app_admin.routes.js';
+export { default as superAdminRoutes } from './super_admin.routes.js';
+export { default as vtfreeAppRoutes } from './vtfree_app.routes.js';
+export { default as vtfreeAuthRoutes } from './vtfree_auth.routes.js';
 
 import authRoutes from './auth.routes.js';
 import usersRoutes from './users.routes.js';
@@ -19,6 +23,10 @@ import notificationsRoutes from './notifications.routes.js';
 import promotionsRoutes from './promotions.routes.js';
 import supportRoutes from './support.routes.js';
 import adminRoutes from './admin.routes.js';
+import appAdminRoutes from './app_admin.routes.js';
+import superAdminRoutes from './super_admin.routes.js';
+import vtfreeAppRoutes from './vtfree_app.routes.js';
+import vtfreeAuthRoutes from './vtfree_auth.routes.js';
 
 export default (app: Express) => {
   // ... your existing routes
@@ -31,10 +39,16 @@ export default (app: Express) => {
   app.use('/api/v1/promotions', promotionsRoutes);
   app.use('/api/v1/support', supportRoutes);
   app.use('/api/v1/admin', adminRoutes);
-  
+
+  // New routes
+  app.use('/api/v1/app-admin', appAdminRoutes);
+  app.use('/api/v1/super-admin', superAdminRoutes);
+  app.use('/api/v1/vtfree-app', vtfreeAppRoutes);
+  app.use('/api/v1/vtfree-auth', vtfreeAuthRoutes);
+
   // Bill payment routes
   app.use('/api/v1/billpayment', billPaymentRoutes);
-  
+
   // Health check
   app.get('/health', (req: Request, res: Response) => {
     res.status(200).json({ status: 'ok', message: 'Server is running' });

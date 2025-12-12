@@ -2,7 +2,6 @@ import mongoose, { Schema } from 'mongoose';
 import { IUser } from '../types.js';
 
 const userSchema = new Schema<IUser>({
-  app_id: { type: String, required: true, default: 'default_app', index: true },
   email: { type: String, required: true, unique: true },
   phone_number: { type: String, required: true, unique: true },
   password_hash: { type: String, required: true },
@@ -35,9 +34,5 @@ const userSchema = new Schema<IUser>({
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now }
 });
-
-// Add compound index for app_id + email uniqueness per app
-userSchema.index({ app_id: 1, email: 1 }, { unique: true });
-userSchema.index({ app_id: 1, phone_number: 1 }, { unique: true });
 
 export const User = mongoose.model<IUser>('User', userSchema);

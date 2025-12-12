@@ -2,6 +2,8 @@
 import { NextFunction, Request, Response } from 'express';
 import { logger } from '../config/bootstrap.js';
 
+import { configService } from '../services/config.service.js';
+
 export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
   logger.error('Error:', err);
 
@@ -11,6 +13,6 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
   res.status(statusCode).json({
     success: false,
     message,
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    ...(configService.getSync('NODE_ENV') === 'development' && { stack: err.stack })
   });
 };

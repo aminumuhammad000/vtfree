@@ -29,10 +29,7 @@ export class TransactionController {
         return ApiResponse.error(res, 'Insufficient balance', 400);
       }
 
-      const app_id = req.user?.app_id || 'default_app';
-
       const transaction = await Transaction.create({
-        app_id,
         user_id: req.user?.id,
         wallet_id: wallet._id,
         type,
@@ -70,16 +67,14 @@ export class TransactionController {
       const limit = parseInt(req.query.limit as string) || 10;
       const skip = (page - 1) * limit;
 
-      const app_id = req.user?.app_id || 'default_app';
-
-      const transactions = await Transaction.find({ user_id: req.user?.id, app_id })
+      const transactions = await Transaction.find({ user_id: req.user?.id })
         .populate('operator_id')
         .populate('plan_id')
         .skip(skip)
         .limit(limit)
         .sort({ created_at: -1 });
 
-      const total = await Transaction.countDocuments({ user_id: req.user?.id, app_id });
+      const total = await Transaction.countDocuments({ user_id: req.user?.id });
 
       return ApiResponse.paginated(res, transactions, {
         page,
@@ -94,12 +89,9 @@ export class TransactionController {
 
   static async getTransactionById(req: AuthRequest, res: Response) {
     try {
-      const app_id = req.user?.app_id || 'default_app';
-
       const transaction = await Transaction.findOne({
         _id: req.params.id,
-        user_id: req.user?.id,
-        app_id
+        user_id: req.user?.id
       }).populate('operator_id').populate('plan_id');
 
       if (!transaction) {
@@ -118,8 +110,7 @@ export class TransactionController {
       const limit = parseInt(req.query.limit as string) || 10;
       const skip = (page - 1) * limit;
 
-      const app_id = req.user?.app_id || 'default_app';
-      const filter: any = { app_id };
+      const filter: any = {};
       if (req.query.status) filter.status = req.query.status;
       if (req.query.type) filter.type = req.query.type;
 
@@ -155,10 +146,10 @@ export class TransactionController {
 
       const transaction = await Transaction.findByIdAndUpdate(
         req.params.id,
-        {
-          status,
+        { 
+          status, 
           remarks: remarks || '',
-          updated_at: new Date()
+          updated_at: new Date() 
         },
         { new: true }
       );

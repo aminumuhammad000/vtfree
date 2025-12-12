@@ -71,10 +71,10 @@ export class MonnifyService {
 
   constructor() {
     this.config = {
-      apiKey: process.env.MONNIFY_API_KEY || '',
-      secretKey: process.env.MONNIFY_SECRET_KEY || '',
-      contractCode: process.env.MONNIFY_CONTRACT_CODE || '',
-      baseUrl: process.env.MONNIFY_BASE_URL || 'https://sandbox.monnify.com',
+      apiKey: '',
+      secretKey: '',
+      contractCode: '',
+      baseUrl: 'https://sandbox.monnify.com',
     };
 
     this.axiosInstance = axios.create({
@@ -85,11 +85,25 @@ export class MonnifyService {
     });
   }
 
+  private async ensureConfig() {
+    if (this.config.apiKey && this.config.secretKey) return;
+
+    const { configService } = await import('./config.service.js');
+
+    this.config.apiKey = await configService.get('MONNIFY_API_KEY') || process.env.MONNIFY_API_KEY || '';
+    this.config.secretKey = await configService.get('MONNIFY_SECRET_KEY') || process.env.MONNIFY_SECRET_KEY || '';
+    this.config.contractCode = await configService.get('MONNIFY_CONTRACT_CODE') || process.env.MONNIFY_CONTRACT_CODE || '';
+    this.config.baseUrl = await configService.get('MONNIFY_BASE_URL') || process.env.MONNIFY_BASE_URL || 'https://sandbox.monnify.com';
+
+    this.axiosInstance.defaults.baseURL = this.config.baseUrl;
+  }
+
   /**
    * Get access token from Monnify
    */
   private async getAccessToken(): Promise<string> {
     try {
+      await this.ensureConfig();
       // Return cached token if still valid
       if (this.accessToken && Date.now() < this.tokenExpiry) {
         return this.accessToken;
@@ -131,6 +145,7 @@ export class MonnifyService {
    */
   async initiatePayment(data: InitiatePaymentData): Promise<MonnifyPaymentResponse['responseBody']> {
     try {
+      await this.ensureConfig();
       const token = await this.getAccessToken();
 
       const payload = {
@@ -175,6 +190,7 @@ export class MonnifyService {
    */
   async verifyPayment(transactionReference: string): Promise<MonnifyVerifyResponse['responseBody']> {
     try {
+      await this.ensureConfig();
       const token = await this.getAccessToken();
 
       console.log('🔍 Verifying Monnify payment:', transactionReference);

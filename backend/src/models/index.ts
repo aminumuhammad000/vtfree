@@ -18,5 +18,7 @@ export * from './promotion.model.js';
 export * from './referral_setting.model.js';
 export * from './role_permission.model.js';
 export * from './support_ticket.model.js';
+export { default as SystemConfig } from './system_config.model.js';
 export * from './transaction.model.js';
 export { default as VirtualAccount } from './VirtualAccount.js';
+

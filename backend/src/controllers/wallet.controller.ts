@@ -8,8 +8,7 @@ import { AuthRequest } from '../types/index.js';
 export class WalletController {
   static async getWallet(req: AuthRequest, res: Response) {
     try {
-      const app_id = req.user?.app_id || 'default_app';
-      const wallet = await Wallet.findOne({ user_id: req.user?.id, app_id });
+      const wallet = await Wallet.findOne({ user_id: req.user?.id });
       if (!wallet) {
         return ApiResponse.error(res, 'Wallet not found', 404);
       }
@@ -35,7 +34,6 @@ export class WalletController {
 
       // Create transaction record
       const transaction = await Transaction.create({
-        app_id,
         user_id: req.user?.id,
         wallet_id: wallet._id,
         type: 'wallet_topup',
@@ -70,14 +68,12 @@ export class WalletController {
       const limit = parseInt(req.query.limit as string) || 10;
       const skip = (page - 1) * limit;
 
-      const app_id = req.user?.app_id || 'default_app';
-
-      const transactions = await Transaction.find({ wallet_id: wallet._id, app_id })
+      const transactions = await Transaction.find({ wallet_id: wallet._id })
         .skip(skip)
         .limit(limit)
         .sort({ created_at: -1 });
 
-      const total = await Transaction.countDocuments({ wallet_id: wallet._id, app_id });
+      const total = await Transaction.countDocuments({ wallet_id: wallet._id });
 
       return ApiResponse.paginated(res, transactions, {
         page,
