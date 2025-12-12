@@ -97,7 +97,7 @@ const WalletCredit: React.FC = () => {
                   className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                     errors.userId
                       ? 'border-red-500 focus:ring-red-500'
-                      : 'border-gray-300 focus:ring-blue-500'
+                      : 'border-gray-300 focus:ring-green-500'
                   }`}
                 >
                   <option value="">-- Choose a user --</option>
@@ -112,7 +112,7 @@ const WalletCredit: React.FC = () => {
 
               {/* Selected User Info */}
               {selectedUser && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-xs text-gray-600 uppercase">Name</p>
@@ -158,7 +158,7 @@ const WalletCredit: React.FC = () => {
                   className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                     errors.amount
                       ? 'border-red-500 focus:ring-red-500'
-                      : 'border-gray-300 focus:ring-blue-500'
+                      : 'border-gray-300 focus:ring-green-500'
                   }`}
                 />
                 {errors.amount && <p className="text-red-500 text-sm mt-1">{errors.amount}</p>}
@@ -181,7 +181,7 @@ const WalletCredit: React.FC = () => {
                   className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
                     errors.description
                       ? 'border-red-500 focus:ring-red-500'
-                      : 'border-gray-300 focus:ring-blue-500'
+                      : 'border-gray-300 focus:ring-green-500'
                   }`}
                 />
                 {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
@@ -210,7 +210,7 @@ const WalletCredit: React.FC = () => {
                 <button
                   type="submit"
                   disabled={creditMutation.status === 'pending' || !selectedUser || !amount}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-3 rounded-lg transition font-semibold"
+                  className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white px-4 py-3 rounded-lg transition font-semibold"
                 >
                   {creditMutation.status === 'pending' ? '💫 Processing...' : '✓ Credit Wallet'}
                 </button>
@@ -230,9 +230,9 @@ const WalletCredit: React.FC = () => {
             </form>
 
             {/* Info Box */}
-            <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-semibold text-blue-900 mb-2">ℹ️ How to use:</h3>
-              <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800">
+            <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
+              <h3 className="font-semibold text-green-900 mb-2">ℹ️ How to use:</h3>
+              <ol className="list-decimal list-inside space-y-1 text-sm text-green-800">
                 <li>Select a user from the dropdown</li>
                 <li>Enter the amount you want to credit</li>
                 <li>Add a description for the credit</li>

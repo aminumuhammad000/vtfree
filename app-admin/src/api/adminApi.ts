@@ -85,3 +85,26 @@ export const updateSupportContent = (data: any) => api.put('/support-content', d
 // Notifications
 export const sendBroadcastNotification = (data: { title: string; message: string; type: string; action_link?: string }) =>
   api.post('/notifications/broadcast', data);
+
+// System Config
+export const getAllConfigs = () => api.get('/config');
+export const createConfig = (data: { key: string; value: string; description?: string; group?: string }) =>
+  api.post('/config', data);
+export const updateConfig = (key: string, data: { value: string }) =>
+  api.put(`/config/${key}`, data);
+export const deleteConfig = (key: string) => api.delete(`/config/${key}`);
+
+// Support Messages
+export const getSupportMessages = (params?: { page?: number; limit?: number; status?: string; priority?: string; search?: string }) =>
+  api.get('/support/messages', { params });
+export const getSupportMessage = (id: string) => api.get(`/support/messages/${id}`);
+export const replySupportMessage = (id: string, data: { message: string }) =>
+  api.post(`/support/messages/${id}/reply`, data);
+export const updateMessageStatus = (id: string, status: string) =>
+  api.patch(`/support/messages/${id}/status`, { status });
+
+// Payout/VTPay
+export const getBanksList = () => api.get('/payout/banks');
+export const validateAccount = (data: { bank_code: string; account_number: string }) =>
+  api.post('/payout/validate-account', data);
+export const getVTPayBalance = () => api.get('/payout/balance');
