@@ -4,20 +4,20 @@ import { useAuthContext } from '../hooks/AuthContext';
 
 const navItems = [
   {
-    to: '/funding',
-    label: 'Funding',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2m0-4h4m-4 0l-2-2m2 2l-2 2" />
-      </svg>
-    ),
-  },
-  {
     to: '/dashboard',
     label: 'Dashboard',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-3m0 0l7-4 7 4M5 9v10a1 1 0 001 1h12a1 1 0 001-1V9m-9 4l4 2m-2-2l-4-2" />
+      </svg>
+    ),
+  },
+  {
+    to: '/funding',
+    label: 'Funding',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2m0-4h4m-4 0l-2-2m2 2l-2 2" />
       </svg>
     ),
   },
@@ -85,6 +85,15 @@ const navItems = [
     ),
   },
   {
+    to: '/support',
+    label: 'Support',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+      </svg>
+    ),
+  },
+  {
     to: '/settings',
     label: 'Settings',
     icon: (
@@ -134,25 +143,25 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
           ${isDesktopOpen ? 'lg:w-64' : 'lg:w-20'} 
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           fixed lg:static inset-y-0 left-0 z-50
-          w-64 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 
-          text-white h-screen flex flex-col transition-all duration-300 
-          border-r border-slate-700 shadow-2xl
+          w-64 bg-gradient-to-b from-green-950 via-green-900 to-green-950 
+          text-white h-screen flex flex-col transition-all duration-300 ease-in-out
+          border-r border-green-700/50 shadow-2xl backdrop-blur-sm
         `}
       >
         {/* Logo Section */}
-        <div className="p-4 lg:p-6 border-b border-slate-700 flex items-center justify-between">
+        <div className="p-4 lg:p-6 border-b border-green-700/50 flex items-center justify-between transition-all">
           {(isDesktopOpen || isMobileOpen) && (
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center shadow-lg">
+              <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow">
                 <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L9 5.414V18a1 1 0 102 0V5.414l6.293 6.293a1 1 0 001.414-1.414l-7-7z" />
                 </svg>
               </div>
               <div>
-                <h1 className="text-lg font-bold bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
+                <h1 className="text-lg font-bold bg-gradient-to-r from-green-400 to-green-600 bg-clip-text text-transparent">
                   VTU
                 </h1>
-                <p className="text-xs text-slate-400">Admin Panel</p>
+                <p className="text-xs text-green-300/60">Admin Panel</p>
               </div>
             </div>
           )}
@@ -160,7 +169,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
           {/* Desktop Toggle */}
           <button
             onClick={() => setIsDesktopOpen(!isDesktopOpen)}
-            className="hidden lg:block p-2 hover:bg-slate-700 rounded-lg transition text-slate-400 hover:text-white"
+            className="hidden lg:block p-2 hover:bg-green-800/60 rounded-lg transition-all duration-200 text-green-300/60 hover:text-white hover:scale-110"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -175,7 +184,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
           {/* Mobile Close */}
           <button
             onClick={() => setIsMobileOpen(false)}
-            className="lg:hidden p-2 hover:bg-slate-700 rounded-lg transition text-slate-400 hover:text-white"
+            className="lg:hidden p-2 hover:bg-green-800/60 rounded-lg transition-all duration-200 text-green-300/60 hover:text-white hover:scale-110"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -184,7 +193,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto">
+        <nav className="flex-1 px-3 py-6 space-y-2 overflow-y-auto scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          <style>{`
+            .scrollbar-hide::-webkit-scrollbar {
+              display: none;
+            }
+          `}</style>
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -192,8 +206,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
               onClick={handleNavClick}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group ${isActive
-                  ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg'
-                  : 'text-slate-300 hover:bg-slate-700 hover:text-white'
+                  ? 'bg-gradient-to-r from-green-600 to-green-500 text-white shadow-lg scale-[1.02]'
+                  : 'text-green-100/80 hover:bg-green-800/60 hover:text-white hover:scale-[1.02] hover:shadow-md'
                 }`
               }
             >
@@ -206,10 +220,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
         </nav>
 
         {/* Logout Button */}
-        <div className="p-4 border-t border-slate-700 space-y-2">
+        <div className="p-4 border-t border-green-700/50 space-y-2">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-red-900/20 rounded-lg transition-all duration-200 text-sm font-medium"
+            className="w-full flex items-center gap-3 px-4 py-3 text-green-100/80 hover:text-white hover:bg-red-900/30 rounded-lg transition-all duration-200 text-sm font-medium hover:scale-[1.02]"
           >
             <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -221,7 +235,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
             </svg>
             {(isDesktopOpen || isMobileOpen) && <span>Logout</span>}
           </button>
-          {(isDesktopOpen || isMobileOpen) && <p className="text-xs text-slate-500 px-4">v1.0.0</p>}
+          {(isDesktopOpen || isMobileOpen) && <p className="text-xs text-green-300/40 px-4">v1.0.0</p>}
         </div>
       </aside>
     </>

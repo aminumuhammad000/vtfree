@@ -112,7 +112,7 @@ const PricingPlans: React.FC = () => {
               <div className="flex gap-3 mb-6">
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg font-medium"
+                  className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg font-medium"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -146,7 +146,7 @@ const PricingPlans: React.FC = () => {
                         setProviderId(e.target.value);
                         setPage(1);
                       }}
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-900 font-medium"
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-slate-900 font-medium"
                     >
                       <option value="">All Providers</option>
                       {PROVIDERS.map((p) => (
@@ -164,7 +164,7 @@ const PricingPlans: React.FC = () => {
                         setType(e.target.value);
                         setPage(1);
                       }}
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-900 font-medium"
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-slate-900 font-medium"
                     >
                       <option value="">All Types</option>
                       {TYPES.map((t) => (
@@ -229,7 +229,7 @@ const PricingPlans: React.FC = () => {
                               <span
                                 className={`px-2 py-1 rounded text-xs font-semibold ${
                                   plan.type === 'AIRTIME'
-                                    ? 'bg-blue-100 text-blue-800'
+                                    ? 'bg-green-100 text-green-800'
                                     : 'bg-purple-100 text-purple-800'
                                 }`}
                               >
@@ -254,7 +254,7 @@ const PricingPlans: React.FC = () => {
                             <td className="px-6 py-4 text-sm space-x-3">
                               <button
                                 onClick={() => setViewPlan(plan)}
-                                className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-900 font-medium"
+                                className="inline-flex items-center gap-1.5 text-green-600 hover:text-green-900 font-medium"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                 View

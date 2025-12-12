@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import React, { useState } from 'react';
+import { getTransactions } from '../api/adminApi';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 import TransactionViewModal from '../components/TransactionViewModal';
-import { getTransactions } from '../api/adminApi';
 
 const Transactions: React.FC = () => {
   const [page, setPage] = useState(1);
@@ -41,13 +41,15 @@ const Transactions: React.FC = () => {
 
   const getTypeColor = (type: string) => {
     switch (type?.toLowerCase()) {
-      case 'airtime':
-        return 'bg-blue-100 text-blue-800';
-      case 'data':
+      case 'airtime_topup':
+        return 'bg-green-100 text-green-800';
+      case 'data_purchase':
         return 'bg-purple-100 text-purple-800';
-      case 'electricity':
+      case 'bill_payment':
         return 'bg-yellow-100 text-yellow-800';
-      case 'cable':
+      case 'wallet_topup':
+        return 'bg-blue-100 text-blue-800';
+      case 'e-pin_purchase':
         return 'bg-pink-100 text-pink-800';
       default:
         return 'bg-slate-100 text-slate-800';
@@ -65,17 +67,23 @@ const Transactions: React.FC = () => {
             <div className="mb-8">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h1 className="text-4xl font-bold text-slate-900 mb-2">Transactions</h1>
-                  <p className="text-slate-600">Monitor all platform transactions</p>
+                  <h1 className="text-4xl font-extrabold text-slate-900 mb-2 tracking-tight">Transactions</h1>
+                  <p className="text-slate-600 text-lg">Monitor all platform transactions</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-3xl font-bold text-green-600">{pagination.total}</p>
-                  <p className="text-sm text-slate-600">Total Transactions</p>
+
+                {/* Modern stats card */}
+                <div className="relative bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg p-6 text-white overflow-hidden group hover-lift">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+                  <div className="relative">
+                    <p className="text-4xl font-extrabold mb-1">{pagination.total}</p>
+                    <p className="text-purple-100 text-sm font-semibold uppercase tracking-wide">Total Transactions</p>
+                  </div>
+                  <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-white/5 rounded-full"></div>
                 </div>
               </div>
 
               {/* Filters */}
-              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+              <div className="bg-gradient-to-br from-white to-slate-50/50 rounded-2xl border border-slate-200 p-6 shadow-md hover:shadow-lg transition-shadow">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Status</label>
@@ -85,7 +93,7 @@ const Transactions: React.FC = () => {
                         setStatusFilter(e.target.value);
                         setPage(1);
                       }}
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-900 font-medium"
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-slate-900 font-medium"
                     >
                       <option value="">All Status</option>
                       <option value="success">Success</option>
@@ -101,13 +109,14 @@ const Transactions: React.FC = () => {
                         setTypeFilter(e.target.value);
                         setPage(1);
                       }}
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-900 font-medium"
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-slate-900 font-medium"
                     >
                       <option value="">All Types</option>
-                      <option value="airtime">Airtime</option>
-                      <option value="data">Data</option>
-                      <option value="electricity">Electricity</option>
-                      <option value="cable">Cable TV</option>
+                      <option value="airtime_topup">Airtime</option>
+                      <option value="data_purchase">Data</option>
+                      <option value="bill_payment">Bill Payment</option>
+                      <option value="wallet_topup">Wallet Topup</option>
+                      <option value="e-pin_purchase">E-Pin</option>
                     </select>
                   </div>
                   <div className="flex items-end">
@@ -127,11 +136,13 @@ const Transactions: React.FC = () => {
             </div>
 
             {/* Transactions Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-gradient-to-br from-white to-slate-50/30 rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+              {/* Gradient accent line */}
+              <div className="h-1 bg-gradient-to-r from-purple-400 via-purple-500 to-purple-600"></div>
               {status === 'pending' && (
                 <div className="p-12 text-center">
                   <div className="inline-block animate-spin">
-                    <svg className="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                   </div>
@@ -172,8 +183,8 @@ const Transactions: React.FC = () => {
                             </td>
                           </tr>
                         )}
-                        {transactions.map((txn: any) => (
-                          <tr key={txn._id || txn.id} className="hover:bg-slate-50 transition-colors">
+                        {transactions.map((txn: any, index: number) => (
+                          <tr key={txn._id || txn.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'} hover:bg-purple-50/30 transition-colors duration-150`}>
                             <td className="px-6 py-4">
                               <p className="font-mono text-sm text-slate-900">{txn.reference || txn._id}</p>
                             </td>
@@ -203,7 +214,7 @@ const Transactions: React.FC = () => {
                             <td className="px-6 py-4">
                               <button
                                 onClick={() => setViewTransaction(txn)}
-                                className="p-2 hover:bg-blue-100 text-blue-600 rounded-lg transition"
+                                className="p-2 hover:bg-green-100 text-green-600 rounded-lg transition"
                                 title="View Details"
                               >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

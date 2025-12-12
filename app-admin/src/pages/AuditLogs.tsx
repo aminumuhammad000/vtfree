@@ -29,7 +29,7 @@ const AuditLogs: React.FC = () => {
   const getActionColor = (action: string) => {
     if (action?.includes('delete')) return 'bg-red-100 text-red-800';
     if (action?.includes('create')) return 'bg-green-100 text-green-800';
-    if (action?.includes('update')) return 'bg-blue-100 text-blue-800';
+    if (action?.includes('update')) return 'bg-green-100 text-green-800';
     if (action?.includes('credit')) return 'bg-purple-100 text-purple-800';
     return 'bg-slate-100 text-slate-800';
   };
@@ -60,7 +60,7 @@ const AuditLogs: React.FC = () => {
               {status === 'pending' && (
                 <div className="p-12 text-center">
                   <div className="inline-block animate-spin">
-                    <svg className="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                   </div>
