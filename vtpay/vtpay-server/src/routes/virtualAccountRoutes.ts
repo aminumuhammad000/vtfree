@@ -17,7 +17,21 @@ router.use(authenticate);
 router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         const userId = req.user!.id;
-        const { bankType = 'gtBank' } = req.body;
+        const {
+            bankType = 'gtBank',
+            accountName,
+            reference,
+            // Customer details (optional, for B2B2C)
+            firstName,
+            lastName,
+            email,
+            phone,
+            dob,
+            gender,
+            address,
+            state,
+            bvn
+        } = req.body;
 
         // Get user details for virtual account creation
         const user = await User.findById(userId);
@@ -29,39 +43,31 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
             return;
         }
 
-        // Check if user already has a virtual account with this bank
-        const existingAccount = await VirtualAccount.findOne({
-            userId: new mongoose.Types.ObjectId(userId),
-            bankType,
-            status: 'active',
-        });
-
-        if (existingAccount) {
-            res.status(409).json({
+        // Check KYC Level
+        if (user.kycLevel < 3) {
+            res.status(403).json({
                 success: false,
-                message: 'User already has an active virtual account with this bank',
-                data: {
-                    accountNumber: existingAccount.accountNumber,
-                    accountName: existingAccount.accountName,
-                    bankName: existingAccount.bankName,
-                },
+                message: 'Account verification required. Please complete KYC to create virtual accounts.',
             });
             return;
         }
 
+        // Allow multiple accounts, so we removed the existingAccount check
+
         // Create virtual account via Zainpay
+        // Use provided customer details OR fallback to logged-in user details
         const zainpayResponse = await zainpayService.createVirtualAccount({
             bankType,
-            firstName: user.firstName,
-            surname: user.lastName,
-            email: user.email,
-            mobileNumber: user.phone,
-            dob: req.body.dob || '01-01-1990', // Default if not provided
-            gender: req.body.gender || 'M',
-            address: req.body.address || 'Nigeria',
+            firstName: firstName || user.firstName,
+            surname: lastName || user.lastName,
+            email: email || user.email,
+            mobileNumber: phone || user.phone,
+            dob: dob || '01-01-1990', // Default if not provided
+            gender: gender || 'M',
+            address: address || 'Nigeria',
             title: req.body.title || 'Mr',
-            state: req.body.state || 'Lagos',
-            bvn: user.bvn || req.body.bvn || '',
+            state: state || 'Lagos',
+            bvn: bvn || user.bvn || '',
             zainboxCode: config.zainpay.zainboxCode,
         });
 
@@ -83,7 +89,9 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
             bankName: accountData.bankName,
             bankType,
             zainboxCode: config.zainpay.zainboxCode,
-            email: user.email,
+            email: email || user.email, // Use customer email if provided
+            alias: accountName, // Save the custom name
+            reference, // Save the reference ID
             status: 'active',
         });
         await virtualAccount.save();
@@ -95,6 +103,8 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
                 id: virtualAccount._id,
                 accountNumber: virtualAccount.accountNumber,
                 accountName: virtualAccount.accountName,
+                alias: virtualAccount.alias, // Return the custom name
+                reference: virtualAccount.reference,
                 bankName: virtualAccount.bankName,
                 bankType: virtualAccount.bankType,
                 status: virtualAccount.status,
@@ -127,6 +137,8 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
                 id: account._id,
                 accountNumber: account.accountNumber,
                 accountName: account.accountName,
+                alias: account.alias,
+                reference: account.reference,
                 bankName: account.bankName,
                 bankType: account.bankType,
                 status: account.status,

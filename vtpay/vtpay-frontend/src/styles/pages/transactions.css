@@ -1,0 +1,225 @@
+/* Transactions Page Styles */
+
+.transactions-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-6);
+}
+
+/* Filter Bar */
+.filter-bar {
+    background: white;
+    padding: var(--spacing-4);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-4);
+}
+
+@media (min-width: 768px) {
+    .filter-bar {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+}
+
+.filter-group {
+    display: flex;
+    gap: var(--spacing-3);
+    flex-wrap: wrap;
+}
+
+.filter-select {
+    padding: 0.5rem 2.5rem 0.5rem 1rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    background: white;
+    color: var(--color-text);
+    font-size: 0.875rem;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.date-range-picker {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: white;
+    color: var(--color-text);
+    font-size: 0.875rem;
+}
+
+.export-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    background: white;
+    color: var(--color-text);
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.export-btn:hover {
+    background: var(--color-bg-subtle);
+    border-color: var(--color-text-muted);
+}
+
+/* Transactions Table Card */
+.transactions-card {
+    background: white;
+    border-radius: var(--radius-2xl);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.data-table {
+    width: 100%;
+    text-align: left;
+    border-collapse: collapse;
+}
+
+.data-table th {
+    padding: var(--spacing-4) var(--spacing-6);
+    background: var(--color-bg-subtle);
+    border-bottom: 1px solid var(--color-border);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+.data-table td {
+    padding: var(--spacing-4) var(--spacing-6);
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+}
+
+.data-table tr:last-child td {
+    border-bottom: none;
+}
+
+.data-table tr:hover {
+    background-color: var(--color-bg);
+}
+
+/* Cell Content Styles */
+.txn-type-cell {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+}
+
+.txn-icon {
+    padding: 0.5rem;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.txn-icon.credit {
+    background: var(--color-success-bg);
+    color: var(--color-success);
+}
+
+.txn-icon.debit {
+    background: var(--color-error-bg);
+    color: var(--color-error);
+}
+
+.txn-type-label {
+    font-weight: 500;
+    text-transform: capitalize;
+    color: var(--color-text);
+}
+
+.txn-amount {
+    font-family: var(--font-display);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.txn-amount.credit {
+    color: var(--color-success);
+}
+
+.txn-amount.debit {
+    color: var(--color-text);
+}
+
+.txn-reference {
+    font-family: monospace;
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+.txn-date {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-4) var(--spacing-6);
+    border-top: 1px solid var(--color-border);
+    background: white;
+}
+
+.pagination-info {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+.pagination-controls {
+    display: flex;
+    gap: var(--spacing-2);
+}
+
+.pagination-btn {
+    padding: 0.5rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    background: white;
+    color: var(--color-text);
+    transition: all 0.2s;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-btn:not(:disabled):hover {
+    background: var(--color-bg-subtle);
+    border-color: var(--color-text-muted);
+}

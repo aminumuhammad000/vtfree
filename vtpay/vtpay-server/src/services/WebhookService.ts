@@ -98,7 +98,9 @@ export class WebhookService {
                 txnChargesAmount: data.txnChargesAmount,
                 zainboxCode: data.zainboxCode,
                 paymentDate: data.paymentDate,
-            }
+                paymentDate: data.paymentDate,
+            },
+            virtualAccount.reference // Pass the customer reference
         );
 
         console.log(`Successfully credited wallet for user ${virtualAccount.userId} with ${amountInKobo} kobo`);

@@ -1,6 +1,21 @@
-export { default as authRoutes } from './authRoutes';
-export { default as virtualAccountRoutes } from './virtualAccountRoutes';
-export { default as walletRoutes } from './walletRoutes';
-export { default as transactionRoutes } from './transactionRoutes';
-export { default as bankRoutes } from './bankRoutes';
-export { default as webhookRoutes } from './webhookRoutes';
+import authRoutes from './authRoutes';
+import virtualAccountRoutes from './virtualAccountRoutes';
+import walletRoutes from './walletRoutes';
+import transactionRoutes from './transactionRoutes';
+import bankRoutes from './bankRoutes';
+import webhookRoutes from './webhookRoutes';
+import developerRoutes from './developerRoutes';
+import payoutRoutes from './payoutRoutes';
+import kycRoutes from './kycRoutes';
+
+export {
+    authRoutes,
+    virtualAccountRoutes,
+    walletRoutes,
+    transactionRoutes,
+    bankRoutes,
+    webhookRoutes,
+    developerRoutes,
+    payoutRoutes,
+    kycRoutes,
+};
