@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
-import { Wallet as WalletIcon, Send, CheckCircle, Plus, AlertCircle, ChevronDown, ArrowRight } from 'lucide-react';
+import { Wallet as WalletIcon, CheckCircle, Plus, AlertCircle, ChevronDown, ArrowRight } from 'lucide-react';
 
 export const Wallet: React.FC = () => {
     const [wallet, setWallet] = useState<any>(null);

@@ -9,6 +9,7 @@ import * as WebBrowser from 'expo-web-browser';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Platform,
   ScrollView,
   Share,
@@ -128,19 +129,19 @@ export default function AddMoneyScreen() {
   const loadVirtualAccount = useCallback(async () => {
     try {
       setIsLoadingVirtualAccount(true);
-      
+
       const response = await payrantService.getVirtualAccount();
       console.log('📥 [AddMoney] Virtual account response:', response);
-      
+
       if (!response || (typeof response === 'object' && 'exists' in response && !response.exists)) {
         console.log('ℹ️ [AddMoney] No virtual account found - will show create button');
         setVirtualAccount(null);
         setIsLoadingVirtualAccount(false);
         return;
       }
-      
+
       const responseData = (response as any)?.data?.data || response;
-      
+
       if (responseData && 'account_number' in responseData) {
         const va = responseData as VirtualAccountResponse;
         const formattedAccount = formatVirtualAccount(va);
@@ -184,7 +185,7 @@ export default function AddMoneyScreen() {
   };
 
   // Handle virtual account creation
-  const handleCreateVirtualAccount = async () => {
+  const handleCreateVirtualAccount = async (recreate: boolean = false) => {
     try {
       setIsCreatingVirtualAccount(true);
       showInfo('Creating your virtual account. This may take a moment...');
@@ -203,6 +204,7 @@ export default function AddMoneyScreen() {
         customerName: `${user.first_name} ${user.last_name}`,
         email: user.email,
         accountReference,
+        recreate,
       };
 
       console.log('📤 Creating virtual account with data:', accountData);
@@ -216,21 +218,21 @@ export default function AddMoneyScreen() {
         try {
           const response = await payrantService.createVirtualAccount(accountData);
           const formattedAccount = formatVirtualAccount(response);
-          
+
           console.log('✅ Virtual account created:', formattedAccount);
           setVirtualAccount(formattedAccount);
           showSuccess('Virtual account created successfully!');
-          
+
           // Reload virtual account after short delay to ensure backend is updated
           setTimeout(() => {
             loadVirtualAccount();
           }, 2000);
-          
+
           return;
         } catch (error: any) {
           lastError = error;
           retryCount++;
-          
+
           if (retryCount <= maxRetries) {
             const delay = Math.min(1000 * Math.pow(2, retryCount - 1), 10000);
             await new Promise(resolve => setTimeout(resolve, delay));
@@ -241,7 +243,7 @@ export default function AddMoneyScreen() {
       throw lastError || new Error('Failed to create virtual account');
     } catch (error: any) {
       console.error('❌ Error creating virtual account:', error);
-      
+
       let errorMessage = 'Failed to create virtual account';
       if (error.message?.includes('network')) {
         errorMessage = 'Network error. Please check your connection.';
@@ -250,7 +252,7 @@ export default function AddMoneyScreen() {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       showError(errorMessage);
     } finally {
       setIsCreatingVirtualAccount(false);
@@ -289,7 +291,7 @@ export default function AddMoneyScreen() {
 
     try {
       showInfo(`Initializing ${selectedMethod} payment...`);
-      
+
       const response = await paymentService.initiatePayment({
         amount: amountNum,
         gateway: selectedMethod as "payrant" | "monnify" | "apystack",
@@ -323,9 +325,9 @@ export default function AddMoneyScreen() {
     try {
       showInfo('Verifying payment status...');
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       const verifyResponse = await paymentService.verifyPayment(reference);
-      
+
       if (verifyResponse.success && verifyResponse.data.status === 'paid') {
         showSuccess('Payment successful! Your wallet has been credited.');
         setTimeout(() => router.replace('/(tabs)'), 1500);
@@ -355,11 +357,11 @@ export default function AddMoneyScreen() {
   // Share account details
   const shareAccountDetails = async () => {
     if (!virtualAccount) return;
-    
+
     const message = `My ${virtualAccount.bank_name} Account Details:\n\n` +
-                   `Account Number: ${virtualAccount.account_number}\n` +
-                   `Account Name: ${virtualAccount.account_name}\n` +
-                   `Bank: ${virtualAccount.bank_name || 'PALMPAY'}`;
+      `Account Number: ${virtualAccount.account_number}\n` +
+      `Account Name: ${virtualAccount.account_name}\n` +
+      `Bank: ${virtualAccount.bank_name || 'PALMPAY'}`;
 
     try {
       await Share.share({
@@ -400,7 +402,7 @@ export default function AddMoneyScreen() {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: theme.card }]}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
         >
@@ -440,7 +442,7 @@ export default function AddMoneyScreen() {
                 <Text style={styles.atmAccountNumber}>
                   {virtualAccount.account_number}
                 </Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.atmCopyButton}
                   onPress={() => copyToClipboard(virtualAccount.account_number, 'Account number')}
                 >
@@ -458,10 +460,10 @@ export default function AddMoneyScreen() {
 
             <View style={styles.atmCardFooter}>
               <View style={styles.atmStatusBadge}>
-                <Ionicons 
-                  name={virtualAccount.status === 'active' ? "checkmark-circle" : "alert-circle"} 
-                  size={14} 
-                  color={virtualAccount.status === 'active' ? "#00D4AA" : "#FF5B5B"} 
+                <Ionicons
+                  name={virtualAccount.status === 'active' ? "checkmark-circle" : "alert-circle"}
+                  size={14}
+                  color={virtualAccount.status === 'active' ? "#00D4AA" : "#FF5B5B"}
                 />
                 <Text style={[
                   styles.atmStatusText,
@@ -471,21 +473,44 @@ export default function AddMoneyScreen() {
                 </Text>
               </View>
 
-              <TouchableOpacity 
-                style={styles.atmShareButton}
-                onPress={shareAccountDetails}
-              >
-                <Ionicons name="share-social" size={16} color="#FFFFFF" />
-                <Text style={styles.atmShareText}>Share</Text>
-              </TouchableOpacity>
+              <View style={styles.atmActions}>
+                <TouchableOpacity
+                  style={styles.atmActionButton}
+                  onPress={shareAccountDetails}
+                >
+                  <Ionicons name="share-social" size={16} color="#FFFFFF" />
+                  <Text style={styles.atmActionText}>Share</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.atmActionButton, { backgroundColor: 'rgba(255, 91, 91, 0.2)' }]}
+                  onPress={() => {
+                    Alert.alert(
+                      'Recreate Virtual Account',
+                      'Are you sure you want to generate a new virtual account? This will replace your current account details.',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        {
+                          text: 'Recreate',
+                          style: 'destructive',
+                          onPress: () => handleCreateVirtualAccount(true)
+                        }
+                      ]
+                    );
+                  }}
+                >
+                  <Ionicons name="refresh" size={16} color="#FF5B5B" />
+                  <Text style={[styles.atmActionText, { color: '#FF5B5B' }]}>Recreate</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         ) : (
           <View style={[styles.noAccountCard, { backgroundColor: theme.card }]}>
-            <Ionicons 
-              name="wallet-outline" 
-              size={64} 
-              color={theme.textMuted} 
+            <Ionicons
+              name="wallet-outline"
+              size={64}
+              color={theme.textMuted}
               style={styles.noAccountIcon}
             />
             <Text style={[styles.noAccountTitle, { color: theme.text }]}>
@@ -536,7 +561,7 @@ export default function AddMoneyScreen() {
                 key={item.amount}
                 style={[
                   styles.quickAmountButton,
-                  { 
+                  {
                     backgroundColor: theme.background,
                     borderColor: theme.border
                   }
@@ -604,7 +629,7 @@ export default function AddMoneyScreen() {
         <TouchableOpacity
           style={[
             styles.addMoneyButton,
-            { 
+            {
               backgroundColor: THEME.accent,
               opacity: (!amount || isLoading) ? 0.7 : 1
             }
@@ -623,14 +648,14 @@ export default function AddMoneyScreen() {
 
         {/* Info Text */}
         <View style={[styles.infoBox, { backgroundColor: `${THEME.accent}15` }]}>
-          <Ionicons 
-            name="information-circle" 
-            size={20} 
-            color={THEME.accent} 
+          <Ionicons
+            name="information-circle"
+            size={20}
+            color={THEME.accent}
             style={styles.infoIcon}
           />
           <Text style={[styles.infoText, { color: theme.text }]}>
-            {selectedMethod === 'virtual' 
+            {selectedMethod === 'virtual'
               ? 'Transfer to your virtual account to fund your wallet instantly'
               : 'Complete the payment to add money to your wallet'}
           </Text>
@@ -759,7 +784,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     marginLeft: 12,
   },
-  atmShareButton: {
+  atmActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  atmActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 6,
@@ -767,7 +796,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
-  atmShareText: {
+  atmActionText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '500',

@@ -8,6 +8,9 @@ interface User {
     phone: string;
     kycLevel: number;
     status: string;
+    nin?: string;
+    bvn?: string;
+    idCardPath?: string;
 }
 
 interface AuthContextType {

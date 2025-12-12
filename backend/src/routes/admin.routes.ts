@@ -69,6 +69,12 @@ router.post('/funding/accounts', authMiddleware, AdminFundingController.createAc
 router.put('/funding/accounts/:id', authMiddleware, AdminFundingController.updateAccount);
 router.delete('/funding/accounts/:id', authMiddleware, AdminFundingController.deleteAccount);
 
+// Support messages
+router.get('/support/messages', authMiddleware, async (req, res, next) => {
+    const { SupportController } = await import('../controllers/support.controller.js');
+    return SupportController.getAllTickets(req, res);
+});
+
 // Support content management
 router.get('/support-content', authMiddleware, async (req, res, next) => {
     const { SupportContentController } = await import('../controllers/support_content.controller.js');

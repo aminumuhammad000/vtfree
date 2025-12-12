@@ -14,21 +14,23 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { authService } from "../services/auth.service";
 import { useTheme } from "../components/ThemeContext";
+import { authService } from "../services/auth.service";
 
 const SignupScreen = () => {
+  const [step, setStep] = useState(1);
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone_number, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [first_name, setFirstName] = useState("");
-  const [last_name, setLastName] = useState("");
-  const [referral_code, setReferralCode] = useState("");
   const [pin, setPin] = useState("");
-  const [confirmPin, setConfirmPin] = useState("");
+  const [referral_code, setReferralCode] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+
   const router = useRouter();
   const { isDark } = useTheme();
 
@@ -47,54 +49,70 @@ const SignupScreen = () => {
   const cardBg = isDark ? "#1F2937" : "#FFFFFF";
   const borderColor = isDark ? "#374151" : "#334155";
 
-  const handleSignup = async () => {
-    // Validation
-    if (
-      !email ||
-      !password ||
-      !confirmPassword ||
-      !first_name ||
-      !last_name ||
-      !phone_number
-    ) {
-      Alert.alert("❌ Validation Error", "Please fill in all required fields");
+  const handleNextStep1 = async () => {
+    if (!fullName || !email || !phone_number) {
+      Alert.alert("Missing Information", "Please fill in all fields");
       return;
     }
 
     if (!/^[0-9]{10,15}$/.test(phone_number)) {
-      Alert.alert(
-        "❌ Validation Error",
-        "Please enter a valid phone number (10-15 digits)"
-      );
+      Alert.alert("Invalid Phone", "Please enter a valid phone number");
       return;
     }
 
-    if (password !== confirmPassword) {
-      Alert.alert("❌ Validation Error", "Passwords do not match");
+    setIsLoading(true);
+    try {
+      // Send OTP to email
+      await authService.resendOTP(phone_number, email);
+      Alert.alert("OTP Sent", `We have sent a verification code to ${email}`);
+      setStep(2);
+    } catch (error) {
+      console.log("OTP Error", error);
+      Alert.alert("Error", error.message || "Failed to send OTP. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyEmail = async () => {
+    if (!otpCode) {
+      Alert.alert("Validation Error", "Please enter the verification code");
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      await authService.verifyOTP(phone_number, otpCode);
+      setStep(3);
+    } catch (error) {
+      Alert.alert("Verification Failed", error.message || "Invalid code");
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleSignup = async () => {
+    if (!password || !pin) {
+      Alert.alert("Validation Error", "Please fill in all fields");
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert(
-        "❌ Validation Error",
-        "Password must be at least 6 characters"
-      );
+      Alert.alert("Validation Error", "Password must be at least 6 characters");
       return;
     }
 
-    // Validate Transaction PIN
-    if (!/^\d{4}$/.test(pin) || !/^\d{4}$/.test(confirmPin)) {
-      Alert.alert("❌ Validation Error", "Transaction PIN must be exactly 4 digits");
+    if (!/^\d{4}$/.test(pin)) {
+      Alert.alert("Validation Error", "PIN must be exactly 4 digits");
       return;
     }
-
-    if (pin !== confirmPin) {
-      Alert.alert("❌ Validation Error", "PIN codes do not match");
-      return;
-    }
-
 
     setIsLoading(true);
+
+    // Split full name
+    const names = fullName.trim().split(" ");
+    const first_name = names[0];
+    const last_name = names.slice(1).join(" ") || names[0]; // Fallback if no last name
 
     try {
       const response = await authService.register({
@@ -122,6 +140,184 @@ const SignupScreen = () => {
     }
   };
 
+  const renderStep1 = () => (
+    <View style={styles.formContainer}>
+      <View style={styles.inputContainer}>
+        <Text style={[styles.inputLabel, { color: textColor }]}>Full Name</Text>
+        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+          <TextInput
+            style={[styles.input, { color: textColor }]}
+            placeholder="Enter your full name"
+            placeholderTextColor={textBodyColor}
+            value={fullName}
+            onChangeText={setFullName}
+            autoCapitalize="words"
+            selectionColor="#3B82F6"
+          />
+        </View>
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={[styles.inputLabel, { color: textColor }]}>Email Address</Text>
+        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+          <TextInput
+            style={[styles.input, { color: textColor }]}
+            placeholder="Enter your email address"
+            placeholderTextColor={textBodyColor}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            selectionColor="#3B82F6"
+          />
+        </View>
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={[styles.inputLabel, { color: textColor }]}>Phone Number</Text>
+        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+          <Text style={[styles.countryCode, { color: textColor }]}>+234</Text>
+          <TextInput
+            style={[styles.input, { marginLeft: 8, color: textColor }]}
+            placeholder="Enter your phone number"
+            placeholderTextColor={textBodyColor}
+            value={phone_number}
+            onChangeText={setPhoneNumber}
+            keyboardType="phone-pad"
+            maxLength={15}
+            selectionColor="#3B82F6"
+          />
+        </View>
+      </View>
+
+      <TouchableOpacity
+        style={[styles.button, styles.primaryButton]}
+        onPress={handleNextStep1}
+      >
+        <Text style={styles.primaryButtonText}>Next</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderStep2 = () => (
+    <View style={styles.formContainer}>
+      <Text style={[styles.stepTitle, { color: textColor }]}>Confirm Email</Text>
+      <Text style={[styles.stepSubtitle, { color: textBodyColor }]}>
+        We've sent a verification code to {email}
+      </Text>
+
+      <View style={styles.inputContainer}>
+        <Text style={[styles.inputLabel, { color: textColor }]}>Verification Code</Text>
+        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+          <TextInput
+            style={[styles.input, { color: textColor, textAlign: 'center', letterSpacing: 8, fontSize: 24 }]}
+            placeholder="0000"
+            placeholderTextColor={textBodyColor}
+            value={otpCode}
+            onChangeText={setOtpCode}
+            keyboardType="number-pad"
+            maxLength={4}
+            selectionColor="#3B82F6"
+          />
+        </View>
+      </View>
+
+      <TouchableOpacity
+        style={[styles.button, styles.primaryButton]}
+        onPress={handleVerifyEmail}
+        disabled={isVerifying}
+      >
+        {isVerifying ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <Text style={styles.primaryButtonText}>Verify Email</Text>
+        )}
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => setStep(1)} style={styles.backButton}>
+        <Text style={[styles.linkText, { textAlign: 'center' }]}>Back to details</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderStep3 = () => (
+    <View style={styles.formContainer}>
+      <View style={styles.inputContainer}>
+        <Text style={[styles.inputLabel, { color: textColor }]}>Create Password</Text>
+        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+          <TextInput
+            style={[styles.input, { color: textColor }]}
+            placeholder="Create a password"
+            placeholderTextColor={textBodyColor}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+            selectionColor="#3B82F6"
+          />
+          <TouchableOpacity
+            style={styles.eyeIcon}
+            onPress={() => setShowPassword(!showPassword)}
+          >
+            <MaterialIcons
+              name={showPassword ? "visibility-off" : "visibility"}
+              size={20}
+              color={textBodyColor}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={[styles.inputLabel, { color: textColor }]}>Create Transaction PIN</Text>
+        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+          <TextInput
+            style={[styles.input, { color: textColor }]}
+            placeholder="Enter 4-digit PIN"
+            placeholderTextColor={textBodyColor}
+            value={pin}
+            onChangeText={(t) => setPin(t.replace(/\D/g, '').slice(0, 4))}
+            keyboardType="number-pad"
+            secureTextEntry
+            maxLength={4}
+            selectionColor="#3B82F6"
+          />
+        </View>
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={[styles.inputLabel, { color: textColor }]}>Referral Code (Optional)</Text>
+        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+          <TextInput
+            style={[styles.input, { color: textColor }]}
+            placeholder="Enter referral code"
+            placeholderTextColor={textBodyColor}
+            value={referral_code}
+            onChangeText={setReferralCode}
+            autoCapitalize="characters"
+            selectionColor="#3B82F6"
+          />
+        </View>
+      </View>
+
+      <TouchableOpacity
+        style={[styles.button, styles.primaryButton, isLoading && styles.buttonDisabled]}
+        onPress={handleSignup}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <Text style={styles.primaryButtonText}>Create Account</Text>
+        )}
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => setStep(2)} style={styles.backButton}>
+        <Text style={[styles.linkText, { textAlign: 'center' }]}>Back</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: bgColor }]}
@@ -136,220 +332,26 @@ const SignupScreen = () => {
             source={require("../assets/images/ibdatalogo.png")}
             style={styles.logo}
           />
-          <Text style={[styles.title, { color: textColor }]}>Create an Account</Text>
-          <Text style={[styles.subtitle, { color: textBodyColor }] }>
-            Fill in your details to get started
+          <Text style={[styles.title, { color: textColor }]}>
+            {step === 1 ? "Create Account" : step === 2 ? "Verify Email" : "Secure Account"}
+          </Text>
+          <Text style={[styles.subtitle, { color: textBodyColor }]}>
+            {step === 1 ? "Fill in your details to get started" : step === 2 ? "Enter the code sent to your email" : "Set up your security credentials"}
           </Text>
         </View>
 
-        <View style={styles.formContainer}>
-          <View style={styles.inputContainer}>
-            <Text style={[styles.inputLabel, { color: textColor }]}>First Name</Text>
-            <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }] }>
-              <TextInput
-                style={[styles.input, { color: textColor }]}
-                placeholder="Enter your first name"
-                placeholderTextColor={textBodyColor}
-                value={first_name}
-                onChangeText={setFirstName}
-                autoCapitalize="words"
-                selectionColor="#3B82F6"
-              />
-            </View>
-          </View>
+        {step === 1 && renderStep1()}
+        {step === 2 && renderStep2()}
+        {step === 3 && renderStep3()}
 
-          <View style={styles.inputContainer}>
-            <Text style={[styles.inputLabel, { color: textColor }]}>Last Name</Text>
-            <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }] }>
-              <TextInput
-                style={[styles.input, { color: textColor }]}
-                placeholder="Enter your last name"
-                placeholderTextColor={textBodyColor}
-                value={last_name}
-                onChangeText={setLastName}
-                autoCapitalize="words"
-                selectionColor="#3B82F6"
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={[styles.inputLabel, { color: textColor }]}>Email Address</Text>
-            <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }] }>
-              <TextInput
-                style={[styles.input, { color: textColor }]}
-                placeholder="Enter your email address"
-                placeholderTextColor={textBodyColor}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                selectionColor="#3B82F6"
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={[styles.inputLabel, { color: textColor }]}>Phone Number</Text>
-            <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }] }>
-              <Text style={[styles.countryCode, { color: textColor }]}>+234</Text>
-              <TextInput
-                style={[styles.input, { marginLeft: 8, color: textColor }]}
-                placeholder="Enter your phone number"
-                placeholderTextColor={textBodyColor}
-                value={phone_number}
-                onChangeText={setPhoneNumber}
-                keyboardType="phone-pad"
-                maxLength={15}
-                selectionColor="#3B82F6"
-              />
-            </View>
-          </View>
-
-          {/* Transaction PIN */}
-          <View style={styles.inputContainer}>
-            <Text style={[styles.inputLabel, { color: textColor }]}>Transaction PIN</Text>
-            <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }] }>
-              <TextInput
-                style={[styles.input, { color: textColor }]}
-                placeholder="Enter 4-digit PIN"
-                placeholderTextColor={textBodyColor}
-                value={pin}
-                onChangeText={(t) => setPin(t.replace(/\D/g, '').slice(0,4))}
-                keyboardType="number-pad"
-                secureTextEntry
-                maxLength={4}
-                selectionColor="#3B82F6"
-              />
-            </View>
-          </View>
-
-          {/* Confirm PIN */}
-          <View style={styles.inputContainer}>
-            <Text style={[styles.inputLabel, { color: textColor }]}>Confirm PIN</Text>
-            <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }] }>
-              <TextInput
-                style={[styles.input, { color: textColor }]}
-                placeholder="Confirm 4-digit PIN"
-                placeholderTextColor={textBodyColor}
-                value={confirmPin}
-                onChangeText={(t) => setConfirmPin(t.replace(/\D/g, '').slice(0,4))}
-                keyboardType="number-pad"
-                secureTextEntry
-                maxLength={4}
-                selectionColor="#3B82F6"
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={[styles.inputLabel, { color: textColor }]}>Password</Text>
-            <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }] }>
-              <TextInput
-                style={[styles.input, { color: textColor }]}
-                placeholder="Create a password"
-                placeholderTextColor={textBodyColor}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                selectionColor="#3B82F6"
-              />
-              <TouchableOpacity
-                style={styles.eyeIcon}
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                <MaterialIcons
-                  name={showPassword ? "visibility-off" : "visibility"}
-                  size={20}
-                  color={textBodyColor}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={[styles.inputLabel, { color: textColor }]}>Confirm Password</Text>
-            <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }] }>
-              <TextInput
-                style={[styles.input, { color: textColor }]}
-                placeholder="Confirm your password"
-                placeholderTextColor={textBodyColor}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry={!showPassword}
-                selectionColor="#3B82F6"
-              />
-            </View>
-          </View>
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Referral Code (Optional)</Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter referral code"
-                placeholderTextColor="#9CA3AF"
-                value={referral_code}
-                onChangeText={setReferralCode}
-                autoCapitalize="characters"
-                selectionColor="#3B82F6"
-              />
-            </View>
-          </View>
-
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[
-                styles.button,
-                styles.primaryButton,
-                isLoading && styles.buttonDisabled,
-              ]}
-              onPress={handleSignup}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.primaryButtonText}>Create Account</Text>
-              )}
-            </TouchableOpacity>
-
-            <View style={styles.dividerContainer}>
-              <View style={styles.divider} />
-              <Text style={styles.dividerText}>OR</Text>
-              <View style={styles.divider} />
-            </View>
-
-            {/* <TouchableOpacity style={[styles.button, styles.socialButton, { backgroundColor: '#FFFFFF' }]}>
-              <Image 
-                source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA-LBgmwH2QdH0SMXnLSqgIzuC4R-0W0RvWdTNEr_NpllN6NV6rCHU_urzGTET9ukQggSllwcntrBKYQVjrGy6faoX8uS7vMBRmj0MiDrwzQTD-97DXh-l4_fFuLdxeafoJtGGTZjvDSFe-Tugarxj95ecQrLItSiak6VEG-9Pqy0iohz03Fe4YsS2boiowmrtRdqaEmWb_nGbE4XQ7PMnEtyIWbNQZVKOkerrQijPeUgoC9hU4LIZhja9XBx2__jIaqbHK7v8GfLs' }} 
-                style={styles.socialIcon} 
-              />
-              <Text style={[styles.socialButtonText, { color: '#111921' }]}>Continue with Google</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.button, styles.socialButton, { backgroundColor: '#000000' }]}>
-              <Image 
-                source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBmzEF8JMM9NDAf9oj1zKEI0KwqP4hZG4VTwaApPexK9L1_rwmqnvXuKJlhgkreSD-iNyFk17kJdRAjl9EwrnTSIuTVXTrtxlhA-95OTv2fdWMxTqm9-3J-zE_EcVsQn7Kq8vKwYnZ0-GynAsisF9cihvbvPu5mbfPLqFHZiZt7tRvc4bF9KrB3a04CcTB2cEDRy3D3jJTU80LXIqGIBmJYoIyFsABv8BaX35UJXMnOYzvI88HfG6SxUMEbkf5NE9P93VUnCr6Dn8c' }} 
-                style={styles.socialIcon} 
-              />
-              <Text style={[styles.socialButtonText, { color: '#FFFFFF' }]}>Continue with Apple</Text>
-            </TouchableOpacity> */}
-          </View>
-
+        {step === 1 && (
           <View style={styles.loginContainer}>
             <Text style={[styles.loginText, { color: textBodyColor }]}>Already have an account? </Text>
             <TouchableOpacity onPress={() => router.push("/login")}>
               <Text style={[styles.loginLink, { color: isDark ? theme.accent : theme.primary }]}>Log In</Text>
             </TouchableOpacity>
           </View>
-
-          <Text style={[styles.termsText, { color: textBodyColor }]}>
-            By signing up, you agree to our{" "}
-            <Text style={styles.linkText}>Terms of Service</Text> and{" "}
-            <Text style={styles.linkText}>Privacy Policy</Text>.
-          </Text>
-        </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -378,7 +380,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "##1E293B",
+    color: "#1E293B",
     textAlign: "center",
     marginBottom: 8,
   },
@@ -387,6 +389,17 @@ const styles = StyleSheet.create({
     color: "#5e6875ff",
     textAlign: "center",
     marginBottom: 32,
+  },
+  stepTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  stepSubtitle: {
+    fontSize: 14,
+    marginBottom: 24,
+    textAlign: 'center',
   },
   formContainer: {
     width: "100%",
@@ -443,6 +456,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     marginBottom: 16,
+    marginTop: 16,
   },
   primaryButton: {
     backgroundColor: "#0A2A4E",
@@ -452,39 +466,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-  socialButton: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-  },
-  socialIcon: {
-    width: 24,
-    height: 24,
-    marginRight: 12,
-  },
-  socialButtonText: {
-    fontSize: 16,
-    fontWeight: "500",
-  },
-  dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 20,
-  },
-  divider: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#D1D5DB",
-  },
-  dividerText: {
-    color: "#6B7280",
-    fontSize: 14,
-    marginHorizontal: 12,
+  backButton: {
+    marginTop: 8,
+    padding: 8,
   },
   loginContainer: {
     flexDirection: "row",
     justifyContent: "center",
     marginBottom: 24,
+    marginTop: 24,
   },
   loginText: {
     fontSize: 14,
@@ -494,11 +484,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#3B82F6",
     fontWeight: "500",
-  },
-  termsText: {
-    fontSize: 12,
-    color: "#6B7280",
-    textAlign: "center",
   },
   linkText: {
     color: "#3B82F6",

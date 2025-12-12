@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 import { Button } from '../../components/Button';
-import { Input } from '../../components/Input';
 import { Plus, Copy, AlertCircle, CreditCard, X, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 

@@ -1,5 +1,6 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 import { authService } from '../services/auth.service';
 
 export const AuthContext = createContext();
@@ -17,12 +18,12 @@ export const AuthProvider = ({ children }) => {
         if (!token) {
           throw new Error('No authentication token found');
         }
-        
+
         const userData = await authService.getCurrentUser();
         if (!userData) {
           throw new Error('Invalid user data');
         }
-        
+
         setUser(userData);
         setIsAuthenticated(true);
       } catch (error) {
@@ -39,35 +40,62 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
+  // Auto-logout on inactivity
+  useEffect(() => {
+    const handleAppStateChange = async (nextAppState) => {
+      if (nextAppState === 'background') {
+        await AsyncStorage.setItem('lastActiveTime', Date.now().toString());
+      } else if (nextAppState === 'active') {
+        const lastActiveTime = await AsyncStorage.getItem('lastActiveTime');
+        if (lastActiveTime) {
+          const timeDiff = Date.now() - parseInt(lastActiveTime, 10);
+          const tenMinutes = 10 * 60 * 1000;
+
+          if (timeDiff > tenMinutes && isAuthenticated) {
+            console.log('Session timed out due to inactivity');
+            await logout();
+            // Optional: Show alert? The logout will trigger redirect to login
+          }
+        }
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      subscription.remove();
+    };
+  }, [isAuthenticated]);
+
   const login = async (userData) => {
     setIsLoading(true);
     try {
       if (!userData?.email || !userData?.password) {
         throw new Error('Email and password are required');
       }
-      
+
       const response = await authService.login(userData);
-      
+
       // Check for network errors first
       if (!response) {
         throw new Error('Unable to connect to the server. Please check your internet connection.');
       }
-      
+
       // Check for failed login
       if (!response.success) {
         throw new Error(response.message || 'Invalid email or password');
       }
-      
+
       // Verify we have a valid user and token
       if (!response.data?.user) {
         throw new Error('Invalid user data received');
       }
-      
+
       const token = await AsyncStorage.getItem('authToken');
       if (!token) {
         throw new Error('Authentication failed: No token received');
       }
-      
+
       setUser(response.data.user);
       setIsAuthenticated(true);
       return { success: true };
@@ -77,17 +105,17 @@ export const AuthProvider = ({ children }) => {
       await authService.logout();
       setUser(null);
       setIsAuthenticated(false);
-      
+
       // Provide more user-friendly error messages
       let errorMessage = error.message || 'Login failed. Please try again.';
-      
+
       // Handle network errors specifically
       if (error?.message && (error.message.includes('Network Error') || error.message.includes('timeout'))) {
         errorMessage = 'Unable to connect to the server. Please check your internet connection.';
       }
-      
-      return { 
-        success: false, 
+
+      return {
+        success: false,
         message: errorMessage
       };
     } finally {

@@ -1,6 +1,7 @@
 import { MaterialIcons } from "@expo/vector-icons";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from "expo-router";
-import { useTheme } from "../components/ThemeContext";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -12,9 +13,10 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import CustomAlert from "../components/CustomAlert";
+import { useTheme } from "../components/ThemeContext";
 import { useAuth } from "../context/AuthContext";
 
 const LoginScreen = () => {
@@ -29,6 +31,8 @@ const LoginScreen = () => {
     message: "",
     type: "info",
   });
+  const [isBiometricSupported, setIsBiometricSupported] = useState(false);
+  const [hasSavedCredentials, setHasSavedCredentials] = useState(false);
   const router = useRouter();
 
   const showAlert = useCallback((message, type = "info") => {
@@ -43,12 +47,65 @@ const LoginScreen = () => {
     setAlert((prev) => ({ ...prev, visible: false }));
   }, []);
 
+  // Check for biometrics and saved credentials
+  useEffect(() => {
+    const checkBiometrics = async () => {
+      try {
+        const compatible = await LocalAuthentication.hasHardwareAsync();
+        const enrolled = await LocalAuthentication.isEnrolledAsync();
+        const credentials = await AsyncStorage.getItem('biometric_credentials');
+
+        setIsBiometricSupported(compatible && enrolled);
+        setHasSavedCredentials(!!credentials);
+      } catch (error) {
+        console.log('Biometric check failed:', error);
+      }
+    };
+
+    checkBiometrics();
+  }, []);
+
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
       router.replace("/(tabs)");
     }
   }, [isAuthenticated]);
+
+  const handleBiometricLogin = async () => {
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Login with Biometrics',
+        fallbackLabel: 'Use Password',
+      });
+
+      if (result.success) {
+        setIsLoggingIn(true);
+        const credentials = await AsyncStorage.getItem('biometric_credentials');
+
+        if (credentials) {
+          const { email: savedEmail, password: savedPassword } = JSON.parse(credentials);
+
+          const response = await login({
+            email: savedEmail,
+            password: savedPassword,
+          });
+
+          if (response.success) {
+            showAlert("Login successful!", "success");
+            router.replace("/(tabs)");
+          } else {
+            showAlert("Login failed. Please enter password.", "error");
+          }
+        }
+      }
+    } catch (error) {
+      console.log('Biometric login error:', error);
+      showAlert("Biometric login failed", "error");
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
 
   const handleLogin = async () => {
     // Validation
@@ -71,7 +128,13 @@ const LoginScreen = () => {
       });
 
       if (response.success) {
-        showAlert("Login successful! Welcome back!", "success");
+        // Save credentials for biometric login
+        await AsyncStorage.setItem('biometric_credentials', JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password
+        }));
+
+        showAlert("Login successful! Biometrics enabled for next time.", "success");
         router.replace("/(tabs)");
       } else {
         showAlert(
@@ -144,7 +207,7 @@ const LoginScreen = () => {
           <View style={styles.formContainer}>
             <View style={styles.inputContainer}>
               <Text style={[styles.inputLabel, { color: textColor }]}>Email</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }] }>
+              <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
                 <TextInput
                   style={[styles.input, { color: textColor }]}
                   placeholder="Enter your email address"
@@ -161,7 +224,7 @@ const LoginScreen = () => {
 
             <View style={styles.inputContainer}>
               <Text style={[styles.inputLabel, { color: textColor }]}>Password</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }] }>
+              <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
                 <TextInput
                   style={[styles.input, { color: textColor }]}
                   placeholder="Enter your password"
@@ -202,6 +265,19 @@ const LoginScreen = () => {
                 )}
               </TouchableOpacity>
 
+              {isBiometricSupported && hasSavedCredentials && (
+                <TouchableOpacity
+                  style={[styles.button, styles.secondaryButton, { marginTop: -8 }]}
+                  onPress={handleBiometricLogin}
+                  disabled={isLoggingIn}
+                >
+                  <Ionicons name="finger-print" size={24} color={isDark ? "#FFFFFF" : "#1E293B"} />
+                  <Text style={[styles.secondaryButtonText, { color: isDark ? "#FFFFFF" : "#1E293B" }]}>
+                    Login with Biometrics
+                  </Text>
+                </TouchableOpacity>
+              )}
+
               <View style={styles.forgotPasswordContainer}>
                 <TouchableOpacity
                   onPress={() => router.push("/forgot-password")}
@@ -223,7 +299,7 @@ const LoginScreen = () => {
     </View>
   );
 }
-;
+  ;
 
 export default LoginScreen;
 

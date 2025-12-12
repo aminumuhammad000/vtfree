@@ -55,10 +55,30 @@ export default function TransactionDetailsModal({
             try {
                 setLoading(true);
                 setError(null);
+
+                // Call the correct API method
                 const res = await transactionService.getTransactionById(transactionId);
-                const payload = res?.data?.transaction || res?.data || res?.transaction || res;
-                setTx(payload as ApiTransaction);
+
+                // Log the response for debugging
+                console.log('Transaction API Response:', res);
+
+                // Parse the response - handle different possible structures
+                let transactionData = null;
+
+                if (res?.data?.transaction) {
+                    transactionData = res.data.transaction;
+                } else if (res?.transaction) {
+                    transactionData = res.transaction;
+                } else if (res?.data) {
+                    transactionData = res.data;
+                } else {
+                    transactionData = res;
+                }
+
+                console.log('Parsed transaction data:', transactionData);
+                setTx(transactionData as ApiTransaction);
             } catch (e: any) {
+                console.error('Error loading transaction:', e);
                 setError(e?.message || 'Failed to load transaction');
             } finally {
                 setLoading(false);

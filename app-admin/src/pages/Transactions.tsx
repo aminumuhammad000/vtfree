@@ -96,7 +96,7 @@ const Transactions: React.FC = () => {
                       className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-slate-900 font-medium"
                     >
                       <option value="">All Status</option>
-                      <option value="success">Success</option>
+                      <option value="successful">Success</option>
                       <option value="pending">Pending</option>
                       <option value="failed">Failed</option>
                     </select>

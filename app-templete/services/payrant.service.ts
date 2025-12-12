@@ -7,6 +7,7 @@ export interface CreateVirtualAccountData {
   customerName: string;
   email: string;
   accountReference: string;
+  recreate?: boolean;
 }
 
 export interface VirtualAccountResponse {
@@ -67,18 +68,18 @@ export const payrantService = {
   createVirtualAccount: async (data: CreateVirtualAccountData): Promise<VirtualAccountResponse> => {
     try {
       console.log('🏦 Creating Payrant virtual account...');
-      
+
       const response = await api.post<VirtualAccountResponse>('/payment/payrant/create-virtual-account', data);
-      
+
       console.log('✅ Virtual account created:', response.data);
       return response.data;
     } catch (error: any) {
       console.error('❌ Failed to create virtual account:', error);
-      
+
       if (error.response?.data) {
         throw error.response.data;
       }
-      
+
       throw {
         success: false,
         message: error.message || 'Failed to create virtual account. Please try again.',
@@ -92,7 +93,7 @@ export const payrantService = {
   getVirtualAccount: async (): Promise<VirtualAccountResponse | { exists: boolean } | null> => {
     try {
       console.log('🔍 [Payrant Service] Fetching virtual account...');
-      
+
       // Define the expected response type
       type ApiResponse = {
         success: boolean;
@@ -101,19 +102,19 @@ export const payrantService = {
           data?: VirtualAccountResponse | { exists: boolean };
         };
       };
-      
+
       const response = await api.get<ApiResponse>('/payment/payrant/virtual-account');
-      
+
       console.log('📥 [Payrant Service] Raw API response:', JSON.stringify(response.data, null, 2));
-      
+
       if (!response.data.success) {
         console.log('ℹ️ [Payrant Service] API returned non-success status');
         return { exists: false };
       }
-      
+
       // Handle nested data structure
       const responseData = response.data.data?.data;
-      
+
       // If we have account data
       if (responseData && isVirtualAccountResponse(responseData)) {
         console.log('✅ [Payrant Service] Virtual account found:', {
@@ -125,13 +126,13 @@ export const payrantService = {
         });
         return responseData;
       }
-      
+
       // If account doesn't exist
       if (responseData && 'exists' in responseData && responseData.exists === false) {
         console.log('ℹ️ [Payrant Service] Virtual account does not exist');
         return { exists: false };
       }
-      
+
       // Handle case where data is in the root
       if (response.data.data && isVirtualAccountResponse(response.data.data as any)) {
         const accountData = response.data.data as VirtualAccountResponse;
@@ -144,17 +145,17 @@ export const payrantService = {
         });
         return accountData;
       }
-      
+
       console.log('ℹ️ [Payrant Service] No valid virtual account data found in response');
       return { exists: false };
     } catch (error: any) {
       console.error('❌ Failed to fetch virtual account:', error);
-      
+
       // If account doesn't exist, return null instead of throwing
       if (error.response?.status === 404) {
         return null;
       }
-      
+
       throw {
         success: false,
         message: error.message || 'Failed to fetch virtual account.',

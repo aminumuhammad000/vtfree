@@ -1,14 +1,14 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
   ScrollView,
+  StyleSheet,
+  Text,
   TouchableOpacity,
   useColorScheme,
+  View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 
 const theme = {
   primary: '#0A2540',
@@ -112,13 +112,21 @@ export default function MoreScreen() {
       icon: 'water-outline',
       color: '#0EA5E9',
     },
+    {
+      id: 13,
+      title: 'Data Guides',
+      description: 'Check data balance codes',
+      icon: 'information-circle-outline',
+      color: '#64748B',
+      route: '/data-guides',
+    },
   ];
 
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: cardBgColor }]}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
         >
@@ -140,6 +148,11 @@ export default function MoreScreen() {
               key={service.id}
               style={[styles.serviceCard, { backgroundColor: cardBgColor }]}
               activeOpacity={0.7}
+              onPress={() => {
+                if ((service as any).route) {
+                  router.push((service as any).route);
+                }
+              }}
             >
               <View
                 style={[
