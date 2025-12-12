@@ -9,7 +9,7 @@ import { useTheme } from '@/components/ThemeContext';
 export default function TabLayout() {
   const { isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  
+
   const theme = {
     primary: '#0A2540',
     accent: '#FF9F43',
@@ -46,13 +46,15 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons name="home" size={24} color={color} />,
         }}
       />
+
       <Tabs.Screen
         name="transactions"
         options={{
           title: 'Transactions',
-          tabBarIcon: ({ color, size }) => <Ionicons name="time-outline" size={24} color={color} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="receipt-outline" size={24} color={color} />,
         }}
       />
+
       <Tabs.Screen
         name="profile"
         options={{

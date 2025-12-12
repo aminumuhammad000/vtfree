@@ -11,6 +11,8 @@ const WalletCredit: React.FC = () => {
   const [description, setDescription] = useState<string>('Admin wallet credit');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successMessage, setSuccessMessage] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const { data: usersData } = useQuery({
     queryKey: ['users-for-credit'],
@@ -18,6 +20,12 @@ const WalletCredit: React.FC = () => {
   });
 
   const users = usersData?.data || [];
+
+  const filteredUsers = users.filter((user: any) =>
+    user.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const creditMutation = useMutation({
     mutationFn: (data: { userId: string; amount: number; description: string }) =>
@@ -28,6 +36,7 @@ const WalletCredit: React.FC = () => {
       setAmount('');
       setDescription('Admin wallet credit');
       setErrors({});
+      setSearchTerm('');
       setTimeout(() => setSuccessMessage(''), 3000);
     },
     onError: (error: any) => {
@@ -84,29 +93,50 @@ const WalletCredit: React.FC = () => {
             {/* Form */}
             <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-6 space-y-6">
               {/* User Selection */}
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Select User *
                 </label>
-                <select
-                  value={selectedUserId}
-                  onChange={(e) => {
-                    setSelectedUserId(e.target.value);
-                    if (errors.userId) setErrors(prev => ({ ...prev, userId: '' }));
-                  }}
-                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                    errors.userId
-                      ? 'border-red-500 focus:ring-red-500'
-                      : 'border-gray-300 focus:ring-green-500'
-                  }`}
-                >
-                  <option value="">-- Choose a user --</option>
-                  {users.map((user: any) => (
-                    <option key={user._id} value={user._id}>
-                      {user.first_name} {user.last_name} ({user.email})
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search by name or email..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setIsDropdownOpen(true);
+                      if (selectedUserId) setSelectedUserId(''); // Clear selection on search
+                    }}
+                    onFocus={() => setIsDropdownOpen(true)}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.userId
+                        ? 'border-red-500 focus:ring-red-500'
+                        : 'border-gray-300 focus:ring-green-500'
+                      }`}
+                  />
+                  {isDropdownOpen && searchTerm && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {filteredUsers.length === 0 ? (
+                        <div className="p-3 text-gray-500 text-sm">No users found</div>
+                      ) : (
+                        filteredUsers.map((user: any) => (
+                          <div
+                            key={user._id}
+                            onClick={() => {
+                              setSelectedUserId(user._id);
+                              setSearchTerm(`${user.first_name} ${user.last_name} (${user.email})`);
+                              setIsDropdownOpen(false);
+                              if (errors.userId) setErrors(prev => ({ ...prev, userId: '' }));
+                            }}
+                            className="p-3 hover:bg-green-50 cursor-pointer border-b border-gray-100 last:border-0"
+                          >
+                            <p className="font-medium text-gray-900">{user.first_name} {user.last_name}</p>
+                            <p className="text-xs text-gray-500">{user.email}</p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
                 {errors.userId && <p className="text-red-500 text-sm mt-1">{errors.userId}</p>}
               </div>
 
@@ -128,11 +158,10 @@ const WalletCredit: React.FC = () => {
                     </div>
                     <div>
                       <p className="text-xs text-gray-600 uppercase">Status</p>
-                      <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
-                        selectedUser.status === 'active'
+                      <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${selectedUser.status === 'active'
                           ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
-                      }`}>
+                        }`}>
                         {selectedUser.status}
                       </span>
                     </div>
@@ -155,11 +184,10 @@ const WalletCredit: React.FC = () => {
                   placeholder="Enter amount"
                   step="0.01"
                   min="0"
-                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                    errors.amount
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.amount
                       ? 'border-red-500 focus:ring-red-500'
                       : 'border-gray-300 focus:ring-green-500'
-                  }`}
+                    }`}
                 />
                 {errors.amount && <p className="text-red-500 text-sm mt-1">{errors.amount}</p>}
                 <p className="text-gray-500 text-sm mt-1">💡 This amount will be added to the user's wallet</p>
@@ -178,11 +206,10 @@ const WalletCredit: React.FC = () => {
                   }}
                   placeholder="Enter reason for credit"
                   rows={3}
-                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                    errors.description
+                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.description
                       ? 'border-red-500 focus:ring-red-500'
                       : 'border-gray-300 focus:ring-green-500'
-                  }`}
+                    }`}
                 />
                 {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
               </div>
@@ -221,6 +248,7 @@ const WalletCredit: React.FC = () => {
                     setAmount('');
                     setDescription('Admin wallet credit');
                     setErrors({});
+                    setSearchTerm('');
                   }}
                   className="flex-1 bg-gray-400 hover:bg-gray-500 text-white px-4 py-3 rounded-lg transition font-semibold"
                 >
@@ -233,7 +261,8 @@ const WalletCredit: React.FC = () => {
             <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
               <h3 className="font-semibold text-green-900 mb-2">ℹ️ How to use:</h3>
               <ol className="list-decimal list-inside space-y-1 text-sm text-green-800">
-                <li>Select a user from the dropdown</li>
+                <li>Search for a user by name or email</li>
+                <li>Select the user from the dropdown list</li>
                 <li>Enter the amount you want to credit</li>
                 <li>Add a description for the credit</li>
                 <li>Review the summary and click "Credit Wallet"</li>

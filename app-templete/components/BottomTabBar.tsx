@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, usePathname } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
 
 interface TabItem {
   name: string;
@@ -23,7 +23,6 @@ const BottomTabBar = () => {
 
   const tabs: TabItem[] = [
     { name: 'home', label: 'Home', icon: 'home', route: '/(tabs)' },
-    { name: 'transactions', label: 'Transactions', icon: 'time-outline', route: '/(tabs)/transactions' },
     { name: 'profile', label: 'Profile', icon: 'person-outline', route: '/(tabs)/profile' },
     { name: 'support', label: 'Support', icon: 'headset-outline', route: '/(tabs)/support' },
   ];
@@ -34,16 +33,16 @@ const BottomTabBar = () => {
   };
 
   return (
-    <View style={[styles.container, { 
+    <View style={[styles.container, {
       backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
       borderTopColor: isDark ? '#374151' : '#E5E7EB',
     }]}>
       {tabs.map((tab) => {
         const active = isActive(tab.route);
-        const iconColor = active 
+        const iconColor = active
           ? (isDark ? theme.accent : theme.primary)
           : (isDark ? '#9CA3AF' : '#6B7280');
-        
+
         return (
           <TouchableOpacity
             key={tab.name}
@@ -51,10 +50,10 @@ const BottomTabBar = () => {
             onPress={() => router.push(tab.route as any)}
             activeOpacity={0.7}
           >
-            <Ionicons 
-              name={tab.name === 'home' && active ? 'home' : tab.icon} 
-              size={24} 
-              color={iconColor} 
+            <Ionicons
+              name={tab.name === 'home' && active ? 'home' : tab.icon}
+              size={24}
+              color={iconColor}
             />
             <Text style={[styles.label, { color: iconColor }]}>
               {tab.label}

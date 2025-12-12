@@ -53,8 +53,8 @@ export default function SetPinScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: bgColor }]}> 
-      <View style={[styles.header, { backgroundColor: bgColor, borderBottomColor: borderColor }]}> 
+    <View style={[styles.container, { backgroundColor: bgColor }]}>
+      <View style={[styles.header, { backgroundColor: bgColor, borderBottomColor: borderColor }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={textColor} />
         </TouchableOpacity>
@@ -62,10 +62,10 @@ export default function SetPinScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      <View style={styles.content}> 
-        <View style={[styles.card, { backgroundColor: cardBgColor, borderColor }]}> 
+      <View style={styles.content}>
+        <View style={[styles.card, { backgroundColor: cardBgColor, borderColor }]}>
           <Text style={[styles.label, { color: textBodyColor }]}>Enter 4-digit PIN</Text>
-          <View style={[styles.inputWrapper, { borderColor, backgroundColor: isDark ? '#374151' : '#F9FAFB' }]}> 
+          <View style={[styles.inputWrapper, { borderColor, backgroundColor: isDark ? '#374151' : '#F9FAFB' }]}>
             <Ionicons name="lock-closed-outline" size={18} color={textBodyColor} />
             <TextInput
               style={[styles.input, { color: textColor }]}
@@ -80,7 +80,7 @@ export default function SetPinScreen() {
           </View>
 
           <Text style={[styles.label, { color: textBodyColor, marginTop: 16 }]}>Confirm PIN</Text>
-          <View style={[styles.inputWrapper, { borderColor, backgroundColor: isDark ? '#374151' : '#F9FAFB' }]}> 
+          <View style={[styles.inputWrapper, { borderColor, backgroundColor: isDark ? '#374151' : '#F9FAFB' }]}>
             <Ionicons name="lock-closed" size={18} color={textBodyColor} />
             <TextInput
               style={[styles.input, { color: textColor }]}
