@@ -33,7 +33,7 @@ const navItems: NavItem[] = [
     label: 'App Management',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
       </svg>
     ),
   },
@@ -182,12 +182,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
 
       {/* Sidebar */}
       <aside
+        style={{ height: '100vh' }}
         className={`
           ${isDesktopOpen ? 'lg:w-64' : 'lg:w-20'} 
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           fixed lg:static inset-y-0 left-0 z-50
           w-64 bg-gradient-to-b from-green-950 via-green-900 to-green-950 
-          text-white h-screen flex flex-col transition-all duration-300 ease-in-out
+          text-white flex flex-col transition-all duration-300 ease-in-out
           border-r border-green-700/50 shadow-2xl backdrop-blur-sm
         `}
       >
