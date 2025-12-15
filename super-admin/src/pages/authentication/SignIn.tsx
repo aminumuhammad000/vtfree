@@ -36,11 +36,16 @@ const SignIn = () => {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      await login(user.email, user.password);
-      window.location.href = '/';
+      // Hardcoded login check
+      if (user.email === 'admin@vtfree.com' && user.password === 'password123') {
+        await login(user.email, user.password);
+        window.location.href = '/';
+      } else {
+        setError('Invalid credentials');
+      }
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setError(error.response?.data?.message || 'Login failed');
+      console.error(err);
+      setError('Login failed');
     }
   };
 
@@ -194,10 +199,7 @@ const SignIn = () => {
         textAlign={{ xs: 'center', md: 'left' }}
         letterSpacing={0.25}
       >
-        Don’t have account yet?{' '}
-        <Link href={paths.signup} color="primary.main" fontWeight={600}>
-          New Account
-        </Link>
+        Credentials: <b>admin@vtfree.com</b> / <b>password123</b>
       </Typography>
     </Stack>
   );

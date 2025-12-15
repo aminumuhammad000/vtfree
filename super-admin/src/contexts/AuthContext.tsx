@@ -35,10 +35,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
+      // Hardcoded check
+      if (email === 'admin@vtfree.com' && password === 'password123') {
+        const adminUser: User = {
+          id: '1',
+          first_name: 'Super',
+          last_name: 'Admin',
+          email: 'admin@vtfree.com',
+          role: 'super_admin'
+        };
+        setUser(adminUser);
+        localStorage.setItem('super_admin_token', 'mock-token');
+        localStorage.setItem('super_admin_user', JSON.stringify(adminUser));
+        return;
+      }
+
       const response = await AuthService.login(email, password);
       if (response.success) {
         setUser(response.data.admin);
       }
+    } catch (error) {
+      throw error;
     } finally {
       setIsLoading(false);
     }
