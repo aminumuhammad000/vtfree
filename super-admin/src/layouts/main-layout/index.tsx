@@ -13,7 +13,7 @@ const MainLayout = ({ children }: React.PropsWithChildren) => {
   const miniDrawerWidth = 90;
 
   return (
-    <Stack>
+    <Stack direction="row" sx={{ minHeight: '100vh', bgcolor: 'rgb(248 250 252)' }}>
       <Sidebar
         expand={expand}
         mobileOpen={mobileOpen}
@@ -21,7 +21,7 @@ const MainLayout = ({ children }: React.PropsWithChildren) => {
         drawerWidth={drawerWidth}
         miniDrawerWidth={miniDrawerWidth}
       />
-      <Box component="main" flexGrow={1} sx={{ overflowX: 'hidden' }}>
+      <Box component="main" flexGrow={1} sx={{ display: 'flex', flexDirection: 'column', overflowX: 'hidden', bgcolor: 'rgb(248 250 252)' }}>
         <Topbar
           expand={expand}
           mobileOpen={mobileOpen}
@@ -30,7 +30,7 @@ const MainLayout = ({ children }: React.PropsWithChildren) => {
           drawerWidth={drawerWidth}
           miniDrawerWidth={miniDrawerWidth}
         />
-        <Box mt={12}>{children}</Box>
+        <Box sx={{ flexGrow: 1, mt: 12, bgcolor: 'rgb(248 250 252)' }}>{children}</Box>
         <Footer />
       </Box>
     </Stack>

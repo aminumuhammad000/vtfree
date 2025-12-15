@@ -16,10 +16,36 @@ const Transactions = lazy(() => import('pages/transactions'));
 const Payments = lazy(() => import('pages/payments'));
 const Settings = lazy(() => import('pages/settings'));
 const Profile = lazy(() => import('pages/profile'));
-const Notifications = lazy(() => import('pages/notifications'));
-const Help = lazy(() => import('pages/help'));
+
+// Customer Management
+const AllCustomers = lazy(() => import('pages/customers/AllCustomers'));
+const CustomersByApp = lazy(() => import('pages/customers/CustomersByApp'));
+const CustomersByUser = lazy(() => import('pages/customers/CustomersByUser'));
+
+// Finance
+const PlatformWallet = lazy(() => import('pages/finance/PlatformWallet'));
+const UserWallets = lazy(() => import('pages/finance/UserWallets'));
+const Withdrawals = lazy(() => import('pages/finance/Withdrawals'));
+const RevenueAnalytics = lazy(() => import('pages/finance/RevenueAnalytics'));
+
+// Pricing
+const PricingPlans = lazy(() => import('pages/pricing'));
+
+// Messaging
+const NotificationManagement = lazy(() => import('pages/messaging/NotificationManagement'));
+const Broadcasts = lazy(() => import('pages/messaging/Broadcasts'));
+
+// Logs
+const AuditLogs = lazy(() => import('pages/logs/AuditLogs'));
+const ApiLogs = lazy(() => import('pages/logs/ApiLogs'));
+const ErrorLogs = lazy(() => import('pages/logs/ErrorLogs'));
+const SecurityLogs = lazy(() => import('pages/logs/SecurityLogs'));
+
+// Support & Providers
+const Support = lazy(() => import('pages/support'));
+const Providers = lazy(() => import('pages/providers'));
+
 const SignIn = lazy(() => import('pages/authentication/SignIn'));
-const SignUp = lazy(() => import('pages/authentication/SignUp'));
 const ResetPassword = lazy(() => import('pages/authentication/ResetPassword'));
 const Error404 = lazy(() => import('pages/errors/Error404'));
 
@@ -64,6 +90,76 @@ const routes = [
                 path: paths.payments,
                 element: <Payments />,
               },
+              // Customer Management
+              {
+                path: paths.customersAll,
+                element: <AllCustomers />,
+              },
+              {
+                path: paths.customersByApp,
+                element: <CustomersByApp />,
+              },
+              {
+                path: paths.customersByUser,
+                element: <CustomersByUser />,
+              },
+              // Finance
+              {
+                path: paths.platformWallet,
+                element: <PlatformWallet />,
+              },
+              {
+                path: paths.userWallets,
+                element: <UserWallets />,
+              },
+              {
+                path: paths.withdrawals,
+                element: <Withdrawals />,
+              },
+              {
+                path: paths.revenueAnalytics,
+                element: <RevenueAnalytics />,
+              },
+              // Pricing
+              {
+                path: paths.pricing,
+                element: <PricingPlans />,
+              },
+              // Messaging
+              {
+                path: paths.notifications,
+                element: <NotificationManagement />,
+              },
+              {
+                path: paths.broadcasts,
+                element: <Broadcasts />,
+              },
+              // Logs
+              {
+                path: paths.auditLogs,
+                element: <AuditLogs />,
+              },
+              {
+                path: paths.apiLogs,
+                element: <ApiLogs />,
+              },
+              {
+                path: paths.errorLogs,
+                element: <ErrorLogs />,
+              },
+              {
+                path: paths.securityLogs,
+                element: <SecurityLogs />,
+              },
+              // Support & Providers
+              {
+                path: paths.support,
+                element: <Support />,
+              },
+              {
+                path: paths.providers,
+                element: <Providers />,
+              },
               {
                 path: paths.settings,
                 element: <Settings />,
@@ -71,14 +167,6 @@ const routes = [
               {
                 path: paths.profile,
                 element: <Profile />,
-              },
-              {
-                path: paths.notifications,
-                element: <Notifications />,
-              },
-              {
-                path: paths.help,
-                element: <Help />,
               },
             ],
           },
@@ -100,14 +188,7 @@ const routes = [
               </AuthLayout>
             ),
           },
-          {
-            path: paths.signup,
-            element: (
-              <AuthLayout>
-                <SignUp />
-              </AuthLayout>
-            ),
-          },
+
           {
             path: paths.resetPassword,
             element: <ResetPassword />,
@@ -122,6 +203,6 @@ const routes = [
   },
 ];
 
-const router = createBrowserRouter(routes, { basename: '/base' });
+const router = createBrowserRouter(routes);
 
 export default router;
