@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../hooks/AuthContext';
 
+<<<<<<< HEAD
 interface NavItem {
   to?: string;
   label: string;
@@ -10,12 +11,24 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
+=======
+const navItems = [
+>>>>>>> 2ce75ef5fe566e3e6d2d50a32f18fced92934108
   {
     to: '/dashboard',
     label: 'Dashboard',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-3m0 0l7-4 7 4M5 9v10a1 1 0 001 1h12a1 1 0 001-1V9m-9 4l4 2m-2-2l-4-2" />
+      </svg>
+    ),
+  },
+  {
+    to: '/funding',
+    label: 'Funding',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-2m0-4h4m-4 0l-2-2m2 2l-2 2" />
       </svg>
     ),
   },
@@ -93,6 +106,15 @@ const navItems: NavItem[] = [
       { to: '/audit-logs', label: 'Audit Logs' },
       { to: '/notifications', label: 'Notifications' },
     ]
+  },
+  {
+    to: '/support',
+    label: 'Support',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+      </svg>
+    ),
   },
   {
     to: '/support',
@@ -220,6 +242,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
             }
           `}</style>
           {navItems.map((item) => (
+<<<<<<< HEAD
             <div key={item.label}>
               {item.children ? (
                 <>
@@ -287,6 +310,22 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                     <span className="text-sm font-medium truncate">{item.label}</span>
                   )}
                 </NavLink>
+=======
+            <NavLink
+              key={item.to}
+              to={item.to}
+              onClick={handleNavClick}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group ${isActive
+                  ? 'bg-gradient-to-r from-green-600 to-green-500 text-white shadow-lg scale-[1.02]'
+                  : 'text-green-100/80 hover:bg-green-800/60 hover:text-white hover:scale-[1.02] hover:shadow-md'
+                }`
+              }
+            >
+              <span className="flex-shrink-0">{item.icon}</span>
+              {(isDesktopOpen || isMobileOpen) && (
+                <span className="text-sm font-medium truncate">{item.label}</span>
+>>>>>>> 2ce75ef5fe566e3e6d2d50a32f18fced92934108
               )}
             </div>
           ))}
