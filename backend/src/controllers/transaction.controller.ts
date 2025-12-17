@@ -114,6 +114,11 @@ export class TransactionController {
       if (req.query.status) filter.status = req.query.status;
       if (req.query.type) filter.type = req.query.type;
 
+      // Filter by app_id if present in user token (for App Admins)
+      if (req.user?.app_id) {
+        filter.app_id = req.user.app_id;
+      }
+
       const transactions = await Transaction.find(filter)
         .populate('user_id', 'first_name last_name email')
         .populate('operator_id')
@@ -146,10 +151,10 @@ export class TransactionController {
 
       const transaction = await Transaction.findByIdAndUpdate(
         req.params.id,
-        { 
-          status, 
+        {
+          status,
           remarks: remarks || '',
-          updated_at: new Date() 
+          updated_at: new Date()
         },
         { new: true }
       );

@@ -22,6 +22,8 @@ export default {
   userWallets: `/${rootPaths.pagesRoot}/finance/wallets`,
   withdrawals: `/${rootPaths.pagesRoot}/finance/withdrawals`,
   revenueAnalytics: `/${rootPaths.pagesRoot}/finance/analytics`,
+  transfers: `/${rootPaths.pagesRoot}/finance/transfers`,
+  settlements: `/${rootPaths.pagesRoot}/finance/settlements`,
 
   // Pricing
   pricing: `/${rootPaths.pagesRoot}/pricing`,
@@ -35,6 +37,7 @@ export default {
 
   // Logs
   auditLogs: `/${rootPaths.pagesRoot}/logs/audit`,
+  paymentLogs: `/${rootPaths.pagesRoot}/logs/payments`,
   apiLogs: `/${rootPaths.pagesRoot}/logs/api`,
   errorLogs: `/${rootPaths.pagesRoot}/logs/errors`,
   securityLogs: `/${rootPaths.pagesRoot}/logs/security`,

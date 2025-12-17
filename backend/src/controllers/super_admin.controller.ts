@@ -61,7 +61,8 @@ export const getAllApps = async (req: Request, res: Response) => {
 
 export const getAllUsers = async (req: Request, res: Response) => {
     try {
-        const users = await VTfreeUser.find().sort({ created_at: -1 });
+        // Fetch End Users instead of Admins
+        const users = await User.find().sort({ created_at: -1 });
         res.json({ success: true, data: { users } });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error' });

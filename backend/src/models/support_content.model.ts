@@ -19,7 +19,8 @@ const supportContentSchema = new Schema<ISupportContent>({
     twitterUrl: { type: String },
     instagramUrl: { type: String },
     websiteUrl: { type: String },
-    updated_at: { type: Date, default: Date.now }
+    updated_at: { type: Date, default: Date.now },
+    app_id: { type: String, index: true }
 });
 
 export const SupportContent = mongoose.model<ISupportContent>('SupportContent', supportContentSchema);

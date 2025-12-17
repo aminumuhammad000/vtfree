@@ -80,6 +80,11 @@ export class UserController {
         ];
       }
 
+      // Filter by app_id if present in user token (for App Admins)
+      if (req.user?.app_id) {
+        matchStage.app_id = req.user.app_id;
+      }
+
       const users = await User.aggregate([
         { $match: matchStage },
         { $sort: { created_at: -1 } },
@@ -131,8 +136,13 @@ export class UserController {
       // To keep it consistent with getAllUsers, let's use aggregation or a separate query.
       // Since we need to import Wallet, let's just use aggregation for consistency.
 
+      const matchStage: any = { _id: user._id };
+      if (req.user?.app_id) {
+        matchStage.app_id = req.user.app_id;
+      }
+
       const userWithWallet = await User.aggregate([
-        { $match: { _id: user._id } },
+        { $match: matchStage },
         {
           $lookup: {
             from: 'wallets',

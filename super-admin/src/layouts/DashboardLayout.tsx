@@ -7,12 +7,18 @@ const DashboardLayout: React.FC = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50">
+      {/* Fixed Sidebar */}
       <Sidebar isMobileOpen={isMobileOpen} setIsMobileOpen={setIsMobileOpen} />
-      <div className="flex-1 flex flex-col overflow-hidden">
+
+      {/* Main Content Area with left margin to account for fixed sidebar */}
+      <div className="lg:ml-64 min-h-screen">
+        {/* Topbar */}
         <Topbar onMenuClick={() => setIsMobileOpen(true)} />
-        <main className="flex-1 overflow-auto p-4 lg:p-8">
-          <div className="max-w-7xl mx-auto">
+
+        {/* Main Content with proper padding */}
+        <main className="p-6 lg:p-8">
+          <div className="max-w-screen-2xl mx-auto">
             <Outlet />
           </div>
         </main>

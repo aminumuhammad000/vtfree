@@ -1,7 +1,7 @@
 import api, { generalApi } from './axios';
 
 // Auth
-export const login = (data: { email: string; password: string }) =>
+export const login = (data: { email: string; password: string; app_id: string }) =>
   api.post('/login', data);
 
 // Dashboard

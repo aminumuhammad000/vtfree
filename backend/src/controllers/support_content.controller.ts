@@ -6,14 +6,16 @@ import { ApiResponse } from '../utils/response.js';
 export class SupportContentController {
     static async getContent(req: AuthRequest, res: Response) {
         try {
-            let content = await SupportContent.findOne();
+            const query = req.user?.app_id ? { app_id: req.user.app_id } : {};
+            let content = await SupportContent.findOne(query);
 
             if (!content) {
                 // Create default content if none exists
                 content = await SupportContent.create({
                     email: 'support@example.com',
                     phoneNumber: '+2340000000000',
-                    whatsappNumber: '+2340000000000'
+                    whatsappNumber: '+2340000000000',
+                    app_id: req.user?.app_id
                 });
             }
 
@@ -35,7 +37,8 @@ export class SupportContentController {
                 websiteUrl
             } = req.body;
 
-            let content = await SupportContent.findOne();
+            const query = req.user?.app_id ? { app_id: req.user.app_id } : {};
+            let content = await SupportContent.findOne(query);
 
             if (content) {
                 content.email = email || content.email;
@@ -55,7 +58,8 @@ export class SupportContentController {
                     facebookUrl,
                     twitterUrl,
                     instagramUrl,
-                    websiteUrl
+                    websiteUrl,
+                    app_id: req.user?.app_id
                 });
             }
 

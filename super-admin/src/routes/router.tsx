@@ -27,6 +27,8 @@ const PlatformWallet = lazy(() => import('pages/finance/PlatformWallet'));
 const UserWallets = lazy(() => import('pages/finance/UserWallets'));
 const Withdrawals = lazy(() => import('pages/finance/Withdrawals'));
 const RevenueAnalytics = lazy(() => import('pages/finance/RevenueAnalytics'));
+const Transfers = lazy(() => import('pages/finance/Transfers'));
+const Settlements = lazy(() => import('pages/finance/Settlements'));
 
 // Pricing
 const PricingPlans = lazy(() => import('pages/pricing'));
@@ -37,6 +39,7 @@ const Broadcasts = lazy(() => import('pages/messaging/Broadcasts'));
 
 // Logs
 const AuditLogs = lazy(() => import('pages/logs/AuditLogs'));
+const PaymentLogs = lazy(() => import('pages/logs/PaymentLogs'));
 const ApiLogs = lazy(() => import('pages/logs/ApiLogs'));
 const ErrorLogs = lazy(() => import('pages/logs/ErrorLogs'));
 const SecurityLogs = lazy(() => import('pages/logs/SecurityLogs'));
@@ -120,6 +123,14 @@ const routes = [
                 path: paths.revenueAnalytics,
                 element: <RevenueAnalytics />,
               },
+              {
+                path: paths.transfers,
+                element: <Transfers />,
+              },
+              {
+                path: paths.settlements,
+                element: <Settlements />,
+              },
               // Pricing
               {
                 path: paths.pricing,
@@ -138,6 +149,10 @@ const routes = [
               {
                 path: paths.auditLogs,
                 element: <AuditLogs />,
+              },
+              {
+                path: paths.paymentLogs,
+                element: <PaymentLogs />,
               },
               {
                 path: paths.apiLogs,
