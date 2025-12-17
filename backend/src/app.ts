@@ -3,11 +3,13 @@ import dotenv from "dotenv";
 import express, { NextFunction, Request, Response } from "express";
 
 import adminRoutes from "./routes/admin.routes.js";
+import appAdminRoutes from "./routes/app_admin.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import billpaymentRoutes from "./routes/billpayment.routes.js";
 import notificationsRoutes from "./routes/notifications.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import promotionsRoutes from "./routes/promotions.routes.js";
+import superAdminRoutes from "./routes/super_admin.routes.js";
 import supportRoutes from "./routes/support.routes.js";
 import supportContentRoutes from "./routes/support_content.routes.js";
 import transactionsRoutes from "./routes/transactions.routes.js";
@@ -48,7 +50,10 @@ logger.info('🚀 VTU App Backend Starting...', {
 app.use("/api/auth", authRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/transactions", transactionsRoutes);
+app.use("/api/transactions", transactionsRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/app-admin", appAdminRoutes); // New App Admin routes
+app.use("/api/super-admin", superAdminRoutes); // Super Admin routes
 app.use("/api/notifications", notificationsRoutes);
 app.use("/api/promotions", promotionsRoutes);
 app.use("/api/support", supportRoutes);

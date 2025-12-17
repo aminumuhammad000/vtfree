@@ -32,7 +32,8 @@ const userSchema = new Schema<IUser>({
   },
   status: { type: String, enum: ['active', 'inactive', 'suspended'], default: 'active' },
   created_at: { type: Date, default: Date.now },
-  updated_at: { type: Date, default: Date.now }
+  updated_at: { type: Date, default: Date.now },
+  app_id: { type: String, index: true }
 });
 
 export const User = mongoose.model<IUser>('User', userSchema);

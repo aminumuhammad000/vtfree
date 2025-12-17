@@ -1,24 +1,52 @@
-import { Grid, Typography, Paper, Box } from '@mui/material';
+import LogsPage from '../../components/logs/LogsPage';
 
 const ErrorLogs = () => {
+    const mockLogs = [
+        {
+            id: 'ERR-001',
+            timestamp: '2025-12-16 11:50 AM',
+            level: 'error' as const,
+            action: 'Database Connection Failed',
+            user: 'system',
+            ipAddress: 'localhost',
+            details: 'Failed to connect to PostgreSQL database: Connection timeout after 30s',
+        },
+        {
+            id: 'ERR-002',
+            timestamp: '2025-12-16 11:35 AM',
+            level: 'error' as const,
+            action: 'Payment Provider API Error',
+            user: 'payment_service',
+            ipAddress: '192.168.1.100',
+            details: 'Stripe API returned error: Invalid API key provided',
+        },
+        {
+            id: 'ERR-003',
+            timestamp: '2025-12-16 11:20 AM',
+            level: 'warning' as const,
+            action: 'Memory Usage High',
+            user: 'system',
+            ipAddress: 'localhost',
+            details: 'Server memory usage exceeded 85% threshold',
+        },
+        {
+            id: 'ERR-004',
+            timestamp: '2025-12-16 10:55 AM',
+            level: 'error' as const,
+            action: 'Email Service Failure',
+            user: 'notification_service',
+            ipAddress: '192.168.1.101',
+            details: 'Failed to send welcome email: SMTP server not responding',
+        },
+    ];
+
     return (
-        <Grid container px={3.75} spacing={3.75}>
-            <Grid item xs={12}>
-                <Typography variant="h3" mb={3}>
-                    Error Logs
-                </Typography>
-                <Paper sx={{ p: 3 }}>
-                    <Box textAlign="center" py={5}>
-                        <Typography variant="h6" color="text.secondary" gutterBottom>
-                            Error Tracking Coming Soon
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                            View system errors, provider errors, and application issues
-                        </Typography>
-                    </Box>
-                </Paper>
-            </Grid>
-        </Grid>
+        <LogsPage
+            title="Error Logs"
+            description="View system errors, provider errors, and application issues"
+            logs={mockLogs}
+            icon="solar:danger-circle-bold"
+        />
     );
 };
 

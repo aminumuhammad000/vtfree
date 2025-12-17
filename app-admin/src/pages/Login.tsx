@@ -9,6 +9,7 @@ import { useToast } from '../hooks/ToastContext';
 type LoginForm = {
   email: string;
   password: string;
+  app_id: string;
 };
 
 const Login: React.FC = () => {
@@ -89,16 +90,15 @@ const Login: React.FC = () => {
             </label>
             <input
               type="email"
-              {...register('email', { 
+              {...register('email', {
                 required: 'Email is required',
                 pattern: {
                   value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
                   message: 'Invalid email address'
                 }
               })}
-              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-900 focus:border-transparent transition-all ${
-                errors.email ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-slate-50'
-              }`}
+              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-900 focus:border-transparent transition-all ${errors.email ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-slate-50'
+                }`}
               placeholder="admin@example.com"
             />
             {errors.email && (
@@ -111,6 +111,30 @@ const Login: React.FC = () => {
             )}
           </div>
 
+          {/* App ID Field */}
+          <div className="mb-6">
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              App ID
+            </label>
+            <input
+              type="text"
+              {...register('app_id', {
+                required: 'App ID is required'
+              })}
+              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-900 focus:border-transparent transition-all ${errors.app_id ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-slate-50'
+                }`}
+              placeholder="APP_..."
+            />
+            {errors.app_id && (
+              <p className="text-red-500 text-sm mt-2 flex items-center">
+                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                {errors.app_id.message}
+              </p>
+            )}
+          </div>
+
           {/* Password Field */}
           <div className="mb-6">
             <label className="block text-sm font-semibold text-slate-700 mb-2">
@@ -118,16 +142,15 @@ const Login: React.FC = () => {
             </label>
             <input
               type="password"
-              {...register('password', { 
+              {...register('password', {
                 required: 'Password is required',
                 minLength: {
                   value: 6,
                   message: 'Password must be at least 6 characters'
                 }
               })}
-              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-900 focus:border-transparent transition-all ${
-                errors.password ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-slate-50'
-              }`}
+              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-900 focus:border-transparent transition-all ${errors.password ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-slate-50'
+                }`}
               placeholder="••••••••"
             />
             {errors.password && (

@@ -5,18 +5,18 @@ import { ITransaction } from '../types.js';
 const transactionSchema = new Schema<ITransaction>({
   user_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   wallet_id: { type: Schema.Types.ObjectId, ref: 'Wallet', required: true },
-  type: { 
-    type: String, 
+  type: {
+    type: String,
     enum: ['airtime_topup', 'data_purchase', 'bill_payment', 'wallet_topup', 'e-pin_purchase'],
-    required: true 
+    required: true
   },
   amount: { type: Number, required: true },
   fee: { type: Number, default: 0 },
   total_charged: { type: Number, required: true },
-  status: { 
-    type: String, 
+  status: {
+    type: String,
     enum: ['pending', 'successful', 'failed', 'refunded'],
-    default: 'pending' 
+    default: 'pending'
   },
   reference_number: { type: String, unique: true, required: true },
   description: { type: String },
@@ -27,7 +27,9 @@ const transactionSchema = new Schema<ITransaction>({
   receipt_url: { type: String },
   error_message: { type: String },
   created_at: { type: Date, default: Date.now },
-  updated_at: { type: Date, default: Date.now }
+  created_at: { type: Date, default: Date.now },
+  updated_at: { type: Date, default: Date.now },
+  app_id: { type: String, index: true }
 });
 
 export const Transaction = mongoose.model<ITransaction>('Transaction', transactionSchema);

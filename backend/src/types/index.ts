@@ -40,6 +40,7 @@ export interface IUser extends Document {
   nin?: string;
   bvn?: string;
   transaction_pin?: string;
+  app_id?: string;
 }
 
 export interface IWallet extends Document {
@@ -77,6 +78,7 @@ export interface ITransaction extends Document {
   updated_at: Date;
   metadata?: any;
   gateway?: string;
+  app_id?: string;
 }
 
 export interface IOperator extends Document {

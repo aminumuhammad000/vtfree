@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import AppAdmin from '../models/app_admin.model.js';
@@ -8,10 +9,37 @@ import { Transaction } from '../models/transaction.model.js';
 
 export const login = async (req: Request, res: Response) => {
     try {
-        const { app_id, email, password } = req.body;
+        let { app_id, email, password } = req.body;
+
+        // Sanitize inputs
+        email = email?.trim().toLowerCase();
+        app_id = app_id?.trim(); // Keep case sensitivity for app_id unless we decide otherwise, but definitely trim. 
+        // Actually, let's try to find it case-insensitive if exact match fails, or just enforce lowercase if that's the convention.
+        // Given the previous script created 'vtu_app_001', let's try to be flexible.
+        // But for now, just trim is safe.
+
+        console.log(`Login attempt for App: ${app_id}, Email: ${email}`);
+
+        console.log(`Login attempt for App: ${app_id}, Email: ${email}`);
+        console.log(`Connected to DB: ${mongoose.connection.name}`);
 
         // Find admin for specific app
-        const admin = await AppAdmin.findOne({ app_id, email });
+        let admin = await AppAdmin.findOne({ app_id, email });
+
+        // Fallback: Case-insensitive App ID check
+        if (!admin) {
+            console.log('Exact match not found, trying case-insensitive App ID...');
+            // We can't easily do case-insensitive find on a non-regex field without regex, 
+            // but since app_id is likely unique per app, we can try to find the app first?
+            // Or just use regex for app_id.
+            admin = await AppAdmin.findOne({
+                app_id: { $regex: new RegExp(`^${app_id}$`, 'i') },
+                email
+            });
+        }
+
+        console.log('Admin query result:', admin ? 'Found' : 'Not Found');
+
         if (!admin) {
             return res.status(400).json({ success: false, message: 'Invalid credentials' });
         }
@@ -78,16 +106,16 @@ export const getDashboardStats = async (req: Request, res: Response) => {
             dataSales,
             airtimeSales
         ] = await Promise.all([
-            User.countDocuments({}),
-            User.countDocuments({ status: 'active' }),
-            Transaction.countDocuments({}),
-            Transaction.countDocuments({ status: 'successful' }),
+            User.countDocuments({ app_id }),
+            User.countDocuments({ app_id, status: 'active' }),
+            Transaction.countDocuments({ app_id }),
+            Transaction.countDocuments({ app_id, status: 'successful' }),
             Transaction.aggregate([
-                { $match: { type: 'data_purchase', status: 'successful' } },
+                { $match: { app_id, type: 'data_purchase', status: 'successful' } },
                 { $group: { _id: null, total: { $sum: '$amount' } } }
             ]),
             Transaction.aggregate([
-                { $match: { type: 'airtime_topup', status: 'successful' } },
+                { $match: { app_id, type: 'airtime_topup', status: 'successful' } },
                 { $group: { _id: null, total: { $sum: '$amount' } } }
             ])
         ]);

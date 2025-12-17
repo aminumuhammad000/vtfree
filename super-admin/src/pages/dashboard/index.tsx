@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import api from 'services/api';
+import { useEffect, useState } from 'react';
+import { getDashboardStats } from 'api/superAdminApi';
 import StatsCard from 'components/dashboard/StatsCard';
 import RecentTransactions from 'components/dashboard/RecentTransactions';
 import TopApps from 'components/dashboard/TopApps';
+import AnalyticsChart from 'components/dashboard/AnalyticsChart';
 
 interface DashboardData {
   total_users: number;
@@ -21,8 +22,10 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const response = await api.get('/super-admin/dashboard');
-        setData(response.data.data);
+        const response = await getDashboardStats();
+        if (response.data.success) {
+          setData(response.data.data);
+        }
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
       } finally {
@@ -41,6 +44,7 @@ const Dashboard = () => {
       bgGradient: 'from-blue-500 to-blue-600',
       lightBg: 'bg-blue-50',
       textColor: 'text-blue-600',
+      trend: { value: 12.5, isPositive: true }
     },
     {
       label: 'Active Users',
@@ -49,6 +53,7 @@ const Dashboard = () => {
       bgGradient: 'from-green-500 to-green-600',
       lightBg: 'bg-green-50',
       textColor: 'text-green-600',
+      trend: { value: 8.2, isPositive: true }
     },
     {
       label: 'Total Transactions',
@@ -57,6 +62,7 @@ const Dashboard = () => {
       bgGradient: 'from-purple-500 to-purple-600',
       lightBg: 'bg-purple-50',
       textColor: 'text-purple-600',
+      trend: { value: 5.4, isPositive: false }
     },
     {
       label: 'Total Revenue',
@@ -66,41 +72,68 @@ const Dashboard = () => {
       lightBg: 'bg-orange-50',
       textColor: 'text-orange-600',
       isCurrency: true,
+      trend: { value: 15.7, isPositive: true }
     },
   ];
 
+  // Generate mock chart data
+  const chartData = {
+    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    revenue: [450000, 520000, 480000, 590000, 620000, 580000, 710000],
+    transactions: [2100, 2450, 2200, 2800, 3100, 2900, 3500]
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-green-200 border-t-green-600 rounded-full animate-spin"></div>
+          <p className="text-slate-500 font-medium">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">Dashboard Overview</h1>
-        <p className="text-slate-500 mt-1">Welcome back, Super Admin</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">Dashboard Overview</h1>
+          <p className="text-slate-500 mt-1">Welcome back, Super Admin</p>
+        </div>
+        <div className="text-right">
+          <p className="text-sm text-slate-500">Last updated</p>
+          <p className="text-sm font-semibold text-slate-900">{new Date().toLocaleString()}</p>
+        </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {loading ? (
-          [1, 2, 3, 4].map((i) => (
-            <div key={i} className="bg-white rounded-2xl shadow-sm p-6 animate-pulse h-40"></div>
-          ))
-        ) : (
-          stats.map((stat, index) => (
-            <StatsCard key={index} {...stat} />
-          ))
-        )}
+        {stats.map((stat, index) => (
+          <StatsCard key={index} {...stat} />
+        ))}
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Recent Transactions - Takes up 2 columns */}
-        <div className="lg:col-span-2 h-[500px]">
-          <RecentTransactions data={data?.recent_transactions || []} />
+      {/* Charts and Activity Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Analytics Chart - spans 2 columns */}
+        <div className="lg:col-span-2">
+          <AnalyticsChart
+            title="Revenue & Transaction Analytics"
+            data={chartData}
+          />
         </div>
 
-        {/* Top Apps - Takes up 1 column */}
-        <div className="lg:col-span-1 h-[500px]">
+        {/* Top Apps */}
+        <div className="lg:col-span-1">
           <TopApps data={data?.top_apps || []} />
         </div>
+      </div>
+
+      {/* Recent Transactions - Full Width */}
+      <div className="grid grid-cols-1">
+        <RecentTransactions data={data?.recent_transactions || []} />
       </div>
     </div>
   );
