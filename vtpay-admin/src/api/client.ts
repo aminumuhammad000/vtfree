@@ -36,7 +36,7 @@ export interface Tenant {
     bvn?: string;
     businessName?: string;
     kycLevel: number;
-    status: 'active' | 'suspended' | 'pending';
+    status: 'active' | 'suspended' | 'pending' | 'frozen';
     apiKey?: string;
     createdAt: string;
     updatedAt: string;

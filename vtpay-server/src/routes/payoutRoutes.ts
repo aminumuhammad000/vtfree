@@ -52,20 +52,27 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
         // Based on previous code, Zainpay usually works with Kobo, but let's assume input amount is Kobo for consistency with WalletService.
         // If input is Naira, we should convert. Let's assume input is Kobo (frontend should handle).
 
-        const transferResponse = await zainpayService.fundTransfer({
+        const txnRef = `PAYOUT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+        const zainpayResponse = await zainpayService.fundTransfer({
             destinationBankCode,
             destinationAccountNumber,
-            amount: amount.toString(), // Zainpay expects string?
-            sourceAccountNumber: config.zainpay.zainboxCode, // Or a specific source account? Usually the main Zainbox.
+            amount: amount.toString(),
+            sourceAccountNumber: config.zainpay.zainboxCode,
+            sourceBankCode: '', // Assuming empty for Zainbox source, or need to find correct code
             narration: narration || `Payout for ref: ${reference}`,
             zainboxCode: config.zainpay.zainboxCode,
+            txnRef,
         });
 
-        if (!transferResponse || !transferResponse.responseCode || transferResponse.responseCode !== '00') {
-            // Handle failure (responseCode '00' is usually success in Nigerian banking)
-            // But Zainpay might return different codes. Let's assume success if no error thrown for now, 
-            // or check specific success field if known. 
-            // Looking at ZainpayService, it returns the API response directly.
+        if (!zainpayResponse || zainpayResponse.code !== '00') {
+            // Handle failure
+            res.status(400).json({
+                success: false,
+                message: zainpayResponse?.description || 'Transfer failed',
+                data: zainpayResponse
+            });
+            return;
         }
 
         // 3. Debit Wallet (and tag with reference)
@@ -76,7 +83,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
             0, // Fee?
             'withdrawal',
             narration || `Payout for ref: ${reference}`,
-            transferResponse.reference || `PAYOUT-${Date.now()}`, // External ref from Zainpay
+            txnRef,
             {
                 destinationBankCode,
                 destinationAccountNumber,

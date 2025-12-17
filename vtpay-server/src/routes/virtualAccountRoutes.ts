@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import mongoose from 'mongoose';
-import { VirtualAccount, User } from '../models';
+import { VirtualAccount, User, Zainbox } from '../models';
 import { zainpayService } from '../services';
 import { authenticate, AuthenticatedRequest } from '../middleware';
 import config from '../config';
@@ -30,7 +30,8 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
             gender,
             address,
             state,
-            bvn
+            bvn,
+            zainboxCode // Now required or inferred
         } = req.body;
 
         // Get user details for virtual account creation
@@ -52,6 +53,32 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
             return;
         }
 
+        // Determine Zainbox to use
+        let targetZainboxCode = zainboxCode;
+        if (!targetZainboxCode) {
+            // Try to find a Zainbox for the user
+            const userZainbox = await Zainbox.findOne({ userId });
+            if (userZainbox) {
+                targetZainboxCode = userZainbox.zainboxCode;
+            } else {
+                res.status(400).json({
+                    success: false,
+                    message: 'No Zainbox found for user. Please create a Zainbox first or provide zainboxCode.',
+                });
+                return;
+            }
+        } else {
+            // Verify ownership
+            const ownedZainbox = await Zainbox.findOne({ userId, zainboxCode: targetZainboxCode });
+            if (!ownedZainbox) {
+                res.status(403).json({
+                    success: false,
+                    message: 'Invalid Zainbox code or you do not own this Zainbox.',
+                });
+                return;
+            }
+        }
+
         // Allow multiple accounts, so we removed the existingAccount check
 
         // Create virtual account via Zainpay
@@ -68,7 +95,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
             title: req.body.title || 'Mr',
             state: state || 'Lagos',
             bvn: bvn || user.bvn || '',
-            zainboxCode: config.zainpay.zainboxCode,
+            zainboxCode: targetZainboxCode,
         });
 
         if (zainpayResponse.code !== '00') {
@@ -88,7 +115,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
             accountName: accountData.accountName,
             bankName: accountData.bankName,
             bankType,
-            zainboxCode: config.zainpay.zainboxCode,
+            zainboxCode: targetZainboxCode,
             email: email || user.email, // Use customer email if provided
             alias: accountName, // Save the custom name
             reference, // Save the reference ID

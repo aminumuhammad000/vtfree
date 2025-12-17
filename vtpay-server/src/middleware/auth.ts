@@ -110,7 +110,7 @@ export const generateToken = (userId: string, email: string): string => {
     return jwt.sign(
         { id: userId, email },
         config.jwt.secret,
-        { expiresIn: config.jwt.expiresIn }
+        { expiresIn: config.jwt.expiresIn as any }
     );
 };
 

@@ -41,7 +41,7 @@ const TenantsPage: React.FC = () => {
                     phone: '+234 800 234 5678',
                     businessName: 'XYZ Ltd',
                     kycLevel: 2,
-                    status: 'active',
+                    status: 'pending',
                     apiKey: 'sk_live_*********************',
                     createdAt: '2024-02-20T09:15:00Z',
                     updatedAt: '2024-12-15T11:45:00Z',
@@ -69,6 +69,18 @@ const TenantsPage: React.FC = () => {
         }
     };
 
+    const handleStatusChange = (tenantId: string, newStatus: 'active' | 'suspended' | 'frozen') => {
+        // In a real app, this would make an API call
+        const updatedTenants = tenants.map(t =>
+            t._id === tenantId ? { ...t, status: newStatus } : t
+        );
+        setTenants(updatedTenants);
+
+        if (selectedTenant && selectedTenant._id === tenantId) {
+            setSelectedTenant({ ...selectedTenant, status: newStatus });
+        }
+    };
+
     const getKycLevelBadge = (level: number) => {
         const badges = {
             0: { text: 'Unverified', color: 'bg-gray-100 text-gray-800' },
@@ -85,8 +97,9 @@ const TenantsPage: React.FC = () => {
             active: 'bg-green-100 text-green-800',
             suspended: 'bg-red-100 text-red-800',
             pending: 'bg-yellow-100 text-yellow-800',
+            frozen: 'bg-blue-100 text-blue-800',
         };
-        return <span className={`px-2 py-1 text-xs font-medium rounded-full ${badges[status as keyof typeof badges]}`}>{status.toUpperCase()}</span>;
+        return <span className={`px-2 py-1 text-xs font-medium rounded-full ${badges[status as keyof typeof badges] || 'bg-gray-100 text-gray-800'}`}>{status.toUpperCase()}</span>;
     };
 
     const filteredTenants = tenants.filter(tenant => {
@@ -159,6 +172,7 @@ const TenantsPage: React.FC = () => {
                         <option value="active">Active</option>
                         <option value="suspended">Suspended</option>
                         <option value="pending">Pending</option>
+                        <option value="frozen">Frozen</option>
                     </select>
                 </div>
             </div>
@@ -225,9 +239,6 @@ const TenantsPage: React.FC = () => {
                                                 className="text-green-600 hover:text-green-900 mr-4"
                                             >
                                                 View
-                                            </button>
-                                            <button className="text-slate-600 hover:text-slate-900">
-                                                Manage
                                             </button>
                                         </td>
                                     </tr>
@@ -296,15 +307,30 @@ const TenantsPage: React.FC = () => {
                             </div>
 
                             <div className="flex gap-3 pt-4 border-t border-slate-200">
-                                <button className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                                    Activate
-                                </button>
-                                <button className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors">
-                                    Suspend
-                                </button>
-                                <button className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-                                    Freeze
-                                </button>
+                                {selectedTenant.status !== 'active' && (
+                                    <button
+                                        onClick={() => handleStatusChange(selectedTenant._id, 'active')}
+                                        className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                    >
+                                        Approve / Activate
+                                    </button>
+                                )}
+                                {selectedTenant.status !== 'suspended' && (
+                                    <button
+                                        onClick={() => handleStatusChange(selectedTenant._id, 'suspended')}
+                                        className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+                                    >
+                                        Suspend
+                                    </button>
+                                )}
+                                {selectedTenant.status !== 'frozen' && (
+                                    <button
+                                        onClick={() => handleStatusChange(selectedTenant._id, 'frozen')}
+                                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                    >
+                                        Freeze
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>

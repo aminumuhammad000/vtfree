@@ -1,14 +1,17 @@
 import crypto from 'crypto';
+import axios from 'axios';
 import config from '../config';
-import { VirtualAccount } from '../models';
+import { VirtualAccount, Zainbox } from '../models';
 import { walletService } from './WalletService';
 import { WebhookEvent, WebhookDepositEvent, WebhookTransferSuccessEvent, WebhookTransferFailedEvent } from '../types/zainpay';
 
 export class WebhookService {
     private secretKey: string;
+    private vtpayWebhookSecret: string;
 
     constructor() {
         this.secretKey = config.zainpay.secretKey;
+        this.vtpayWebhookSecret = process.env.VTPAY_WEBHOOK_SECRET || 'default-vtpay-webhook-secret';
     }
 
     /**
@@ -36,23 +39,75 @@ export class WebhookService {
         console.log('Webhook data:', JSON.stringify(event.data, null, 2));
 
         try {
+            let result;
             switch (event.event) {
                 case 'deposit.success':
-                    return await this.handleDepositSuccess(event as WebhookDepositEvent);
+                    result = await this.handleDepositSuccess(event as WebhookDepositEvent);
+                    break;
 
                 case 'transfer.success':
-                    return await this.handleTransferSuccess(event as WebhookTransferSuccessEvent);
+                    result = await this.handleTransferSuccess(event as WebhookTransferSuccessEvent);
+                    break;
 
                 case 'transfer.failed':
-                    return await this.handleTransferFailed(event as WebhookTransferFailedEvent);
+                    result = await this.handleTransferFailed(event as WebhookTransferFailedEvent);
+                    break;
 
                 default:
                     console.warn(`Unknown webhook event type: ${(event as any).event}`);
-                    return { success: false, message: `Unknown event type: ${(event as any).event}` };
+                    result = { success: false, message: `Unknown event type: ${(event as any).event}` };
             }
+
+            // Dispatch to tenant regardless of internal processing result (unless it was an unknown event)
+            if (event.event === 'deposit.success' || event.event === 'transfer.success' || event.event === 'transfer.failed') {
+                await this.dispatchWebhookToTenant(event);
+            }
+
+            return result;
         } catch (error) {
             console.error('Error processing webhook:', error);
             return { success: false, message: 'Error processing webhook' };
+        }
+    }
+
+    /**
+     * Dispatch webhook to tenant's callback URL
+     */
+    private async dispatchWebhookToTenant(event: WebhookEvent): Promise<void> {
+        try {
+            const zainboxCode = event.data.zainboxCode;
+            if (!zainboxCode) {
+                console.warn('No zainboxCode in webhook event, cannot dispatch to tenant');
+                return;
+            }
+
+            const zainbox = await Zainbox.findOne({ zainboxCode });
+            if (!zainbox || !zainbox.callbackUrl) {
+                console.warn(`No Zainbox or callback URL found for code: ${zainboxCode}`);
+                return;
+            }
+
+            console.log(`Dispatching webhook to tenant: ${zainbox.callbackUrl}`);
+
+            const payload = JSON.stringify(event);
+            const signature = crypto
+                .createHmac('sha256', this.vtpayWebhookSecret)
+                .update(payload)
+                .digest('hex');
+
+            await axios.post(zainbox.callbackUrl, event, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'VTPay-Signature': signature,
+                    'User-Agent': 'VTPay-Webhook-Dispatcher/1.0',
+                },
+                timeout: 5000, // 5 seconds timeout
+            });
+
+            console.log('Webhook dispatched successfully');
+        } catch (error: any) {
+            console.error('Failed to dispatch webhook to tenant:', error.message);
+            // We don't throw here to avoid failing the original request from Zainpay
         }
     }
 
@@ -97,7 +152,6 @@ export class WebhookService {
                 depositedAmount: data.depositedAmount,
                 txnChargesAmount: data.txnChargesAmount,
                 zainboxCode: data.zainboxCode,
-                paymentDate: data.paymentDate,
                 paymentDate: data.paymentDate,
             },
             virtualAccount.reference // Pass the customer reference

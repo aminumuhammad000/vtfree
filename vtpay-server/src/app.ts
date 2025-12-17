@@ -12,6 +12,8 @@ import {
     developerRoutes,
     payoutRoutes,
     kycRoutes,
+    zainboxRoutes,
+    adminRoutes,
 } from './routes';
 import config from './config';
 
@@ -79,6 +81,8 @@ app.use('/api/webhooks', webhookRoutes);
 app.use('/api/developer', developerRoutes);
 app.use('/api/payout', payoutRoutes);
 app.use('/api/kyc', kycRoutes);
+app.use('/api/zainbox', zainboxRoutes);
+app.use('/api/admin', adminRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
