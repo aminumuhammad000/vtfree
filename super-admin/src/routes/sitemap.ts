@@ -56,6 +56,12 @@ const sitemap: MenuItem[] = [
     path: paths.settings,
     icon: 'solar:settings-bold',
   },
+  {
+    id: 'communications',
+    name: 'Communications',
+    path: paths.communications,
+    icon: 'solar:letter-bold',
+  },
 ];
 
 export default sitemap;

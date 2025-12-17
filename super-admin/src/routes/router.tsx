@@ -47,6 +47,7 @@ const SecurityLogs = lazy(() => import('pages/logs/SecurityLogs'));
 // Support & Providers
 const Support = lazy(() => import('pages/support'));
 const Providers = lazy(() => import('pages/providers'));
+const Communications = lazy(() => import('pages/communications/CommunicationsPage'));
 
 const SignIn = lazy(() => import('pages/authentication/SignIn'));
 const ResetPassword = lazy(() => import('pages/authentication/ResetPassword'));
@@ -174,6 +175,10 @@ const routes = [
               {
                 path: paths.providers,
                 element: <Providers />,
+              },
+              {
+                path: paths.communications,
+                element: <Communications />,
               },
               {
                 path: paths.settings,

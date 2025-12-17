@@ -24,6 +24,8 @@ export interface Zainbox {
     emailNotification?: string;
     name: string;
     tags?: string;
+    zainboxCode?: string; // Added
+    isLive?: boolean; // Added
 }
 
 // Virtual Account Types

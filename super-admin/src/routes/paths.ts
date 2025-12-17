@@ -34,6 +34,7 @@ export default {
   // Messaging
   notifications: `/${rootPaths.pagesRoot}/messaging/notifications`,
   broadcasts: `/${rootPaths.pagesRoot}/messaging/broadcasts`,
+  communications: `/${rootPaths.pagesRoot}/communications`,
 
   // Logs
   auditLogs: `/${rootPaths.pagesRoot}/logs/audit`,

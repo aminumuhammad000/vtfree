@@ -7,6 +7,8 @@ import webhookRoutes from './webhookRoutes';
 import developerRoutes from './developerRoutes';
 import payoutRoutes from './payoutRoutes';
 import kycRoutes from './kycRoutes';
+import zainboxRoutes from './zainboxRoutes';
+import adminRoutes from './adminRoutes';
 
 export {
     authRoutes,
@@ -18,4 +20,6 @@ export {
     developerRoutes,
     payoutRoutes,
     kycRoutes,
+    zainboxRoutes,
+    adminRoutes,
 };
