@@ -36,13 +36,8 @@ const SignIn = () => {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      // Hardcoded login check
-      if (user.email === 'admin@vtfree.com' && user.password === 'password123') {
-        await login(user.email, user.password);
-        window.location.href = '/';
-      } else {
-        setError('Invalid credentials');
-      }
+      await login(user.email, user.password);
+      window.location.href = '/';
     } catch (err: unknown) {
       console.error(err);
       setError('Login failed');
@@ -199,7 +194,7 @@ const SignIn = () => {
         textAlign={{ xs: 'center', md: 'left' }}
         letterSpacing={0.25}
       >
-        Credentials: <b>admin@vtfree.com</b> / <b>password123</b>
+        Credentials: <b>superadmin@vtuapp.com</b> / <b>SuperAdmin@123</b>
       </Typography>
     </Stack>
   );

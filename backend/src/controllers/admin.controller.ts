@@ -3,10 +3,11 @@ import bcrypt from 'bcryptjs';
 import { Request, Response } from 'express';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { config } from '../config/bootstrap.js';
-import { AdminUser, AuditLog, Transaction, User } from '../models/index.js';
+import { AdminUser, AuditLog, Transaction, User, Zainbox, ApiKey, FeeRule, RiskRule } from '../models/index.js';
 import { AdminService } from '../services/admin.service.js';
 import { AuthRequest } from '../types/index.js';
 import { ApiResponse } from '../utils/response.js';
+import crypto from 'crypto';
 
 export class AdminController {
   static async login(req: Request, res: Response) {
@@ -415,6 +416,20 @@ export class AdminController {
   }
 
   /**
+   * Get current admin profile
+   * @route GET /api/admin/profile
+   */
+  static async getProfile(req: AuthRequest, res: Response) {
+    try {
+      const admin = await AdminUser.findById(req.user?.id).select('-password_hash');
+      if (!admin) return ApiResponse.error(res, 'Admin not found', 404);
+      return ApiResponse.success(res, admin, 'Profile retrieved successfully');
+    } catch (error: any) {
+      return ApiResponse.error(res, error.message, 500);
+    }
+  }
+
+  /**
    * Update current admin profile (first_name, last_name, email)
    * @route PUT /api/admin/profile
    */
@@ -464,6 +479,232 @@ export class AdminController {
 
       return ApiResponse.success(res, null, 'Password changed successfully');
     } catch (error: any) {
+      return ApiResponse.error(res, error.message, 500);
+    }
+  }
+
+  // Zainbox Management
+  static async createZainbox(req: AuthRequest, res: Response) {
+    try {
+      const zainbox = await Zainbox.create(req.body);
+      return ApiResponse.success(res, zainbox, 'Zainbox created successfully', 201);
+    } catch (error: any) {
+      return ApiResponse.error(res, error.message, 500);
+    }
+  }
+
+  static async getAllZainboxes(req: AuthRequest, res: Response) {
+    try {
+      const zainboxes = await Zainbox.find().sort({ createdAt: -1 });
+      return ApiResponse.success(res, zainboxes, 'Zainboxes retrieved successfully');
+    } catch (error: any) {
+      return ApiResponse.error(res, error.message, 500);
+    }
+  }
+
+  // API Key Management
+  static async generateApiKey(req: AuthRequest, res: Response) {
+    try {
+      const { name, environment, scopes } = req.body;
+      const fullKey = `vt_${environment}_${crypto.randomBytes(24).toString('hex')}`;
+
+      const apiKey = await ApiKey.create({
+        keyName: name,
+        fullKey,
+        environment,
+        scopes,
+        tenantName: 'VTPay Admin', // Default for now
+        status: 'active'
+      });
+
+      return ApiResponse.success(res, apiKey, 'API Key generated successfully', 201);
+    } catch (error: any) {
+      return ApiResponse.error(res, error.message, 500);
+    }
+  }
+
+  static async getApiKeys(req: AuthRequest, res: Response) {
+    try {
+      const keys = await ApiKey.find().sort({ createdAt: -1 });
+      return ApiResponse.success(res, keys, 'API Keys retrieved successfully');
+    } catch (error: any) {
+      return ApiResponse.error(res, error.message, 500);
+    }
+  }
+
+  static async revokeApiKey(req: AuthRequest, res: Response) {
+    try {
+      const apiKey = await ApiKey.findByIdAndUpdate(req.params.id, { status: 'revoked' }, { new: true });
+      if (!apiKey) return ApiResponse.error(res, 'API Key not found', 404);
+      return ApiResponse.success(res, apiKey, 'API Key revoked successfully');
+    } catch (error: any) {
+      return ApiResponse.error(res, error.message, 500);
+    }
+  }
+
+  // Fee Management
+  static async createFee(req: AuthRequest, res: Response) {
+    try {
+      const fee = await FeeRule.create(req.body);
+      return ApiResponse.success(res, fee, 'Fee rule created successfully', 201);
+    } catch (error: any) {
+      return ApiResponse.error(res, error.message, 500);
+    }
+  }
+
+  static async getFees(req: AuthRequest, res: Response) {
+    try {
+      const fees = await FeeRule.find().sort({ createdAt: -1 });
+      return ApiResponse.success(res, fees, 'Fee rules retrieved successfully');
+    } catch (error: any) {
+      return ApiResponse.error(res, error.message, 500);
+    }
+  }
+
+  static async updateFee(req: AuthRequest, res: Response) {
+    try {
+      const fee = await FeeRule.findByIdAndUpdate(req.params.id, req.body, { new: true });
+      if (!fee) return ApiResponse.error(res, 'Fee rule not found', 404);
+      return ApiResponse.success(res, fee, 'Fee rule updated successfully');
+    } catch (error: any) {
+      return ApiResponse.error(res, error.message, 500);
+    }
+  }
+
+  static async deleteFee(req: AuthRequest, res: Response) {
+    try {
+      const fee = await FeeRule.findByIdAndDelete(req.params.id);
+      if (!fee) return ApiResponse.error(res, 'Fee rule not found', 404);
+      return ApiResponse.success(res, null, 'Fee rule deleted successfully');
+    } catch (error: any) {
+      return ApiResponse.error(res, error.message, 500);
+    }
+  }
+
+  // Risk Rule Management
+  static async createRiskRule(req: AuthRequest, res: Response) {
+    try {
+      const rule = await RiskRule.create(req.body);
+      return ApiResponse.success(res, rule, 'Risk rule created successfully', 201);
+    } catch (error: any) {
+      return ApiResponse.error(res, error.message, 500);
+    }
+  }
+
+  static async getRiskRules(req: AuthRequest, res: Response) {
+    try {
+      const rules = await RiskRule.find().sort({ createdAt: -1 });
+      return ApiResponse.success(res, rules, 'Risk rules retrieved successfully');
+    } catch (error: any) {
+      return ApiResponse.error(res, error.message, 500);
+    }
+  }
+
+  static async updateRiskRule(req: AuthRequest, res: Response) {
+    try {
+      const rule = await RiskRule.findByIdAndUpdate(req.params.id, req.body, { new: true });
+      if (!rule) return ApiResponse.error(res, 'Risk rule not found', 404);
+      return ApiResponse.success(res, rule, 'Risk rule updated successfully');
+    } catch (error: any) {
+      return ApiResponse.error(res, error.message, 500);
+    }
+  }
+
+  static async deleteRiskRule(req: AuthRequest, res: Response) {
+    try {
+      const rule = await RiskRule.findByIdAndDelete(req.params.id);
+      if (!rule) return ApiResponse.error(res, 'Risk rule not found', 404);
+      return ApiResponse.success(res, null, 'Risk rule deleted successfully');
+    } catch (error: any) {
+      return ApiResponse.error(res, error.message, 500);
+    }
+  }
+
+  // System Settings Management
+  static async getSystemSettings(req: AuthRequest, res: Response) {
+    try {
+      const { configService } = await import('../services/config.service.js');
+
+      const settings = {
+        general: {
+          companyName: await configService.get('COMPANY_NAME', 'VTPay Systems'),
+          supportEmail: await configService.get('SUPPORT_EMAIL', 'support@vtpay.com'),
+          timezone: await configService.get('TIMEZONE', 'Africa/Lagos'),
+          currency: await configService.get('CURRENCY', 'NGN'),
+          maintenanceMode: (await configService.get('MAINTENANCE_MODE', 'false')) === 'true',
+        },
+        notifications: {
+          emailAlerts: (await configService.get('EMAIL_ALERTS', 'true')) === 'true',
+          slackIntegration: (await configService.get('SLACK_INTEGRATION', 'false')) === 'true',
+          webhookRetries: parseInt(await configService.get('WEBHOOK_RETRIES', '3')),
+          dailyReports: (await configService.get('DAILY_REPORTS', 'true')) === 'true',
+        },
+        security: {
+          twoFactorAuth: (await configService.get('TWO_FACTOR_AUTH', 'true')) === 'true',
+          sessionTimeout: parseInt(await configService.get('SESSION_TIMEOUT', '30')),
+          passwordExpiry: parseInt(await configService.get('PASSWORD_EXPIRY', '90')),
+          ipWhitelist: await configService.get('IP_WHITELIST', ''),
+        },
+        integrations: {
+          zainpay: {
+            apiKey: await configService.get('ZAINPAY_API_KEY', ''),
+            secretKey: await configService.get('ZAINPAY_SECRET_KEY', ''),
+            baseUrl: await configService.get('ZAINPAY_BASE_URL', 'https://api.zainpay.ng'),
+            isLive: (await configService.get('ZAINPAY_IS_LIVE', 'false')) === 'true',
+          }
+        }
+      };
+
+      return ApiResponse.success(res, settings, 'System settings retrieved successfully');
+    } catch (error: any) {
+      return ApiResponse.error(res, error.message, 500);
+    }
+  }
+
+  static async updateSystemSettings(req: AuthRequest, res: Response) {
+    try {
+      const { configService } = await import('../services/config.service.js');
+      const settings = req.body;
+      console.log('Updating system settings:', JSON.stringify(settings, null, 2));
+
+      if (settings.general) {
+        if (settings.general.companyName !== undefined) {
+          console.log('Setting COMPANY_NAME:', settings.general.companyName);
+          await configService.set('COMPANY_NAME', settings.general.companyName);
+        }
+        if (settings.general.supportEmail !== undefined) await configService.set('SUPPORT_EMAIL', settings.general.supportEmail);
+        if (settings.general.timezone !== undefined) await configService.set('TIMEZONE', settings.general.timezone);
+        if (settings.general.currency !== undefined) await configService.set('CURRENCY', settings.general.currency);
+        if (settings.general.maintenanceMode !== undefined) await configService.set('MAINTENANCE_MODE', String(settings.general.maintenanceMode));
+      }
+
+      if (settings.notifications) {
+        if (settings.notifications.emailAlerts !== undefined) await configService.set('EMAIL_ALERTS', String(settings.notifications.emailAlerts));
+        if (settings.notifications.slackIntegration !== undefined) await configService.set('SLACK_INTEGRATION', String(settings.notifications.slackIntegration));
+        if (settings.notifications.webhookRetries !== undefined) await configService.set('WEBHOOK_RETRIES', String(settings.notifications.webhookRetries));
+        if (settings.notifications.dailyReports !== undefined) await configService.set('DAILY_REPORTS', String(settings.notifications.dailyReports));
+      }
+
+      if (settings.security) {
+        if (settings.security.twoFactorAuth !== undefined) await configService.set('TWO_FACTOR_AUTH', String(settings.security.twoFactorAuth));
+        if (settings.security.sessionTimeout !== undefined) await configService.set('SESSION_TIMEOUT', String(settings.security.sessionTimeout));
+        if (settings.security.passwordExpiry !== undefined) await configService.set('PASSWORD_EXPIRY', String(settings.security.passwordExpiry));
+        if (settings.security.ipWhitelist !== undefined) await configService.set('IP_WHITELIST', settings.security.ipWhitelist);
+      }
+
+      if (settings.integrations && settings.integrations.zainpay) {
+        const zp = settings.integrations.zainpay;
+        console.log('Setting Zainpay config:', zp);
+        if (zp.apiKey !== undefined) await configService.set('ZAINPAY_API_KEY', zp.apiKey);
+        if (zp.secretKey !== undefined) await configService.set('ZAINPAY_SECRET_KEY', zp.secretKey);
+        if (zp.baseUrl !== undefined) await configService.set('ZAINPAY_BASE_URL', zp.baseUrl);
+        if (zp.isLive !== undefined) await configService.set('ZAINPAY_IS_LIVE', String(zp.isLive));
+      }
+
+      console.log('System settings updated successfully');
+      return ApiResponse.success(res, null, 'System settings updated successfully');
+    } catch (error: any) {
+      console.error('Error updating system settings:', error);
       return ApiResponse.error(res, error.message, 500);
     }
   }

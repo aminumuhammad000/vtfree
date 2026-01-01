@@ -15,4 +15,8 @@ router.get('/dashboard', SuperAdminController.getDashboardStats);
 router.get('/transactions', SuperAdminController.getAllTransactions);
 router.get('/payments', SuperAdminController.getAllPayments);
 
+// System Settings
+router.get('/settings', SuperAdminController.getSystemSettings);
+router.patch('/settings', SuperAdminController.updateSystemSettings);
+
 export default router;
