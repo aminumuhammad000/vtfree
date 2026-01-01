@@ -36,3 +36,11 @@ export const updateUserStatus = (id: string, status: string) =>
 export const approveKyc = (id: string) => api.put(`/users/${id}/kyc/approve`);
 export const rejectKyc = (id: string, reason: string) =>
   api.put(`/users/${id}/kyc/reject`, { reason });
+
+export const getSystemSettings = async () => {
+  return api.get('/settings');
+};
+
+export const updateSystemSettings = async (settings: any) => {
+  return api.patch('/settings', settings);
+};

@@ -16,6 +16,7 @@ router.use('/config', configRoutes);
 router.post('/login', AdminController.login);
 router.get('/dashboard', authMiddleware, AdminController.getDashboardStats);
 // Admin profile
+router.get('/profile', authMiddleware, AdminController.getProfile);
 router.put('/profile', authMiddleware, AdminController.updateAdminProfile);
 router.put('/profile/password', authMiddleware, AdminController.changeAdminPassword);
 
@@ -24,6 +25,7 @@ router.post('/admins', authMiddleware, AdminController.createAdminUser);
 router.get('/admins', authMiddleware, AdminController.getAllAdmins);
 
 // User management
+router.get('/tenants', authMiddleware, AdminController.getAllUsers);
 router.get('/users', authMiddleware, AdminController.getAllUsers);
 router.get('/users/:id', authMiddleware, AdminController.getUserById);
 router.put('/users/:id/status', authMiddleware, AdminController.updateUserStatus);
@@ -96,6 +98,29 @@ router.get('/payout/banks', authMiddleware, PayoutController.getBanksList);
 router.post('/payout/validate-account', authMiddleware, PayoutController.validateAccount);
 router.get('/payout/balance', authMiddleware, PayoutController.getVTPayBalance);
 
+// Zainbox Management
+router.post('/zainboxes', authMiddleware, AdminController.createZainbox);
+router.get('/zainboxes', authMiddleware, AdminController.getAllZainboxes);
 
+// API Key Management
+router.post('/api-keys', authMiddleware, AdminController.generateApiKey);
+router.get('/api-keys', authMiddleware, AdminController.getApiKeys);
+router.delete('/api-keys/:id', authMiddleware, AdminController.revokeApiKey);
+
+// Fee Management
+router.post('/fees', authMiddleware, AdminController.createFee);
+router.get('/fees', authMiddleware, AdminController.getFees);
+router.put('/fees/:id', authMiddleware, AdminController.updateFee);
+router.delete('/fees/:id', authMiddleware, AdminController.deleteFee);
+
+// Risk Rule Management
+router.post('/risk-rules', authMiddleware, AdminController.createRiskRule);
+router.get('/risk-rules', authMiddleware, AdminController.getRiskRules);
+router.put('/risk-rules/:id', authMiddleware, AdminController.updateRiskRule);
+router.delete('/risk-rules/:id', authMiddleware, AdminController.deleteRiskRule);
+
+// System Settings
+router.get('/settings', authMiddleware, AdminController.getSystemSettings);
+router.patch('/settings', authMiddleware, AdminController.updateSystemSettings);
 
 export default router;

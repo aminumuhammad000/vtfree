@@ -12,9 +12,9 @@ export class VTPayService {
         if (this.apiKey) return this.apiKey;
 
         // Fetch from ConfigService
-        const apiKey = await configService.get('VTPAY_API_KEY');
+        const apiKey = await configService.get('ZAINPAY_API_KEY');
         if (!apiKey) {
-            throw new Error('VTPay API key not configured');
+            throw new Error('Zainpay API key not configured');
         }
 
         this.apiKey = apiKey;

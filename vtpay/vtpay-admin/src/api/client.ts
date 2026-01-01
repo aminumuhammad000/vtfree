@@ -1,0 +1,184 @@
+import axios from 'axios';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+const api = axios.create({
+    baseURL: API_BASE_URL,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+
+// Add auth token to requests
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
+// API response type
+export interface ApiResponse<T = any> {
+    success: boolean;
+    message?: string;
+    data?: T;
+}
+
+// User/Tenant types
+export interface Tenant {
+    _id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    phone_number: string;
+    business_name?: string;
+    kyc_status: 'pending' | 'verified' | 'rejected';
+    status: 'active' | 'inactive' | 'suspended';
+    created_at: string;
+    updated_at: string;
+}
+
+// Zainbox types
+export interface Zainbox {
+    _id: string;
+    userId: string;
+    name: string;
+    emailNotification: string;
+    tags: string;
+    callbackUrl: string;
+    codeName: string;
+    zainboxCode: string;
+    isLive: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
+// Admin APIs
+export const adminApi = {
+    getAllTenants: async (): Promise<Tenant[]> => {
+        const response = await api.get<ApiResponse<Tenant[]>>('/admin/tenants');
+        return response.data.data || [];
+    },
+
+    getTenantById: async (id: string): Promise<Tenant> => {
+        const response = await api.get<ApiResponse<Tenant>>(`/admin/tenants/${id}`);
+        return response.data.data!;
+    },
+
+    updateTenantStatus: async (id: string, status: string): Promise<void> => {
+        await api.patch(`/admin/tenants/${id}/status`, { status });
+    },
+
+    getStats: async (): Promise<any> => {
+        const response = await api.get<ApiResponse<any>>('/admin/stats');
+        return response.data.data;
+    },
+
+    getAllZainboxes: async (): Promise<Zainbox[]> => {
+        const response = await api.get<ApiResponse<Zainbox[]>>('/admin/zainboxes');
+        return response.data.data || [];
+    },
+
+    getTransactions: async (params?: any): Promise<any> => {
+        const response = await api.get<ApiResponse<any>>('/admin/transactions', { params });
+        return response.data.data;
+    },
+
+    getSettlements: async (): Promise<any[]> => {
+        const response = await api.get<ApiResponse<any[]>>('/admin/settlements');
+        return response.data.data || [];
+    },
+
+    getWebhooks: async (params?: any): Promise<any> => {
+        const response = await api.get<ApiResponse<any>>('/admin/webhooks', { params });
+        return response.data.data;
+    },
+
+    getApiKeys: async (): Promise<any[]> => {
+        const response = await api.get<ApiResponse<any[]>>('/admin/api-keys');
+        return response.data.data || [];
+    },
+
+    generateApiKey: async (data: any): Promise<any> => {
+        const response = await api.post<ApiResponse<any>>('/admin/api-keys', data);
+        return response.data.data;
+    },
+
+    revokeApiKey: async (id: string): Promise<any> => {
+        const response = await api.delete<ApiResponse<any>>(`/admin/api-keys/${id}`);
+        return response.data;
+    },
+
+    createZainbox: async (data: any): Promise<Zainbox> => {
+        const response = await api.post<ApiResponse<Zainbox>>('/admin/zainboxes', data);
+        return response.data.data!;
+    },
+
+    // Fee Management
+    getFees: async (): Promise<any[]> => {
+        const response = await api.get<ApiResponse<any[]>>('/admin/fees');
+        return response.data.data || [];
+    },
+    createFee: async (data: any): Promise<any> => {
+        const response = await api.post<ApiResponse<any>>('/admin/fees', data);
+        return response.data.data;
+    },
+    updateFee: async (id: string, data: any): Promise<any> => {
+        const response = await api.patch<ApiResponse<any>>(`/admin/fees/${id}`, data);
+        return response.data.data;
+    },
+    deleteFee: async (id: string): Promise<any> => {
+        const response = await api.delete<ApiResponse<any>>(`/admin/fees/${id}`);
+        return response.data;
+    },
+
+    // Risk Management
+    getRiskRules: async (): Promise<any[]> => {
+        const response = await api.get<ApiResponse<any[]>>('/admin/risk');
+        return response.data.data || [];
+    },
+    createRiskRule: async (data: any): Promise<any> => {
+        const response = await api.post<ApiResponse<any>>('/admin/risk', data);
+        return response.data.data;
+    },
+    updateRiskRule: async (id: string, data: any): Promise<any> => {
+        const response = await api.patch<ApiResponse<any>>(`/admin/risk/${id}`, data);
+        return response.data.data;
+    },
+    deleteRiskRule: async (id: string): Promise<any> => {
+        const response = await api.delete<ApiResponse<any>>(`/admin/risk/${id}`);
+        return response.data;
+    },
+
+    // Communications
+    sendBulkEmail: async (data: any): Promise<any> => {
+        const response = await api.post<ApiResponse<any>>('/admin/communications/send', data);
+        return response.data;
+    },
+
+    // System Settings
+    getSystemSettings: async (): Promise<any> => {
+        const response = await api.get<ApiResponse<any>>('/admin/settings');
+        return response.data.data;
+    },
+    updateSystemSettings: async (data: any): Promise<any> => {
+        const response = await api.patch<ApiResponse<any>>('/admin/settings', data);
+        return response.data.data;
+    },
+
+    // Admin Profile
+    updateAdminProfile: (data: any) => api.put('/admin/profile', data),
+    changeAdminPassword: (data: any) => api.put('/admin/profile/password', data),
+    getAdminProfile: () => api.get('/admin/profile'),
+};
+
+// Auth APIs
+export const authApi = {
+    login: async (credentials: any): Promise<any> => {
+        const response = await api.post<ApiResponse<any>>('/admin/login', credentials);
+        return response.data.data;
+    },
+};
+
+export default api;

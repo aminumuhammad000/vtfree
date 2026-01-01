@@ -66,6 +66,11 @@ class ConfigService {
             { key: 'MONNIFY_CONTRACT_CODE', group: 'PAYMENT', description: 'Monnify Contract Code' },
             { key: 'MONNIFY_BASE_URL', group: 'PAYMENT', description: 'Monnify Base URL' },
 
+            { key: 'ZAINPAY_API_KEY', group: 'PAYMENT', description: 'Zainpay API Key' },
+            { key: 'ZAINPAY_SECRET_KEY', group: 'PAYMENT', description: 'Zainpay Secret Key' },
+            { key: 'ZAINPAY_BASE_URL', group: 'PAYMENT', description: 'Zainpay Base URL' },
+            { key: 'ZAINPAY_IS_LIVE', group: 'PAYMENT', description: 'Zainpay Live Mode' },
+
             { key: 'NODE_ENV', group: 'SYSTEM', description: 'Environment (development/production)' },
         ];
 

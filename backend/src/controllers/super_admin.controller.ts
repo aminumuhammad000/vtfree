@@ -148,3 +148,85 @@ export const getAllPayments = async (req: Request, res: Response) => {
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
+
+// System Settings Management
+export const getSystemSettings = async (req: Request, res: Response) => {
+    try {
+        const { configService } = await import('../services/config.service.js');
+
+        const settings = {
+            general: {
+                companyName: await configService.get('COMPANY_NAME', 'VTPay Systems'),
+                supportEmail: await configService.get('SUPPORT_EMAIL', 'support@vtpay.com'),
+                timezone: await configService.get('TIMEZONE', 'Africa/Lagos'),
+                currency: await configService.get('CURRENCY', 'NGN'),
+                maintenanceMode: (await configService.get('MAINTENANCE_MODE', 'false')) === 'true',
+            },
+            notifications: {
+                emailAlerts: (await configService.get('EMAIL_ALERTS', 'true')) === 'true',
+                slackIntegration: (await configService.get('SLACK_INTEGRATION', 'false')) === 'true',
+                webhookRetries: parseInt(await configService.get('WEBHOOK_RETRIES', '3')),
+                dailyReports: (await configService.get('DAILY_REPORTS', 'true')) === 'true',
+            },
+            security: {
+                twoFactorAuth: (await configService.get('TWO_FACTOR_AUTH', 'true')) === 'true',
+                sessionTimeout: parseInt(await configService.get('SESSION_TIMEOUT', '30')),
+                passwordExpiry: parseInt(await configService.get('PASSWORD_EXPIRY', '90')),
+                ipWhitelist: await configService.get('IP_WHITELIST', ''),
+            },
+            integrations: {
+                zainpay: {
+                    apiKey: await configService.get('ZAINPAY_API_KEY', ''),
+                    secretKey: await configService.get('ZAINPAY_SECRET_KEY', ''),
+                    baseUrl: await configService.get('ZAINPAY_BASE_URL', 'https://api.zainpay.ng'),
+                    isLive: (await configService.get('ZAINPAY_IS_LIVE', 'false')) === 'true',
+                }
+            }
+        };
+
+        res.json({ success: true, data: settings });
+    } catch (error: any) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const updateSystemSettings = async (req: Request, res: Response) => {
+    try {
+        const { configService } = await import('../services/config.service.js');
+        const settings = req.body;
+
+        if (settings.general) {
+            if (settings.general.companyName !== undefined) await configService.set('COMPANY_NAME', settings.general.companyName);
+            if (settings.general.supportEmail !== undefined) await configService.set('SUPPORT_EMAIL', settings.general.supportEmail);
+            if (settings.general.timezone !== undefined) await configService.set('TIMEZONE', settings.general.timezone);
+            if (settings.general.currency !== undefined) await configService.set('CURRENCY', settings.general.currency);
+            if (settings.general.maintenanceMode !== undefined) await configService.set('MAINTENANCE_MODE', String(settings.general.maintenanceMode));
+        }
+
+        if (settings.notifications) {
+            if (settings.notifications.emailAlerts !== undefined) await configService.set('EMAIL_ALERTS', String(settings.notifications.emailAlerts));
+            if (settings.notifications.slackIntegration !== undefined) await configService.set('SLACK_INTEGRATION', String(settings.notifications.slackIntegration));
+            if (settings.notifications.webhookRetries !== undefined) await configService.set('WEBHOOK_RETRIES', String(settings.notifications.webhookRetries));
+            if (settings.notifications.dailyReports !== undefined) await configService.set('DAILY_REPORTS', String(settings.notifications.dailyReports));
+        }
+
+        if (settings.security) {
+            if (settings.security.twoFactorAuth !== undefined) await configService.set('TWO_FACTOR_AUTH', String(settings.security.twoFactorAuth));
+            if (settings.security.sessionTimeout !== undefined) await configService.set('SESSION_TIMEOUT', String(settings.security.sessionTimeout));
+            if (settings.security.passwordExpiry !== undefined) await configService.set('PASSWORD_EXPIRY', String(settings.security.passwordExpiry));
+            if (settings.security.ipWhitelist !== undefined) await configService.set('IP_WHITELIST', settings.security.ipWhitelist);
+        }
+
+        if (settings.integrations && settings.integrations.zainpay) {
+            const zp = settings.integrations.zainpay;
+            if (zp.apiKey !== undefined) await configService.set('ZAINPAY_API_KEY', zp.apiKey);
+            if (zp.secretKey !== undefined) await configService.set('ZAINPAY_SECRET_KEY', zp.secretKey);
+            if (zp.baseUrl !== undefined) await configService.set('ZAINPAY_BASE_URL', zp.baseUrl);
+            if (zp.isLive !== undefined) await configService.set('ZAINPAY_IS_LIVE', String(zp.isLive));
+        }
+
+        res.json({ success: true, message: 'System settings updated successfully' });
+    } catch (error: any) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};

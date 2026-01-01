@@ -21,4 +21,8 @@ export * from './support_ticket.model.js';
 export { default as SystemConfig } from './system_config.model.js';
 export * from './transaction.model.js';
 export { default as VirtualAccount } from './VirtualAccount.js';
+export { default as Zainbox } from './zainbox.model.js';
+export { default as ApiKey } from './api_key.model.js';
+export { default as FeeRule } from './fee_rule.model.js';
+export { default as RiskRule } from './risk_rule.model.js';
 

@@ -70,21 +70,31 @@ export class PaystackService {
 
   constructor() {
     this.baseUrl = 'https://api.paystack.co';
-    this.secretKey = config.paystack.secretKey;
-    this.publicKey = config.paystack.publicKey;
-    this.webhookSecret = config.paystack.webhookSecret;
-
-    if (!this.secretKey || !this.publicKey) {
-      throw new Error('Paystack API keys are not configured');
-    }
+    this.secretKey = '';
+    this.publicKey = '';
+    this.webhookSecret = '';
 
     this.api = axios.create({
       baseURL: this.baseUrl,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.secretKey}`,
       },
     });
+
+    this.ensureConfig();
+  }
+
+  private async ensureConfig() {
+    if (this.secretKey) return;
+
+    const { configService } = await import('./config.service.js');
+    const { config: envConfig } = await import('../config/env.js');
+
+    this.secretKey = await configService.get('PAYSTACK_SECRET_KEY') || envConfig.paystack.secretKey;
+    this.publicKey = await configService.get('PAYSTACK_PUBLIC_KEY') || envConfig.paystack.publicKey;
+    this.webhookSecret = await configService.get('PAYSTACK_WEBHOOK_SECRET') || envConfig.paystack.webhookSecret;
+
+    this.api.defaults.headers.common['Authorization'] = `Bearer ${this.secretKey}`;
   }
 
   /**
@@ -99,6 +109,7 @@ export class PaystackService {
     reference?: string
   ): Promise<PaystackTransactionResponse> {
     try {
+      await this.ensureConfig();
       const response: AxiosResponse<PaystackTransactionResponse> = await this.api.post('/transaction/initialize', {
         email,
         amount: amount * 100, // Convert to kobo
@@ -128,6 +139,7 @@ export class PaystackService {
    */
   async verifyTransaction(reference: string): Promise<PaystackVerifyResponse> {
     try {
+      await this.ensureConfig();
       const response = await this.api.get(`/transaction/verify/${reference}`);
       return response.data;
     } catch (error: any) {
@@ -143,11 +155,12 @@ export class PaystackService {
    */
   async handleWebhook(payload: any, signature: string): Promise<{ success: boolean; data?: any; message?: string }> {
     try {
+      await this.ensureConfig();
       // Verify the webhook signature
       if (!this.secretKey) {
         throw new Error('Paystack secret key is not configured');
       }
-      
+
       const hmac = crypto.createHmac('sha512', this.secretKey);
       hmac.update(JSON.stringify(payload));
       const hash = hmac.digest('hex');
@@ -157,7 +170,7 @@ export class PaystackService {
       }
 
       const { event, data } = payload;
-      
+
       if (event === 'charge.success') {
         return {
           success: true,
@@ -186,6 +199,7 @@ export class PaystackService {
    */
   async createTransferRecipient(accountNumber: string, bankCode: string, accountName?: string) {
     try {
+      await this.ensureConfig();
       const response = await this.api.post('/transferrecipient', {
         type: 'nuban',
         name: accountName || 'VTU Customer',
@@ -209,6 +223,7 @@ export class PaystackService {
    */
   async initiateTransfer(amount: number, recipient: string, reason?: string) {
     try {
+      await this.ensureConfig();
       const response = await this.api.post('/transfer', {
         source: 'balance',
         amount: amount * 100, // Convert to kobo
@@ -229,6 +244,7 @@ export class PaystackService {
    */
   async verifyTransfer(reference: string) {
     try {
+      await this.ensureConfig();
       const response = await this.api.get(`/transfer/verify/${reference}`);
       return response.data;
     } catch (error: any) {
@@ -242,6 +258,7 @@ export class PaystackService {
    */
   async listBanks() {
     try {
+      await this.ensureConfig();
       const response = await this.api.get('/bank?country=nigeria');
       return response.data;
     } catch (error: any) {
@@ -257,6 +274,7 @@ export class PaystackService {
    */
   async resolveAccount(accountNumber: string, bankCode: string) {
     try {
+      await this.ensureConfig();
       const response = await this.api.get(`/bank/resolve?account_number=${accountNumber}&bank_code=${bankCode}`);
       return response.data;
     } catch (error: any) {
