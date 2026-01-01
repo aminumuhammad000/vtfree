@@ -1,37 +1,9 @@
-<<<<<<< HEAD
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getSupportMessages } from '../api/adminApi';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 import SupportViewModal from '../components/SupportViewModal';
-=======
-import React, { useState } from 'react';
-import Sidebar from '../components/Sidebar';
-import Topbar from '../components/Topbar';
-
-// Mock data for demonstration (will be replaced with real API data)
-const mockMessages = [
-    {
-        _id: '1',
-        user: { first_name: 'John', last_name: 'Doe', email: 'john@example.com' },
-        subject: 'Payment Issue',
-        message: 'I made a payment but it has not reflected in my account',
-        status: 'new',
-        priority: 'high',
-        created_at: new Date().toISOString(),
-    },
-    {
-        _id: '2',
-        user: { first_name: 'Jane', last_name: 'Smith', email: 'jane@example.com' },
-        subject: 'Data Bundle Not Received',
-        message: 'I purchased a data bundle 2 hours ago but haven\'t received it yet',
-        status: 'replied',
-        priority: 'medium',
-        created_at: new Date(Date.now() - 3600000).toISOString(),
-    },
-];
->>>>>>> 2ce75ef5fe566e3e6d2d50a32f18fced92934108
 
 const Support: React.FC = () => {
     const [page, setPage] = useState(1);
@@ -39,7 +11,6 @@ const Support: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState('');
     const [priorityFilter, setPriorityFilter] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
-<<<<<<< HEAD
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [viewTicket, setViewTicket] = useState<any | null>(null);
     const limit = 20;
@@ -70,24 +41,6 @@ const Support: React.FC = () => {
 
     const messages = data?.data || [];
     const pagination = data?.pagination || { page: 1, pages: 1, total: 0 };
-=======
-    const limit = 20;
-
-    // For now, we'll use mock data. When backend is ready, uncomment this:
-    /*
-    const { data, status } = useQuery({
-      queryKey: ['support-messages', page, statusFilter, priorityFilter],
-      queryFn: () => getSupportMessages({ page, limit, status: statusFilter || undefined, priority: priorityFilter || undefined }),
-    });
-    const messages = data?.data?.data || [];
-    const pagination = data?.data?.pagination || { page: 1, pages: 1, total: 0 };
-    */
-
-    // Mock data usage
-    const messages = mockMessages;
-    const pagination = { page: 1, pages: 1, total: mockMessages.length };
-    const status = 'success';
->>>>>>> 2ce75ef5fe566e3e6d2d50a32f18fced92934108
 
     const getStatusColor = (status: string) => {
         switch (status?.toLowerCase()) {
@@ -158,14 +111,10 @@ const Support: React.FC = () => {
                                         <label className="block text-sm font-semibold text-slate-700 mb-2">Status</label>
                                         <select
                                             value={statusFilter}
-<<<<<<< HEAD
                                             onChange={(e) => {
                                                 setStatusFilter(e.target.value);
                                                 setPage(1);
                                             }}
-=======
-                                            onChange={(e) => setStatusFilter(e.target.value)}
->>>>>>> 2ce75ef5fe566e3e6d2d50a32f18fced92934108
                                             className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-slate-900 font-medium"
                                         >
                                             <option value="">All Status</option>
@@ -178,14 +127,10 @@ const Support: React.FC = () => {
                                         <label className="block text-sm font-semibold text-slate-700 mb-2">Priority</label>
                                         <select
                                             value={priorityFilter}
-<<<<<<< HEAD
                                             onChange={(e) => {
                                                 setPriorityFilter(e.target.value);
                                                 setPage(1);
                                             }}
-=======
-                                            onChange={(e) => setPriorityFilter(e.target.value)}
->>>>>>> 2ce75ef5fe566e3e6d2d50a32f18fced92934108
                                             className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-slate-900 font-medium"
                                         >
                                             <option value="">All Priority</option>
@@ -200,10 +145,7 @@ const Support: React.FC = () => {
                                                 setStatusFilter('');
                                                 setPriorityFilter('');
                                                 setSearchTerm('');
-<<<<<<< HEAD
                                                 setPage(1);
-=======
->>>>>>> 2ce75ef5fe566e3e6d2d50a32f18fced92934108
                                             }}
                                             className="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 px-4 py-2.5 rounded-lg transition font-medium"
                                         >
@@ -230,11 +172,7 @@ const Support: React.FC = () => {
                                 </div>
                             )}
 
-<<<<<<< HEAD
                             {isError && (
-=======
-                            {status === 'error' && (
->>>>>>> 2ce75ef5fe566e3e6d2d50a32f18fced92934108
                                 <div className="p-12 text-center bg-red-50">
                                     <svg className="w-12 h-12 text-red-600 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
@@ -274,19 +212,11 @@ const Support: React.FC = () => {
                                                         <td className="px-6 py-4">
                                                             <div className="flex items-center gap-3">
                                                                 <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-<<<<<<< HEAD
                                                                     {`${msg.user_id?.first_name?.[0] || 'U'}${msg.user_id?.last_name?.[0] || 'U'}`.toUpperCase()}
                                                                 </div>
                                                                 <div>
                                                                     <p className="font-medium text-slate-900">{msg.user_id?.first_name} {msg.user_id?.last_name}</p>
                                                                     <p className="text-xs text-slate-500">{msg.user_id?.email}</p>
-=======
-                                                                    {`${msg.user?.first_name?.[0] || 'U'}${msg.user?.last_name?.[0] || 'U'}`.toUpperCase()}
-                                                                </div>
-                                                                <div>
-                                                                    <p className="font-medium text-slate-900">{msg.user?.first_name} {msg.user?.last_name}</p>
-                                                                    <p className="text-xs text-slate-500">{msg.user?.email}</p>
->>>>>>> 2ce75ef5fe566e3e6d2d50a32f18fced92934108
                                                                 </div>
                                                             </div>
                                                         </td>
@@ -295,11 +225,7 @@ const Support: React.FC = () => {
                                                         </td>
                                                         <td className="px-6 py-4">
                                                             <p className="text-sm text-slate-700 truncate max-w-xs">
-<<<<<<< HEAD
                                                                 {msg.description || msg.message}
-=======
-                                                                {msg.message}
->>>>>>> 2ce75ef5fe566e3e6d2d50a32f18fced92934108
                                                             </p>
                                                         </td>
                                                         <td className="px-6 py-4">
@@ -318,10 +244,7 @@ const Support: React.FC = () => {
                                                         </td>
                                                         <td className="px-6 py-4">
                                                             <button
-<<<<<<< HEAD
                                                                 onClick={() => setViewTicket(msg)}
-=======
->>>>>>> 2ce75ef5fe566e3e6d2d50a32f18fced92934108
                                                                 className="p-2 hover:bg-green-100 text-green-600 rounded-lg transition"
                                                                 title="View Message"
                                                             >
@@ -364,7 +287,6 @@ const Support: React.FC = () => {
                             )}
                         </div>
                     </div>
-<<<<<<< HEAD
 
                     {/* Modals */}
                     {viewTicket && (
@@ -373,8 +295,6 @@ const Support: React.FC = () => {
                             onClose={() => setViewTicket(null)}
                         />
                     )}
-=======
->>>>>>> 2ce75ef5fe566e3e6d2d50a32f18fced92934108
                 </main>
             </div>
         </div>

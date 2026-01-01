@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../hooks/AuthContext';
 
-<<<<<<< HEAD
 interface NavItem {
   to?: string;
   label: string;
@@ -11,9 +10,6 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-=======
-const navItems = [
->>>>>>> 2ce75ef5fe566e3e6d2d50a32f18fced92934108
   {
     to: '/dashboard',
     label: 'Dashboard',
@@ -242,7 +238,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
             }
           `}</style>
           {navItems.map((item) => (
-<<<<<<< HEAD
             <div key={item.label}>
               {item.children ? (
                 <>
@@ -310,22 +305,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                     <span className="text-sm font-medium truncate">{item.label}</span>
                   )}
                 </NavLink>
-=======
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={handleNavClick}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 group ${isActive
-                  ? 'bg-gradient-to-r from-green-600 to-green-500 text-white shadow-lg scale-[1.02]'
-                  : 'text-green-100/80 hover:bg-green-800/60 hover:text-white hover:scale-[1.02] hover:shadow-md'
-                }`
-              }
-            >
-              <span className="flex-shrink-0">{item.icon}</span>
-              {(isDesktopOpen || isMobileOpen) && (
-                <span className="text-sm font-medium truncate">{item.label}</span>
->>>>>>> 2ce75ef5fe566e3e6d2d50a32f18fced92934108
               )}
             </div>
           ))}

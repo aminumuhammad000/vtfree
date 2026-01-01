@@ -97,14 +97,8 @@ const Login: React.FC = () => {
                   message: 'Invalid email address'
                 }
               })}
-<<<<<<< HEAD
               className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-900 focus:border-transparent transition-all ${errors.email ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-slate-50'
                 }`}
-=======
-              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-900 focus:border-transparent transition-all ${
-                errors.email ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-slate-50'
-              }`}
->>>>>>> 2ce75ef5fe566e3e6d2d50a32f18fced92934108
               placeholder="admin@example.com"
             />
             {errors.email && (
@@ -155,14 +149,8 @@ const Login: React.FC = () => {
                   message: 'Password must be at least 6 characters'
                 }
               })}
-<<<<<<< HEAD
               className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-900 focus:border-transparent transition-all ${errors.password ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-slate-50'
                 }`}
-=======
-              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-900 focus:border-transparent transition-all ${
-                errors.password ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-slate-50'
-              }`}
->>>>>>> 2ce75ef5fe566e3e6d2d50a32f18fced92934108
               placeholder="••••••••"
             />
             {errors.password && (
