@@ -108,7 +108,6 @@ export const getBanksList = () => api.get('/payout/banks');
 export const validateAccount = (data: { bank_code: string; account_number: string }) =>
   api.post('/payout/validate-account', data);
 export const getVTPayBalance = () => api.get('/payout/balance');
-<<<<<<< HEAD
 
 // Disputes
 export const getDisputes = (params?: { page?: number; limit?: number; status?: string; search?: string }) =>
@@ -118,5 +117,3 @@ export const resolveDispute = (id: string, data: { status: string; resolution_no
   api.put(`/disputes/${id}/resolve`, data);
 export const createDispute = (data: { transaction_id: string; reason: string }) =>
   api.post('/disputes', data);
-=======
->>>>>>> 2ce75ef5fe566e3e6d2d50a32f18fced92934108

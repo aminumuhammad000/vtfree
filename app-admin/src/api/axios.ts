@@ -6,11 +6,7 @@ import axios from 'axios';
 //     : 'http://localhost:5000/api/admin';
 
 
-<<<<<<< HEAD
 const BASE_URL = "http://localhost:5000/api/app-admin";
-=======
-const BASE_URL = "http://localhost:5000/api/admin";
->>>>>>> 2ce75ef5fe566e3e6d2d50a32f18fced92934108
 // const BASE_URL = "http://13.62.46.174/api/admin";
 // const BASE_URL = "https://api.ibdata.com.ng/api/admin";
 

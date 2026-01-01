@@ -97,7 +97,6 @@ const WalletCredit: React.FC = () => {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Select User *
                 </label>
-<<<<<<< HEAD
                 <div className="relative">
                   <input
                     type="text"
@@ -110,8 +109,8 @@ const WalletCredit: React.FC = () => {
                     }}
                     onFocus={() => setIsDropdownOpen(true)}
                     className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.userId
-                        ? 'border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 focus:ring-green-500'
+                      ? 'border-red-500 focus:ring-red-500'
+                      : 'border-gray-300 focus:ring-green-500'
                       }`}
                   />
                   {isDropdownOpen && searchTerm && (
@@ -138,27 +137,6 @@ const WalletCredit: React.FC = () => {
                     </div>
                   )}
                 </div>
-=======
-                <select
-                  value={selectedUserId}
-                  onChange={(e) => {
-                    setSelectedUserId(e.target.value);
-                    if (errors.userId) setErrors(prev => ({ ...prev, userId: '' }));
-                  }}
-                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                    errors.userId
-                      ? 'border-red-500 focus:ring-red-500'
-                      : 'border-gray-300 focus:ring-green-500'
-                  }`}
-                >
-                  <option value="">-- Choose a user --</option>
-                  {users.map((user: any) => (
-                    <option key={user._id} value={user._id}>
-                      {user.first_name} {user.last_name} ({user.email})
-                    </option>
-                  ))}
-                </select>
->>>>>>> 2ce75ef5fe566e3e6d2d50a32f18fced92934108
                 {errors.userId && <p className="text-red-500 text-sm mt-1">{errors.userId}</p>}
               </div>
 
@@ -181,8 +159,8 @@ const WalletCredit: React.FC = () => {
                     <div>
                       <p className="text-xs text-gray-600 uppercase">Status</p>
                       <span className={`inline-block px-2 py-1 rounded text-xs font-semibold ${selectedUser.status === 'active'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
                         }`}>
                         {selectedUser.status}
                       </span>
@@ -207,13 +185,9 @@ const WalletCredit: React.FC = () => {
                   step="0.01"
                   min="0"
                   className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.amount
-                      ? 'border-red-500 focus:ring-red-500'
-                      : 'border-gray-300 focus:ring-green-500'
-<<<<<<< HEAD
+                    ? 'border-red-500 focus:ring-red-500'
+                    : 'border-gray-300 focus:ring-green-500'
                     }`}
-=======
-                  }`}
->>>>>>> 2ce75ef5fe566e3e6d2d50a32f18fced92934108
                 />
                 {errors.amount && <p className="text-red-500 text-sm mt-1">{errors.amount}</p>}
                 <p className="text-gray-500 text-sm mt-1">💡 This amount will be added to the user's wallet</p>
@@ -233,13 +207,9 @@ const WalletCredit: React.FC = () => {
                   placeholder="Enter reason for credit"
                   rows={3}
                   className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.description
-                      ? 'border-red-500 focus:ring-red-500'
-                      : 'border-gray-300 focus:ring-green-500'
-<<<<<<< HEAD
+                    ? 'border-red-500 focus:ring-red-500'
+                    : 'border-gray-300 focus:ring-green-500'
                     }`}
-=======
-                  }`}
->>>>>>> 2ce75ef5fe566e3e6d2d50a32f18fced92934108
                 />
                 {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
               </div>
@@ -291,12 +261,8 @@ const WalletCredit: React.FC = () => {
             <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
               <h3 className="font-semibold text-green-900 mb-2">ℹ️ How to use:</h3>
               <ol className="list-decimal list-inside space-y-1 text-sm text-green-800">
-<<<<<<< HEAD
                 <li>Search for a user by name or email</li>
                 <li>Select the user from the dropdown list</li>
-=======
-                <li>Select a user from the dropdown</li>
->>>>>>> 2ce75ef5fe566e3e6d2d50a32f18fced92934108
                 <li>Enter the amount you want to credit</li>
                 <li>Add a description for the credit</li>
                 <li>Review the summary and click "Credit Wallet"</li>
