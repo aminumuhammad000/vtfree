@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { User, Wallet } from '../models';
+import { User, Wallet, Zainbox } from '../models';
 import { generateToken } from '../middleware/auth';
-import { walletService, emailService } from '../services';
+import { walletService, emailService, zainpayService } from '../services';
+import config from '../config';
 
 const router = Router();
 
@@ -67,6 +68,48 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
 
         // Create wallet for user
         await walletService.createWallet(user._id.toString());
+
+        // Create Zainbox for user
+        try {
+            const zainboxName = user.businessName || `${user.fullName}'s Zainbox`;
+            const callbackUrl = config.webhookBaseUrl
+                ? `${config.webhookBaseUrl}/api/webhooks/zainpay`
+                : 'https://vtpay-server.onrender.com/api/webhooks/zainpay';
+
+            const zainboxPayload = {
+                name: zainboxName,
+                emailNotification: user.email,
+                tags: "vtpay_user",
+                callbackUrl: callbackUrl
+            };
+
+            console.log('Creating Zainbox for user:', zainboxPayload);
+            const zainboxResponse = await zainpayService.createZainbox(zainboxPayload);
+            console.log('Zainbox created response:', zainboxResponse);
+
+            if (zainboxResponse.code === '00' && zainboxResponse.data) {
+                // The response data might be an array or object depending on the API
+                const zainboxData = Array.isArray(zainboxResponse.data) ? zainboxResponse.data[0] : zainboxResponse.data;
+
+                if (zainboxData) {
+                    const newZainbox = new Zainbox({
+                        userId: user._id,
+                        name: zainboxData.name,
+                        emailNotification: zainboxData.emailNotification,
+                        tags: zainboxData.tags,
+                        callbackUrl: zainboxData.callbackUrl,
+                        codeName: zainboxData.codeName,
+                        zainboxCode: zainboxData.zainboxCode,
+                        isLive: zainboxData.isLive,
+                    });
+                    await newZainbox.save();
+                    console.log('Zainbox saved to DB:', newZainbox._id);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to create Zainbox:', error);
+            // Continue registration even if Zainbox creation fails
+        }
 
         // Send verification email
         await emailService.sendVerificationEmail(user.email, verificationToken);

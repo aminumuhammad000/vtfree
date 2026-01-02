@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import mongoose from 'mongoose';
 import { authenticate, AuthenticatedRequest } from '../middleware';
 import { zainpayService, walletService } from '../services';
-import { VirtualAccount } from '../models';
+import { VirtualAccount, Zainbox } from '../models';
 import config from '../config';
 
 const router = Router();
@@ -97,6 +97,20 @@ router.post('/transfer', async (req: AuthenticatedRequest, res: Response): Promi
         await walletService.lockFunds(userId, amountNumber);
 
         try {
+            // Get user's Zainbox
+            const userZainbox = await Zainbox.findOne({ userId: new mongoose.Types.ObjectId(userId) });
+            if (!userZainbox) {
+                await walletService.unlockFunds(userId, amountNumber);
+                await walletService.updateTransactionStatus(pendingTransaction.reference, 'failed', {
+                    failureReason: 'No Zainbox found for user',
+                });
+                res.status(400).json({
+                    success: false,
+                    message: 'No Zainbox found for user. Please contact support.',
+                });
+                return;
+            }
+
             // Initiate transfer via Zainpay
             const transferResponse = await zainpayService.fundTransfer({
                 destinationAccountNumber,
@@ -104,7 +118,7 @@ router.post('/transfer', async (req: AuthenticatedRequest, res: Response): Promi
                 amount: amount.toString(),
                 sourceAccountNumber: virtualAccount.accountNumber,
                 sourceBankCode: '0013', // Wema Bank code for Zainpay virtual accounts
-                zainboxCode: config.zainpay.zainboxCode,
+                zainboxCode: userZainbox.zainboxCode,
                 txnRef,
                 narration: narration || `Transfer to ${destinationAccountNumber}`,
                 callbackUrl: config.webhookBaseUrl,
@@ -193,6 +207,15 @@ router.get('/:txnRef/status', async (req: AuthenticatedRequest, res: Response): 
 
         // First check local database
         const localTransaction = await walletService.getTransactionByExternalRef(txnRef);
+
+        // Verify ownership if transaction exists locally
+        if (localTransaction && localTransaction.userId.toString() !== req.user!.id) {
+            res.status(403).json({
+                success: false,
+                message: 'Access denied',
+            });
+            return;
+        }
 
         // Also check with Zainpay
         const verifyResponse = await zainpayService.verifyTransfer(txnRef);

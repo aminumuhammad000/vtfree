@@ -20,7 +20,7 @@ import {
 } from '../types/zainpay';
 
 export class ZainpayService {
-    private client: AxiosInstance;
+    private client!: AxiosInstance;
     private baseUrl: string;
     private publicKey: string;
     private secretKey: string;
@@ -30,6 +30,10 @@ export class ZainpayService {
         this.publicKey = config.zainpay.publicKey;
         this.secretKey = config.zainpay.secretKey;
 
+        this.initializeClient();
+    }
+
+    private initializeClient() {
         this.client = axios.create({
             baseURL: this.baseUrl,
             headers: {
@@ -46,6 +50,32 @@ export class ZainpayService {
                 throw error;
             }
         );
+    }
+
+    /**
+     * Refresh configuration from SystemSetting
+     */
+    async refreshConfig() {
+        try {
+            const SystemSetting = (await import('../models')).SystemSetting;
+            const settings = await SystemSetting.findOne();
+
+            if (settings && settings.integrations.zainpay) {
+                const zainpayConfig = settings.integrations.zainpay;
+
+                // Only update if keys are present
+                if (zainpayConfig.apiKey && zainpayConfig.baseUrl) {
+                    this.publicKey = zainpayConfig.apiKey;
+                    this.baseUrl = zainpayConfig.baseUrl;
+                    this.secretKey = zainpayConfig.secretKey;
+
+                    console.log(`Zainpay Service updated to use ${zainpayConfig.isLive ? 'LIVE' : 'SANDBOX'} mode`);
+                    this.initializeClient();
+                }
+            }
+        } catch (error) {
+            console.error('Failed to refresh Zainpay config:', error);
+        }
     }
 
     // ==================== ZAINBOX OPERATIONS ====================

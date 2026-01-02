@@ -119,11 +119,15 @@ const Login: React.FC = () => {
             <input
               type="text"
               {...register('app_id', {
-                required: 'App ID is required'
+                required: 'App ID is required',
+                minLength: {
+                  value: 3,
+                  message: 'App ID must be at least 3 characters'
+                }
               })}
               className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-900 focus:border-transparent transition-all ${errors.app_id ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-slate-50'
                 }`}
-              placeholder="APP_..."
+              placeholder="e.g. vtu_app_001 or owner-john-vtuapp-abc123"
             />
             {errors.app_id && (
               <p className="text-red-500 text-sm mt-2 flex items-center">

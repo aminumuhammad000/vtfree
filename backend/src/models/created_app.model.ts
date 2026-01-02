@@ -18,7 +18,14 @@ export interface ICreatedApp extends Document {
         logo_url?: string;
         primary_color: string;
         secondary_color: string;
+        accent_color?: string;
+        background_color?: string;
+        sidebar_bg_start?: string;
+        sidebar_bg_end?: string;
         app_icon_url?: string;
+        app_display_name?: string;
+        app_tagline?: string;
+        last_updated?: Date;
     };
 
     // Status
@@ -97,8 +104,33 @@ const CreatedAppSchema: Schema = new Schema({
             type: String,
             default: '#22c55e',
         },
+        accent_color: {
+            type: String,
+            default: '#4ade80',
+        },
+        background_color: {
+            type: String,
+            default: '#f8fafc',
+        },
+        sidebar_bg_start: {
+            type: String,
+            default: '#052e16',
+        },
+        sidebar_bg_end: {
+            type: String,
+            default: '#14532d',
+        },
         app_icon_url: {
             type: String,
+        },
+        app_display_name: {
+            type: String,
+        },
+        app_tagline: {
+            type: String,
+        },
+        last_updated: {
+            type: Date,
         },
     },
 

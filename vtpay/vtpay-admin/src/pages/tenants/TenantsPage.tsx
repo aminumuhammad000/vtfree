@@ -25,7 +25,7 @@ const TenantsPage: React.FC = () => {
         }
     };
 
-    const handleStatusChange = async (tenantId: string, newStatus: 'active' | 'suspended' | 'frozen') => {
+    const handleStatusChange = async (tenantId: string, newStatus: 'active' | 'suspended' | 'inactive') => {
         try {
             await adminApi.updateTenantStatus(tenantId, newStatus);
             const updatedTenants = tenants.map(t =>

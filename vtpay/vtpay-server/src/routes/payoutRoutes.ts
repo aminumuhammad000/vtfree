@@ -2,7 +2,8 @@ import { Router, Response } from 'express';
 import { authenticate, AuthenticatedRequest } from '../middleware';
 import { walletService } from '../services/WalletService';
 import { zainpayService } from '../services/ZainpayService';
-import { User } from '../models';
+import { User, Zainbox } from '../models';
+import mongoose from 'mongoose';
 import config from '../config';
 
 const router = Router();
@@ -52,16 +53,26 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
         // Based on previous code, Zainpay usually works with Kobo, but let's assume input amount is Kobo for consistency with WalletService.
         // If input is Naira, we should convert. Let's assume input is Kobo (frontend should handle).
 
+        // Get user's Zainbox
+        const userZainbox = await Zainbox.findOne({ userId: new mongoose.Types.ObjectId(userId) });
+        if (!userZainbox) {
+            res.status(400).json({
+                success: false,
+                message: 'No Zainbox found for user. Please contact support.',
+            });
+            return;
+        }
+
         const txnRef = `PAYOUT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
         const zainpayResponse = await zainpayService.fundTransfer({
             destinationBankCode,
             destinationAccountNumber,
             amount: amount.toString(),
-            sourceAccountNumber: config.zainpay.zainboxCode,
-            sourceBankCode: '', // Assuming empty for Zainbox source, or need to find correct code
+            sourceAccountNumber: userZainbox.zainboxCode, // Using Zainbox code as source for now, or specific virtual account?
+            sourceBankCode: '',
             narration: narration || `Payout for ref: ${reference}`,
-            zainboxCode: config.zainpay.zainboxCode,
+            zainboxCode: userZainbox.zainboxCode,
             txnRef,
         });
 
