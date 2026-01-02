@@ -154,6 +154,42 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
     try {
         const userId = req.user!.id;
 
+        // 1. Get User's Zainbox
+        const userZainbox = await Zainbox.findOne({ userId });
+
+        if (userZainbox) {
+            try {
+                // 2. Fetch accounts from Zainpay
+                const zainpayAccounts = await zainpayService.getZainboxAccounts(userZainbox.zainboxCode);
+
+                // 3. Sync with local DB
+                if (Array.isArray(zainpayAccounts)) {
+                    for (const zAccount of zainpayAccounts) {
+                        const exists = await VirtualAccount.findOne({ accountNumber: zAccount.bankAccount });
+
+                        if (!exists) {
+                            // Create new local record
+                            await VirtualAccount.create({
+                                userId: new mongoose.Types.ObjectId(userId),
+                                accountNumber: zAccount.bankAccount,
+                                accountName: zAccount.name,
+                                bankName: zAccount.bankName,
+                                bankType: 'gtBank', // Default or infer from bankName if possible
+                                zainboxCode: userZainbox.zainboxCode,
+                                email: req.user!.email,
+                                status: 'active',
+                                reference: `imported_${Date.now()}_${Math.random().toString(36).substring(7)}`
+                            });
+                        }
+                    }
+                }
+            } catch (syncError) {
+                console.error('Error syncing with Zainpay:', syncError);
+                // Continue to return local accounts even if sync fails
+            }
+        }
+
+        // 4. Return all accounts from DB
         const accounts = await VirtualAccount.find({
             userId: new mongoose.Types.ObjectId(userId),
         }).sort({ createdAt: -1 });

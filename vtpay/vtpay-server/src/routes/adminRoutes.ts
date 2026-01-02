@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Response, Request } from 'express';
 import { User, Zainbox, VirtualAccount, Wallet, Transaction, WebhookLog, FeeRule, RiskRule, SystemSetting } from '../models';
 import { authenticate, AuthenticatedRequest, generateToken } from '../middleware';
 import bcrypt from 'bcryptjs';
@@ -211,6 +211,34 @@ router.get('/tenants/:id', async (req: AuthenticatedRequest, res: Response): Pro
         // Get associated data
         const wallet = await Wallet.findOne({ userId: id });
         const zainboxes = await Zainbox.find({ userId: id });
+
+        // Sync virtual accounts for each Zainbox
+        for (const zBox of zainboxes) {
+            try {
+                const zainpayAccounts = await zainpayService.getZainboxAccounts(zBox.zainboxCode);
+                if (Array.isArray(zainpayAccounts)) {
+                    for (const zAccount of zainpayAccounts) {
+                        const exists = await VirtualAccount.findOne({ accountNumber: zAccount.bankAccount });
+                        if (!exists) {
+                            await VirtualAccount.create({
+                                userId: id,
+                                accountNumber: zAccount.bankAccount,
+                                accountName: zAccount.name,
+                                bankName: zAccount.bankName,
+                                bankType: 'gtBank',
+                                zainboxCode: zBox.zainboxCode,
+                                email: user.email,
+                                status: 'active',
+                                reference: `imported_${Date.now()}_${Math.random().toString(36).substring(7)}`
+                            });
+                        }
+                    }
+                }
+            } catch (syncError) {
+                console.error(`Error syncing accounts for Zainbox ${zBox.zainboxCode}:`, syncError);
+            }
+        }
+
         const virtualAccounts = await VirtualAccount.find({ userId: id });
 
         res.json({
@@ -318,7 +346,32 @@ router.get('/zainboxes/:zainboxCode', async (req: AuthenticatedRequest, res: Res
             return;
         }
 
-        // Get associated virtual accounts
+        // Sync virtual accounts from Zainpay
+        try {
+            const zainpayAccounts = await zainpayService.getZainboxAccounts(zainboxCode);
+            if (Array.isArray(zainpayAccounts)) {
+                for (const zAccount of zainpayAccounts) {
+                    const exists = await VirtualAccount.findOne({ accountNumber: zAccount.bankAccount });
+                    if (!exists) {
+                        await VirtualAccount.create({
+                            userId: zainbox.userId,
+                            accountNumber: zAccount.bankAccount,
+                            accountName: zAccount.name,
+                            bankName: zAccount.bankName,
+                            bankType: 'gtBank', // Default
+                            zainboxCode: zainboxCode,
+                            email: (zainbox.userId as any).email,
+                            status: 'active',
+                            reference: `imported_${Date.now()}_${Math.random().toString(36).substring(7)}`
+                        });
+                    }
+                }
+            }
+        } catch (syncError) {
+            console.error('Error syncing Zainbox accounts:', syncError);
+        }
+
+        // Get associated virtual accounts (now including synced ones)
         const virtualAccounts = await VirtualAccount.find({ zainboxCode });
 
         res.json({
@@ -714,6 +767,13 @@ router.patch('/settings', async (req: AuthenticatedRequest, res: Response): Prom
             Object.assign(settings, req.body);
             await settings.save();
         }
+
+        // Refresh Zainpay config if integrations settings were updated
+        if (req.body.integrations?.zainpay) {
+            const { zainpayService } = await import('../services/ZainpayService');
+            await zainpayService.refreshConfig();
+        }
+
         res.json({
             success: true,
             data: settings,
@@ -723,6 +783,256 @@ router.patch('/settings', async (req: AuthenticatedRequest, res: Response): Prom
         res.status(500).json({
             success: false,
             message: 'Failed to update settings',
+        });
+    }
+});
+
+// ... existing code ...
+import { zainpayService } from '../services/ZainpayService';
+import crypto from 'crypto';
+
+// ... existing code ...
+
+/**
+ * Create a new Zainbox (Admin)
+ * POST /api/admin/zainboxes
+ */
+router.post('/zainboxes', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const userId = req.user!.id; // Admin creates it for themselves for now, or we could add userId to body to create for others
+        const { name, emailNotification, tags, callbackUrl } = req.body;
+
+        if (!name || !emailNotification || !tags || !callbackUrl) {
+            res.status(400).json({
+                success: false,
+                message: 'Missing required fields: name, emailNotification, tags, callbackUrl',
+            });
+            return;
+        }
+
+        // Call Zainpay API to create Zainbox
+        const zainpayResponse = await zainpayService.createZainbox({
+            name,
+            emailNotification,
+            tags,
+            callbackUrl,
+        });
+
+        if (zainpayResponse.code !== '00' || !zainpayResponse.data) {
+            res.status(400).json({
+                success: false,
+                message: zainpayResponse.description || 'Failed to create Zainbox on Zainpay',
+            });
+            return;
+        }
+
+        // Find the created zainbox in the response
+        const createdZainboxData = zainpayResponse.data.find(z => z.name === name);
+
+        if (!createdZainboxData) {
+            res.status(500).json({
+                success: false,
+                message: 'Zainbox created but not found in response',
+            });
+            return;
+        }
+
+        // Save to local DB
+        const zainbox = new Zainbox({
+            userId,
+            name: createdZainboxData.name,
+            emailNotification: createdZainboxData.emailNotification,
+            tags: createdZainboxData.tags,
+            callbackUrl: createdZainboxData.callbackUrl,
+            codeName: createdZainboxData.codeName,
+            zainboxCode: createdZainboxData.zainboxCode,
+            isLive: createdZainboxData.isLive,
+        });
+
+        await zainbox.save();
+
+        res.status(201).json({
+            success: true,
+            message: 'Zainbox created successfully',
+            data: zainbox,
+        });
+
+    } catch (error: any) {
+        console.error('Create Zainbox error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to create Zainbox',
+        });
+    }
+});
+
+/**
+ * Generate API Key (Admin)
+ * POST /api/admin/api-keys
+ */
+router.post('/api-keys', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const userId = req.user!.id;
+        const user = await User.findById(userId);
+
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+            return;
+        }
+
+        // Generate a new API key
+        const randomPart = crypto.randomBytes(24).toString('hex');
+        const prefix = user.kycLevel < 3 ? 'sk_test_' : 'sk_live_';
+        const newApiKey = `${prefix}${randomPart}`;
+
+        user.apiKey = newApiKey;
+        await user.save();
+
+        res.json({
+            success: true,
+            message: 'API key generated successfully',
+            data: {
+                apiKey: newApiKey,
+            },
+        });
+    } catch (error) {
+        console.error('Generate API key error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to generate API key',
+        });
+    }
+});
+
+/**
+ * Revoke API Key
+ * DELETE /api/admin/api-keys/:id
+ */
+router.delete('/api-keys/:id', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const user = await User.findById(id);
+
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+            return;
+        }
+
+        user.apiKey = undefined; // Remove the key
+        await user.save();
+
+        res.json({
+            success: true,
+            message: 'API key revoked successfully',
+        });
+    } catch (error) {
+        console.error('Revoke API key error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to revoke API key',
+        });
+    }
+});
+
+/**
+ * Get Admin Profile
+ * GET /api/admin/profile
+ */
+router.get('/profile', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const user = await User.findById(req.user!.id).select('-passwordHash');
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'Admin not found',
+            });
+            return;
+        }
+        res.json({
+            success: true,
+            data: user,
+        });
+    } catch (error) {
+        console.error('Get profile error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get profile',
+        });
+    }
+});
+
+/**
+ * Update Admin Profile
+ * PUT /api/admin/profile
+ */
+router.put('/profile', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { firstName, lastName, phone } = req.body;
+        const user = await User.findByIdAndUpdate(
+            req.user!.id,
+            { firstName, lastName, phone },
+            { new: true }
+        ).select('-passwordHash');
+
+        res.json({
+            success: true,
+            message: 'Profile updated successfully',
+            data: user,
+        });
+    } catch (error) {
+        console.error('Update profile error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update profile',
+        });
+    }
+});
+
+/**
+ * Change Admin Password
+ * PUT /api/admin/profile/password
+ */
+router.put('/profile/password', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const user = await User.findById(req.user!.id);
+
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+            return;
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+        if (!isMatch) {
+            res.status(400).json({
+                success: false,
+                message: 'Incorrect current password',
+            });
+            return;
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        user.passwordHash = await bcrypt.hash(newPassword, salt);
+        await user.save();
+
+        res.json({
+            success: true,
+            message: 'Password changed successfully',
+        });
+    } catch (error) {
+        console.error('Change password error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to change password',
         });
     }
 });

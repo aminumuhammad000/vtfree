@@ -12,7 +12,10 @@ import { VirtualAccounts } from './pages/dashboard/VirtualAccounts';
 import { Transactions } from './pages/dashboard/Transactions';
 import { Developer } from './pages/dashboard/Developer';
 import { Verification } from './pages/dashboard/Verification';
+import { Settings } from './pages/dashboard/Settings';
+import { Profile } from './pages/dashboard/Profile';
 import { ApiDocs } from './pages/public/ApiDocs';
+import { LandingPage } from './pages/public/LandingPage';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -47,7 +50,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route path="/" element={<Navigate to="/api-docs" replace />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/api-docs" element={<ApiDocs />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
 
@@ -72,6 +75,8 @@ const AppRoutes = () => {
         <Route path="transactions" element={<Transactions />} />
         <Route path="developer" element={<Developer />} />
         <Route path="verification" element={<Verification />} />
+        <Route path="settings" element={<Settings />} />
+        <Route path="profile" element={<Profile />} />
       </Route>
 
       {/* Catch all */}

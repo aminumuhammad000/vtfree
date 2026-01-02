@@ -1,0 +1,1031 @@
+{
+	"info": {
+		"_postman_id": "15e3d2a5-d106-4516-8e24-dec24d35f392",
+		"name": "Zainpay",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "zainbox",
+			"item": [
+				{
+					"name": "Get Zainbox List",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NDQyNDg5ODYsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.ilWKF8bxxW-Ud-0Qv8ypbwWczk082msxRIunK1JmPDg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://sandbox.zainpay.ng/zainbox/list",
+							"protocol": "https",
+							"host": [
+								"sandbox",
+								"zainpay",
+								"ng"
+							],
+							"path": [
+								"zainbox",
+								"list"
+							]
+						},
+						"description": "Get a list of all your zainboxes"
+					},
+					"response": []
+				},
+				{
+					"name": "Create New Zainbox",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NDQyNDg5ODYsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.ilWKF8bxxW-Ud-0Qv8ypbwWczk082msxRIunK1JmPDg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\":\"test.Onliness\",\r\n    \"tags\": \"test\",\r\n    \"callbackUrl\": \"https://www-test-a3ef.restdb.io/wlistener\",\r\n    \"email\": \"info@test.onlines\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://sandbox.zainpay.ng/zainbox/create/request",
+							"protocol": "https",
+							"host": [
+								"sandbox",
+								"zainpay",
+								"ng"
+							],
+							"path": [
+								"zainbox",
+								"create",
+								"request"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Zainbox",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NDQyNDg5ODYsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.ilWKF8bxxW-Ud-0Qv8ypbwWczk082msxRIunK1JmPDg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "\t{\r\n\t\t\t\"callbackUrl\": \"https://www-test-a3ef.restdb.io/wlistener\",\r\n\t\t\t\"codeName\": \"RvL8zM7pkBU5t8AV3voF\",\r\n\t\t\t\"name\": \"test.Onlines\",\r\n\t\t\t\"tags\": \"tes1t\"\r\n\t\t}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://sandbox.zainpay.ng/zainbox/update",
+							"protocol": "https",
+							"host": [
+								"sandbox",
+								"zainpay",
+								"ng"
+							],
+							"path": [
+								"zainbox",
+								"update"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Zainbox transactions",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NjI0NTQyMjIsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.FnPWfpSVYTPobWYbx-Ugm5d8-8X7xGuE1_EOYavF6hE",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://sandbox.zainpay.ng/zainbox/transactions/THbfnDvK5o",
+							"protocol": "https",
+							"host": [
+								"sandbox",
+								"zainpay",
+								"ng"
+							],
+							"path": [
+								"zainbox",
+								"transactions",
+								"THbfnDvK5o"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get all Zainbox accounts",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NDQyNDg5ODYsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.ilWKF8bxxW-Ud-0Qv8ypbwWczk082msxRIunK1JmPDg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://sandbox.zainpay.ng/zainbox/virtual-accounts/THbfnDvK5o",
+							"protocol": "https",
+							"host": [
+								"sandbox",
+								"zainpay",
+								"ng"
+							],
+							"path": [
+								"zainbox",
+								"virtual-accounts",
+								"THbfnDvK5o"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get merchant transactions",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NDQyNDg5ODYsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.ilWKF8bxxW-Ud-0Qv8ypbwWczk082msxRIunK1JmPDg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://sandbox.zainpay.ng/zainbox/transactions",
+							"protocol": "https",
+							"host": [
+								"sandbox",
+								"zainpay",
+								"ng"
+							],
+							"path": [
+								"zainbox",
+								"transactions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Payment collected",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NDQyNDg5ODYsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.ilWKF8bxxW-Ud-0Qv8ypbwWczk082msxRIunK1JmPDg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://sandbox.zainpay.ng/zainbox/transfer/deposit/summary/THbfnDvK5o?dateFrom=2022-02&dateTo=2022-03",
+							"protocol": "https",
+							"host": [
+								"sandbox",
+								"zainpay",
+								"ng"
+							],
+							"path": [
+								"zainbox",
+								"transfer",
+								"deposit",
+								"summary",
+								"THbfnDvK5o"
+							],
+							"query": [
+								{
+									"key": "dateFrom",
+									"value": "2022-02"
+								},
+								{
+									"key": "dateTo",
+									"value": "2022-03"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create settlement",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NDQyNDg5ODYsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.ilWKF8bxxW-Ud-0Qv8ypbwWczk082msxRIunK1JmPDg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n\t\"name\": \"new-daily-settlement3\", \r\n\t\"zainboxCode\": \"7eOQfvaVHvcds05eWH4t\", \r\n\t\"scheduleType\": \"T1\", \r\n\t\"schedulePeriod\": \"Daily\",\r\n\t\"settlementAccountList\": [{\r\n\t\t\"accountNumber\":\"1234567890\", \r\n\t\t\"bankCode\":\"0009\", \r\n\t\t\"percentage\": \"20\"\r\n\t}, {\r\n\t\t\"accountNumber\":\"1234567890\", \r\n\t\t\"bankCode\":\"0009\", \r\n\t\t\"percentage\": \"80\"\r\n\t}],\r\n\t\"status\": true}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://sandbox.zainpay.ng/zainbox/settlement",
+							"protocol": "https",
+							"host": [
+								"sandbox",
+								"zainpay",
+								"ng"
+							],
+							"path": [
+								"zainbox",
+								"settlement"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get settlement",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NDQyNDg5ODYsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.ilWKF8bxxW-Ud-0Qv8ypbwWczk082msxRIunK1JmPDg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://sandbox.zainpay.ng/zainbox/settlement?zainboxCode=7eOQfvaVHvcds05eWH4t",
+							"protocol": "https",
+							"host": [
+								"sandbox",
+								"zainpay",
+								"ng"
+							],
+							"path": [
+								"zainbox",
+								"settlement"
+							],
+							"query": [
+								{
+									"key": "zainboxCode",
+									"value": "7eOQfvaVHvcds05eWH4t"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Zainbox",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NDQyNDg5ODYsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.ilWKF8bxxW-Ud-0Qv8ypbwWczk082msxRIunK1JmPDg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\":\"test.Onliness\",\r\n    \"tags\": \"test\",\r\n    \"callbackUrl\": \"https://www-test-a3ef.restdb.io/wlistener\",\r\n    \"email\": \"info@test.onlines\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://sandbox.zainpay.ng/zainbox/create/request",
+							"protocol": "https",
+							"host": [
+								"sandbox",
+								"zainpay",
+								"ng"
+							],
+							"path": [
+								"zainbox",
+								"create",
+								"request"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Zainbox profile",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NjI0NTQyMjIsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.FnPWfpSVYTPobWYbx-Ugm5d8-8X7xGuE1_EOYavF6hE",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://sandbox.zainpay.ng/zainbox/profile/THbfnDvK5o",
+							"protocol": "https",
+							"host": [
+								"sandbox",
+								"zainpay",
+								"ng"
+							],
+							"path": [
+								"zainbox",
+								"profile",
+								"THbfnDvK5o"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "virtual-account",
+			"item": [
+				{
+					"name": "Transfer Verification",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NDQyNDg5ODYsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.ilWKF8bxxW-Ud-0Qv8ypbwWczk082msxRIunK1JmPDg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://sandbox.zainpay.ng/virtual-account/wallet/transaction/verify/YimyfnnWm1axj6996",
+							"protocol": "https",
+							"host": [
+								"sandbox",
+								"zainpay",
+								"ng"
+							],
+							"path": [
+								"virtual-account",
+								"wallet",
+								"transaction",
+								"verify",
+								"YimyfnnWm1axj6996"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Deposit transaction Verification",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NDQyNDg5ODYsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.ilWKF8bxxW-Ud-0Qv8ypbwWczk082msxRIunK1JmPDg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://sandbox.zainpay.ng/virtual-account/wallet/deposit/verify/Fc9Xms9UmSentSY",
+							"protocol": "https",
+							"host": [
+								"sandbox",
+								"zainpay",
+								"ng"
+							],
+							"path": [
+								"virtual-account",
+								"wallet",
+								"deposit",
+								"verify",
+								"Fc9Xms9UmSentSY"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Virtual account balance",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NDQyNDg5ODYsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.ilWKF8bxxW-Ud-0Qv8ypbwWczk082msxRIunK1JmPDg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://sandbox.zainpay.ng//virtual-account/wallet/balance/7967286380",
+							"protocol": "https",
+							"host": [
+								"sandbox",
+								"zainpay",
+								"ng"
+							],
+							"path": [
+								"",
+								"virtual-account",
+								"wallet",
+								"balance",
+								"7967286380"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Virtual account",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NDQyNDg5ODYsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.ilWKF8bxxW-Ud-0Qv8ypbwWczk082msxRIunK1JmPDg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n\t\"bankType\": \"wemaBank\", \r\n\t\"firstName\": \"Amina\",\r\n\t\"surname\": \"Shuaib\", \r\n\t\"email\": \"shuaiba@gmail.com\", \r\n\t\"mobileNumber\": \"09087876540\", \r\n\t\"dob\": \"12-08-1996\", \r\n\t\"gender\": \"M\", \r\n\t\"address\": \"bompai\", \r\n\t\"title\": \"Mr\", \r\n\t\"state\": \"Kano\", \r\n\t\"zainboxCode\": \"THbfnDvK5o\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://sandbox.zainpay.ng/virtual-account/create/request",
+							"protocol": "https",
+							"host": [
+								"sandbox",
+								"zainpay",
+								"ng"
+							],
+							"path": [
+								"virtual-account",
+								"create",
+								"request"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bank list",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NDQyNDg5ODYsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.ilWKF8bxxW-Ud-0Qv8ypbwWczk082msxRIunK1JmPDg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://sandbox.zainpay.ng/bank/list",
+							"protocol": "https",
+							"host": [
+								"sandbox",
+								"zainpay",
+								"ng"
+							],
+							"path": [
+								"bank",
+								"list"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Name enquiry",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NDQyNDg5ODYsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.ilWKF8bxxW-Ud-0Qv8ypbwWczk082msxRIunK1JmPDg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://sandbox.zainpay.ng/bank/name-enquiry?bankCode=000013&accountNumber=0011242735",
+							"protocol": "https",
+							"host": [
+								"sandbox",
+								"zainpay",
+								"ng"
+							],
+							"path": [
+								"bank",
+								"name-enquiry"
+							],
+							"query": [
+								{
+									"key": "bankCode",
+									"value": "000013"
+								},
+								{
+									"key": "accountNumber",
+									"value": "0011242735"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Funds Transfer",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NDQyNDg5ODYsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.ilWKF8bxxW-Ud-0Qv8ypbwWczk082msxRIunK1JmPDg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "\r\n{\r\n \"destinationAccountNumber\": \"4424643579\", \r\n \"destinationBankCode\": \"000015\", \r\n \"amount\": \"500\",\r\n \"sourceAccountNumber\": \"7964524199\", \r\n \"sourceBankCode\": \"0013\",\r\n \"zainBoxCode\": \"THbfnDvK5o\", \r\n \"txnRef\": \"YimyfnnWm1axj6996\", \r\n \"narration\": \"shahid\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://sandbox.zainpay.ng/bank/transfer/",
+							"protocol": "https",
+							"host": [
+								"sandbox",
+								"zainpay",
+								"ng"
+							],
+							"path": [
+								"bank",
+								"transfer",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "card",
+			"item": [
+				{
+					"name": "Validate OTP",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NDQyNDg5ODYsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.ilWKF8bxxW-Ud-0Qv8ypbwWczk082msxRIunK1JmPDg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n\t\"sessionId\": \"zA9JMO61fe8hVTggZuXq6QaFTAk4qANX4zJsfn5ZBJsBBoCQURX5XP7gULiqUsueIzmDZeD2O0Cw4vycFKz3lLOyysFHS6LWZVTiitjpMVz7g1pQyW6mYMhGeKVg8VLFWGmOWyY86gvDosD5OI0CMsiKfsq4VfvzEtgYAi246I1Q0kNM7LV7UC9f8JEiPdRy3mz8cJQF\", \r\n\t\"otp\": \"123456\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://sandbox.zainpay.ng/zainbox/card/other-card/validate/otp",
+							"protocol": "https",
+							"host": [
+								"sandbox",
+								"zainpay",
+								"ng"
+							],
+							"path": [
+								"zainbox",
+								"card",
+								"other-card",
+								"validate",
+								"otp"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Initialize Payment",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NDQyNDg5ODYsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.ilWKF8bxxW-Ud-0Qv8ypbwWczk082msxRIunK1JmPDg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n\t\"amount\": \"100\", \r\n\t\"txnRef\" : \"Qah1m47r9fest62268\", \r\n\t\"mobileNumber\": \"08068869098\", \r\n\t\"zainboxCode\": \"1igHNahBfgk9g2m6uoP\", \r\n\t\"emailAddress\": \"info@betastack.ng\",\r\n\t\"callBackUrl\" : \"http://loclhost:8080/success\"\r\n\t\r\n\t\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://sandbox.zainpay.ng/zainbox/card/initialize/payment",
+							"protocol": "https",
+							"host": [
+								"sandbox",
+								"zainpay",
+								"ng"
+							],
+							"path": [
+								"zainbox",
+								"card",
+								"initialize",
+								"payment"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Validate card- Visa",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NDQyNDg5ODYsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.ilWKF8bxxW-Ud-0Qv8ypbwWczk082msxRIunK1JmPDg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n\t\"sessionId\":\"mvfsyXQJ1piEDNTUzg0cIHzIQwXo2ahdQdQvScRHd5IPRFIKUIJ0qChRbWd05kHq08WnywHaJK4xbZe4S9gWizb65uSmiUnl9itwcpnIDmfgyO1iHhRmlDkHcg8G5daGix6vprRduND9zaM8U4K9FvNmR3aFjqx5xSMrueoAib8dDcSSxHADVtf0bFMHjgoAkL3aHBKd\",\r\n\"cardEncryptedData\":\"Lbpv3TEgeVkPBi3khRdt9Nsn7yMdxqjx0xuigCzxh6NLSO1CYhRNRegzKSX3Snts/ObGJ3FTxRfYWh4l0MWmbVXioNfhawOTsrchY4bEjKWNvC3G3oHIygrmR8nBEGvUIgvAbA2KgYt/Ml9sTp1GGI7q71bMJJAK3ce+0iwHR3WMDZgrxxaQjUz4aK3WUFpJ5aTa9VI0DY2p0i6Z9q9TNGLXr56gMuaSIVxRw7yyrNRZkrtdgaxuqtF0C4fI5v2FVSywJt82Afjg82GQU/weIw+tfWPa5mvXjNHq3pe8yDZX8MgRUC21USrS2uUYyYYzqSSuHnpo+FBUr+iLeRT8FQ==\"\r\n\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://sandbox.zainpay.ng/zainbox/card/validate/card",
+							"protocol": "https",
+							"host": [
+								"sandbox",
+								"zainpay",
+								"ng"
+							],
+							"path": [
+								"zainbox",
+								"card",
+								"validate",
+								"card"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Validate card- Mastercard",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NDQyNDg5ODYsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.ilWKF8bxxW-Ud-0Qv8ypbwWczk082msxRIunK1JmPDg",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n\t\"sessionId\":\"mvfsyXQJ1piEDNTUzg0cIHzIQwXo2ahdQdQvScRHd5IPRFIKUIJ0qChRbWd05kHq08WnywHaJK4xbZe4S9gWizb65uSmiUnl9itwcpnIDmfgyO1iHhRmlDkHcg8G5daGix6vprRduND9zaM8U4K9FvNmR3aFjqx5xSMrueoAib8dDcSSxHADVtf0bFMHjgoAkL3aHBKd\",\r\n\"cardEncryptedData\":\"U6KUXLstg1b/hRKOuj2h6/kr5lBPHyFbwUQnEzESeazTAaMCvbqBIAv7KEdFxh1dehQ8IrAcshzfzNYLgrrhD9Zt1D456Otx+XG4xlZq5qCmGZsgHebutgyVisv598RXQ8RslVVzoCs7/TcyWzFVJrFef2/LKLmgRY60fYdzawN7434e/1WCYUqRixZu1OFllwco4Q84sPvKLpWDoLdgm+YiU3Vd0/xMKMgwl0Yx8eWe8VKlTk7eG2YSsWZYekYEhaJlap7vfN+ql1oFXxBii3tvbolVjC2RMylxHDY14XpFYN8vohCU/i8Ton3J+QA4iG1xzhxrNrED8XBLijlk7Q==\"\r\n\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "https://sandbox.zainpay.ng/zainbox/card/validate/card",
+							"protocol": "https",
+							"host": [
+								"sandbox",
+								"zainpay",
+								"ng"
+							],
+							"path": [
+								"zainbox",
+								"card",
+								"validate",
+								"card"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Auth",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\t\"username\": \"nurakilauren1@gmail.com\", \r\n\t\"secret\": \"wfqr8hRnNAYe5nXHsbPrBy3jEa8UizYbWBhYOdR63hhtK\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://sandbox.zainpay.ng/merchant/auth/token/request",
+					"protocol": "https",
+					"host": [
+						"sandbox",
+						"zainpay",
+						"ng"
+					],
+					"path": [
+						"merchant",
+						"auth",
+						"token",
+						"request"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Auth2",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL3phaW5wYXkubmciLCJpYXQiOjE2NDQyNDg5ODYsImlkIjozNzkwYjE5OC05ZGQ1LTQ5YjAtOWQ4Zi0yZjc0YzViOWUyNGEsIm5hbWUiOnRlc3QsInJvbGUiOnRlc3QsInNlY3JldEtleSI6eVpDRE1hWEpic3Nka3ZYbmlzc1B0c3Y0fQ.ilWKF8bxxW-Ud-0Qv8ypbwWczk082msxRIunK1JmPDg",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\t\"username\": \"test\", \r\n\t\"secret\": \"yZCDMaXJbssdkvXnissPtsv4\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://sandbox.zainpay.ng/merchant/auth/token/request",
+					"protocol": "https",
+					"host": [
+						"sandbox",
+						"zainpay",
+						"ng"
+					],
+					"path": [
+						"merchant",
+						"auth",
+						"token",
+						"request"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"auth": {
+		"type": "bearer"
+	}
+}

@@ -19,7 +19,12 @@
     "seed:data-plans": "tsx src/scripts/seed_mtn_data_plans.ts",
     "seed:data-generic": "tsx src/scripts/seed_pricing.ts",
     "seed:all": "npm run seed:providers && npm run seed:data-plans",
-    "verify:seed": "tsx src/scripts/verify_seed.ts"
+    "verify:seed": "tsx src/scripts/verify_seed.ts",
+    "migrate:admin-appids": "tsx src/scripts/migrate_admin_appids.ts",
+    "migrate:admin-appids:rollback": "tsx src/scripts/migrate_admin_appids.ts --rollback",
+    "migrate:test-setup": "tsx src/scripts/test_migration.ts",
+    "migrate:test-verify": "tsx src/scripts/test_migration.ts --verify",
+    "migrate:test-cleanup": "tsx src/scripts/test_migration.ts --cleanup"
   },
   "jest": {
     "preset": "ts-jest/presets/default-esm",

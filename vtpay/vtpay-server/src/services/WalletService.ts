@@ -337,6 +337,45 @@ export class WalletService {
 
         return result.length > 0 ? result[0].balance : 0;
     }
+    /**
+     * Get transaction statistics for a user
+     */
+    async getTransactionStats(userId: string): Promise<{ totalInflow: number; totalOutflow: number; count: number }> {
+        const result = await Transaction.aggregate([
+            {
+                $match: {
+                    userId: new mongoose.Types.ObjectId(userId),
+                    status: 'success',
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalInflow: {
+                        $sum: {
+                            $cond: [{ $eq: ['$type', 'credit'] }, '$amount', 0],
+                        },
+                    },
+                    totalOutflow: {
+                        $sum: {
+                            $cond: [{ $eq: ['$type', 'debit'] }, '$amount', 0],
+                        },
+                    },
+                    count: { $sum: 1 },
+                },
+            },
+        ]);
+
+        if (result.length > 0) {
+            return {
+                totalInflow: result[0].totalInflow,
+                totalOutflow: result[0].totalOutflow,
+                count: result[0].count,
+            };
+        }
+
+        return { totalInflow: 0, totalOutflow: 0, count: 0 };
+    }
 }
 
 export const walletService = new WalletService();

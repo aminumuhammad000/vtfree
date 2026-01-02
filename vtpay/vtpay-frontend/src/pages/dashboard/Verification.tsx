@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import api from '../../services/api';
-import { Button } from '../../components/Button';
-import { Input } from '../../components/Input';
-import { CreditCard, FileText, Upload, AlertCircle, Clock, CheckCircle } from 'lucide-react';
+import { CreditCard, FileText, Upload, AlertCircle, Clock, CheckCircle, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const Verification: React.FC = () => {
@@ -47,18 +45,13 @@ export const Verification: React.FC = () => {
     // Render based on KYC Level
     if (user?.kycLevel === 3) {
         return (
-            <div className="page-container">
-                <div className="page-header-main">
-                    <h1 className="page-title">Verification Status</h1>
-                </div>
-                <div className="card max-w-2xl mx-auto text-center p-8">
-                    <div className="flex justify-center mb-6">
-                        <div className="bg-green-100 p-4 rounded-full">
-                            <CheckCircle size={48} className="text-green-600" />
-                        </div>
+            <div className="max-w-2xl mx-auto py-12">
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8 text-center">
+                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <CheckCircle size={40} className="text-green-600" />
                     </div>
-                    <h2 className="text-2xl font-bold mb-2">Account Verified</h2>
-                    <p className="text-gray-600">
+                    <h2 className="text-2xl font-bold text-slate-900 mb-2">Account Verified</h2>
+                    <p className="text-slate-500 max-w-md mx-auto">
                         Congratulations! Your account is fully verified. You have access to all features including live API keys and virtual account creation.
                     </p>
                 </div>
@@ -68,26 +61,34 @@ export const Verification: React.FC = () => {
 
     if (user?.kycLevel === 2) {
         return (
-            <div className="page-container">
-                <div className="page-header-main">
-                    <h1 className="page-title">Verification Status</h1>
-                </div>
-                <div className="card max-w-2xl mx-auto text-center p-8">
-                    <div className="flex justify-center mb-6">
-                        <div className="bg-yellow-100 p-4 rounded-full">
-                            <Clock size={48} className="text-yellow-600" />
-                        </div>
+            <div className="max-w-2xl mx-auto py-12">
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8 text-center">
+                    <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Clock size={40} className="text-yellow-600" />
                     </div>
-                    <h2 className="text-2xl font-bold mb-2">Verification Pending</h2>
-                    <p className="text-gray-600 mb-6">
+                    <h2 className="text-2xl font-bold text-slate-900 mb-2">Verification Pending</h2>
+                    <p className="text-slate-500 mb-8 max-w-md mx-auto">
                         Your documents have been submitted and are currently under review. This process usually takes 24-48 hours.
                     </p>
-                    <div className="bg-blue-50 p-4 rounded-lg text-left">
-                        <h3 className="font-semibold text-blue-900 mb-2">What happens next?</h3>
-                        <ul className="list-disc list-inside text-sm text-blue-800 space-y-1">
-                            <li>Our compliance team will review your documents.</li>
-                            <li>You will receive an email notification once approved.</li>
-                            <li>In the meantime, you can continue using the dashboard in Test Mode.</li>
+
+                    <div className="bg-blue-50 rounded-xl p-6 text-left border border-blue-100">
+                        <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                            <ShieldCheck size={18} />
+                            What happens next?
+                        </h3>
+                        <ul className="space-y-2 text-sm text-blue-800">
+                            <li className="flex items-start gap-2">
+                                <span className="mt-1.5 w-1.5 h-1.5 bg-blue-400 rounded-full flex-shrink-0"></span>
+                                Our compliance team will review your documents.
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <span className="mt-1.5 w-1.5 h-1.5 bg-blue-400 rounded-full flex-shrink-0"></span>
+                                You will receive an email notification once approved.
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <span className="mt-1.5 w-1.5 h-1.5 bg-blue-400 rounded-full flex-shrink-0"></span>
+                                In the meantime, you can continue using the dashboard in Test Mode.
+                            </li>
                         </ul>
                     </div>
                 </div>
@@ -97,20 +98,14 @@ export const Verification: React.FC = () => {
 
     // Default: KYC Level < 2 (Upload Form)
     return (
-        <div className="page-container">
-            <div className="page-header-main">
-                <h1 className="page-title">Account Verification</h1>
+        <div className="max-w-2xl mx-auto space-y-6">
+            <div>
+                <h1 className="text-2xl font-bold text-slate-900">Account Verification</h1>
+                <p className="text-slate-500">Submit your details to unlock full features</p>
             </div>
 
-            <div className="card max-w-2xl mx-auto p-8">
-                <div className="mb-8">
-                    <h2 className="text-xl font-bold mb-2">Submit KYC Documents</h2>
-                    <p className="text-gray-500">
-                        Please provide your details to unlock full account features.
-                    </p>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-start gap-3">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8">
+                <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-8 flex items-start gap-3">
                     <AlertCircle className="text-blue-500 flex-shrink-0 mt-0.5" size={20} />
                     <p className="text-sm text-blue-700">
                         To comply with regulations, we need to verify your identity before you can perform live transactions.
@@ -118,37 +113,52 @@ export const Verification: React.FC = () => {
                 </div>
 
                 {error && (
-                    <div className="alert alert-error mb-6">
-                        <span className="font-medium">{error}</span>
+                    <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-lg flex items-start gap-3">
+                        <AlertCircle className="text-red-500 mt-0.5 flex-shrink-0" size={18} />
+                        <p className="text-sm text-red-600">{error}</p>
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit}>
-                    <Input
-                        label="National Identity Number (NIN)"
-                        name="nin"
-                        value={formData.nin}
-                        onChange={handleChange}
-                        placeholder="Enter your NIN"
-                        leftIcon={<FileText size={18} />}
-                        required
-                    />
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">National Identity Number (NIN)</label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <FileText size={18} className="text-slate-400" />
+                            </div>
+                            <input
+                                type="text"
+                                name="nin"
+                                value={formData.nin}
+                                onChange={handleChange}
+                                placeholder="Enter your NIN"
+                                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                                required
+                            />
+                        </div>
+                    </div>
 
-                    <Input
-                        label="Bank Verification Number (BVN)"
-                        name="bvn"
-                        value={formData.bvn}
-                        onChange={handleChange}
-                        placeholder="Enter your BVN"
-                        leftIcon={<CreditCard size={18} />}
-                        required
-                    />
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Bank Verification Number (BVN)</label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <CreditCard size={18} className="text-slate-400" />
+                            </div>
+                            <input
+                                type="text"
+                                name="bvn"
+                                value={formData.bvn}
+                                onChange={handleChange}
+                                placeholder="Enter your BVN"
+                                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                                required
+                            />
+                        </div>
+                    </div>
 
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text)' }}>
-                            Upload ID Card
-                        </label>
-                        <div className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-gray-50 transition-colors" style={{ borderColor: 'var(--color-border)' }}>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Upload ID Card</label>
+                        <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:bg-slate-50 hover:border-green-500 transition-all group">
                             <input
                                 type="file"
                                 id="idCard"
@@ -156,26 +166,32 @@ export const Verification: React.FC = () => {
                                 onChange={handleFileChange}
                                 accept="image/*,.pdf"
                             />
-                            <label htmlFor="idCard" className="cursor-pointer flex flex-col items-center">
-                                <Upload size={32} className="text-gray-400 mb-2" />
-                                <span className="text-sm font-medium text-gray-600">
+                            <label htmlFor="idCard" className="cursor-pointer flex flex-col items-center w-full h-full">
+                                <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-green-50 group-hover:text-green-600 transition-colors">
+                                    <Upload size={24} className="text-slate-400 group-hover:text-green-600" />
+                                </div>
+                                <span className="text-sm font-medium text-slate-700 group-hover:text-green-700">
                                     {formData.idCard ? formData.idCard : 'Click to upload ID Card'}
                                 </span>
-                                <span className="text-xs text-gray-400 mt-1">
+                                <span className="text-xs text-slate-400 mt-1">
                                     JPG, PNG or PDF (Max 5MB)
                                 </span>
                             </label>
                         </div>
                     </div>
 
-                    <Button
+                    <button
                         type="submit"
-                        isLoading={isLoading}
-                        fullWidth
-                        disabled={!formData.nin || !formData.bvn || !formData.idCard}
+                        disabled={isLoading || !formData.nin || !formData.bvn || !formData.idCard}
+                        className="w-full py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                        Submit for Verification
-                    </Button>
+                        {isLoading ? (
+                            <>
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                Submitting...
+                            </>
+                        ) : 'Submit for Verification'}
+                    </button>
                 </form>
             </div>
         </div>

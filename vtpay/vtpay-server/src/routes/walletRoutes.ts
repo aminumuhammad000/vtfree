@@ -195,4 +195,36 @@ router.get('/transactions/:reference', async (req: AuthenticatedRequest, res: Re
     }
 });
 
+/**
+ * Get wallet statistics (total money generated)
+ * GET /api/wallet/stats
+ */
+router.get('/stats', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const userId = req.user!.id;
+
+        // Calculate total money generated (total credits)
+        // We can filter by category if needed (e.g., 'deposit', 'transfer')
+        // For now, let's sum up all successful credit transactions
+        const stats = await walletService.getTransactionStats(userId);
+
+        res.json({
+            success: true,
+            data: {
+                totalInflow: stats.totalInflow,
+                totalOutflow: stats.totalOutflow,
+                totalInflowNaira: stats.totalInflow / 100,
+                totalOutflowNaira: stats.totalOutflow / 100,
+                transactionCount: stats.count,
+            },
+        });
+    } catch (error) {
+        console.error('Get wallet stats error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get wallet statistics',
+        });
+    }
+});
+
 export default router;
