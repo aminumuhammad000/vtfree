@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { adminApi } from '../../api/client';
+import toast from 'react-hot-toast';
 
 const CommunicationsPage: React.FC = () => {
     const [recipientType, setRecipientType] = useState<'all' | 'active' | 'specific'>('all');
@@ -8,6 +9,7 @@ const CommunicationsPage: React.FC = () => {
     const [message, setMessage] = useState('');
     const [sending, setSending] = useState(false);
     const [tenants, setTenants] = useState<any[]>([]);
+    const [userSearchQuery, setUserSearchQuery] = useState('');
 
     useEffect(() => {
         fetchTenants();
@@ -22,8 +24,37 @@ const CommunicationsPage: React.FC = () => {
         }
     };
 
+    const toggleTenantSelection = (tenantId: string) => {
+        setSelectedTenants(prev =>
+            prev.includes(tenantId)
+                ? prev.filter(id => id !== tenantId)
+                : [...prev, tenantId]
+        );
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedTenants.length === filteredTenantsForSelection.length) {
+            setSelectedTenants([]);
+        } else {
+            setSelectedTenants(filteredTenantsForSelection.map(t => t._id));
+        }
+    };
+
+    const filteredTenantsForSelection = tenants.filter(tenant =>
+        (tenant.email?.toLowerCase() || '').includes(userSearchQuery.toLowerCase()) ||
+        (tenant.firstName?.toLowerCase() || '').includes(userSearchQuery.toLowerCase()) ||
+        (tenant.lastName?.toLowerCase() || '').includes(userSearchQuery.toLowerCase()) ||
+        (tenant.businessName?.toLowerCase() || '').includes(userSearchQuery.toLowerCase())
+    );
+
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (recipientType === 'specific' && selectedTenants.length === 0) {
+            toast.error('Please select at least one tenant');
+            return;
+        }
+
         setSending(true);
 
         try {
@@ -33,14 +64,14 @@ const CommunicationsPage: React.FC = () => {
                 subject,
                 message,
             });
-            alert('Email sent successfully!');
+            toast.success('Email sent successfully!');
             setSubject('');
             setMessage('');
             setRecipientType('all');
             setSelectedTenants([]);
         } catch (error) {
             console.error('Failed to send email:', error);
-            alert('Failed to send email');
+            toast.error('Failed to send email');
         } finally {
             setSending(false);
         }
@@ -98,21 +129,78 @@ const CommunicationsPage: React.FC = () => {
                             </div>
 
                             {recipientType === 'specific' && (
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">Select Tenants</label>
-                                    <select
-                                        multiple
-                                        value={selectedTenants}
-                                        onChange={(e) => setSelectedTenants(Array.from(e.target.selectedOptions, option => option.value))}
-                                        className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 h-32"
-                                    >
-                                        {tenants.map(tenant => (
-                                            <option key={tenant._id} value={tenant._id}>
-                                                {tenant.businessName || `${tenant.firstName} ${tenant.lastName}`} ({tenant.email}) - {tenant.status}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <p className="text-xs text-slate-500 mt-1">Hold Ctrl/Cmd to select multiple tenants</p>
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center">
+                                        <label className="block text-sm font-medium text-slate-700">Select Tenants ({selectedTenants.length} selected)</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Search users..."
+                                            value={userSearchQuery}
+                                            onChange={(e) => setUserSearchQuery(e.target.value)}
+                                            className="px-3 py-1 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 w-64"
+                                        />
+                                    </div>
+
+                                    <div className="border border-slate-200 rounded-lg overflow-hidden">
+                                        <div className="max-h-64 overflow-y-auto">
+                                            <table className="w-full text-sm text-left">
+                                                <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
+                                                    <tr>
+                                                        <th className="px-4 py-2 w-10">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={selectedTenants.length > 0 && selectedTenants.length === filteredTenantsForSelection.length}
+                                                                onChange={toggleSelectAll}
+                                                                className="rounded text-green-600 focus:ring-green-500"
+                                                            />
+                                                        </th>
+                                                        <th className="px-4 py-2 font-medium text-slate-600">Name / Business</th>
+                                                        <th className="px-4 py-2 font-medium text-slate-600">Email</th>
+                                                        <th className="px-4 py-2 font-medium text-slate-600">Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100">
+                                                    {filteredTenantsForSelection.length > 0 ? (
+                                                        filteredTenantsForSelection.map(tenant => (
+                                                            <tr
+                                                                key={tenant._id}
+                                                                className={`hover:bg-slate-50 cursor-pointer ${selectedTenants.includes(tenant._id) ? 'bg-green-50' : ''}`}
+                                                                onClick={() => toggleTenantSelection(tenant._id)}
+                                                            >
+                                                                <td className="px-4 py-2" onClick={(e) => e.stopPropagation()}>
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={selectedTenants.includes(tenant._id)}
+                                                                        onChange={() => toggleTenantSelection(tenant._id)}
+                                                                        className="rounded text-green-600 focus:ring-green-500"
+                                                                    />
+                                                                </td>
+                                                                <td className="px-4 py-2">
+                                                                    <div className="font-medium text-slate-900">
+                                                                        {tenant.businessName || `${tenant.firstName} ${tenant.lastName}`}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-2 text-slate-600">{tenant.email}</td>
+                                                                <td className="px-4 py-2">
+                                                                    <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${tenant.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
+                                                                        }`}>
+                                                                        {tenant.status}
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                        ))
+                                                    ) : (
+                                                        <tr>
+                                                            <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
+                                                                No users found matching your search.
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-slate-500 mt-1">Select the users you want to receive this communication.</p>
                                 </div>
                             )}
 

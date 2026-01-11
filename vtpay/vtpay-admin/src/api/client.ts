@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -29,14 +29,15 @@ export interface ApiResponse<T = any> {
 export interface Tenant {
     _id: string;
     email: string;
-    first_name: string;
-    last_name: string;
-    phone_number: string;
-    business_name?: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    businessName?: string;
+    kycLevel: number;
     kyc_status: 'pending' | 'verified' | 'rejected';
     status: 'active' | 'inactive' | 'suspended';
-    created_at: string;
-    updated_at: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 // Zainbox types
@@ -70,6 +71,14 @@ export const adminApi = {
         await api.patch(`/admin/tenants/${id}/status`, { status });
     },
 
+    deleteTenant: async (id: string): Promise<void> => {
+        await api.delete(`/admin/tenants/${id}`);
+    },
+
+    updateTenantKycStatus: async (id: string, status: 'pending' | 'verified' | 'rejected'): Promise<void> => {
+        await api.patch(`/admin/tenants/${id}/kyc`, { status });
+    },
+
     getStats: async (): Promise<any> => {
         const response = await api.get<ApiResponse<any>>('/admin/stats');
         return response.data.data;
@@ -78,6 +87,16 @@ export const adminApi = {
     getAllZainboxes: async (): Promise<Zainbox[]> => {
         const response = await api.get<ApiResponse<Zainbox[]>>('/admin/zainboxes');
         return response.data.data || [];
+    },
+
+    syncZainboxes: async (): Promise<any> => {
+        const response = await api.post<ApiResponse<any>>('/admin/zainboxes/sync');
+        return response.data;
+    },
+
+    getZainboxBalances: async (zainboxCode: string): Promise<any> => {
+        const response = await api.get<ApiResponse<any>>(`/admin/zainboxes/${zainboxCode}/balances`);
+        return response.data;
     },
 
     getTransactions: async (params?: any): Promise<any> => {
@@ -113,6 +132,11 @@ export const adminApi = {
     createZainbox: async (data: any): Promise<Zainbox> => {
         const response = await api.post<ApiResponse<Zainbox>>('/admin/zainboxes', data);
         return response.data.data!;
+    },
+
+    deleteZainbox: async (id: string): Promise<any> => {
+        const response = await api.delete<ApiResponse<any>>(`/admin/zainboxes/${id}`);
+        return response.data;
     },
 
     // Fee Management
@@ -157,6 +181,11 @@ export const adminApi = {
         return response.data;
     },
 
+    sendSingleEmail: async (data: { userId: string; subject: string; message: string }): Promise<any> => {
+        const response = await api.post<ApiResponse<any>>('/admin/communications/send-single', data);
+        return response.data;
+    },
+
     // System Settings
     getSystemSettings: async (): Promise<any> => {
         const response = await api.get<ApiResponse<any>>('/admin/settings');
@@ -171,6 +200,17 @@ export const adminApi = {
     updateAdminProfile: (data: any) => api.put('/admin/profile', data),
     changeAdminPassword: (data: any) => api.put('/admin/profile/password', data),
     getAdminProfile: () => api.get('/admin/profile'),
+
+    // Help Messages
+    getHelpMessages: async (): Promise<any[]> => {
+        const response = await api.get<ApiResponse<any[]>>('/help/admin/messages');
+        return response.data.data || [];
+    },
+
+    updateHelpMessageStatus: async (id: string, status: string): Promise<any> => {
+        const response = await api.patch<ApiResponse<any>>(`/help/admin/messages/${id}/status`, { status });
+        return response.data.data;
+    },
 };
 
 // Auth APIs

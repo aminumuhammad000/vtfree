@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { adminApi } from '../../api/client';
+import toast from 'react-hot-toast';
 
 const SettingsPage: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'general' | 'notifications' | 'security' | 'integrations'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'notifications' | 'security' | 'integrations' | 'email'>('general');
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
     const [showApiKey, setShowApiKey] = useState(false);
     const [showSecretKey, setShowSecretKey] = useState(false);
+    const [showEmailPass, setShowEmailPass] = useState(false);
 
     // Settings state
     const [settings, setSettings] = useState({
@@ -36,6 +38,20 @@ const SettingsPage: React.FC = () => {
                 baseUrl: 'https://api.zainpay.ng',
                 isLive: false,
             }
+        },
+        emailConfig: {
+            provider: 'gmail' as 'gmail' | 'other',
+            gmail: {
+                user: '',
+                pass: '',
+            },
+            smtp: {
+                host: '',
+                port: 587,
+                secure: false,
+                user: '',
+                pass: '',
+            },
         }
     });
 
@@ -61,10 +77,10 @@ const SettingsPage: React.FC = () => {
         setLoading(true);
         try {
             await adminApi.updateSystemSettings(settings);
-            alert('Settings saved successfully!');
+            toast.success('Settings saved successfully!');
         } catch (error) {
             console.error('Failed to save settings:', error);
-            alert('Failed to save settings');
+            toast.error('Failed to save settings');
         } finally {
             setLoading(false);
         }
@@ -419,6 +435,220 @@ const SettingsPage: React.FC = () => {
         </div>
     );
 
+    const renderEmailSettings = () => (
+        <div className="space-y-6">
+            <div className="bg-white p-6 rounded-lg border border-slate-200">
+                <div className="mb-6">
+                    <h3 className="text-lg font-medium text-slate-900">Email Service Configuration</h3>
+                    <p className="text-sm text-slate-500">Set the email account responsible for sending messages to users</p>
+                </div>
+
+                <div className="space-y-6">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Email Provider</label>
+                        <div className="grid grid-cols-2 gap-4">
+                            <button
+                                onClick={() => setSettings({
+                                    ...settings,
+                                    emailConfig: { ...settings.emailConfig, provider: 'gmail' }
+                                })}
+                                className={`px-4 py-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${settings.emailConfig.provider === 'gmail'
+                                    ? 'border-green-600 bg-green-50 text-green-700'
+                                    : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                                    }`}
+                            >
+                                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M24 4.5v15c0 .85-.65 1.5-1.5 1.5H21V7.39l-9 6.58-9-6.58V21H1.5C.65 21 0 20.35 0 19.5v-15c0-.42.17-.8.44-1.08C.72 3.14 1.1 3 1.5 3H2l10 7.25L22 3h.5c.4 0 .78.14 1.06.42.27.28.44.66.44 1.08z" />
+                                </svg>
+                                Gmail
+                            </button>
+                            <button
+                                onClick={() => setSettings({
+                                    ...settings,
+                                    emailConfig: { ...settings.emailConfig, provider: 'other' }
+                                })}
+                                className={`px-4 py-3 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${settings.emailConfig.provider === 'other'
+                                    ? 'border-green-600 bg-green-50 text-green-700'
+                                    : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                                    }`}
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                                Other SMTP
+                            </button>
+                        </div>
+                    </div>
+
+                    {settings.emailConfig.provider === 'gmail' ? (
+                        <div className="space-y-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                            <div className="flex items-center gap-2 text-blue-600 mb-2">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <p className="text-xs font-medium">Gmail uses automatic port (465/587) and service settings.</p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Gmail Address</label>
+                                <input
+                                    type="email"
+                                    value={settings.emailConfig.gmail.user}
+                                    onChange={(e) => setSettings({
+                                        ...settings,
+                                        emailConfig: {
+                                            ...settings.emailConfig,
+                                            gmail: { ...settings.emailConfig.gmail, user: e.target.value }
+                                        }
+                                    })}
+                                    className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    placeholder="your-email@gmail.com"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">App Password</label>
+                                <div className="relative">
+                                    <input
+                                        type={showEmailPass ? 'text' : 'password'}
+                                        value={settings.emailConfig.gmail.pass}
+                                        onChange={(e) => setSettings({
+                                            ...settings,
+                                            emailConfig: {
+                                                ...settings.emailConfig,
+                                                gmail: { ...settings.emailConfig.gmail, pass: e.target.value }
+                                            }
+                                        })}
+                                        className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 pr-10"
+                                        placeholder="xxxx xxxx xxxx xxxx"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowEmailPass(!showEmailPass)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                    >
+                                        {showEmailPass ? (
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                                            </svg>
+                                        ) : (
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        )}
+                                    </button>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-2">
+                                    Use a Google App Password, not your regular account password.
+                                    <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline ml-1">Generate one here</a>
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">SMTP Host</label>
+                                    <input
+                                        type="text"
+                                        value={settings.emailConfig.smtp.host}
+                                        onChange={(e) => setSettings({
+                                            ...settings,
+                                            emailConfig: {
+                                                ...settings.emailConfig,
+                                                smtp: { ...settings.emailConfig.smtp, host: e.target.value }
+                                            }
+                                        })}
+                                        className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                        placeholder="smtp.example.com"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Port</label>
+                                    <input
+                                        type="number"
+                                        value={settings.emailConfig.smtp.port}
+                                        onChange={(e) => setSettings({
+                                            ...settings,
+                                            emailConfig: {
+                                                ...settings.emailConfig,
+                                                smtp: { ...settings.emailConfig.smtp, port: parseInt(e.target.value) }
+                                            }
+                                        })}
+                                        className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                        placeholder="587"
+                                    />
+                                </div>
+                                <div className="flex items-center gap-2 pt-6">
+                                    <input
+                                        type="checkbox"
+                                        checked={settings.emailConfig.smtp.secure}
+                                        onChange={(e) => setSettings({
+                                            ...settings,
+                                            emailConfig: {
+                                                ...settings.emailConfig,
+                                                smtp: { ...settings.emailConfig.smtp, secure: e.target.checked }
+                                            }
+                                        })}
+                                        className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
+                                    />
+                                    <label className="text-sm text-slate-700">Use Secure Connection (SSL/TLS)</label>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Username</label>
+                                    <input
+                                        type="text"
+                                        value={settings.emailConfig.smtp.user}
+                                        onChange={(e) => setSettings({
+                                            ...settings,
+                                            emailConfig: {
+                                                ...settings.emailConfig,
+                                                smtp: { ...settings.emailConfig.smtp, user: e.target.value }
+                                            }
+                                        })}
+                                        className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                                    <div className="relative">
+                                        <input
+                                            type={showEmailPass ? 'text' : 'password'}
+                                            value={settings.emailConfig.smtp.pass}
+                                            onChange={(e) => setSettings({
+                                                ...settings,
+                                                emailConfig: {
+                                                    ...settings.emailConfig,
+                                                    smtp: { ...settings.emailConfig.smtp, pass: e.target.value }
+                                                }
+                                            })}
+                                            className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 pr-10"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowEmailPass(!showEmailPass)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                        >
+                                            {showEmailPass ? (
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                                                </svg>
+                                            ) : (
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+
     if (fetching) {
         return (
             <div className="p-6 flex items-center justify-center min-h-[400px]">
@@ -494,6 +724,15 @@ const SettingsPage: React.FC = () => {
                         >
                             Integrations
                         </button>
+                        <button
+                            onClick={() => setActiveTab('email')}
+                            className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'email'
+                                ? 'border-green-600 text-green-600'
+                                : 'border-transparent text-slate-500 hover:text-slate-700'
+                                }`}
+                        >
+                            Email Config
+                        </button>
                     </nav>
                 </div>
                 <div className="p-6">
@@ -501,6 +740,7 @@ const SettingsPage: React.FC = () => {
                     {activeTab === 'notifications' && renderNotificationSettings()}
                     {activeTab === 'security' && renderSecuritySettings()}
                     {activeTab === 'integrations' && renderIntegrationsSettings()}
+                    {activeTab === 'email' && renderEmailSettings()}
                 </div>
             </div>
         </div>

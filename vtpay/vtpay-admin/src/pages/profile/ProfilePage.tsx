@@ -11,6 +11,7 @@ const ProfilePage: React.FC = () => {
         first_name: user?.first_name || '',
         last_name: user?.last_name || '',
         email: user?.email || '',
+        phone: (user as any)?.phone || '',
     });
 
     const [passwordData, setPasswordData] = useState({
@@ -111,6 +112,16 @@ const ProfilePage: React.FC = () => {
                                 type="email"
                                 value={profileData.email}
                                 onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                            <input
+                                type="text"
+                                value={profileData.phone}
+                                onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
                                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
                                 required
                             />
