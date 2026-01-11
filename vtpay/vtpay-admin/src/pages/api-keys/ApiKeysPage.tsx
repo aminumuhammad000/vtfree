@@ -166,7 +166,9 @@ const ApiKeysPage: React.FC = () => {
                 </div>
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                     <p className="text-sm font-medium text-slate-500">Abuse Detected</p>
-                    <h3 className="text-2xl font-bold text-red-600 mt-1">2</h3>
+                    <h3 className="text-2xl font-bold text-red-600 mt-1">
+                        {apiKeys.filter(k => k.status === 'revoked').length}
+                    </h3>
                 </div>
             </div>
 

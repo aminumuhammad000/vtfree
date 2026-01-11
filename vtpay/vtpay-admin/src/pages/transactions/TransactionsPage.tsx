@@ -121,7 +121,9 @@ const TransactionsPage: React.FC = () => {
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                     <p className="text-sm font-medium text-slate-500">Success Rate</p>
                     <h3 className="text-2xl font-bold text-green-600 mt-1">
-                        {((transactions.filter((t) => t.status === 'success').length / transactions.length) * 100).toFixed(1)}%
+                        {transactions.length > 0
+                            ? ((transactions.filter((t) => t.status === 'success').length / transactions.length) * 100).toFixed(1)
+                            : '0.0'}%
                     </h3>
                 </div>
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">

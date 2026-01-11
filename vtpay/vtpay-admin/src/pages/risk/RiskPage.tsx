@@ -112,16 +112,22 @@ const RiskPage: React.FC = () => {
                     </h3>
                 </div>
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <p className="text-sm font-medium text-slate-500">Flagged Today</p>
-                    <h3 className="text-2xl font-bold text-yellow-600 mt-1">12</h3>
+                    <p className="text-sm font-medium text-slate-500">Flagged Total</p>
+                    <h3 className="text-2xl font-bold text-yellow-600 mt-1">
+                        {rules.filter(r => r.action === 'flag').reduce((sum, r) => sum + (r.hits || 0), 0)}
+                    </h3>
                 </div>
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <p className="text-sm font-medium text-slate-500">Blocked Today</p>
-                    <h3 className="text-2xl font-bold text-red-600 mt-1">45</h3>
+                    <p className="text-sm font-medium text-slate-500">Blocked Total</p>
+                    <h3 className="text-2xl font-bold text-red-600 mt-1">
+                        {rules.filter(r => r.action === 'block').reduce((sum, r) => sum + (r.hits || 0), 0)}
+                    </h3>
                 </div>
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                     <p className="text-sm font-medium text-slate-500">Under Review</p>
-                    <h3 className="text-2xl font-bold text-blue-600 mt-1">8</h3>
+                    <h3 className="text-2xl font-bold text-blue-600 mt-1">
+                        {rules.filter(r => r.action === 'review').reduce((sum, r) => sum + (r.hits || 0), 0)}
+                    </h3>
                 </div>
             </div>
 

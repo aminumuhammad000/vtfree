@@ -12,6 +12,7 @@ import SettingsPage from './pages/settings/SettingsPage';
 import ApiKeysPage from './pages/api-keys/ApiKeysPage';
 import CommunicationsPage from './pages/communications/CommunicationsPage';
 import ProfilePage from './pages/profile/ProfilePage';
+import HelpMessages from './pages/help/HelpMessages';
 import Login from './pages/auth/Login';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
@@ -47,6 +48,7 @@ function AppRoutes() {
       <Route path="/risk" element={<ProtectedRoute><Layout><RiskPage /></Layout></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Layout><SettingsPage /></Layout></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Layout><ProfilePage /></Layout></ProtectedRoute>} />
+      <Route path="/help" element={<ProtectedRoute><Layout><HelpMessages /></Layout></ProtectedRoute>} />
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

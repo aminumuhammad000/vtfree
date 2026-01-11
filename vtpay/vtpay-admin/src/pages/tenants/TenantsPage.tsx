@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { adminApi, type Tenant } from '../../api/client';
+import toast from 'react-hot-toast';
 
 const TenantsPage: React.FC = () => {
     const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -8,6 +9,11 @@ const TenantsPage: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
     const [showDetails, setShowDetails] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [tenantToDelete, setTenantToDelete] = useState<string | null>(null);
+    const [showSendMessage, setShowSendMessage] = useState(false);
+    const [messageData, setMessageData] = useState({ subject: '', message: '' });
+    const [isSending, setIsSending] = useState(false);
 
     useEffect(() => {
         fetchTenants();
@@ -36,9 +42,100 @@ const TenantsPage: React.FC = () => {
             if (selectedTenant && selectedTenant._id === tenantId) {
                 setSelectedTenant({ ...selectedTenant, status: newStatus });
             }
+            toast.success(`Tenant status updated to ${newStatus}`);
         } catch (error) {
             console.error('Failed to update tenant status:', error);
+            toast.error('Failed to update tenant status');
         }
+    };
+
+    const handleDeleteTenant = (tenantId: string) => {
+        setTenantToDelete(tenantId);
+        setShowDeleteConfirm(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!tenantToDelete) return;
+
+        try {
+            await adminApi.deleteTenant(tenantToDelete);
+            setTenants(tenants.filter(t => t._id !== tenantToDelete));
+            if (selectedTenant?._id === tenantToDelete) {
+                setShowDetails(false);
+                setSelectedTenant(null);
+            }
+            setShowDeleteConfirm(false);
+            setTenantToDelete(null);
+            toast.success('Tenant deleted successfully');
+        } catch (error) {
+            console.error('Failed to delete tenant:', error);
+            toast.error('Failed to delete tenant');
+        }
+    };
+
+    const handleKycStatusChange = async (id: string, kyc_status: 'pending' | 'verified' | 'rejected') => {
+        try {
+            await adminApi.updateTenantKycStatus(id, kyc_status);
+            toast.success(`KYC status updated to ${kyc_status}`);
+            fetchTenants();
+            if (selectedTenant?._id === id) {
+                setSelectedTenant({ ...selectedTenant, kyc_status: kyc_status as any });
+            }
+        } catch (error) {
+            console.error('Failed to update KYC status:', error);
+            toast.error('Failed to update KYC status');
+        }
+    };
+
+    const handleSendMessage = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedTenant) return;
+
+        try {
+            setIsSending(true);
+            await adminApi.sendSingleEmail({
+                userId: selectedTenant._id,
+                subject: messageData.subject,
+                message: messageData.message
+            });
+            toast.success('Message sent successfully');
+            setShowSendMessage(false);
+            setMessageData({ subject: '', message: '' });
+        } catch (error) {
+            console.error('Failed to send message:', error);
+            toast.error('Failed to send message');
+        } finally {
+            setIsSending(false);
+        }
+    };
+
+    const handleExport = () => {
+        const headers = ['First Name', 'Last Name', 'Email', 'Phone', 'Business Name', 'KYC Status', 'Status', 'Created At'];
+        const csvData = filteredTenants.map(t => [
+            t.firstName,
+            t.lastName,
+            t.email,
+            t.phone,
+            t.businessName || 'N/A',
+            t.kyc_status,
+            t.status,
+            new Date(t.createdAt).toLocaleDateString()
+        ]);
+
+        const csvContent = [
+            headers.join(','),
+            ...csvData.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `tenants_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     const getKycStatusBadge = (status: string) => {
@@ -61,10 +158,10 @@ const TenantsPage: React.FC = () => {
     };
 
     const filteredTenants = tenants.filter(tenant => {
-        const matchesSearch = tenant.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            tenant.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            tenant.last_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            tenant.business_name?.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesSearch = (tenant.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+            (tenant.firstName?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+            (tenant.lastName?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+            (tenant.businessName?.toLowerCase() || '').includes(searchQuery.toLowerCase());
         const matchesStatus = statusFilter === 'all' || tenant.status === statusFilter;
         return matchesSearch && matchesStatus;
     });
@@ -78,7 +175,10 @@ const TenantsPage: React.FC = () => {
                     <p className="text-sm text-slate-500 mt-1">Control tenant access, status, and limits</p>
                 </div>
                 <div className="flex gap-3">
-                    <button className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium">
+                    <button
+                        onClick={handleExport}
+                        className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium"
+                    >
                         Export Data
                     </button>
                 </div>
@@ -172,12 +272,12 @@ const TenantsPage: React.FC = () => {
                                     <tr key={tenant._id} className="hover:bg-slate-50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div>
-                                                <div className="text-sm font-medium text-slate-900">{tenant.first_name} {tenant.last_name}</div>
+                                                <div className="text-sm font-medium text-slate-900">{tenant.firstName} {tenant.lastName}</div>
                                                 <div className="text-sm text-slate-500">{tenant.email}</div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-slate-900">{tenant.business_name || 'N/A'}</div>
+                                            <div className="text-sm text-slate-900">{tenant.businessName || 'N/A'}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {getKycStatusBadge(tenant.kyc_status)}
@@ -186,7 +286,7 @@ const TenantsPage: React.FC = () => {
                                             {getStatusBadge(tenant.status)}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                                            {new Date(tenant.created_at).toLocaleDateString()}
+                                            {new Date(tenant.createdAt).toLocaleDateString()}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <button
@@ -197,6 +297,12 @@ const TenantsPage: React.FC = () => {
                                                 className="text-green-600 hover:text-green-900 mr-4"
                                             >
                                                 View
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteTenant(tenant._id)}
+                                                className="text-red-600 hover:text-red-900"
+                                            >
+                                                Delete
                                             </button>
                                         </td>
                                     </tr>
@@ -214,7 +320,7 @@ const TenantsPage: React.FC = () => {
                         <div className="p-6 border-b border-slate-200">
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <h2 className="text-xl font-bold text-slate-900">{selectedTenant.first_name} {selectedTenant.last_name}</h2>
+                                    <h2 className="text-xl font-bold text-slate-900">{selectedTenant.firstName} {selectedTenant.lastName}</h2>
                                     <p className="text-sm text-slate-500">{selectedTenant.email}</p>
                                 </div>
                                 <button
@@ -233,11 +339,11 @@ const TenantsPage: React.FC = () => {
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <p className="text-xs text-slate-500">Business Name</p>
-                                        <p className="text-sm font-medium text-slate-900">{selectedTenant.business_name || 'N/A'}</p>
+                                        <p className="text-sm font-medium text-slate-900">{selectedTenant.businessName || 'N/A'}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-slate-500">Phone</p>
-                                        <p className="text-sm font-medium text-slate-900">{selectedTenant.phone_number}</p>
+                                        <p className="text-sm font-medium text-slate-900">{selectedTenant.phone}</p>
                                     </div>
                                 </div>
                             </div>
@@ -255,16 +361,16 @@ const TenantsPage: React.FC = () => {
                                     </div>
                                     <div>
                                         <p className="text-xs text-slate-500">Created</p>
-                                        <p className="text-sm text-slate-900">{new Date(selectedTenant.created_at).toLocaleDateString()}</p>
+                                        <p className="text-sm text-slate-900">{new Date(selectedTenant.createdAt).toLocaleDateString()}</p>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="flex gap-3 pt-4 border-t border-slate-200">
+                            <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-200">
                                 {selectedTenant.status !== 'active' && (
                                     <button
                                         onClick={() => handleStatusChange(selectedTenant._id, 'active')}
-                                        className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                        className="flex-1 min-w-[140px] px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                                     >
                                         Approve / Activate
                                     </button>
@@ -272,21 +378,141 @@ const TenantsPage: React.FC = () => {
                                 {selectedTenant.status !== 'suspended' && (
                                     <button
                                         onClick={() => handleStatusChange(selectedTenant._id, 'suspended')}
-                                        className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+                                        className="flex-1 min-w-[140px] px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
                                     >
                                         Suspend
                                     </button>
                                 )}
-                                {selectedTenant.status !== 'inactive' && (
+
+                                {selectedTenant.kyc_status !== 'verified' && (
                                     <button
-                                        onClick={() => handleStatusChange(selectedTenant._id, 'inactive')}
-                                        className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                                        onClick={() => handleKycStatusChange(selectedTenant._id, 'verified')}
+                                        className="flex-1 min-w-[140px] px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                                     >
-                                        Deactivate
+                                        Approve KYC
                                     </button>
                                 )}
+                                {selectedTenant.kyc_status !== 'rejected' && (
+                                    <button
+                                        onClick={() => handleKycStatusChange(selectedTenant._id, 'rejected')}
+                                        className="flex-1 min-w-[140px] px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                                    >
+                                        Reject KYC
+                                    </button>
+                                )}
+
+                                <button
+                                    onClick={() => setShowSendMessage(true)}
+                                    className="flex-1 min-w-[140px] px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                                >
+                                    Send Message
+                                </button>
+
+                                <button
+                                    onClick={() => handleDeleteTenant(selectedTenant._id)}
+                                    className="flex-1 min-w-[140px] px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                >
+                                    Delete User
+                                </button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+                        <div className="text-center">
+                            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-900 mb-2">Delete Tenant</h3>
+                            <p className="text-sm text-slate-500 mb-6">
+                                Are you sure you want to delete this tenant? This action cannot be undone and will delete all associated data including wallets and transactions.
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => {
+                                        setShowDeleteConfirm(false);
+                                        setTenantToDelete(null);
+                                    }}
+                                    className="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium"
+                                >
+                                    No, Cancel
+                                </button>
+                                <button
+                                    onClick={confirmDelete}
+                                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                                >
+                                    Yes, Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Send Message Modal */}
+            {showSendMessage && selectedTenant && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full">
+                        <div className="p-6 border-b border-slate-200">
+                            <div className="flex justify-between items-start">
+                                <h2 className="text-xl font-bold text-slate-900">Send Message to {selectedTenant.firstName}</h2>
+                                <button
+                                    onClick={() => setShowSendMessage(false)}
+                                    className="text-slate-400 hover:text-slate-600"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <form onSubmit={handleSendMessage} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Subject</label>
+                                <input
+                                    type="text"
+                                    required
+                                    className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    placeholder="Enter subject"
+                                    value={messageData.subject}
+                                    onChange={(e) => setMessageData({ ...messageData, subject: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Message</label>
+                                <textarea
+                                    required
+                                    rows={6}
+                                    className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    placeholder="Type your message here..."
+                                    value={messageData.message}
+                                    onChange={(e) => setMessageData({ ...messageData, message: e.target.value })}
+                                />
+                            </div>
+                            <div className="flex gap-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowSendMessage(false)}
+                                    className="flex-1 px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors"
+                                    disabled={isSending}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                                    disabled={isSending}
+                                >
+                                    {isSending ? 'Sending...' : 'Send Message'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

@@ -10,6 +10,9 @@ const ZainboxPage: React.FC = () => {
     const [selectedZainbox, setSelectedZainbox] = useState<Zainbox | null>(null);
     const [showDetails, setShowDetails] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [balances, setBalances] = useState<{ totalBalance: number; balances: any[] } | null>(null);
+    const [loadingBalances, setLoadingBalances] = useState(false);
 
     const [createFormData, setCreateFormData] = useState({
         name: '',
@@ -32,6 +35,38 @@ const ZainboxPage: React.FC = () => {
             toast.error('Failed to fetch zainboxes');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSync = async () => {
+        try {
+            setIsSyncing(true);
+            const response = await adminApi.syncZainboxes();
+            if (response.success) {
+                toast.success(response.message || 'Sync completed successfully');
+                fetchZainboxes();
+            } else {
+                toast.error(response.message || 'Failed to sync zainboxes');
+            }
+        } catch (error: any) {
+            console.error('Failed to sync zainboxes:', error);
+            toast.error(error.response?.data?.message || 'Failed to sync zainboxes');
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
+    const fetchBalances = async (code: string) => {
+        try {
+            setLoadingBalances(true);
+            const response = await adminApi.getZainboxBalances(code);
+            if (response.success) {
+                setBalances(response.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch balances:', error);
+        } finally {
+            setLoadingBalances(false);
         }
     };
 
@@ -73,6 +108,20 @@ const ZainboxPage: React.FC = () => {
                 </div>
                 <div className="flex gap-3">
                     <button
+                        onClick={handleSync}
+                        disabled={isSyncing}
+                        className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+                    >
+                        {isSyncing ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-slate-500 border-r-transparent"></div>
+                        ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        )}
+                        Sync from Zainpay
+                    </button>
+                    <button
                         onClick={() => setShowCreateModal(true)}
                         className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
                     >
@@ -101,7 +150,7 @@ const ZainboxPage: React.FC = () => {
                 </div>
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                     <p className="text-sm font-medium text-slate-500">Total Balance</p>
-                    <h3 className="text-2xl font-bold text-slate-900 mt-1">₦4.2M</h3>
+                    <h3 className="text-2xl font-bold text-slate-900 mt-1">₦---</h3>
                 </div>
             </div>
 
@@ -116,61 +165,90 @@ const ZainboxPage: React.FC = () => {
                 />
             </div>
 
-            {/* Zainboxes Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Zainboxes Table */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 {loading ? (
-                    <div className="col-span-full p-8 text-center">
+                    <div className="p-8 text-center">
                         <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-green-600 border-r-transparent"></div>
                         <p className="mt-2 text-slate-500">Loading zainboxes...</p>
                     </div>
-                ) : (
-                    filteredZainboxes.map((zainbox) => (
-                        <div
-                            key={zainbox._id}
-                            className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow cursor-pointer"
-                            onClick={() => {
-                                setSelectedZainbox(zainbox);
-                                setShowDetails(true);
-                            }}
-                        >
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="flex-1">
-                                    <h3 className="text-lg font-semibold text-slate-900">{zainbox.name}</h3>
-                                    <p className="text-sm text-slate-500 mt-1 font-mono">{zainbox.zainboxCode}</p>
-                                </div>
-                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${zainbox.isLive
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-yellow-100 text-yellow-800'
-                                    }`}>
-                                    {zainbox.isLive ? 'LIVE' : 'SANDBOX'}
-                                </span>
-                            </div>
-
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2">
-                                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                    </svg>
-                                    <span className="text-sm text-slate-600">{zainbox.emailNotification}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                                    </svg>
-                                    <span className="text-sm text-slate-600">{zainbox.tags}</span>
-                                </div>
-                            </div>
-
-                            <div className="mt-4 pt-4 border-t border-slate-200 flex justify-between items-center">
-                                <span className="text-xs text-slate-500">
-                                    Created {new Date(zainbox.createdAt).toLocaleDateString()}
-                                </span>
-                                <button className="text-sm text-green-600 hover:text-green-700 font-medium">
-                                    View Details →
-                                </button>
-                            </div>
+                ) : filteredZainboxes.length === 0 ? (
+                    <div className="p-12 text-center">
+                        <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                            </svg>
                         </div>
-                    ))
+                        <h3 className="text-lg font-medium text-slate-900">No Zainboxes Found</h3>
+                        <p className="text-slate-500 mt-1">Get started by creating your first Zainbox or syncing from Zainpay.</p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead className="bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Name & Code</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Environment</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Notifications</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Created</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-slate-200">
+                                {filteredZainboxes.map((zainbox) => (
+                                    <tr key={zainbox._id} className="hover:bg-slate-50 transition-colors">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm font-medium text-slate-900">{zainbox.name}</div>
+                                            <div className="text-xs text-slate-500 font-mono">{zainbox.zainboxCode}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${zainbox.isLive
+                                                ? 'bg-green-100 text-green-800'
+                                                : 'bg-yellow-100 text-yellow-800'
+                                                }`}>
+                                                {zainbox.isLive ? 'LIVE' : 'SANDBOX'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm text-slate-900">{zainbox.emailNotification}</div>
+                                            <div className="text-xs text-slate-500 truncate max-w-[200px]">{zainbox.callbackUrl}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                            {new Date(zainbox.createdAt).toLocaleDateString()}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedZainbox(zainbox);
+                                                    setShowDetails(true);
+                                                    fetchBalances(zainbox.zainboxCode);
+                                                }}
+                                                className="text-green-600 hover:text-green-900 mr-4"
+                                            >
+                                                View
+                                            </button>
+                                            <button
+                                                onClick={async () => {
+                                                    if (window.confirm('Are you sure you want to delete this Zainbox? This will remove it from the system.')) {
+                                                        try {
+                                                            await adminApi.deleteZainbox(zainbox._id);
+                                                            toast.success('Zainbox deleted successfully');
+                                                            fetchZainboxes();
+                                                        } catch (error) {
+                                                            toast.error('Failed to delete Zainbox');
+                                                        }
+                                                    }
+                                                }}
+                                                className="text-red-600 hover:text-red-900"
+                                            >
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
             </div>
 
@@ -242,21 +320,57 @@ const ZainboxPage: React.FC = () => {
 
                             {/* Balances */}
                             <div>
-                                <h3 className="text-sm font-medium text-slate-900 mb-3">Balances (Mock Data)</h3>
-                                <div className="grid grid-cols-3 gap-4">
-                                    <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                                        <p className="text-xs text-green-600 font-medium">Available Balance</p>
-                                        <p className="text-lg font-bold text-green-900 mt-1">₦1,450,000</p>
+                                <h3 className="text-sm font-medium text-slate-900 mb-3">Real-time Balances</h3>
+                                {loadingBalances ? (
+                                    <div className="flex items-center justify-center p-8 bg-slate-50 rounded-lg border border-slate-200">
+                                        <div className="h-6 w-6 animate-spin rounded-full border-2 border-solid border-green-600 border-r-transparent"></div>
+                                        <span className="ml-3 text-slate-500 text-sm">Fetching balances...</span>
                                     </div>
-                                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                                        <p className="text-xs text-blue-600 font-medium">Pending</p>
-                                        <p className="text-lg font-bold text-blue-900 mt-1">₦120,000</p>
+                                ) : balances ? (
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                                                <p className="text-xs text-green-600 font-medium uppercase tracking-wider">Total Combined Balance</p>
+                                                <p className="text-2xl font-bold text-green-900 mt-1">
+                                                    ₦{balances.totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                </p>
+                                            </div>
+                                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                                                <p className="text-xs text-blue-600 font-medium uppercase tracking-wider">Active Accounts</p>
+                                                <p className="text-2xl font-bold text-blue-900 mt-1">{balances.balances.length}</p>
+                                            </div>
+                                        </div>
+
+                                        {balances.balances.length > 0 && (
+                                            <div className="border border-slate-200 rounded-lg overflow-hidden">
+                                                <table className="w-full text-left text-sm">
+                                                    <thead className="bg-slate-50 border-b border-slate-200">
+                                                        <tr>
+                                                            <th className="px-4 py-2 font-medium text-slate-700">Account Name</th>
+                                                            <th className="px-4 py-2 font-medium text-slate-700">Account Number</th>
+                                                            <th className="px-4 py-2 font-medium text-slate-700 text-right">Balance</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-200">
+                                                        {balances.balances.map((acc: any, i: number) => (
+                                                            <tr key={i} className="hover:bg-slate-50">
+                                                                <td className="px-4 py-2 text-slate-900 font-medium">{acc.accountName}</td>
+                                                                <td className="px-4 py-2 text-slate-500 font-mono">{acc.accountNumber}</td>
+                                                                <td className="px-4 py-2 text-slate-900 text-right font-semibold">
+                                                                    ₦{acc.balanceAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                                        <p className="text-xs text-slate-600 font-medium">Total</p>
-                                        <p className="text-lg font-bold text-slate-900 mt-1">₦1,570,000</p>
+                                ) : (
+                                    <div className="p-8 text-center bg-slate-50 rounded-lg border border-slate-200">
+                                        <p className="text-slate-500 text-sm">No balance data available for this Zainbox.</p>
                                     </div>
-                                </div>
+                                )}
                             </div>
 
                             {/* Actions */}
