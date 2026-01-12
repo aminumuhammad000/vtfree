@@ -25,12 +25,13 @@ export interface Zainbox {
     name: string;
     tags?: string;
     zainboxCode?: string; // Added
+    isActive?: boolean; // Added
     isLive?: boolean; // Added
 }
 
 // Virtual Account Types
 export interface CreateVirtualAccountPayload {
-    bankType: 'gtBank' | 'fidelity' | 'fcmb';
+    bankType: string;
     firstName: string;
     surname: string;
     email: string;

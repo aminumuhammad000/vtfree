@@ -2,6 +2,7 @@ import { Router, Response, Request } from 'express';
 import { User, Zainbox, VirtualAccount, Wallet, Transaction, WebhookLog, FeeRule, RiskRule, SystemSetting } from '../models';
 import { authenticate, AuthenticatedRequest, generateToken } from '../middleware';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { emailService } from '../services/EmailService';
 import { zainpayService } from '../services/ZainpayService';
 
@@ -151,7 +152,6 @@ const activateUserAccount = async (user: any) => {
     // 2. Auto-generate API Key if it doesn't exist
     if (!user.apiKey) {
         try {
-            const crypto = await import('crypto');
             const randomPart = crypto.randomBytes(24).toString('hex');
             const newApiKey = `sk_live_${randomPart}`;
 
@@ -669,7 +669,7 @@ router.post('/zainboxes/sync', async (req: AuthenticatedRequest, res: Response):
                     // Update existing
                     existing.isActive = zData.isActive !== false;
                     existing.name = zData.name;
-                    existing.emailNotification = zData.emailNotification;
+                    existing.emailNotification = zData.emailNotification || existing.emailNotification;
                     existing.tags = zData.tags || existing.tags;
                     existing.callbackUrl = zData.callbackUrl;
 
@@ -703,6 +703,94 @@ router.post('/zainboxes/sync', async (req: AuthenticatedRequest, res: Response):
         });
     }
 });
+
+/**
+ * Update a Zainbox
+ * PATCH /api/admin/zainboxes/:zainboxCode
+ */
+router.patch('/zainboxes/:zainboxCode', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { zainboxCode } = req.params;
+        const { name, callbackUrl, emailNotification, tags } = req.body;
+
+        const zainbox = await Zainbox.findOne({ zainboxCode });
+
+        if (!zainbox) {
+            res.status(404).json({
+                success: false,
+                message: 'Zainbox not found',
+            });
+            return;
+        }
+
+        // Update Zainbox via Zainpay API
+        try {
+            await zainpayService.updateZainbox({
+                codeName: zainbox.codeName,
+                name: name || zainbox.name,
+                callbackUrl: callbackUrl || zainbox.callbackUrl,
+                emailNotification: emailNotification || zainbox.emailNotification,
+                tags: tags || zainbox.tags,
+            });
+        } catch (zainpayError: any) {
+            console.error('Zainpay update error:', zainpayError);
+            res.status(400).json({
+                success: false,
+                message: 'Failed to update Zainbox on Zainpay',
+            });
+            return;
+        }
+
+        // Update local database
+        if (name) zainbox.name = name;
+        if (callbackUrl) zainbox.callbackUrl = callbackUrl;
+        if (emailNotification) zainbox.emailNotification = emailNotification;
+        if (tags) zainbox.tags = tags;
+
+        await zainbox.save();
+
+        res.json({
+            success: true,
+            message: 'Zainbox updated successfully',
+            data: zainbox,
+        });
+    } catch (error) {
+        console.error('Update zainbox error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update zainbox',
+        });
+    }
+});
+
+/**
+ * Get virtual accounts for a Zainbox
+ * GET /api/admin/zainboxes/:zainboxCode/accounts
+ */
+router.get('/zainboxes/:zainboxCode/accounts', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { zainboxCode } = req.params;
+
+        const zainbox = await Zainbox.findOne({ zainboxCode });
+
+        if (!zainbox) {
+            res.status(404).json({
+                success: false,
+                message: 'Zainbox not found',
+            });
+            return;
+        }
+
+        // Fetch virtual accounts from Zainpay
+        const zainpayAccounts = await zainpayService.getZainboxAccounts(zainboxCode);
+
+        res.json(zainpayAccounts || []);
+    } catch (error) {
+        console.error('Get zainbox accounts error:', error);
+        res.status(500).json([]);
+    }
+});
+
 
 /**
  * Get zainbox by code (admin view with full details)
@@ -1126,7 +1214,6 @@ router.post('/communications/send', async (req: AuthenticatedRequest, res: Respo
         const tenants = await User.find(query).select('email');
         const emails = tenants.map(t => t.email);
 
-        const { emailService } = await import('../services/EmailService');
         await emailService.sendBulkEmail(emails, subject, message);
 
         res.json({
@@ -1159,7 +1246,7 @@ router.post('/communications/send-single', async (req: AuthenticatedRequest, res
             return;
         }
 
-        const { emailService } = await import('../services/EmailService');
+
 
         // Convert plain text message to simple HTML
         const html = `
@@ -1222,7 +1309,6 @@ router.patch('/settings', async (req: AuthenticatedRequest, res: Response): Prom
 
         // Refresh Zainpay config if integrations settings were updated
         if (req.body.integrations?.zainpay) {
-            const { zainpayService } = await import('../services/ZainpayService');
             await zainpayService.refreshConfig();
         }
 
@@ -1239,11 +1325,7 @@ router.patch('/settings', async (req: AuthenticatedRequest, res: Response): Prom
     }
 });
 
-// ... existing code ...
-import { zainpayService } from '../services/ZainpayService';
-import crypto from 'crypto';
 
-// ... existing code ...
 
 /**
  * Create a new Zainbox (Admin)
@@ -1278,16 +1360,8 @@ router.post('/zainboxes', async (req: AuthenticatedRequest, res: Response): Prom
             return;
         }
 
-        // Find the created zainbox in the response
-        const createdZainboxData = zainpayResponse.data.find(z => z.name === name);
-
-        if (!createdZainboxData) {
-            res.status(500).json({
-                success: false,
-                message: 'Zainbox created but not found in response',
-            });
-            return;
-        }
+        // The API returns a single Zainbox object
+        const createdZainboxData = zainpayResponse.data;
 
         // Save to local DB
         const zainbox = new Zainbox({

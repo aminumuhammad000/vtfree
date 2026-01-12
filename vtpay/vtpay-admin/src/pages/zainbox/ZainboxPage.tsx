@@ -13,8 +13,20 @@ const ZainboxPage: React.FC = () => {
     const [isSyncing, setIsSyncing] = useState(false);
     const [balances, setBalances] = useState<{ totalBalance: number; balances: any[] } | null>(null);
     const [loadingBalances, setLoadingBalances] = useState(false);
+    const [virtualAccounts, setVirtualAccounts] = useState<any[]>([]);
+    const [loadingVirtualAccounts, setLoadingVirtualAccounts] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editingZainbox, setEditingZainbox] = useState<Zainbox | null>(null);
+    const [isUpdating, setIsUpdating] = useState(false);
 
     const [createFormData, setCreateFormData] = useState({
+        name: '',
+        emailNotification: '',
+        callbackUrl: '',
+        tags: ''
+    });
+
+    const [editFormData, setEditFormData] = useState({
         name: '',
         emailNotification: '',
         callbackUrl: '',
@@ -70,6 +82,19 @@ const ZainboxPage: React.FC = () => {
         }
     };
 
+    const fetchVirtualAccounts = async (code: string) => {
+        try {
+            setLoadingVirtualAccounts(true);
+            const response = await adminApi.getZainboxAccounts(code);
+            setVirtualAccounts(response || []);
+        } catch (error) {
+            console.error('Failed to fetch virtual accounts:', error);
+            setVirtualAccounts([]);
+        } finally {
+            setLoadingVirtualAccounts(false);
+        }
+    };
+
     const handleCreateSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -89,6 +114,36 @@ const ZainboxPage: React.FC = () => {
             toast.error('Failed to create zainbox');
         } finally {
             setIsCreating(false);
+        }
+    };
+
+    const handleEditClick = (zainbox: Zainbox) => {
+        setEditingZainbox(zainbox);
+        setEditFormData({
+            name: zainbox.name,
+            emailNotification: zainbox.emailNotification,
+            callbackUrl: zainbox.callbackUrl,
+            tags: zainbox.tags
+        });
+        setShowEditModal(true);
+    };
+
+    const handleUpdateSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingZainbox) return;
+
+        try {
+            setIsUpdating(true);
+            await adminApi.updateZainbox(editingZainbox.zainboxCode, editFormData);
+            toast.success('Zainbox updated successfully');
+            setShowEditModal(false);
+            setEditingZainbox(null);
+            fetchZainboxes();
+        } catch (error) {
+            console.error('Failed to update zainbox:', error);
+            toast.error('Failed to update zainbox');
+        } finally {
+            setIsUpdating(false);
         }
     };
 
@@ -222,10 +277,17 @@ const ZainboxPage: React.FC = () => {
                                                     setSelectedZainbox(zainbox);
                                                     setShowDetails(true);
                                                     fetchBalances(zainbox.zainboxCode);
+                                                    fetchVirtualAccounts(zainbox.zainboxCode);
                                                 }}
                                                 className="text-green-600 hover:text-green-900 mr-4"
                                             >
                                                 View
+                                            </button>
+                                            <button
+                                                onClick={() => handleEditClick(zainbox)}
+                                                className="text-blue-600 hover:text-blue-900 mr-4"
+                                            >
+                                                Edit
                                             </button>
                                             <button
                                                 onClick={async () => {
@@ -373,6 +435,48 @@ const ZainboxPage: React.FC = () => {
                                 )}
                             </div>
 
+                            {/* Virtual Accounts */}
+                            <div>
+                                <h3 className="text-sm font-medium text-slate-900 mb-3">Virtual Accounts</h3>
+                                {loadingVirtualAccounts ? (
+                                    <div className="flex items-center justify-center p-8 bg-slate-50 rounded-lg border border-slate-200">
+                                        <div className="h-6 w-6 animate-spin rounded-full border-2 border-solid border-green-600 border-r-transparent"></div>
+                                        <span className="ml-3 text-slate-500 text-sm">Loading virtual accounts...</span>
+                                    </div>
+                                ) : virtualAccounts.length > 0 ? (
+                                    <div className="space-y-4">
+                                        <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
+                                            <p className="text-xs text-indigo-600 font-medium uppercase tracking-wider">Total Virtual Accounts</p>
+                                            <p className="text-2xl font-bold text-indigo-900 mt-1">{virtualAccounts.length}</p>
+                                        </div>
+                                        <div className="border border-slate-200 rounded-lg overflow-hidden">
+                                            <table className="w-full text-left text-sm">
+                                                <thead className="bg-slate-50 border-b border-slate-200">
+                                                    <tr>
+                                                        <th className="px-4 py-2 font-medium text-slate-700">Account Name</th>
+                                                        <th className="px-4 py-2 font-medium text-slate-700">Account Number</th>
+                                                        <th className="px-4 py-2 font-medium text-slate-700">Bank</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-200">
+                                                    {virtualAccounts.map((acc: any, i: number) => (
+                                                        <tr key={i} className="hover:bg-slate-50">
+                                                            <td className="px-4 py-2 text-slate-900 font-medium">{acc.name}</td>
+                                                            <td className="px-4 py-2 text-slate-500 font-mono">{acc.bankAccount}</td>
+                                                            <td className="px-4 py-2 text-slate-600">{acc.bankName}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="p-8 text-center bg-slate-50 rounded-lg border border-slate-200">
+                                        <p className="text-slate-500 text-sm">No virtual accounts found for this Zainbox.</p>
+                                    </div>
+                                )}
+                            </div>
+
                             {/* Actions */}
                             <div className="flex gap-3 pt-4 border-t border-slate-200">
                                 <button className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
@@ -466,6 +570,86 @@ const ZainboxPage: React.FC = () => {
                                     disabled={isCreating}
                                 >
                                     {isCreating ? 'Creating...' : 'Create Zainbox'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Modal */}
+            {showEditModal && editingZainbox && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full">
+                        <div className="p-6 border-b border-slate-200">
+                            <div className="flex justify-between items-start">
+                                <h2 className="text-xl font-bold text-slate-900">Edit Zainbox</h2>
+                                <button
+                                    onClick={() => setShowEditModal(false)}
+                                    className="text-slate-400 hover:text-slate-600"
+                                >
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <form onSubmit={handleUpdateSubmit} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Zainbox Name</label>
+                                <input
+                                    type="text"
+                                    className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    placeholder="e.g., Company Name Primary"
+                                    value={editFormData.name}
+                                    onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Email Notification</label>
+                                <input
+                                    type="email"
+                                    className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    placeholder="notifications@company.com"
+                                    value={editFormData.emailNotification}
+                                    onChange={(e) => setEditFormData({ ...editFormData, emailNotification: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Callback URL (Webhook)</label>
+                                <input
+                                    type="url"
+                                    className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    placeholder="https://company.com/webhooks/vtpay"
+                                    value={editFormData.callbackUrl}
+                                    onChange={(e) => setEditFormData({ ...editFormData, callbackUrl: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Tags (comma separated)</label>
+                                <input
+                                    type="text"
+                                    className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    placeholder="production, primary"
+                                    value={editFormData.tags}
+                                    onChange={(e) => setEditFormData({ ...editFormData, tags: e.target.value })}
+                                />
+                            </div>
+                            <div className="flex gap-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowEditModal(false)}
+                                    className="flex-1 px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors"
+                                    disabled={isUpdating}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                                    disabled={isUpdating}
+                                >
+                                    {isUpdating ? 'Updating...' : 'Update Zainbox'}
                                 </button>
                             </div>
                         </form>
