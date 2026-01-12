@@ -11,6 +11,7 @@ interface User {
     nin?: string;
     bvn?: string;
     idCardPath?: string;
+    businessName?: string;
 }
 
 interface AuthContextType {

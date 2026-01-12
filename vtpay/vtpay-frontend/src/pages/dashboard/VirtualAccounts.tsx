@@ -1,7 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
-import { Plus, Copy, AlertCircle, CreditCard, X, ChevronDown, Check, RefreshCw } from 'lucide-react';
+import {
+    Plus,
+    Copy,
+    AlertCircle,
+    CreditCard,
+    X,
+    ChevronDown,
+    Check,
+    RefreshCw,
+    ShieldAlert,
+    CheckCircle2,
+    Search,
+    MoreHorizontal,
+    Filter,
+    Eye,
+    Trash2,
+    Calendar,
+    ArrowUpRight,
+    ArrowDownLeft
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { Link } from 'react-router-dom';
 
 export const VirtualAccounts: React.FC = () => {
     const { user } = useAuth();
@@ -11,11 +31,23 @@ export const VirtualAccounts: React.FC = () => {
     const [createError, setCreateError] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
     const [newAccountData, setNewAccountData] = useState({
         bankType: 'gtBank',
         bvn: '',
         accountName: '',
     });
+
+    // Detail View State
+    const [selectedAccount, setSelectedAccount] = useState<any>(null);
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [accountTransactions, setAccountTransactions] = useState<any[]>([]);
+    const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
+
+    // Delete State
+    const [accountToDelete, setAccountToDelete] = useState<any>(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
         fetchAccounts();
@@ -25,11 +57,52 @@ export const VirtualAccounts: React.FC = () => {
         setIsLoading(true);
         try {
             const response = await api.get('/virtual-accounts');
-            setAccounts(response.data.data);
+            setAccounts(response.data.data || []);
         } catch (error) {
             console.error('Error fetching accounts:', error);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const fetchAccountTransactions = async (accountNumber: string) => {
+        setIsTransactionsLoading(true);
+        try {
+            const response = await api.get(`/virtual-accounts/${accountNumber}/transactions`);
+            setAccountTransactions(response.data.data || []);
+        } catch (error) {
+            console.error('Error fetching transactions:', error);
+            setAccountTransactions([]);
+        } finally {
+            setIsTransactionsLoading(false);
+        }
+    };
+
+    const handleViewAccount = (account: any) => {
+        setSelectedAccount(account);
+        setShowDetailModal(true);
+        fetchAccountTransactions(account.accountNumber);
+    };
+
+    const handleDeleteClick = (account: any) => {
+        setAccountToDelete(account);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!accountToDelete) return;
+
+        setIsDeleting(true);
+        try {
+            await api.delete(`/virtual-accounts/${accountToDelete.id}`);
+            await fetchAccounts();
+            setShowDeleteModal(false);
+            setAccountToDelete(null);
+        } catch (error) {
+            console.error('Error deleting account:', error);
+            alert('Failed to delete account');
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -57,186 +130,281 @@ export const VirtualAccounts: React.FC = () => {
         setTimeout(() => setCopiedId(null), 2000);
     };
 
+    const filteredAccounts = accounts.filter(account =>
+        account.accountName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        account.accountNumber.includes(searchTerm) ||
+        account.bankName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (account.alias && account.alias.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('en-NG', {
+            style: 'currency',
+            currency: 'NGN',
+        }).format(amount);
+    };
+
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center h-96">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+            <div className="flex items-center justify-center min-h-[600px]">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="spinner"></div>
+                    <p className="text-body font-medium">Loading accounts...</p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="space-y-8 animate-fade-in">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-6 max-w-[1400px] animate-fade-in">
+            {/* Header Section */}
+            <div className="va-header">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Virtual Accounts</h1>
-                    <p className="text-slate-500 mt-1">Create and manage your dedicated virtual bank accounts</p>
+                    <h1 className="text-heading">Virtual Accounts</h1>
+                    <p className="text-body mt-1">Manage your dedicated bank accounts for receiving payments</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button
                         onClick={fetchAccounts}
-                        className="p-2.5 text-slate-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors"
-                        title="Refresh Accounts"
+                        className="btn btn-secondary p-2"
+                        title="Refresh"
                     >
-                        <RefreshCw size={20} />
+                        <RefreshCw size={18} />
                     </button>
-                    {(user?.kycLevel ?? 0) < 3 && (
-                        <span className="text-sm text-yellow-600 bg-yellow-50 px-3 py-1 rounded-full font-medium border border-yellow-100 flex items-center gap-2">
-                            <AlertCircle size={14} />
-                            Verification required
-                        </span>
-                    )}
                     <button
                         onClick={() => setShowCreateModal(true)}
-                        disabled={(user?.kycLevel ?? 0) < 3}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 hover:shadow-lg hover:shadow-green-200 transition-all shadow-md font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                        disabled={(user?.kycLevel ?? 0) < 3 || user?.status === 'suspended'}
+                        className="btn btn-primary"
                     >
                         <Plus size={18} />
-                        Create New Account
+                        Create Account
                     </button>
                 </div>
             </div>
 
-            {/* Account List */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {accounts.length === 0 ? (
-                    <div className="col-span-full bg-white rounded-2xl border border-slate-200 p-16 text-center shadow-sm">
-                        <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <CreditCard size={40} className="text-slate-300" />
-                        </div>
-                        <h3 className="text-xl font-bold text-slate-900 mb-2">No Accounts Yet</h3>
-                        <p className="text-slate-500 max-w-md mx-auto mb-8">Create a virtual account to start receiving payments instantly. You can have multiple accounts for different purposes.</p>
-                        <button
-                            onClick={() => setShowCreateModal(true)}
-                            disabled={(user?.kycLevel ?? 0) < 3}
-                            className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-medium disabled:opacity-50 shadow-md hover:shadow-lg hover:shadow-green-200"
-                        >
-                            Create First Account
-                        </button>
+            {/* Suspension Alert */}
+            {user?.status === 'suspended' && (
+                <div className="alert alert-error bg-red-50 border-red-200 text-red-800">
+                    <div className="alert-icon text-red-600">
+                        <AlertCircle size={20} />
                     </div>
-                ) : (
-                    accounts.map((account) => (
-                        <div key={account.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden group relative">
-                            {/* Card Header / Background Pattern */}
-                            <div className="h-24 bg-gradient-to-r from-slate-900 to-slate-800 relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-8 -mt-8"></div>
-                                <div className="absolute bottom-0 left-0 w-24 h-24 bg-green-500/10 rounded-full blur-xl -ml-4 -mb-4"></div>
-                                <div className="absolute top-4 right-4">
-                                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${account.status === 'active'
-                                            ? 'bg-green-500/20 text-green-100 border-green-500/30'
-                                            : 'bg-slate-500/20 text-slate-300 border-slate-500/30'
-                                        }`}>
-                                        {account.status}
-                                    </span>
-                                </div>
-                            </div>
+                    <div className="alert-content">
+                        <h4 className="font-bold">Account Suspended</h4>
+                        <p>
+                            Your account is currently suspended. You cannot create new virtual accounts or perform transactions. Please contact support for assistance.
+                        </p>
+                    </div>
+                </div>
+            )}
 
-                            {/* Card Content */}
-                            <div className="px-6 pb-6 -mt-10 relative z-10">
-                                <div className="w-20 h-20 bg-white rounded-xl shadow-lg p-1 mb-4 flex items-center justify-center">
-                                    <div className="w-full h-full bg-slate-50 rounded-lg flex items-center justify-center text-slate-700 font-bold text-2xl border border-slate-100">
-                                        {account.bankName.charAt(0)}
-                                    </div>
-                                </div>
+            {/* KYC Alert */}
+            {user?.status !== 'suspended' && (user?.kycLevel ?? 0) < 3 && (
+                <div className="alert alert-warning">
+                    <div className="alert-icon">
+                        <ShieldAlert size={20} />
+                    </div>
+                    <div className="alert-content">
+                        <h4>Verification Required</h4>
+                        <p>
+                            You need to complete Tier 3 verification to create virtual accounts. This helps us comply with financial regulations and keep your account secure.
+                        </p>
+                        <Link to="/dashboard/verification" className="text-xs font-bold underline mt-2 inline-block hover:text-amber-800">
+                            Complete Verification Now
+                        </Link>
+                    </div>
+                </div>
+            )}
 
-                                <h3 className="text-lg font-bold text-slate-900 mb-1 truncate" title={account.alias || account.accountName}>
-                                    {account.alias || account.accountName}
-                                </h3>
-                                <p className="text-sm text-slate-500 mb-6 flex items-center gap-2">
-                                    <span className="w-1.5 h-1.5 bg-slate-300 rounded-full"></span>
-                                    {account.bankName}
-                                </p>
+            {/* Search and Filters */}
+            <div className="va-filter-bar">
+                <div className="va-search-wrapper">
+                    <Search className="search-icon" size={18} />
+                    <input
+                        type="text"
+                        placeholder="Search accounts by name, number or bank..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="search-input"
+                    />
+                </div>
+                <div className="flex items-center gap-2">
+                    <button className="btn btn-outline py-2 px-3 text-sm">
+                        <Filter size={16} />
+                        Filter
+                    </button>
+                </div>
+            </div>
 
-                                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 group-hover:border-green-200 group-hover:bg-green-50/30 transition-colors">
-                                    <p className="text-xs text-slate-400 mb-1.5 uppercase tracking-wider font-semibold">Account Number</p>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-2xl font-mono font-bold text-slate-900 tracking-wide">
-                                            {account.accountNumber}
-                                        </span>
-                                        <button
-                                            onClick={() => copyToClipboard(account.accountNumber, account.id)}
-                                            className="p-2 hover:bg-white rounded-lg transition-colors text-slate-400 hover:text-green-600 shadow-sm"
-                                            title="Copy Account Number"
-                                        >
-                                            {copiedId === account.id ? <Check size={18} /> : <Copy size={18} />}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))
-                )}
+            {/* Accounts Table */}
+            <div className="va-table-container">
+                <div className="overflow-x-auto">
+                    <table className="table">
+                        <thead>
+                            <tr>
+                                <th>Account Details</th>
+                                <th>Bank Name</th>
+                                <th>Account Number</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th className="text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredAccounts.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} className="va-empty-state">
+                                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <CreditCard size={32} className="text-gray-300" />
+                                        </div>
+                                        <h3 className="text-lg font-bold text-heading">No accounts found</h3>
+                                        <p className="text-sm text-muted mt-1">
+                                            {searchTerm ? 'Try adjusting your search term' : 'Create your first virtual account to get started'}
+                                        </p>
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredAccounts.map((account) => (
+                                    <tr key={account.id} className="group">
+                                        <td>
+                                            <div className="flex items-center gap-3">
+                                                <div className="va-bank-icon">
+                                                    {account.bankName.charAt(0)}
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-medium">{account.alias || account.accountName}</p>
+                                                    <p className="text-[10px] text-muted font-mono mt-0.5">REF: {account.reference || 'N/A'}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <p className="text-body font-medium">{account.bankName}</p>
+                                        </td>
+                                        <td>
+                                            <div className="flex items-center gap-2">
+                                                <span className="va-account-number">
+                                                    {account.accountNumber}
+                                                </span>
+                                                <button
+                                                    onClick={() => copyToClipboard(account.accountNumber, account.id)}
+                                                    className="va-copy-btn"
+                                                    title="Copy"
+                                                >
+                                                    {copiedId === account.id ? <Check size={14} className="text-success" /> : <Copy size={14} />}
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div className={`badge ${account.status === 'active' ? 'badge-success' : 'badge-warning'}`}>
+                                                {account.status === 'active' && <CheckCircle2 size={12} className="mr-1.5" />}
+                                                {account.status}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <p className="text-xs text-muted">
+                                                {new Date(account.createdAt).toLocaleDateString('en-US', {
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                    year: 'numeric'
+                                                })}
+                                            </p>
+                                        </td>
+                                        <td className="text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => handleViewAccount(account)}
+                                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                                    title="View Details"
+                                                >
+                                                    <Eye size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteClick(account)}
+                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                    title="Delete Account"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {/* Create Modal */}
             {showCreateModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-up">
-                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="va-modal-overlay animate-fade-in">
+                    <div className="va-modal-content animate-scale-up">
+                        <div className="va-modal-header">
                             <div>
-                                <h2 className="text-lg font-bold text-slate-900">Create Virtual Account</h2>
-                                <p className="text-xs text-slate-500">Enter details to generate a new account number.</p>
+                                <h2 className="text-lg font-bold text-heading">New Virtual Account</h2>
+                                <p className="text-xs text-muted mt-0.5">Generate a dedicated bank account</p>
                             </div>
                             <button
                                 onClick={() => setShowCreateModal(false)}
-                                className="text-slate-400 hover:text-slate-600 transition-colors p-1 hover:bg-slate-100 rounded-lg"
+                                className="text-muted hover:text-heading transition-all p-2 hover:bg-gray-100 rounded-lg"
                             >
                                 <X size={20} />
                             </button>
                         </div>
 
-                        <div className="p-6">
+                        <div className="va-modal-body">
                             {createError && (
-                                <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
-                                    <AlertCircle className="text-red-500 mt-0.5 flex-shrink-0" size={18} />
-                                    <p className="text-sm text-red-600 font-medium">{createError}</p>
+                                <div className="alert alert-error mb-6">
+                                    <div className="alert-icon">
+                                        <AlertCircle size={18} />
+                                    </div>
+                                    <p>{createError}</p>
                                 </div>
                             )}
 
                             <form onSubmit={handleCreateAccount} className="space-y-5">
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Account Name (Alias)</label>
+                                <div className="form-group">
+                                    <label className="form-label text-xs uppercase tracking-wider text-muted">Account Name (Alias)</label>
                                     <input
                                         type="text"
                                         value={newAccountData.accountName}
                                         onChange={(e) => setNewAccountData({ ...newAccountData, accountName: e.target.value })}
-                                        placeholder="e.g. My Savings, Business Account"
-                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all placeholder:text-slate-400"
+                                        placeholder="e.g. Business Collections"
+                                        className="form-input"
                                         required
                                     />
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Bank Type</label>
+                                <div className="form-group">
+                                    <label className="form-label text-xs uppercase tracking-wider text-muted">Select Bank Provider</label>
                                     <div className="relative">
                                         <select
                                             value={newAccountData.bankType}
                                             onChange={(e) => setNewAccountData({ ...newAccountData, bankType: e.target.value })}
-                                            className="w-full appearance-none px-4 py-2.5 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all text-slate-700"
+                                            className="form-input cursor-pointer"
                                         >
-                                            <option value="gtBank">GTBank</option>
+                                            <option value="gtBank">GTBank (Instant)</option>
                                             <option value="fidelity">Fidelity Bank</option>
                                             <option value="fcmb">FCMB</option>
                                         </select>
-                                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+                                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">BVN (Optional)</label>
+                                <div className="form-group">
+                                    <label className="form-label text-xs uppercase tracking-wider text-muted">BVN (Optional)</label>
                                     <input
                                         type="text"
                                         value={newAccountData.bvn}
                                         onChange={(e) => setNewAccountData({ ...newAccountData, bvn: e.target.value })}
-                                        placeholder="Enter BVN if required"
-                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all placeholder:text-slate-400"
+                                        placeholder="Required for some banks"
+                                        className="form-input"
                                     />
                                 </div>
 
                                 <div className="pt-4 flex gap-3">
                                     <button
                                         type="button"
-                                        className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors"
+                                        className="btn btn-outline flex-1"
                                         onClick={() => setShowCreateModal(false)}
                                     >
                                         Cancel
@@ -244,17 +412,144 @@ export const VirtualAccounts: React.FC = () => {
                                     <button
                                         type="submit"
                                         disabled={isCreating}
-                                        className="flex-1 px-4 py-2.5 bg-green-600 text-white font-medium rounded-xl hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:shadow-green-200"
+                                        className="btn btn-primary flex-1"
                                     >
                                         {isCreating ? (
                                             <>
-                                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                <div className="spinner"></div>
                                                 Creating...
                                             </>
-                                        ) : 'Create Account'}
+                                        ) : 'Generate Account'}
                                     </button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Detail Modal */}
+            {showDetailModal && selectedAccount && (
+                <div className="va-modal-overlay animate-fade-in">
+                    <div className="va-modal-content animate-scale-up max-w-2xl">
+                        <div className="va-modal-header">
+                            <div>
+                                <h2 className="text-lg font-bold text-heading">{selectedAccount.alias || selectedAccount.accountName}</h2>
+                                <p className="text-xs text-muted mt-0.5">{selectedAccount.bankName} • {selectedAccount.accountNumber}</p>
+                            </div>
+                            <button
+                                onClick={() => setShowDetailModal(false)}
+                                className="text-muted hover:text-heading transition-all p-2 hover:bg-gray-100 rounded-lg"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="va-modal-body">
+                            <div className="grid grid-cols-2 gap-4 mb-6">
+                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                    <p className="text-xs text-muted uppercase tracking-wider font-medium">Account Status</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <div className={`w-2 h-2 rounded-full ${selectedAccount.status === 'active' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                                        <p className="font-bold text-heading capitalize">{selectedAccount.status}</p>
+                                    </div>
+                                </div>
+                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                    <p className="text-xs text-muted uppercase tracking-wider font-medium">Created On</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <Calendar size={14} className="text-gray-400" />
+                                        <p className="font-bold text-heading">
+                                            {new Date(selectedAccount.createdAt).toLocaleDateString()}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mb-4">
+                                <h3 className="text-sm font-bold text-heading mb-3">Recent Transactions</h3>
+                                <div className="border rounded-xl overflow-hidden">
+                                    {isTransactionsLoading ? (
+                                        <div className="p-8 flex justify-center">
+                                            <div className="spinner"></div>
+                                        </div>
+                                    ) : accountTransactions.length === 0 ? (
+                                        <div className="p-8 text-center bg-gray-50">
+                                            <p className="text-sm text-muted">No transactions found for this account.</p>
+                                        </div>
+                                    ) : (
+                                        <table className="w-full text-sm text-left">
+                                            <thead className="bg-gray-50 text-xs uppercase text-gray-500 font-medium">
+                                                <tr>
+                                                    <th className="p-3">Type</th>
+                                                    <th className="p-3">Amount</th>
+                                                    <th className="p-3">Date</th>
+                                                    <th className="p-3">Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                                {accountTransactions.map((txn: any) => (
+                                                    <tr key={txn.reference}>
+                                                        <td className="p-3">
+                                                            <div className="flex items-center gap-2">
+                                                                {txn.type === 'credit' ? (
+                                                                    <ArrowDownLeft size={14} className="text-green-500" />
+                                                                ) : (
+                                                                    <ArrowUpRight size={14} className="text-red-500" />
+                                                                )}
+                                                                <span className="capitalize">{txn.type}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-3 font-mono font-medium">
+                                                            {formatCurrency(txn.amount)}
+                                                        </td>
+                                                        <td className="p-3 text-gray-500">
+                                                            {new Date(txn.date).toLocaleDateString()}
+                                                        </td>
+                                                        <td className="p-3">
+                                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${txn.status === 'success' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                                                                }`}>
+                                                                {txn.status}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && accountToDelete && (
+                <div className="va-modal-overlay animate-fade-in">
+                    <div className="va-modal-content animate-scale-up max-w-sm">
+                        <div className="p-6 text-center">
+                            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600">
+                                <AlertCircle size={24} />
+                            </div>
+                            <h3 className="text-lg font-bold text-heading mb-2">Delete Account?</h3>
+                            <p className="text-sm text-muted mb-6">
+                                Are you sure you want to delete <strong>{accountToDelete.alias || accountToDelete.accountName}</strong>? This action cannot be undone.
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowDeleteModal(false)}
+                                    className="btn btn-outline flex-1"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmDelete}
+                                    disabled={isDeleting}
+                                    className="btn btn-danger flex-1"
+                                >
+                                    {isDeleting ? 'Deleting...' : 'Delete'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

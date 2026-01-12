@@ -7,12 +7,14 @@ export const DashboardLayout: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     return (
-        <div className="flex h-screen bg-slate-50 overflow-hidden">
+        <div className="flex h-screen bg-[#F9FAFB] overflow-hidden">
             <Sidebar isMobileOpen={isMobileMenuOpen} setIsMobileOpen={setIsMobileMenuOpen} />
             <div className="flex-1 flex flex-col overflow-hidden">
                 <Topbar onMenuClick={() => setIsMobileMenuOpen(true)} />
-                <main className="flex-1 overflow-auto p-4 lg:p-8">
-                    <Outlet />
+                <main className="flex-1 overflow-auto p-4 lg:p-8 scroll-smooth">
+                    <div className="max-w-[1600px] mx-auto">
+                        <Outlet />
+                    </div>
                 </main>
             </div>
         </div>

@@ -9,6 +9,7 @@ import payoutRoutes from './payoutRoutes';
 import kycRoutes from './kycRoutes';
 import zainboxRoutes from './zainboxRoutes';
 import adminRoutes from './adminRoutes';
+import helpRoutes from './helpRoutes';
 
 export {
     authRoutes,
@@ -22,4 +23,5 @@ export {
     kycRoutes,
     zainboxRoutes,
     adminRoutes,
+    helpRoutes,
 };

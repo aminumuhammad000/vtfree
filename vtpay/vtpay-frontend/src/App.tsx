@@ -10,10 +10,12 @@ import { Overview } from './pages/dashboard/Overview';
 import { Wallet } from './pages/dashboard/Wallet';
 import { VirtualAccounts } from './pages/dashboard/VirtualAccounts';
 import { Transactions } from './pages/dashboard/Transactions';
+import { Payout } from './pages/dashboard/Payout';
 import { Developer } from './pages/dashboard/Developer';
 import { Verification } from './pages/dashboard/Verification';
 import { Settings } from './pages/dashboard/Settings';
 import { Profile } from './pages/dashboard/Profile';
+import { Help } from './pages/dashboard/Help';
 import { ApiDocs } from './pages/public/ApiDocs';
 import { LandingPage } from './pages/public/LandingPage';
 
@@ -73,10 +75,12 @@ const AppRoutes = () => {
         <Route path="wallet" element={<Wallet />} />
         <Route path="virtual-accounts" element={<VirtualAccounts />} />
         <Route path="transactions" element={<Transactions />} />
+        <Route path="payout" element={<Payout />} />
         <Route path="developer" element={<Developer />} />
         <Route path="verification" element={<Verification />} />
         <Route path="settings" element={<Settings />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="help" element={<Help />} />
       </Route>
 
       {/* Catch all */}

@@ -148,4 +148,78 @@ router.get('/balance/:reference', async (req: AuthenticatedRequest, res: Respons
     }
 });
 
+/**
+ * Get Saved Bank Details
+ * GET /api/payout/saved-account
+ */
+router.get('/saved-account', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const userId = req.user!.id;
+        const user = await User.findById(userId);
+
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+            return;
+        }
+
+        res.json({
+            success: true,
+            data: user.savedBankDetails || null,
+        });
+    } catch (error) {
+        console.error('Get saved account error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get saved account',
+        });
+    }
+});
+
+/**
+ * Save Bank Details
+ * POST /api/payout/saved-account
+ */
+router.post('/saved-account', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const userId = req.user!.id;
+        const { bankCode, bankName, accountNumber, accountName } = req.body;
+
+        if (!bankCode || !bankName || !accountNumber || !accountName) {
+            res.status(400).json({
+                success: false,
+                message: 'Missing required fields',
+            });
+            return;
+        }
+
+        const user = await User.findByIdAndUpdate(
+            userId,
+            {
+                savedBankDetails: {
+                    bankCode,
+                    bankName,
+                    accountNumber,
+                    accountName,
+                },
+            },
+            { new: true }
+        );
+
+        res.json({
+            success: true,
+            message: 'Bank details saved successfully',
+            data: user?.savedBankDetails,
+        });
+    } catch (error) {
+        console.error('Save bank details error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to save bank details',
+        });
+    }
+});
+
 export default router;

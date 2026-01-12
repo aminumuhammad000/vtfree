@@ -13,11 +13,12 @@ import ApiKeysPage from './pages/api-keys/ApiKeysPage';
 import CommunicationsPage from './pages/communications/CommunicationsPage';
 import ProfilePage from './pages/profile/ProfilePage';
 import HelpMessages from './pages/help/HelpMessages';
+import AdminsPage from './pages/admins/AdminsPage';
 import Login from './pages/auth/Login';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
@@ -25,6 +26,21 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (user?.role !== 'admin') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+        <h1 className="text-2xl font-bold text-red-600 mb-2">Access Denied</h1>
+        <p className="text-gray-600 mb-4">You do not have permission to access the admin portal.</p>
+        <button
+          onClick={() => window.location.href = '/login'}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+        >
+          Go to Login
+        </button>
+      </div>
+    );
   }
 
   return <>{children}</>;
@@ -49,6 +65,7 @@ function AppRoutes() {
       <Route path="/settings" element={<ProtectedRoute><Layout><SettingsPage /></Layout></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Layout><ProfilePage /></Layout></ProtectedRoute>} />
       <Route path="/help" element={<ProtectedRoute><Layout><HelpMessages /></Layout></ProtectedRoute>} />
+      <Route path="/admins" element={<ProtectedRoute><Layout><AdminsPage /></Layout></ProtectedRoute>} />
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

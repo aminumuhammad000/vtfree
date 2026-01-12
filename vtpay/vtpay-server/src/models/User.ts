@@ -14,7 +14,15 @@ export interface IUserDocument extends Document {
     apiKey?: string;
     businessName?: string;
     kycLevel: number; // 0: Registered, 1: Verified, 2: Submitted, 3: Approved
+    kyc_status: 'pending' | 'verified' | 'rejected';
+    role: 'user' | 'admin';
     status: 'active' | 'suspended' | 'pending';
+    savedBankDetails?: {
+        bankCode: string;
+        bankName: string;
+        accountNumber: string;
+        accountName: string;
+    };
     createdAt: Date;
     updatedAt: Date;
 }
@@ -80,10 +88,26 @@ const UserSchema = new Schema<IUserDocument>(
             min: 0,
             max: 3,
         },
+        kyc_status: {
+            type: String,
+            enum: ['pending', 'verified', 'rejected'],
+            default: 'pending',
+        },
+        role: {
+            type: String,
+            enum: ['user', 'admin'],
+            default: 'user',
+        },
         status: {
             type: String,
             enum: ['active', 'suspended', 'pending'],
             default: 'pending',
+        },
+        savedBankDetails: {
+            bankCode: String,
+            bankName: String,
+            accountNumber: String,
+            accountName: String,
         },
     },
     {

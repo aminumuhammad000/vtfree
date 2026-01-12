@@ -27,7 +27,6 @@ const ZainboxSchema = new Schema<IZainboxDocument>(
         },
         emailNotification: {
             type: String,
-            required: true,
             trim: true,
         },
         tags: {
@@ -47,9 +46,13 @@ const ZainboxSchema = new Schema<IZainboxDocument>(
         },
         zainboxCode: {
             type: String,
-            required: true,
             unique: true,
+            sparse: true,
             trim: true,
+        },
+        isActive: {
+            type: Boolean,
+            default: true,
         },
         isLive: {
             type: Boolean,

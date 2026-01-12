@@ -46,7 +46,13 @@ export class ZainpayService {
         this.client.interceptors.response.use(
             (response) => response,
             (error: AxiosError) => {
-                console.error('Zainpay API Error:', error.response?.data || error.message);
+                console.error('Zainpay API Error:', {
+                    method: error.config?.method?.toUpperCase(),
+                    url: error.config?.url,
+                    status: error.response?.status,
+                    data: error.response?.data,
+                    message: error.message
+                });
                 throw error;
             }
         );
@@ -57,6 +63,7 @@ export class ZainpayService {
      */
     async refreshConfig() {
         try {
+            console.log('Refreshing Zainpay configuration from database...');
             const SystemSetting = (await import('../models')).SystemSetting;
             const settings = await SystemSetting.findOne();
 
@@ -65,13 +72,19 @@ export class ZainpayService {
 
                 // Only update if keys are present
                 if (zainpayConfig.apiKey && zainpayConfig.baseUrl) {
+                    console.log(`Found Zainpay settings in DB. Mode: ${zainpayConfig.isLive ? 'LIVE' : 'SANDBOX'}`);
+                    console.log(`DB BaseURL: ${zainpayConfig.baseUrl}`);
+
                     this.publicKey = zainpayConfig.apiKey;
                     this.baseUrl = zainpayConfig.baseUrl;
                     this.secretKey = zainpayConfig.secretKey;
 
-                    console.log(`Zainpay Service updated to use ${zainpayConfig.isLive ? 'LIVE' : 'SANDBOX'} mode`);
                     this.initializeClient();
+                } else {
+                    console.log('Zainpay settings in DB are incomplete (missing apiKey or baseUrl). Using defaults/env.');
                 }
+            } else {
+                console.log('No Zainpay settings found in DB. Using defaults/env.');
             }
         } catch (error) {
             console.error('Failed to refresh Zainpay config:', error);
@@ -83,7 +96,7 @@ export class ZainpayService {
     /**
      * Create a new Zainbox
      */
-    async createZainbox(payload: CreateZainboxPayload): Promise<ZainpayResponse<Zainbox[]>> {
+    async createZainbox(payload: CreateZainboxPayload): Promise<ZainpayResponse<Zainbox>> {
         const response = await this.client.post('/zainbox/create/request', payload);
         return response.data;
     }

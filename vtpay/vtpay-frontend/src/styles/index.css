@@ -123,6 +123,24 @@ a:hover {
     color: var(--primary-hover);
 }
 
+.text-heading {
+    color: var(--text-heading);
+}
+
+.text-body {
+    color: var(--text-primary);
+}
+
+.text-subheading {
+    color: var(--text-heading);
+    font-weight: 600;
+}
+
+.text-caption {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
 /* ============================
    SCROLLBAR
    ============================ */
