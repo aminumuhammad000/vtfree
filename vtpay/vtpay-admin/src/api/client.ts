@@ -150,6 +150,16 @@ export const adminApi = {
         return response.data;
     },
 
+    updateZainbox: async (zainboxCode: string, data: any): Promise<Zainbox> => {
+        const response = await api.patch<ApiResponse<Zainbox>>(`/admin/zainboxes/${zainboxCode}`, data);
+        return response.data.data!;
+    },
+
+    getZainboxAccounts: async (zainboxCode: string): Promise<any[]> => {
+        const response = await api.get<any>(`/admin/zainboxes/${zainboxCode}/accounts`);
+        return response.data || [];
+    },
+
     // Fee Management
     getFees: async (): Promise<any[]> => {
         const response = await api.get<ApiResponse<any[]>>('/admin/fees');

@@ -8,6 +8,7 @@ export interface IZainboxDocument extends Document {
     callbackUrl: string;
     codeName: string; // The codeName sent to Zainpay
     zainboxCode: string; // The unique code returned by Zainpay
+    isActive: boolean;
     isLive: boolean;
     createdAt: Date;
     updatedAt: Date;

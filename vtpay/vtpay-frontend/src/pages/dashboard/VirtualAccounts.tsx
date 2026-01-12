@@ -32,8 +32,10 @@ export const VirtualAccounts: React.FC = () => {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [supportedBanks, setSupportedBanks] = useState<Array<{ code: string; name: string }>>([]);
+    const [isBanksLoading, setIsBanksLoading] = useState(false);
     const [newAccountData, setNewAccountData] = useState({
-        bankType: 'gtBank',
+        bankType: '',
         bvn: '',
         accountName: '',
     });
@@ -51,6 +53,7 @@ export const VirtualAccounts: React.FC = () => {
 
     useEffect(() => {
         fetchAccounts();
+        fetchSupportedBanks();
     }, []);
 
     const fetchAccounts = async () => {
@@ -62,6 +65,29 @@ export const VirtualAccounts: React.FC = () => {
             console.error('Error fetching accounts:', error);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const fetchSupportedBanks = async () => {
+        setIsBanksLoading(true);
+        try {
+            const response = await api.get('/virtual-accounts/supported-banks');
+            const banks = response.data.data || [];
+            setSupportedBanks(banks);
+            // Set default bank if available
+            if (banks.length > 0 && !newAccountData.bankType) {
+                setNewAccountData(prev => ({ ...prev, bankType: banks[0].code }));
+            }
+        } catch (error) {
+            console.error('Error fetching supported banks:', error);
+            // Fallback to default banks if API fails
+            setSupportedBanks([
+                { code: 'gtBank', name: 'GTBank' },
+                { code: 'fidelity', name: 'Fidelity Bank' },
+                { code: 'fcmb', name: 'FCMB' }
+            ]);
+        } finally {
+            setIsBanksLoading(false);
         }
     };
 
@@ -115,7 +141,7 @@ export const VirtualAccounts: React.FC = () => {
             await api.post('/virtual-accounts', newAccountData);
             await fetchAccounts();
             setShowCreateModal(false);
-            setNewAccountData({ bankType: 'gtBank', bvn: '', accountName: '' });
+            setNewAccountData({ bankType: supportedBanks[0]?.code || '', bvn: '', accountName: '' });
         } catch (err: any) {
             console.error('Create account error:', err);
             setCreateError(err.response?.data?.message || 'Failed to create account');
@@ -381,13 +407,31 @@ export const VirtualAccounts: React.FC = () => {
                                             value={newAccountData.bankType}
                                             onChange={(e) => setNewAccountData({ ...newAccountData, bankType: e.target.value })}
                                             className="form-input cursor-pointer"
+                                            disabled={isBanksLoading}
+                                            required
                                         >
-                                            <option value="gtBank">GTBank (Instant)</option>
-                                            <option value="fidelity">Fidelity Bank</option>
-                                            <option value="fcmb">FCMB</option>
+                                            {isBanksLoading ? (
+                                                <option>Loading banks...</option>
+                                            ) : supportedBanks.length === 0 ? (
+                                                <option>No banks available</option>
+                                            ) : (
+                                                <>
+                                                    <option value="">Select a bank</option>
+                                                    {supportedBanks.map((bank) => (
+                                                        <option key={bank.code} value={bank.code}>
+                                                            {bank.name}
+                                                        </option>
+                                                    ))}
+                                                </>
+                                            )}
                                         </select>
                                         <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
                                     </div>
+                                    {supportedBanks.length > 0 && (
+                                        <p className="text-[10px] text-muted mt-1.5">
+                                            {supportedBanks.length} banks available for virtual account creation
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div className="form-group">

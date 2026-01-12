@@ -11,6 +11,35 @@ const router = Router();
 router.use(authenticate);
 
 /**
+ * Get list of supported banks for virtual account creation
+ * GET /api/virtual-accounts/supported-banks
+ */
+router.get('/supported-banks', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const banksResponse = await zainpayService.getBankList();
+
+        if (banksResponse.code !== '00') {
+            res.status(400).json({
+                success: false,
+                message: banksResponse.description || 'Failed to fetch supported banks',
+            });
+            return;
+        }
+
+        res.json({
+            success: true,
+            data: banksResponse.data || [],
+        });
+    } catch (error) {
+        console.error('Get supported banks error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch supported banks',
+        });
+    }
+});
+
+/**
  * Create a virtual account for the user
  * POST /api/virtual-accounts
  */
@@ -18,7 +47,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
     try {
         const userId = req.user!.id;
         const {
-            bankType = 'gtBank',
+            bankType,
             accountName,
             reference,
             // Customer details (optional, for B2B2C)
@@ -33,6 +62,14 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
             bvn,
             zainboxCode // Now required or inferred
         } = req.body;
+
+        if (!bankType) {
+            res.status(400).json({
+                success: false,
+                message: 'bankType is required',
+            });
+            return;
+        }
 
         // Get user details for virtual account creation
         const user = await User.findById(userId);
