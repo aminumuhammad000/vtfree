@@ -371,4 +371,43 @@ router.get('/:accountNumber/transactions', async (req: AuthenticatedRequest, res
     }
 });
 
+/**
+ * Delete virtual account (Local only)
+ * DELETE /api/virtual-accounts/:id
+ */
+router.delete('/:id', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const userId = req.user!.id;
+        const { id } = req.params;
+
+        // Verify account belongs to user
+        const account = await VirtualAccount.findOne({
+            _id: id,
+            userId: new mongoose.Types.ObjectId(userId),
+        });
+
+        if (!account) {
+            res.status(404).json({
+                success: false,
+                message: 'Virtual account not found',
+            });
+            return;
+        }
+
+        // Delete from local database
+        await VirtualAccount.deleteOne({ _id: id });
+
+        res.json({
+            success: true,
+            message: 'Virtual account deleted successfully',
+        });
+    } catch (error) {
+        console.error('Delete virtual account error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete virtual account',
+        });
+    }
+});
+
 export default router;

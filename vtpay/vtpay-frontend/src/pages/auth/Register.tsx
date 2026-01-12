@@ -8,6 +8,7 @@ export const Register: React.FC = () => {
     const [currentStep, setCurrentStep] = useState(1);
     const [formData, setFormData] = useState({
         fullName: '',
+        businessName: '',
         email: '',
         phone: '',
         password: '',
@@ -26,6 +27,10 @@ export const Register: React.FC = () => {
         if (currentStep === 1) {
             if (!formData.fullName) {
                 setError('Please enter your full name');
+                return;
+            }
+            if (!formData.businessName) {
+                setError('Please enter your business name');
                 return;
             }
         }
@@ -166,8 +171,22 @@ export const Register: React.FC = () => {
                                 required
                             />
                         </div>
+                        <div className="form-group">
+                            <label className="form-label">Business Name</label>
+                            <input
+                                type="text"
+                                name="businessName"
+                                value={formData.businessName}
+                                onChange={handleChange}
+                                placeholder="Acme Corp"
+                                className="form-input"
+                                required
+                            />
+                        </div>
                         <button type="button" onClick={handleNext} className="auth-submit-btn">
-                            Continue <ArrowRight size={18} style={{ marginLeft: '0.5rem' }} />
+                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                Continue <ArrowRight size={18} />
+                            </span>
                         </button>
                     </div>
                 )}
@@ -205,7 +224,9 @@ export const Register: React.FC = () => {
                                 <ArrowLeft size={18} /> Back
                             </button>
                             <button type="button" onClick={handleNext} className="auth-submit-btn" style={{ flex: 1 }}>
-                                Continue <ArrowRight size={18} style={{ marginLeft: '0.5rem' }} />
+                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                    Continue <ArrowRight size={18} />
+                                </span>
                             </button>
                         </div>
                     </div>
@@ -253,7 +274,9 @@ export const Register: React.FC = () => {
                                         Creating...
                                     </span>
                                 ) : (
-                                    'Create Account'
+                                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                        Create Account
+                                    </span>
                                 )}
                             </button>
                         </div>

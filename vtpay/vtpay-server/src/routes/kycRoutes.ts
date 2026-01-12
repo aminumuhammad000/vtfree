@@ -22,9 +22,10 @@ router.post('/submit', authenticate, async (req: AuthenticatedRequest, res: Resp
         }
 
         if (!nin || !bvn || !idCard) {
+            console.log('KYC Submission missing fields:', { nin: !!nin, bvn: !!bvn, idCard: !!idCard });
             res.status(400).json({
                 success: false,
-                message: 'Missing required fields (NIN, BVN, ID Card)',
+                message: `Missing required fields: ${[!nin && 'NIN', !bvn && 'BVN', !idCard && 'ID Card'].filter(Boolean).join(', ')}`,
             });
             return;
         }

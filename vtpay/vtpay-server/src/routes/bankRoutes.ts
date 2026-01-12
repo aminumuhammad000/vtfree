@@ -9,9 +9,11 @@ const router = Router();
  */
 router.get('/', async (req: Request, res: Response): Promise<void> => {
     try {
+        console.log('GET /api/banks - Fetching bank list from Zainpay...');
         const response = await zainpayService.getBankList();
 
         if (response.code !== '00') {
+            console.error('Zainpay Error in getBankList:', response);
             res.status(400).json({
                 success: false,
                 message: response.description || 'Failed to get bank list',
@@ -19,15 +21,17 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
+        console.log(`Successfully fetched ${response.data?.length || 0} banks`);
         res.json({
             success: true,
             data: response.data,
         });
-    } catch (error) {
-        console.error('Get bank list error:', error);
+    } catch (error: any) {
+        console.error('Get bank list error:', error.message);
         res.status(500).json({
             success: false,
             message: 'Failed to get bank list',
+            error: error.message
         });
     }
 });

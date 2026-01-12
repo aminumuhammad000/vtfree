@@ -33,6 +33,9 @@ export interface Tenant {
     lastName: string;
     phone: string;
     businessName?: string;
+    nin?: string;
+    bvn?: string;
+    idCardPath?: string;
     kycLevel: number;
     kyc_status: 'pending' | 'verified' | 'rejected';
     status: 'active' | 'inactive' | 'suspended';
@@ -60,6 +63,14 @@ export const adminApi = {
     getAllTenants: async (): Promise<Tenant[]> => {
         const response = await api.get<ApiResponse<Tenant[]>>('/admin/tenants');
         return response.data.data || [];
+    },
+    getAllAdmins: async (): Promise<Tenant[]> => {
+        const response = await api.get<ApiResponse<Tenant[]>>('/admin/admins');
+        return response.data.data || [];
+    },
+    createAdmin: async (data: any): Promise<Tenant> => {
+        const response = await api.post<ApiResponse<Tenant>>('/admin/admins', data);
+        return response.data.data!;
     },
 
     getTenantById: async (id: string): Promise<Tenant> => {

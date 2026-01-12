@@ -2,6 +2,8 @@ import { Router, Response, Request } from 'express';
 import { User, Zainbox, VirtualAccount, Wallet, Transaction, WebhookLog, FeeRule, RiskRule, SystemSetting } from '../models';
 import { authenticate, AuthenticatedRequest, generateToken } from '../middleware';
 import bcrypt from 'bcryptjs';
+import { emailService } from '../services/EmailService';
+import { zainpayService } from '../services/ZainpayService';
 
 const router = Router();
 
@@ -61,13 +63,14 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
             message: 'Login successful',
             data: {
                 user: {
-                    id: user._id,
+                    _id: user._id,
                     email: user.email,
-                    firstName: user.firstName,
-                    lastName: user.lastName,
+                    first_name: user.firstName,
+                    last_name: user.lastName,
                     phone: user.phone,
                     kycLevel: user.kycLevel,
                     status: user.status,
+                    role: user.role,
                 },
                 wallet: wallet ? {
                     id: wallet._id,
@@ -87,9 +90,90 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
     }
 });
 
-// All admin routes require authentication
-// TODO: Add role-based authorization middleware to ensure only admins can access
+// Middleware to check if user is admin
+const isAdmin = (req: AuthenticatedRequest, res: Response, next: any) => {
+    if ((req as any).user && (req as any).user.role === 'admin') {
+        next();
+    } else {
+        res.status(403).json({
+            success: false,
+            message: 'Access denied. Admin privileges required.',
+        });
+    }
+};
+
+// Helper function to activate user account (Zainbox, API Key, Email)
+const activateUserAccount = async (user: any) => {
+    console.log(`Activating account for user: ${user.email}`);
+
+    // 1. Ensure Zainbox exists
+    const existingZainbox = await Zainbox.findOne({ userId: user._id });
+    let zainboxCreated = !!existingZainbox;
+
+    if (!existingZainbox) {
+        console.log(`Auto-creating Zainbox for user: ${user.email}`);
+        try {
+            const zainboxName = user.businessName
+                ? `${user.businessName} Workspace`
+                : `${user.firstName} ${user.lastName} Workspace`;
+
+            const callbackUrl = process.env.WEBHOOK_BASE_URL || 'https://vtpay-server.onrender.com/api/webhooks/zainpay';
+
+            const zResponse = await zainpayService.createZainbox({
+                name: zainboxName,
+                callbackUrl: callbackUrl,
+                emailNotification: user.email,
+                tags: 'vtpay_user_auto_assign'
+            });
+
+            if (zResponse.code === '00' && zResponse.data) {
+                const zData = zResponse.data;
+                await Zainbox.create({
+                    userId: user._id,
+                    name: zData.name || zainboxName,
+                    emailNotification: zData.emailNotification || user.email,
+                    tags: zData.tags || 'vtpay_user_auto_assign',
+                    callbackUrl: zData.callbackUrl || callbackUrl,
+                    codeName: zData.codeName,
+                    zainboxCode: zData.zainboxCode || zData.codeName,
+                    isLive: zData.isLive || false,
+                });
+                zainboxCreated = true;
+                console.log(`Successfully auto-assigned Zainbox ${zData.codeName} to ${user.email}`);
+            } else {
+                console.error(`Zainpay error creating Zainbox for ${user.email}:`, zResponse.description);
+            }
+        } catch (err: any) {
+            console.error(`Error auto-creating Zainbox for ${user.email}:`, err.message);
+        }
+    }
+
+    // 2. Auto-generate API Key if it doesn't exist
+    if (!user.apiKey) {
+        try {
+            const crypto = await import('crypto');
+            const randomPart = crypto.randomBytes(24).toString('hex');
+            const newApiKey = `sk_live_${randomPart}`;
+
+            await User.findByIdAndUpdate(user._id, { apiKey: newApiKey });
+            console.log(`Auto-generated Live API Key for ${user.email}`);
+        } catch (apiKeyError) {
+            console.error(`Error auto-generating API key for ${user.email}:`, apiKeyError);
+        }
+    }
+
+    // 3. Send approval email
+    try {
+        await emailService.sendApprovalEmail(user.email, user.firstName);
+        console.log(`Approval email sent to ${user.email}`);
+    } catch (emailError) {
+        console.error(`Failed to send approval email to ${user.email}:`, emailError);
+    }
+};
+
+// All admin routes require authentication and admin role
 router.use(authenticate);
+router.use(isAdmin);
 
 /**
  * Get admin dashboard statistics
@@ -119,10 +203,12 @@ router.get('/stats', async (req: AuthenticatedRequest, res: Response): Promise<v
         const failedTransactionsCount = await Transaction.countDocuments({ status: 'failed' });
 
         // 3. Tenant Stats
-        const totalTenants = await User.countDocuments();
-        const activeTenants = await User.countDocuments({ status: 'active' });
-        const suspendedTenants = await User.countDocuments({ status: 'suspended' });
-        const pendingTenants = await User.countDocuments({ status: 'pending' });
+        const totalTenants = await User.countDocuments({ role: { $ne: 'admin' } });
+        const activeTenants = await User.countDocuments({ role: { $ne: 'admin' }, status: 'active' });
+        const suspendedTenants = await User.countDocuments({ role: { $ne: 'admin' }, status: 'suspended' });
+        const pendingTenants = await User.countDocuments({ role: { $ne: 'admin' }, status: 'pending' });
+
+        const totalAdmins = await User.countDocuments({ role: 'admin' });
 
         // 4. Zainbox Stats
         const totalZainboxes = await Zainbox.countDocuments();
@@ -133,6 +219,11 @@ router.get('/stats', async (req: AuthenticatedRequest, res: Response): Promise<v
         const successWebhooks = await WebhookLog.countDocuments({ createdAt: { $gte: today }, dispatchStatus: 'success' });
         const failedWebhooks = await WebhookLog.countDocuments({ createdAt: { $gte: today }, dispatchStatus: 'failed' });
         const pendingWebhooks = await WebhookLog.countDocuments({ createdAt: { $gte: today }, dispatchStatus: 'pending' });
+
+        // 6. Recent Transactions
+        const recentTransactions = await Transaction.find()
+            .sort({ createdAt: -1 })
+            .limit(10);
 
         res.json({
             success: true,
@@ -148,6 +239,7 @@ router.get('/stats', async (req: AuthenticatedRequest, res: Response): Promise<v
                     active: activeTenants,
                     suspended: suspendedTenants,
                     pending: pendingTenants,
+                    admins: totalAdmins,
                 },
                 zainboxes: {
                     total: totalZainboxes,
@@ -158,7 +250,8 @@ router.get('/stats', async (req: AuthenticatedRequest, res: Response): Promise<v
                     success: successWebhooks,
                     failed: failedWebhooks,
                     pending: pendingWebhooks,
-                }
+                },
+                recentTransactions
             }
         });
     } catch (error) {
@@ -171,12 +264,108 @@ router.get('/stats', async (req: AuthenticatedRequest, res: Response): Promise<v
 });
 
 /**
+ * Get all admins
+ * GET /api/admin/admins
+ */
+router.get('/admins', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const admins = await User.find({ role: 'admin' }).select('-passwordHash').sort({ createdAt: -1 });
+        res.json({
+            success: true,
+            data: admins,
+        });
+    } catch (error) {
+        console.error('Get admins error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get admins',
+        });
+    }
+});
+
+/**
+ * Create new admin
+ * POST /api/admin/admins
+ */
+router.post('/admins', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { email, password, firstName, lastName, phone } = req.body;
+
+        if (!email || !password || !firstName || !lastName || !phone) {
+            res.status(400).json({
+                success: false,
+                message: 'All fields are required',
+            });
+            return;
+        }
+
+        // Check if user already exists
+        const existingUser = await User.findOne({ email: email.toLowerCase() });
+        if (existingUser) {
+            res.status(400).json({
+                success: false,
+                message: 'User with this email already exists',
+            });
+            return;
+        }
+
+        // Hash password
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(password, salt);
+
+        // Create admin user
+        const admin = new User({
+            email: email.toLowerCase(),
+            passwordHash,
+            firstName,
+            lastName,
+            fullName: `${firstName} ${lastName}`,
+            phone,
+            role: 'admin',
+            status: 'active',
+            kycLevel: 3, // Admins are auto-verified
+        });
+
+        await admin.save();
+
+        // Create wallet for admin
+        await Wallet.create({
+            userId: admin._id,
+            balance: 0,
+            currency: 'NGN',
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'Admin user created successfully',
+            data: {
+                _id: admin._id,
+                email: admin.email,
+                firstName: admin.firstName,
+                lastName: admin.lastName,
+                role: admin.role,
+                status: admin.status,
+            },
+        });
+    } catch (error) {
+        console.error('Create admin error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to create admin user',
+        });
+    }
+});
+
+/**
  * Get all tenants (users)
  * GET /api/admin/tenants
  */
 router.get('/tenants', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
-        const users = await User.find().select('-passwordHash').sort({ createdAt: -1 });
+        // Exclude admin users
+        const users = await User.find({
+            role: { $ne: 'admin' }
+        }).select('-passwordHash').sort({ createdAt: -1 });
 
         res.json({
             success: true,
@@ -187,6 +376,55 @@ router.get('/tenants', async (req: AuthenticatedRequest, res: Response): Promise
         res.status(500).json({
             success: false,
             message: 'Failed to get tenants',
+        });
+    }
+});
+
+/**
+ * Delete tenant
+ * DELETE /api/admin/tenants/:id
+ */
+router.delete('/tenants/:id', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+
+        // Check if user exists
+        const user = await User.findById(id);
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'Tenant not found',
+            });
+            return;
+        }
+
+        // Prevent deleting admin
+        if (['admin@vtfree.com', 'admin@myconnecta.ng'].includes(user.email)) {
+            res.status(403).json({
+                success: false,
+                message: 'Cannot delete admin account',
+            });
+            return;
+        }
+
+        // Delete associated data
+        await Promise.all([
+            Wallet.deleteMany({ userId: id }),
+            Zainbox.deleteMany({ userId: id }),
+            VirtualAccount.deleteMany({ userId: id }),
+            Transaction.deleteMany({ userId: id }),
+            User.findByIdAndDelete(id)
+        ]);
+
+        res.json({
+            success: true,
+            message: 'Tenant and all associated data deleted successfully',
+        });
+    } catch (error) {
+        console.error('Delete tenant error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete tenant',
         });
     }
 });
@@ -290,6 +528,10 @@ router.patch('/tenants/:id/status', async (req: AuthenticatedRequest, res: Respo
             return;
         }
 
+        if (status === 'active') {
+            await activateUserAccount(user);
+        }
+
         res.json({
             success: true,
             message: `Tenant status updated to ${status}`,
@@ -300,6 +542,62 @@ router.patch('/tenants/:id/status', async (req: AuthenticatedRequest, res: Respo
         res.status(500).json({
             success: false,
             message: 'Failed to update tenant status',
+        });
+    }
+});
+
+/**
+ * Update tenant KYC status
+ * PATCH /api/admin/tenants/:id/kyc
+ */
+router.patch('/tenants/:id/kyc', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (!['pending', 'verified', 'rejected'].includes(status)) {
+            res.status(400).json({
+                success: false,
+                message: 'Invalid KYC status. Must be pending, verified, or rejected',
+            });
+            return;
+        }
+
+        const kycLevel = status === 'verified' ? 3 : (status === 'rejected' ? 0 : 2);
+
+        const user = await User.findByIdAndUpdate(
+            id,
+            { kyc_status: status, kycLevel },
+            { new: true }
+        ).select('-passwordHash');
+
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'Tenant not found',
+            });
+            return;
+        }
+
+        // If KYC is verified, also activate the account if it's not already active
+        if (status === 'verified') {
+            if (user.status !== 'active') {
+                user.status = 'active';
+                await user.save();
+            }
+            await activateUserAccount(user);
+        }
+
+        res.json({
+            success: true,
+            message: `Tenant KYC status updated to ${status}`,
+            data: user,
+        });
+    } catch (error) {
+        console.error('Update tenant KYC status error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update tenant KYC status',
         });
     }
 });
@@ -323,6 +621,85 @@ router.get('/zainboxes', async (req: AuthenticatedRequest, res: Response): Promi
         res.status(500).json({
             success: false,
             message: 'Failed to get zainboxes',
+        });
+    }
+});
+
+/**
+ * Sync Zainboxes from Zainpay
+ * POST /api/admin/zainboxes/sync
+ */
+router.post('/zainboxes/sync', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const response = await zainpayService.listZainboxes();
+
+        if (response.code === '00' && response.data) {
+            const defaultUser = await User.findOne({ status: 'active' });
+            if (!defaultUser) {
+                res.status(400).json({ success: false, message: 'No active user found to associate Zainboxes with' });
+                return;
+            }
+
+            let syncedCount = 0;
+            for (const zData of response.data) {
+                const existing = await Zainbox.findOne({ codeName: zData.codeName });
+                if (!existing) {
+                    // Try to find a user with this email
+                    let targetUserId = defaultUser._id;
+                    if (zData.emailNotification) {
+                        const matchedUser = await User.findOne({ email: zData.emailNotification.toLowerCase() });
+                        if (matchedUser) {
+                            targetUserId = matchedUser._id;
+                        }
+                    }
+
+                    await Zainbox.create({
+                        userId: targetUserId,
+                        name: zData.name,
+                        emailNotification: zData.emailNotification,
+                        tags: zData.tags || 'synced',
+                        callbackUrl: zData.callbackUrl,
+                        codeName: zData.codeName,
+                        zainboxCode: zData.zainboxCode || zData.codeName,
+                        isActive: zData.isActive !== false,
+                        isLive: zData.isLive || false,
+                    });
+                    syncedCount++;
+                } else {
+                    // Update existing
+                    existing.isActive = zData.isActive !== false;
+                    existing.name = zData.name;
+                    existing.emailNotification = zData.emailNotification;
+                    existing.tags = zData.tags || existing.tags;
+                    existing.callbackUrl = zData.callbackUrl;
+
+                    // If it was assigned to default user, try to re-assign if we find a better match
+                    if (existing.userId.toString() === defaultUser._id.toString() && zData.emailNotification) {
+                        const matchedUser = await User.findOne({ email: zData.emailNotification.toLowerCase() });
+                        if (matchedUser && matchedUser._id.toString() !== defaultUser._id.toString()) {
+                            existing.userId = matchedUser._id;
+                        }
+                    }
+
+                    await existing.save();
+                }
+            }
+
+            res.json({
+                success: true,
+                message: `Sync completed. ${syncedCount} new Zainboxes added.`,
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                message: response.description || 'Failed to fetch from Zainpay',
+            });
+        }
+    } catch (error: any) {
+        console.error('Sync zainboxes error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to sync zainboxes',
         });
     }
 });
@@ -386,6 +763,41 @@ router.get('/zainboxes/:zainboxCode', async (req: AuthenticatedRequest, res: Res
         res.status(500).json({
             success: false,
             message: 'Failed to get zainbox',
+        });
+    }
+});
+
+/**
+ * Get zainbox balances
+ * GET /api/admin/zainboxes/:zainboxCode/balances
+ */
+router.get('/zainboxes/:zainboxCode/balances', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { zainboxCode } = req.params;
+        const response = await zainpayService.getZainboxAccountBalances(zainboxCode);
+
+        if (response.code === '00') {
+            const balances = response.data || [];
+            const totalBalance = balances.reduce((sum, acc) => sum + (acc.balanceAmount || 0), 0);
+
+            res.json({
+                success: true,
+                data: {
+                    balances,
+                    totalBalance,
+                },
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                message: response.description || 'Failed to fetch balances from Zainpay',
+            });
+        }
+    } catch (error: any) {
+        console.error('Get zainbox balances error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to get balances',
         });
     }
 });
@@ -714,9 +1126,8 @@ router.post('/communications/send', async (req: AuthenticatedRequest, res: Respo
         const tenants = await User.find(query).select('email');
         const emails = tenants.map(t => t.email);
 
-        console.log(`[Communications] Sending bulk email to ${emails.length} recipients`);
-        console.log(`[Communications] Subject: ${subject}`);
-        // In a real app, we would use emailService.sendBulkEmail(emails, subject, message)
+        const { emailService } = await import('../services/EmailService');
+        await emailService.sendBulkEmail(emails, subject, message);
 
         res.json({
             success: true,
@@ -727,6 +1138,47 @@ router.post('/communications/send', async (req: AuthenticatedRequest, res: Respo
         res.status(500).json({
             success: false,
             message: 'Failed to send bulk email',
+        });
+    }
+});
+
+/**
+ * Send single email
+ * POST /api/admin/communications/send-single
+ */
+router.post('/communications/send-single', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { userId, subject, message } = req.body;
+
+        const user = await User.findById(userId).select('email');
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+            return;
+        }
+
+        const { emailService } = await import('../services/EmailService');
+
+        // Convert plain text message to simple HTML
+        const html = `
+            <div style="font-family: sans-serif; line-height: 1.6; color: #333;">
+                ${message.replace(/\n/g, '<br>')}
+            </div>
+        `;
+
+        await emailService.sendEmail(user.email, subject, html);
+
+        res.json({
+            success: true,
+            message: 'Email sent successfully',
+        });
+    } catch (error) {
+        console.error('Send single email error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to send email',
         });
     }
 });
@@ -956,7 +1408,15 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response): Promise
         }
         res.json({
             success: true,
-            data: user,
+            data: {
+                _id: user._id,
+                email: user.email,
+                first_name: user.firstName,
+                last_name: user.lastName,
+                phone: user.phone,
+                kycLevel: user.kycLevel,
+                status: user.status,
+            },
         });
     } catch (error) {
         console.error('Get profile error:', error);
@@ -973,17 +1433,40 @@ router.get('/profile', async (req: AuthenticatedRequest, res: Response): Promise
  */
 router.put('/profile', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
-        const { firstName, lastName, phone } = req.body;
+        const { firstName, lastName, first_name, last_name, phone, email } = req.body;
+
+        const updateData: any = {};
+        if (firstName || first_name) updateData.firstName = firstName || first_name;
+        if (lastName || last_name) updateData.lastName = lastName || last_name;
+        if (phone) updateData.phone = phone;
+        if (email) updateData.email = email;
+
         const user = await User.findByIdAndUpdate(
             req.user!.id,
-            { firstName, lastName, phone },
+            updateData,
             { new: true }
         ).select('-passwordHash');
+
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+            return;
+        }
 
         res.json({
             success: true,
             message: 'Profile updated successfully',
-            data: user,
+            data: {
+                _id: user._id,
+                email: user.email,
+                first_name: user.firstName,
+                last_name: user.lastName,
+                phone: user.phone,
+                kycLevel: user.kycLevel,
+                status: user.status,
+            },
         });
     } catch (error) {
         console.error('Update profile error:', error);

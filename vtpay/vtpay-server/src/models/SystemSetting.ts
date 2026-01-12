@@ -28,6 +28,20 @@ export interface ISystemSettingDocument extends Document {
             isLive: boolean;
         };
     };
+    emailConfig: {
+        provider: 'gmail' | 'other';
+        gmail: {
+            user: string;
+            pass: string;
+        };
+        smtp: {
+            host: string;
+            port: number;
+            secure: boolean;
+            user: string;
+            pass: string;
+        };
+    };
     updatedAt: Date;
 }
 
@@ -58,6 +72,20 @@ const SystemSettingSchema = new Schema<ISystemSettingDocument>(
                 secretKey: { type: String, default: '' },
                 baseUrl: { type: String, default: 'https://api.zainpay.ng' },
                 isLive: { type: Boolean, default: false },
+            },
+        },
+        emailConfig: {
+            provider: { type: String, enum: ['gmail', 'other'], default: 'gmail' },
+            gmail: {
+                user: { type: String, default: '' },
+                pass: { type: String, default: '' },
+            },
+            smtp: {
+                host: { type: String, default: '' },
+                port: { type: Number, default: 587 },
+                secure: { type: Boolean, default: false },
+                user: { type: String, default: '' },
+                pass: { type: String, default: '' },
             },
         },
     },

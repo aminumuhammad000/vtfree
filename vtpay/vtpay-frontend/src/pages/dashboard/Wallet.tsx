@@ -1,75 +1,41 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
-import { Wallet as WalletIcon, CheckCircle, Plus, AlertCircle, ChevronDown, ArrowRight, Send } from 'lucide-react';
+import '../../styles/wallet.css';
+import {
+    Wallet as WalletIcon,
+    Plus,
+    ArrowRight,
+    History,
+    ArrowUpRight,
+    ArrowDownLeft,
+    ShieldCheck,
+    Info,
+    CreditCard,
+    Send
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const Wallet: React.FC = () => {
     const [wallet, setWallet] = useState<any>(null);
+    const [stats, setStats] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [transferData, setTransferData] = useState({
-        accountNumber: '',
-        bankCode: '',
-        amount: '',
-        narration: '',
-    });
-    const [banks, setBanks] = useState<any[]>([]);
-    const [isTransferLoading, setIsTransferLoading] = useState(false);
-    const [transferSuccess, setTransferSuccess] = useState('');
-    const [transferError, setTransferError] = useState('');
 
     useEffect(() => {
-        fetchWallet();
-        fetchBanks();
+        fetchData();
     }, []);
 
-    const fetchWallet = async () => {
+    const fetchData = async () => {
         try {
-            const response = await api.get('/wallet');
-            setWallet(response.data.data);
+            const [walletRes, statsRes] = await Promise.all([
+                api.get('/wallet'),
+                api.get('/wallet/stats')
+            ]);
+            setWallet(walletRes.data.data);
+            setStats(statsRes.data.data);
         } catch (error) {
-            console.error('Error fetching wallet:', error);
+            console.error('Error fetching wallet data:', error);
         } finally {
             setIsLoading(false);
-        }
-    };
-
-    const fetchBanks = async () => {
-        try {
-            const response = await api.get('/banks');
-            setBanks(response.data.data || []);
-        } catch (error) {
-            console.error('Error fetching banks:', error);
-        }
-    };
-
-    const handleTransferChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        setTransferData({ ...transferData, [e.target.name]: e.target.value });
-    };
-
-    const handleTransfer = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsTransferLoading(true);
-        setTransferError('');
-        setTransferSuccess('');
-
-        try {
-            const amountInKobo = Math.round(parseFloat(transferData.amount) * 100);
-
-            await api.post('/transactions/transfer', {
-                destinationAccountNumber: transferData.accountNumber,
-                destinationBankCode: transferData.bankCode,
-                amount: amountInKobo.toString(),
-                narration: transferData.narration,
-            });
-
-            setTransferSuccess('Transfer initiated successfully!');
-            setTransferData({ accountNumber: '', bankCode: '', amount: '', narration: '' });
-            fetchWallet(); // Refresh balance
-        } catch (err: any) {
-            console.error('Transfer error:', err);
-            setTransferError(err.response?.data?.message || 'Transfer failed');
-        } finally {
-            setIsTransferLoading(false);
         }
     };
 
@@ -77,59 +43,103 @@ export const Wallet: React.FC = () => {
         return new Intl.NumberFormat('en-NG', {
             style: 'currency',
             currency: 'NGN',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        }).format(amount);
+    };
+
+    const formatCompactCurrency = (amount: number) => {
+        return new Intl.NumberFormat('en-NG', {
+            style: 'currency',
+            currency: 'NGN',
+            notation: 'compact',
+            maximumFractionDigits: 1,
         }).format(amount);
     };
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center h-96">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+            <div className="flex items-center justify-center min-h-[600px]">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="spinner w-12 h-12 border-4 border-gray-200 border-t-green-600"></div>
+                    <p className="text-body font-medium">Loading wallet...</p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold text-slate-900">Wallet</h1>
-                <p className="text-slate-500">Manage your funds and transfers</p>
+        <div className="wallet-container animate-fade-in">
+            {/* Header */}
+            <div className="wallet-header">
+                <div>
+                    <h1 className="text-heading">Wallet</h1>
+                    <p className="text-body mt-1">Manage your funds, transfers, and payouts</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <Link
+                        to="/dashboard/transactions"
+                        className="btn btn-secondary"
+                    >
+                        <History className="w-4 h-4" />
+                        History
+                    </Link>
+                    <Link
+                        to="/dashboard/payout"
+                        className="btn btn-secondary"
+                    >
+                        <Send className="w-4 h-4" />
+                        Payout
+                    </Link>
+                    <button className="btn btn-primary">
+                        <Plus className="w-4 h-4" />
+                        Fund Wallet
+                    </button>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-6">
-                    {/* Balance Card */}
-                    <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-8 text-white shadow-lg relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-6 opacity-10">
-                            <WalletIcon size={140} />
-                        </div>
+            <div className="wallet-grid">
+                <div className="wallet-main-col">
+                    {/* Main Balance Card - Premium Design */}
+                    <div className="wallet-premium-card">
+                        <div className="wallet-card-pattern"></div>
                         <div className="relative z-10">
-                            <div className="flex items-center gap-4 mb-6">
-                                <div className="p-3 bg-white/10 rounded-xl backdrop-blur-sm">
-                                    <WalletIcon size={24} />
+                            <div className="flex items-center justify-between mb-8">
+                                <div className="flex items-center gap-3">
+                                    <div className="wallet-balance-icon-container">
+                                        <WalletIcon className="w-6 h-6 text-white" />
+                                    </div>
+                                    <div>
+                                        <p className="wallet-balance-label">Wallet Balance</p>
+                                        <p className="text-white font-semibold">{wallet?.accountName || 'Primary Wallet'}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="text-slate-300 text-sm">Wallet ID</p>
-                                    <p className="font-medium">{wallet?.accountName || 'Loading...'}</p>
+                                <div className="wallet-secure-badge">
+                                    <ShieldCheck className="w-3.5 h-3.5 text-green-400" />
+                                    <span className="text-[10px] font-bold text-white uppercase tracking-tight">Secure</span>
                                 </div>
                             </div>
 
-                            <div className="mb-8">
-                                <p className="text-slate-300 text-sm mb-1">Total Balance</p>
-                                <h2 className="text-4xl font-bold tracking-tight">
+                            <div className="mb-10">
+                                <h2 className="wallet-balance-value">
                                     {formatCurrency(wallet?.balanceNaira || 0)}
                                 </h2>
+                                <p className="wallet-balance-info">
+                                    <Info className="w-3.5 h-3.5" />
+                                    Total balance across all sub-accounts
+                                </p>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-6 pt-6 border-t border-white/10">
+                            <div className="wallet-balance-footer">
                                 <div>
-                                    <p className="text-xs text-slate-400 mb-1 uppercase tracking-wider">Available</p>
-                                    <p className="font-semibold text-xl">
+                                    <p className="wallet-sub-balance-label">Available</p>
+                                    <p className="wallet-sub-balance-value">
                                         {formatCurrency(wallet?.availableBalanceNaira || 0)}
                                     </p>
                                 </div>
                                 <div>
-                                    <p className="text-xs text-slate-400 mb-1 uppercase tracking-wider">Locked</p>
-                                    <p className="font-semibold text-xl">
+                                    <p className="wallet-sub-balance-label">Locked</p>
+                                    <p className="wallet-sub-balance-value">
                                         {formatCurrency(wallet?.lockedBalanceNaira || 0)}
                                     </p>
                                 </div>
@@ -137,135 +147,70 @@ export const Wallet: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Fund Wallet CTA */}
-                    <div className="bg-green-50 rounded-xl p-6 border border-green-100 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-green-100 text-green-600 rounded-xl">
-                                <Plus size={24} />
+                    {/* Quick Info / Fund Section */}
+                    <div className="wallet-stats-grid">
+                        <div className="stat-box">
+                            <div className="stat-box-icon green">
+                                <ArrowDownLeft className="w-6 h-6" />
                             </div>
                             <div>
-                                <h3 className="font-bold text-green-900">Fund Your Wallet</h3>
-                                <p className="text-sm text-green-700">Add money via bank transfer or card payment.</p>
+                                <p className="text-xs text-muted font-medium uppercase tracking-wider">Total Received</p>
+                                <p className="text-xl font-bold text-heading mt-0.5">
+                                    {formatCompactCurrency(stats?.totalInflowNaira || 0)}
+                                </p>
                             </div>
                         </div>
-                        <Link
-                            to="/dashboard/virtual-accounts"
-                            className="px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors shadow-sm"
-                        >
-                            View Options
-                        </Link>
-                    </div>
-                </div>
-
-                {/* Transfer Form */}
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 h-fit">
-                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
-                        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                            <Send size={20} />
-                        </div>
-                        <div>
-                            <h2 className="font-bold text-slate-900">Transfer Funds</h2>
-                            <p className="text-xs text-slate-500">Send money to any bank</p>
+                        <div className="stat-box">
+                            <div className="stat-box-icon blue">
+                                <ArrowUpRight className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="text-xs text-muted font-medium uppercase tracking-wider">Total Sent</p>
+                                <p className="text-xl font-bold text-heading mt-0.5">
+                                    {formatCompactCurrency(stats?.totalOutflowNaira || 0)}
+                                </p>
+                            </div>
                         </div>
                     </div>
 
-                    {transferSuccess && (
-                        <div className="mb-6 p-4 bg-green-50 border border-green-100 rounded-lg flex items-start gap-3">
-                            <CheckCircle className="text-green-500 mt-0.5 flex-shrink-0" size={18} />
-                            <p className="text-sm text-green-700">{transferSuccess}</p>
+                    {/* Funding Options */}
+                    <div className="funding-options-container">
+                        <div className="funding-options-header">
+                            <h3 className="text-lg font-semibold text-heading">Funding Options</h3>
+                            <p className="text-body mt-1">Choose your preferred method to add funds</p>
                         </div>
-                    )}
-
-                    {transferError && (
-                        <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-lg flex items-start gap-3">
-                            <AlertCircle className="text-red-500 mt-0.5 flex-shrink-0" size={18} />
-                            <p className="text-sm text-red-600">{transferError}</p>
-                        </div>
-                    )}
-
-                    <form onSubmit={handleTransfer} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Select Bank</label>
-                            <div className="relative">
-                                <select
-                                    name="bankCode"
-                                    value={transferData.bankCode}
-                                    onChange={handleTransferChange}
-                                    required
-                                    className="w-full appearance-none px-4 py-2 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                        <div className="funding-options-grid">
+                            <div className="funding-card">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="funding-card-icon green">
+                                        <CreditCard className="w-5 h-5" />
+                                    </div>
+                                    <span className="badge badge-success">Instant</span>
+                                </div>
+                                <h4 className="funding-card-title">Virtual Account</h4>
+                                <p className="funding-card-description">Transfer to your dedicated virtual bank account</p>
+                                <Link
+                                    to="/dashboard/virtual-accounts"
+                                    className="funding-card-link"
                                 >
-                                    <option value="">Select a bank</option>
-                                    {banks.map((bank) => (
-                                        <option key={bank.code} value={bank.code}>
-                                            {bank.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+                                    Get Details <ArrowRight className="w-4 h-4" />
+                                </Link>
+                            </div>
+                            <div className="funding-card disabled">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="funding-card-icon blue">
+                                        <Plus className="w-5 h-5" />
+                                    </div>
+                                    <span className="badge badge-info text-gray-400 bg-gray-100 border-gray-200">Coming Soon</span>
+                                </div>
+                                <h4 className="funding-card-title">Card Payment</h4>
+                                <p className="funding-card-description">Top up instantly using your debit or credit card</p>
+                                <span className="funding-card-link text-gray-400">
+                                    Not Available <ArrowRight className="w-4 h-4" />
+                                </span>
                             </div>
                         </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Account Number</label>
-                            <input
-                                type="text"
-                                name="accountNumber"
-                                value={transferData.accountNumber}
-                                onChange={handleTransferChange}
-                                maxLength={10}
-                                required
-                                placeholder="0123456789"
-                                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Amount</label>
-                            <div className="relative">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">₦</span>
-                                <input
-                                    type="number"
-                                    name="amount"
-                                    value={transferData.amount}
-                                    onChange={handleTransferChange}
-                                    min="100"
-                                    required
-                                    placeholder="0.00"
-                                    className="w-full pl-8 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Description (Optional)</label>
-                            <input
-                                type="text"
-                                name="narration"
-                                value={transferData.narration}
-                                onChange={handleTransferChange}
-                                placeholder="Payment for..."
-                                className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
-                            />
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={isTransferLoading}
-                            className="w-full py-2.5 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
-                        >
-                            {isTransferLoading ? (
-                                <>
-                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                    Processing...
-                                </>
-                            ) : (
-                                <>
-                                    Transfer Funds
-                                    <ArrowRight size={18} />
-                                </>
-                            )}
-                        </button>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>

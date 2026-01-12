@@ -1,540 +1,237 @@
 /* ============================
-   VIRTUAL ACCOUNTS PAGE
+   VIRTUAL ACCOUNTS - MODERN DESIGN
    ============================ */
 
-/* Virtual Account Card */
-.virtual-account-card {
+.va-modern-card {
     background: var(--bg-surface);
-    border-radius: var(--radius-2xl);
     border: 1px solid var(--border);
-    overflow: hidden;
+    border-radius: var(--radius-xl);
     transition: var(--transition-slow);
+    position: relative;
+    overflow: hidden;
 }
 
-.virtual-account-card:hover {
+.va-modern-card:hover {
+    transform: translateY(-4px);
     box-shadow: var(--shadow-lg);
-    transform: translateY(-2px);
+    border-color: var(--border-hover);
 }
 
-.virtual-account-header {
+.va-modern-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.va-modern-card:hover::before {
+    opacity: 1;
+}
+
+/* Modal Animations */
+@keyframes scaleUp {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.animate-scale-up {
+    animation: scaleUp 0.3s ease-out forwards;
+}
+
+/* Input Focus States */
+input:focus,
+select:focus {
+    box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.1) !important;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .va-modern-card {
+        border-radius: var(--radius-lg);
+    }
+}
+
+/* Custom Scrollbar for Modal if needed */
+.modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+/* Status Badge Pulse if active */
+.va-status-active-pulse {
+    position: relative;
+}
+
+.va-status-active-pulse::after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: var(--success);
+    border-radius: 50%;
+    right: -2px;
+    top: -2px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+    }
+
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+    }
+
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    }
+}
+
+/* Semantic Classes for Virtual Accounts Page */
+.va-header {
     display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    justify-content: space-between;
+}
+
+@media (min-width: 768px) {
+    .va-header {
+        flex-direction: row;
+        align-items: center;
+    }
+}
+
+.va-filter-bar {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
     align-items: center;
     justify-content: space-between;
+    box-shadow: var(--shadow-sm);
+}
+
+@media (min-width: 768px) {
+    .va-filter-bar {
+        flex-direction: row;
+    }
+}
+
+.va-search-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    .va-search-wrapper {
+        width: 24rem;
+    }
+}
+
+.va-table-container {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.va-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(17, 24, 39, 0.4);
+    backdrop-filter: blur(4px);
+}
+
+.va-modal-content {
+    background: var(--bg-surface);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-2xl);
+    width: 100%;
+    max-width: 28rem;
+    overflow: hidden;
+}
+
+.va-modal-header {
     padding: 1.25rem 1.5rem;
     border-bottom: 1px solid var(--border);
-}
-
-.virtual-account-provider {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.provider-logo {
-    width: 2.5rem;
-    height: 2.5rem;
-    background: var(--bg-subtle);
-    border-radius: var(--radius-lg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    color: var(--primary);
-}
-
-.provider-name {
-    font-size: 0.9375rem;
-    font-weight: 600;
-    color: var(--text-heading);
-}
-
-.virtual-account-body {
-    padding: 1.5rem;
-}
-
-.account-detail-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid var(--border);
-}
-
-.account-detail-row:last-child {
-    border-bottom: none;
-}
-
-.account-detail-label {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-}
-
-.account-detail-value {
-    font-size: 0.9375rem;
-    font-weight: 600;
-    color: var(--text-heading);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.account-number-text {
-    font-family: monospace;
-    font-size: 1rem;
-    letter-spacing: 0.05em;
-}
-
-/* Create Virtual Account Section */
-.create-account-section {
-    background: var(--bg-surface);
-    border-radius: var(--radius-2xl);
-    border: 1px solid var(--border);
-    padding: 2rem;
-    text-align: center;
-}
-
-.create-account-icon {
-    width: 4rem;
-    height: 4rem;
     background: var(--bg-subtle);
-    border-radius: var(--radius-full);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 1rem;
-    color: var(--primary);
 }
 
-.create-account-section h3 {
-    font-size: 1.125rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-}
-
-.create-account-section p {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    margin-bottom: 1.5rem;
-}
-
-/* Provider Selection */
-.provider-grid {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(2, 1fr);
-    margin-bottom: 1.5rem;
-}
-
-@media (min-width: 640px) {
-    .provider-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
-.provider-option {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1.5rem 1rem;
-    background: var(--bg-subtle);
-    border: 2px solid transparent;
-    border-radius: var(--radius-xl);
-    cursor: pointer;
-    transition: var(--transition);
-}
-
-.provider-option:hover {
-    border-color: var(--primary);
-}
-
-.provider-option.selected {
-    border-color: var(--primary);
-    background: var(--success-bg);
-}
-
-.provider-option-logo {
-    width: 3rem;
-    height: 3rem;
-    background: var(--bg-surface);
-    border-radius: var(--radius-lg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    color: var(--primary);
-    font-size: 0.875rem;
-}
-
-.provider-option-name {
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--text-heading);
-}
-
-/* Accounts Grid */
-.accounts-grid {
-    display: grid;
-    gap: 1.5rem;
-    grid-template-columns: 1fr;
-}
-
-@media (min-width: 768px) {
-    .accounts-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (min-width: 1280px) {
-    .accounts-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
-/* Account Actions */
-.account-actions {
-    display: flex;
-    gap: 0.5rem;
-    padding-top: 1rem;
-    margin-top: 1rem;
-    border-top: 1px solid var(--border);
-}
-
-.account-action-btn {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.375rem;
-    padding: 0.625rem;
-    font-size: 0.8125rem;
-    font-weight: 500;
-    background: var(--bg-subtle);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    cursor: pointer;
-    transition: var(--transition);
-}
-
-.account-action-btn:hover {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: white;
-}
-
-/* QR Code Display */
-.qr-code-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 2rem;
-    background: var(--bg-subtle);
-    border-radius: var(--radius-xl);
-}
-
-.qr-code-image {
-    width: 12rem;
-    height: 12rem;
-    background: white;
-    border-radius: var(--radius-lg);
-    padding: 1rem;
-    margin-bottom: 1rem;
-    box-shadow: var(--shadow-md);
-}
-
-.qr-code-hint {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    text-align: center;
-}
-
-/* ============================
-   VA PAGE SPECIFIC STYLES
-   ============================ */
-.va-header-actions {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.5rem;
-}
-
-.va-verification-note {
-    font-size: 0.75rem;
-    color: var(--warning);
-}
-
-.va-verification-badge {
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--warning);
-    background: var(--warning-bg);
-    padding: 0.25rem 0.75rem;
-    border-radius: var(--radius-full);
-    margin-top: 0.75rem;
-}
-
-/* VA Accounts Grid */
-.va-accounts-grid {
-    display: grid;
-    gap: 1.5rem;
-    grid-template-columns: 1fr;
-}
-
-@media (min-width: 768px) {
-    .va-accounts-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (min-width: 1280px) {
-    .va-accounts-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
-/* VA Empty State */
-.va-empty-state {
-    grid-column: 1 / -1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 4rem 2rem;
-    background: var(--bg-surface);
-    border-radius: var(--radius-2xl);
-    border: 1px solid var(--border);
-    text-align: center;
-}
-
-.va-empty-icon {
-    width: 4rem;
-    height: 4rem;
-    background: var(--bg-subtle);
-    border-radius: var(--radius-full);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-muted);
-    margin-bottom: 1.5rem;
-}
-
-.va-empty-state h3 {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--text-heading);
-    margin-bottom: 0.5rem;
-}
-
-.va-empty-state p {
-    font-size: 0.9375rem;
-    color: var(--text-secondary);
-    max-width: 24rem;
-    margin-bottom: 1.5rem;
-}
-
-/* VA Account Card */
-.va-account-card {
-    background: var(--bg-surface);
-    border-radius: var(--radius-2xl);
-    border: 1px solid var(--border);
+.va-modal-body {
     padding: 1.5rem;
-    position: relative;
-    transition: var(--transition-slow);
-}
-
-.va-account-card:hover {
-    box-shadow: var(--shadow-xl);
-    border-color: rgba(22, 163, 74, 0.2);
-    transform: translateY(-4px);
-}
-
-.va-account-status {
-    position: absolute;
-    top: 1.5rem;
-    right: 1.5rem;
-}
-
-.va-status-badge {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.25rem 0.625rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: capitalize;
-    border-radius: var(--radius-full);
-    border: 1px solid;
-}
-
-.va-status-badge.active {
-    background: var(--success-bg);
-    color: var(--success);
-    border-color: rgba(22, 163, 74, 0.2);
-}
-
-.va-status-badge.inactive {
-    background: var(--bg-subtle);
-    color: var(--text-secondary);
-    border-color: var(--border);
-}
-
-.va-account-header {
-    display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
 }
 
 .va-bank-icon {
-    width: 3rem;
-    height: 3rem;
+    width: 2.5rem;
+    height: 2.5rem;
     background: var(--success-bg);
-    border-radius: var(--radius-xl);
+    color: var(--success);
+    border-radius: var(--radius-lg);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
     font-size: 1.125rem;
-    color: var(--primary);
-    transition: transform 0.3s ease;
-}
-
-.va-account-card:hover .va-bank-icon {
-    transform: scale(1.1);
-}
-
-.va-account-info h3 {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-heading);
-    margin-bottom: 0.25rem;
-}
-
-.va-account-info p {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-}
-
-.va-account-number-box {
-    background: var(--bg-subtle);
-    border-radius: var(--radius-xl);
-    padding: 1rem;
-    border: 1px solid var(--border);
-}
-
-.va-account-label {
-    display: block;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.5rem;
-}
-
-.va-account-number-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    border: 1px solid rgba(22, 163, 74, 0.2);
 }
 
 .va-account-number {
     font-family: monospace;
-    font-size: 1.25rem;
     font-weight: 700;
     color: var(--text-heading);
     letter-spacing: 0.05em;
 }
 
 .va-copy-btn {
-    padding: 0.5rem;
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
+    padding: 0.25rem;
     color: var(--text-muted);
-    cursor: pointer;
+    border-radius: var(--radius-sm);
     transition: var(--transition);
 }
 
 .va-copy-btn:hover {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: white;
+    color: var(--success);
+    background: var(--success-bg);
 }
 
-/* Modal Styles */
-.modal-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
-    animation: fadeIn 0.2s ease-out;
-}
-
-.modal-content {
-    background: var(--bg-surface);
-    border-radius: var(--radius-2xl);
-    box-shadow: var(--shadow-xl);
-    width: 100%;
-    max-width: 28rem;
-    max-height: 90vh;
-    overflow: hidden;
-    animation: fadeInUp 0.3s ease-out;
-}
-
-.modal-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg-subtle);
-}
-
-.modal-header h2 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text-heading);
-}
-
-.modal-header p {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    margin-top: 0.25rem;
-}
-
-.modal-close-btn {
-    padding: 0.5rem;
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    border-radius: var(--radius-md);
-    transition: var(--transition);
-}
-
-.modal-close-btn:hover {
-    background: var(--border);
-    color: var(--text-primary);
-}
-
-.modal-body {
-    padding: 1.5rem;
-    overflow-y: auto;
-}
-
-.modal-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.modal-actions {
-    display: flex;
-    gap: 0.75rem;
-    margin-top: 1.5rem;
+.va-empty-state {
+    padding: 5rem;
+    text-align: center;
 }

@@ -366,6 +366,49 @@ const TenantsPage: React.FC = () => {
                                 </div>
                             </div>
 
+                            {selectedTenant.kycLevel >= 2 && (
+                                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                    <h3 className="text-sm font-bold text-slate-900 mb-3">KYC Verification Documents</h3>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <p className="text-xs text-slate-500">NIN</p>
+                                            <p className="text-sm font-mono font-medium text-slate-900">{selectedTenant.nin || 'Not provided'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-slate-500">BVN</p>
+                                            <p className="text-sm font-mono font-medium text-slate-900">{selectedTenant.bvn || 'Not provided'}</p>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-slate-500 mb-2">Identity Document</p>
+                                        {selectedTenant.idCardPath ? (
+                                            <div className="flex items-center p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
+                                                <div className="w-10 h-10 bg-blue-100 rounded flex items-center justify-center text-blue-600 mr-3">
+                                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                    </svg>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-slate-900 truncate">{selectedTenant.idCardPath}</p>
+                                                    <p className="text-[10px] text-slate-500 uppercase">Uploaded Document</p>
+                                                </div>
+                                                <button
+                                                    className="ml-2 p-2 text-slate-400 hover:text-blue-600 transition-colors"
+                                                    title="Download Document"
+                                                    onClick={() => alert('Document download would happen here in production.')}
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-slate-500 italic">No document uploaded</p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-200">
                                 {selectedTenant.status !== 'active' && (
                                     <button

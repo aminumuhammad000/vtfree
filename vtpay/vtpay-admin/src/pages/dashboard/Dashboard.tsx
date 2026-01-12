@@ -147,6 +147,10 @@ const Dashboard: React.FC = () => {
                             <span className="text-sm text-slate-600">Suspended</span>
                             <span className="text-sm font-semibold text-red-600">{stats?.tenants?.suspended || 0}</span>
                         </div>
+                        <div className="flex justify-between border-t border-slate-100 pt-2 mt-2">
+                            <span className="text-sm text-slate-600">Admin Users</span>
+                            <span className="text-sm font-semibold text-blue-600">{stats?.tenants?.admins || 0}</span>
+                        </div>
                         <div className="flex justify-between">
                             <span className="text-sm text-slate-600">Pending</span>
                             <span className="text-sm font-semibold text-yellow-600">{stats?.tenants?.pending || 0}</span>
@@ -196,6 +200,59 @@ const Dashboard: React.FC = () => {
                             <span className="text-sm font-semibold text-yellow-600">{stats?.webhooks?.pending || 0}</span>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            {/* Recent Activity Table (DF Table) */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-6 border-b border-slate-200 flex justify-between items-center">
+                    <h3 className="text-lg font-semibold text-slate-900">Recent Transactions</h3>
+                    <button
+                        onClick={() => window.location.href = '/transactions'}
+                        className="text-sm text-green-600 hover:text-green-700 font-medium"
+                    >
+                        View All
+                    </button>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-slate-50 border-b border-slate-200">
+                                <th className="px-6 py-3 text-xs font-semibold text-slate-600 uppercase">Reference</th>
+                                <th className="px-6 py-3 text-xs font-semibold text-slate-600 uppercase">Type</th>
+                                <th className="px-6 py-3 text-xs font-semibold text-slate-600 uppercase">Amount</th>
+                                <th className="px-6 py-3 text-xs font-semibold text-slate-600 uppercase">Status</th>
+                                <th className="px-6 py-3 text-xs font-semibold text-slate-600 uppercase">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {stats?.recentTransactions?.length > 0 ? (
+                                stats.recentTransactions.map((txn: any) => (
+                                    <tr key={txn._id} className="hover:bg-slate-50 transition-colors">
+                                        <td className="px-6 py-4 text-sm font-medium text-slate-900 font-mono">{txn.reference}</td>
+                                        <td className="px-6 py-4 text-sm text-slate-600 capitalize">{txn.category}</td>
+                                        <td className="px-6 py-4 text-sm font-semibold text-slate-900">{formatCurrency(txn.amount)}</td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${txn.status === 'success' ? 'bg-green-100 text-green-800' :
+                                                txn.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+                                                }`}>
+                                                {txn.status.toUpperCase()}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-slate-500">
+                                            {new Date(txn.createdAt).toLocaleDateString()}
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                                        No recent transactions found.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

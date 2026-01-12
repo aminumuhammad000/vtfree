@@ -47,6 +47,18 @@ router.get('/apikey', async (req: AuthenticatedRequest, res: Response): Promise<
 router.post('/apikey', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         const userId = req.user!.id;
+        const { Zainbox } = await import('../models');
+
+        // Check if user has a Zainbox
+        const zainbox = await Zainbox.findOne({ userId });
+        if (!zainbox) {
+            res.status(400).json({
+                success: false,
+                message: 'You must create a Zainbox before you can generate an API key.',
+            });
+            return;
+        }
+
         const user = await User.findById(userId);
 
         if (!user) {

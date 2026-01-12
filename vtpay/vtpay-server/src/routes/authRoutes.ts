@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { User, Wallet, Zainbox } from '../models';
-import { generateToken } from '../middleware/auth';
+import { generateToken, authenticate } from '../middleware/auth';
 import { walletService, emailService, zainpayService } from '../services';
 import config from '../config';
 
@@ -14,7 +14,7 @@ const router = Router();
  */
 router.post('/register', async (req: Request, res: Response): Promise<void> => {
     try {
-        const { email, password, firstName, lastName, fullName, phone } = req.body;
+        const { email, password, firstName, lastName, fullName, phone, businessName } = req.body;
 
         // Validate required fields
         // If fullName is provided, we can derive firstName and lastName if they are missing
@@ -60,6 +60,7 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
             lastName: finalLastName,
             fullName: fullName || `${finalFirstName} ${finalLastName}`,
             phone,
+            businessName,
             kycLevel: 0, // 0: Registered (Email Unverified)
             status: 'active', // Active but limited by kycLevel
             verificationToken,
@@ -247,6 +248,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
                     email: user.email,
                     firstName: user.firstName,
                     lastName: user.lastName,
+                    businessName: user.businessName,
                     phone: user.phone,
                     kycLevel: user.kycLevel,
                     status: user.status,
@@ -271,9 +273,78 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 
 /**
  * Get current user profile
+ * GET /api/auth/profile
+ */
+router.get('/profile', authenticate, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = (req as any).user?.id;
+        if (!userId) {
+            res.status(401).json({
+                success: false,
+                message: 'Not authenticated',
+            });
+            return;
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+            return;
+        }
+
+        res.json({
+            success: true,
+            message: 'Profile retrieved',
+            data: {
+                id: user._id,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                fullName: user.fullName,
+                businessName: user.businessName,
+                phone: user.phone,
+                kycLevel: user.kycLevel,
+                status: user.status,
+                role: user.role
+            },
+        });
+    } catch (error) {
+        console.error('Profile error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get profile',
+        });
+    }
+});
+
+/**
+ * Get current user profile (Legacy alias)
  * GET /api/auth/me
  */
-router.get('/me', async (req: Request, res: Response): Promise<void> => {
+router.get('/me', authenticate, async (req: Request, res: Response): Promise<void> => {
+    try {
+        res.json({
+            success: true,
+            message: 'Profile retrieved',
+            data: { user: (req as any).user },
+        });
+    } catch (error) {
+        console.error('Profile error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get profile',
+        });
+    }
+});
+
+/**
+ * Update user profile
+ * PUT /api/auth/profile
+ */
+router.put('/profile', authenticate, async (req: Request, res: Response): Promise<void> => {
     try {
         // This route requires authentication middleware to be applied
         const authHeader = req.headers.authorization;
@@ -285,17 +356,125 @@ router.get('/me', async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
-        // Token verification should be done by auth middleware
+        // Get user ID from token (assuming middleware attached it to req.user)
+        // Since we don't have the middleware applied here explicitly in this file,
+        // we rely on the router usage in index.ts or app.ts where it might be applied.
+        // However, typically we decode the token here if middleware isn't guaranteed.
+        // But for consistency with /me, we assume req.user is populated OR we need to verify token.
+        // Let's assume standard auth middleware is used on this route in index.ts.
+        // Wait, looking at index.ts (from memory/context), auth middleware is usually applied.
+        // But let's look at how /me is implemented. It just checks header but doesn't decode?
+        // Ah, line 292: `data: { user: (req as any).user }`.
+        // This implies `authenticate` middleware IS running before this.
+
+        const userId = (req as any).user?.id;
+        if (!userId) {
+            res.status(401).json({
+                success: false,
+                message: 'User not found in request',
+            });
+            return;
+        }
+
+        const { firstName, lastName, businessName, phone } = req.body;
+
+        const user = await User.findById(userId);
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+            return;
+        }
+
+        // Update fields
+        if (firstName) user.firstName = firstName;
+        if (lastName) user.lastName = lastName;
+        if (businessName) user.businessName = businessName;
+        if (phone) user.phone = phone;
+
+        // Update fullName if names changed
+        if (firstName || lastName) {
+            user.fullName = `${user.firstName} ${user.lastName}`;
+        }
+
+        await user.save();
+
         res.json({
             success: true,
-            message: 'Profile retrieved',
-            data: { user: (req as any).user },
+            message: 'Profile updated successfully',
+            data: {
+                id: user._id,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                fullName: user.fullName,
+                businessName: user.businessName,
+                phone: user.phone,
+                kycLevel: user.kycLevel,
+                status: user.status,
+                role: user.role
+            },
         });
     } catch (error) {
-        console.error('Profile error:', error);
+        console.error('Update profile error:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to get profile',
+            message: 'Failed to update profile',
+        });
+    }
+});
+
+/**
+ * Change password
+ * PUT /api/auth/change-password
+ */
+router.put('/change-password', authenticate, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = (req as any).user?.id;
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            res.status(400).json({
+                success: false,
+                message: 'Current and new passwords are required',
+            });
+            return;
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+            return;
+        }
+
+        // Check current password
+        const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+        if (!isMatch) {
+            res.status(400).json({
+                success: false,
+                message: 'Incorrect current password',
+            });
+            return;
+        }
+
+        // Hash new password
+        const salt = await bcrypt.genSalt(10);
+        user.passwordHash = await bcrypt.hash(newPassword, salt);
+        await user.save();
+
+        res.json({
+            success: true,
+            message: 'Password updated successfully',
+        });
+    } catch (error) {
+        console.error('Change password error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update password',
         });
     }
 });

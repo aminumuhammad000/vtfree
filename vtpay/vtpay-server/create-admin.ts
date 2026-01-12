@@ -19,6 +19,7 @@ const createAdmin = async () => {
             const salt = await bcrypt.genSalt(10);
             user.passwordHash = await bcrypt.hash(password, salt);
             user.status = 'active';
+            user.role = 'admin';
             await user.save();
             console.log('Password updated successfully.');
         } else {
@@ -36,6 +37,7 @@ const createAdmin = async () => {
                 status: 'active',
                 kycLevel: 3,
                 businessName: 'VTFree Admin',
+                role: 'admin',
             });
 
             await user.save();

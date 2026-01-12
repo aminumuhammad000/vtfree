@@ -51,60 +51,78 @@ export const ApiDocs: React.FC = () => {
                 </div>
             </header>
 
-            <main className="api-docs-content">
-                <section className="api-docs-section">
-                    <h2>Introduction</h2>
-                    <p>
-                        Welcome to the VTPay API documentation. Our API allows you to integrate virtual accounts,
-                        wallet management, and payment processing directly into your application.
-                    </p>
-                </section>
+            <div className="api-docs-container">
+                <aside className="api-docs-sidebar">
+                    <nav>
+                        <ul>
+                            <li><a href="#introduction">Introduction</a></li>
+                            <li><a href="#authentication">Authentication</a></li>
+                            <li><a href="#base-url">Base URL</a></li>
+                            <li>
+                                <a href="#endpoints">Endpoints</a>
+                                <ul className="api-docs-subnav">
+                                    <li><a href="#virtual-accounts">Virtual Accounts</a></li>
+                                    <li><a href="#wallet">Wallet</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </nav>
+                </aside>
 
-                <section className="api-docs-section">
-                    <h2 className="sub">Authentication</h2>
-                    <p>
-                        All API requests must be authenticated using a Bearer Token. You can obtain this token
-                        by logging in or registering a new account.
-                    </p>
-                    <CodeBlock
-                        id="auth"
-                        code={`Authorization: Bearer <your_access_token>`}
-                    />
-                </section>
+                <main className="api-docs-content">
+                    <section id="introduction" className="api-docs-section">
+                        <h2>Introduction</h2>
+                        <p>
+                            Welcome to the VTPay API documentation. Our API allows you to integrate virtual accounts,
+                            wallet management, and payment processing directly into your application.
+                        </p>
+                    </section>
 
-                <section className="api-docs-section">
-                    <h2 className="sub">Base URL</h2>
-                    <CodeBlock
-                        id="base-url"
-                        code={`https://api.vtpay.com/api`}
-                    />
-                </section>
+                    <section id="authentication" className="api-docs-section">
+                        <h2 className="sub">Authentication</h2>
+                        <p>
+                            All API requests must be authenticated using a Bearer Token. You can obtain this token
+                            by logging in or registering a new account.
+                        </p>
+                        <CodeBlock
+                            id="auth"
+                            code={`Authorization: Bearer <your_access_token>`}
+                        />
+                    </section>
 
-                <section className="api-docs-section">
-                    <h2 className="sub">Endpoints</h2>
+                    <section id="base-url" className="api-docs-section">
+                        <h2 className="sub">Base URL</h2>
+                        <CodeBlock
+                            id="base-url"
+                            code={`https://api.vtpay.com/api`}
+                        />
+                    </section>
 
-                    <div className="page-container gap-8">
-                        {/* Endpoint 1 */}
-                        <div className="api-endpoint-card">
-                            <div className="api-endpoint-header">
-                                <span className="api-method-badge api-method-post">POST</span>
-                                <code className="api-endpoint-path">/virtual-accounts</code>
-                            </div>
-                            <p className="api-endpoint-description">Create a new virtual account for receiving payments.</p>
+                    <section id="endpoints" className="api-docs-section">
+                        <h2 className="sub">Endpoints</h2>
 
-                            <h4 className="font-semibold mb-2">Request Body</h4>
-                            <CodeBlock
-                                id="req-1"
-                                code={`{
+                        <div className="api-endpoints-container">
+                            {/* Endpoint 1 */}
+                            <div id="virtual-accounts" className="api-endpoint-card">
+                                <div className="api-endpoint-header">
+                                    <span className="api-method-badge api-method-post">POST</span>
+                                    <code className="api-endpoint-path">/virtual-accounts</code>
+                                </div>
+                                <p className="api-endpoint-description">Create a new virtual account for receiving payments.</p>
+
+                                <h4 className="font-semibold mb-2">Request Body</h4>
+                                <CodeBlock
+                                    id="req-1"
+                                    code={`{
   "bankType": "gtBank",
   "bvn": "12345678901" // Optional
 }`}
-                            />
+                                />
 
-                            <h4 className="font-semibold mb-2">Response</h4>
-                            <CodeBlock
-                                id="res-1"
-                                code={`{
+                                <h4 className="font-semibold mb-2">Response</h4>
+                                <CodeBlock
+                                    id="res-1"
+                                    code={`{
   "success": true,
   "message": "Virtual account created successfully",
   "data": {
@@ -114,21 +132,21 @@ export const ApiDocs: React.FC = () => {
     "status": "active"
   }
 }`}
-                            />
-                        </div>
-
-                        {/* Endpoint 2 */}
-                        <div className="api-endpoint-card">
-                            <div className="api-endpoint-header">
-                                <span className="api-method-badge api-method-get">GET</span>
-                                <code className="api-endpoint-path">/wallet</code>
+                                />
                             </div>
-                            <p className="api-endpoint-description">Retrieve current wallet balance and details.</p>
 
-                            <h4 className="font-semibold mb-2">Response</h4>
-                            <CodeBlock
-                                id="res-2"
-                                code={`{
+                            {/* Endpoint 2 */}
+                            <div id="wallet" className="api-endpoint-card">
+                                <div className="api-endpoint-header">
+                                    <span className="api-method-badge api-method-get">GET</span>
+                                    <code className="api-endpoint-path">/wallet</code>
+                                </div>
+                                <p className="api-endpoint-description">Retrieve current wallet balance and details.</p>
+
+                                <h4 className="font-semibold mb-2">Response</h4>
+                                <CodeBlock
+                                    id="res-2"
+                                    code={`{
   "success": true,
   "data": {
     "balance": 500000, // in kobo
@@ -136,11 +154,12 @@ export const ApiDocs: React.FC = () => {
     "currency": "NGN"
   }
 }`}
-                            />
+                                />
+                            </div>
                         </div>
-                    </div>
-                </section>
-            </main>
+                    </section>
+                </main>
+            </div>
         </div>
     );
 };

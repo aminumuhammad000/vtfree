@@ -7,6 +7,10 @@ const startServer = async (): Promise<void> => {
         // Connect to MongoDB
         await connectDatabase();
 
+        // Initialize Zainpay Service with DB settings
+        const { zainpayService } = await import('./services/ZainpayService');
+        await zainpayService.refreshConfig();
+
         // Start Express server
         app.listen(config.port, () => {
             console.log('');

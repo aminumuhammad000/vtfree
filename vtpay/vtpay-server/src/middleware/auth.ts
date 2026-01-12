@@ -7,6 +7,7 @@ export interface AuthenticatedRequest extends Request {
     user?: {
         id: string;
         email: string;
+        role: 'user' | 'admin';
     };
 }
 
@@ -44,6 +45,7 @@ export const authenticate = async (
             req.user = {
                 id: user._id.toString(),
                 email: user.email,
+                role: user.role,
             };
             next();
             return;
@@ -84,6 +86,7 @@ export const authenticate = async (
             req.user = {
                 id: decoded.id,
                 email: decoded.email,
+                role: user.role,
             };
 
             next();
@@ -99,6 +102,41 @@ export const authenticate = async (
         res.status(500).json({
             success: false,
             message: 'Authentication error',
+        });
+    }
+};
+
+/**
+ * Admin Authorization Middleware
+ */
+export const requireAdmin = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                message: 'Authentication required',
+            });
+            return;
+        }
+
+        if (req.user.role !== 'admin') {
+            res.status(403).json({
+                success: false,
+                message: 'Admin access required',
+            });
+            return;
+        }
+
+        next();
+    } catch (error) {
+        console.error('Admin authorization error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Authorization error',
         });
     }
 };
@@ -130,10 +168,20 @@ export const optionalAuth = async (
 
             try {
                 const decoded = jwt.verify(token, config.jwt.secret) as { id: string; email: string };
-                req.user = {
-                    id: decoded.id,
-                    email: decoded.email,
-                };
+                // We need to fetch the user to get the role if we want consistency, 
+                // but for optional auth maybe just id/email is enough or we fetch user if needed.
+                // For now, let's keep it simple and just decode.
+                // If role is needed in optional auth routes, we should fetch user.
+
+                const user = await User.findById(decoded.id);
+                if (user) {
+                    req.user = {
+                        id: decoded.id,
+                        email: decoded.email,
+                        role: user.role
+                    };
+                }
+
             } catch {
                 // Token invalid, but continue without user
             }

@@ -1,6 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
-import { ArrowUpRight, ArrowDownLeft, Search, Filter, Download } from 'lucide-react';
+import {
+    ArrowUpRight,
+    ArrowDownLeft,
+    Search,
+    Filter,
+    Download,
+    ChevronLeft,
+    ChevronRight,
+    Calendar,
+    MoreHorizontal,
+    CheckCircle2,
+    Clock,
+    XCircle,
+    RefreshCw
+} from 'lucide-react';
 
 export const Transactions: React.FC = () => {
     const [transactions, setTransactions] = useState<any[]>([]);
@@ -9,22 +23,27 @@ export const Transactions: React.FC = () => {
         type: '',
         startDate: '',
         endDate: '',
+        search: '',
     });
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
 
     useEffect(() => {
         fetchTransactions();
-    }, [filters]);
+    }, [filters, page]);
 
     const fetchTransactions = async () => {
         setIsLoading(true);
         try {
-            let query = '/transactions?limit=50';
+            let query = `/transactions?limit=15&page=${page}`;
             if (filters.type) query += `&type=${filters.type}`;
             if (filters.startDate) query += `&startDate=${filters.startDate}`;
             if (filters.endDate) query += `&endDate=${filters.endDate}`;
+            if (filters.search) query += `&search=${filters.search}`;
 
             const response = await api.get(query);
-            setTransactions(response.data.data.transactions);
+            setTransactions(response.data.data.transactions || []);
+            setTotalPages(response.data.data.totalPages || 1);
         } catch (error) {
             console.error('Error fetching transactions:', error);
         } finally {
@@ -34,127 +53,232 @@ export const Transactions: React.FC = () => {
 
     const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
         setFilters({ ...filters, [e.target.name]: e.target.value });
+        setPage(1); // Reset to first page on filter change
     };
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-NG', {
             style: 'currency',
             currency: 'NGN',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
         }).format(amount);
     };
 
+    const getStatusStyles = (status: string) => {
+        switch (status.toLowerCase()) {
+            case 'success':
+                return {
+                    className: 'status-pill success',
+                    icon: <CheckCircle2 size={12} />
+                };
+            case 'pending':
+                return {
+                    className: 'status-pill pending',
+                    icon: <Clock size={12} />
+                };
+            case 'failed':
+                return {
+                    className: 'status-pill failed',
+                    icon: <XCircle size={12} />
+                };
+            default:
+                return {
+                    className: 'status-pill',
+                    icon: <Clock size={12} />
+                };
+        }
+    };
+
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-6 max-w-[1400px] animate-fade-in">
+            {/* Header */}
+            <div className="transactions-header">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Transactions</h1>
-                    <p className="text-slate-500">View and filter your transaction history</p>
+                    <h1 className="text-heading">Transactions</h1>
+                    <p className="text-body mt-1">Monitor and manage all your financial activities</p>
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors shadow-sm font-medium">
-                    <Download size={18} />
-                    Export CSV
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={fetchTransactions}
+                        className="btn btn-secondary p-2"
+                        title="Refresh"
+                    >
+                        <RefreshCw size={18} />
+                    </button>
+                    <button className="btn btn-secondary">
+                        <Download size={18} />
+                        Export CSV
+                    </button>
+                </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                {/* Filters */}
-                <div className="p-4 border-b border-slate-200 bg-slate-50/50 flex flex-col md:flex-row gap-4 items-center justify-between">
-                    <div className="relative w-full md:w-96">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                        <input
-                            type="text"
-                            placeholder="Search by reference..."
-                            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-                        />
+            {/* Filters Bar */}
+            <div className="filter-bar">
+                <div className="search-input-wrapper">
+                    <Search className="search-icon" size={18} />
+                    <input
+                        type="text"
+                        name="search"
+                        value={filters.search}
+                        onChange={handleFilterChange}
+                        placeholder="Search by reference or narration..."
+                        className="search-input"
+                    />
+                </div>
+
+                <div className="filter-group">
+                    <div className="select-wrapper">
+                        <select
+                            name="type"
+                            value={filters.type}
+                            onChange={handleFilterChange}
+                            className="filter-select"
+                        >
+                            <option value="">All Types</option>
+                            <option value="credit">Credit</option>
+                            <option value="debit">Debit</option>
+                        </select>
+                        <Filter className="filter-icon" size={16} />
                     </div>
-                    <div className="flex gap-3 w-full md:w-auto">
-                        <div className="relative">
-                            <select
-                                name="type"
-                                value={filters.type}
-                                onChange={handleFilterChange}
-                                className="appearance-none pl-4 pr-10 py-2 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none cursor-pointer"
-                            >
-                                <option value="">All Types</option>
-                                <option value="credit">Credit</option>
-                                <option value="debit">Debit</option>
-                            </select>
-                            <Filter className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
-                        </div>
+
+                    <div className="date-range-picker">
+                        <Calendar size={16} className="text-muted" />
                         <input
                             type="date"
                             name="startDate"
                             value={filters.startDate}
                             onChange={handleFilterChange}
-                            className="px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                            className="date-input"
+                        />
+                        <span className="text-muted text-xs">to</span>
+                        <input
+                            type="date"
+                            name="endDate"
+                            value={filters.endDate}
+                            onChange={handleFilterChange}
+                            className="date-input"
                         />
                     </div>
                 </div>
+            </div>
 
-                {/* Table */}
+            {/* Transactions Table */}
+            <div className="transactions-table-container">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
-                            <tr>
-                                <th className="px-6 py-4">Type</th>
-                                <th className="px-6 py-4">Amount</th>
-                                <th className="px-6 py-4">Reference</th>
-                                <th className="px-6 py-4">Narration</th>
-                                <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4">Date</th>
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="table-header">
+                                <th className="table-th">Transaction</th>
+                                <th className="table-th">Amount</th>
+                                <th className="table-th">Reference</th>
+                                <th className="table-th">Status</th>
+                                <th className="table-th">Date</th>
+                                <th className="table-th"></th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-200">
+                        <tbody className="divide-y divide-gray-50">
                             {isLoading ? (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center">
-                                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-                                    </td>
-                                </tr>
-                            ) : transactions.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                                        No transactions found matching your criteria
-                                    </td>
-                                </tr>
-                            ) : (
-                                transactions.map((txn) => (
-                                    <tr key={txn.id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`p-2 rounded-full ${txn.type === 'credit' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
-                                                    }`}>
-                                                    {txn.type === 'credit' ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
-                                                </div>
-                                                <span className="font-medium text-slate-900 capitalize">{txn.type}</span>
-                                            </div>
-                                        </td>
-                                        <td className={`px-6 py-4 font-medium ${txn.type === 'credit' ? 'text-green-600' : 'text-slate-900'
-                                            }`}>
-                                            {txn.type === 'credit' ? '+' : '-'}{formatCurrency(txn.amountNaira)}
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-500 font-mono text-xs">
-                                            {txn.reference}
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-600 max-w-xs truncate" title={txn.narration}>
-                                            {txn.narration || '-'}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${txn.status === 'success' ? 'bg-green-100 text-green-800' :
-                                                    txn.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                        'bg-red-100 text-red-800'
-                                                }`}>
-                                                {txn.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-500">
-                                            {new Date(txn.createdAt).toLocaleString()}
+                                Array.from({ length: 5 }).map((_, i) => (
+                                    <tr key={i} className="animate-pulse">
+                                        <td colSpan={6} className="p-6">
+                                            <div className="h-10 bg-gray-100 rounded-lg w-full"></div>
                                         </td>
                                     </tr>
                                 ))
+                            ) : transactions.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} className="empty-state">
+                                        <div className="empty-state-icon">
+                                            <Search size={32} className="text-gray-300" />
+                                        </div>
+                                        <h3 className="empty-state-title">No transactions found</h3>
+                                        <p className="empty-state-description">Try adjusting your filters or search terms</p>
+                                    </td>
+                                </tr>
+                            ) : (
+                                transactions.map((txn) => {
+                                    const status = getStatusStyles(txn.status);
+                                    return (
+                                        <tr key={txn.id} className="group transition-colors">
+                                            <td className="table-td">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`transaction-type-icon ${txn.type === 'credit' ? 'credit' : 'debit'}`}>
+                                                        {txn.type === 'credit' ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-heading capitalize">{txn.type}</p>
+                                                        <p className="text-xs text-muted mt-0.5 max-w-[200px] truncate" title={txn.narration}>
+                                                            {txn.narration || 'No description'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="table-td">
+                                                <p className={`text-sm font-bold ${txn.type === 'credit' ? 'text-success' : 'text-heading'}`}>
+                                                    {txn.type === 'credit' ? '+' : '-'}{formatCurrency(txn.amountNaira)}
+                                                </p>
+                                            </td>
+                                            <td className="table-td">
+                                                <span className="text-xs font-mono text-muted bg-gray-50 px-2 py-1 rounded border border-gray-100">
+                                                    {txn.reference}
+                                                </span>
+                                            </td>
+                                            <td className="table-td">
+                                                <div className={status.className}>
+                                                    {status.icon}
+                                                    {txn.status}
+                                                </div>
+                                            </td>
+                                            <td className="table-td">
+                                                <p className="text-xs text-muted">
+                                                    {new Date(txn.createdAt).toLocaleDateString('en-US', {
+                                                        month: 'short',
+                                                        day: 'numeric',
+                                                        year: 'numeric'
+                                                    })}
+                                                </p>
+                                                <p className="text-[10px] text-gray-400 mt-0.5">
+                                                    {new Date(txn.createdAt).toLocaleTimeString('en-US', {
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })}
+                                                </p>
+                                            </td>
+                                            <td className="table-td text-right">
+                                                <button className="p-2 text-muted hover:text-heading hover:bg-gray-100 rounded-lg transition-all">
+                                                    <MoreHorizontal size={18} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Pagination */}
+                <div className="pagination-container">
+                    <p className="pagination-info">
+                        Showing page {page} of {totalPages}
+                    </p>
+                    <div className="pagination-controls">
+                        <button
+                            onClick={() => setPage(Math.max(1, page - 1))}
+                            disabled={page === 1 || isLoading}
+                            className="pagination-button"
+                        >
+                            <ChevronLeft size={18} />
+                        </button>
+                        <button
+                            onClick={() => setPage(Math.min(totalPages, page + 1))}
+                            disabled={page === totalPages || isLoading}
+                            className="pagination-button"
+                        >
+                            <ChevronRight size={18} />
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
