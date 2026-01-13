@@ -8,6 +8,7 @@ const router = express.Router();
 router.use(authenticateVTfreeUser);
 
 router.post('/create', VTfreeAppController.createApp);
+router.post('/verify-payment', VTfreeAppController.verifyAppPayment);
 router.get('/my-apps', VTfreeAppController.getMyApps);
 router.get('/:appId', VTfreeAppController.getAppDetails);
 

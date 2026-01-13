@@ -1,141 +1,97 @@
-import { useEffect, useState } from 'react';
-import { getDashboardStats } from 'api/superAdminApi';
-import StatsCard from 'components/dashboard/StatsCard';
-import RecentTransactions from 'components/dashboard/RecentTransactions';
-import TopApps from 'components/dashboard/TopApps';
-import AnalyticsChart from 'components/dashboard/AnalyticsChart';
+import Grid from '@mui/material/Grid';
+import Analytics from 'components/sections/dashboard/analytics';
+import RecentOrders from 'components/sections/dashboard/recent-orders';
+import Reports from 'components/sections/dashboard/reports';
+import TopCards from 'components/sections/dashboard/top-cards';
+import TopSelling from 'components/sections/dashboard/top-selling';
 
-interface DashboardData {
-  total_users: number;
-  total_transactions: number;
-  revenue: number;
-  active_users: number;
-  recent_transactions: any[];
-  top_apps: any[];
-  daily_stats: any[];
-}
+import { useEffect, useState } from 'react';
+import api from 'services/api';
+import { TopCard } from 'data/topCardsData';
 
 const Dashboard = () => {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<TopCard[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [topApps, setTopApps] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [dailyStats, setDailyStats] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [analyticsData, setAnalyticsData] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const response = await getDashboardStats();
-        if (response.data.success) {
-          setData(response.data.data);
-        }
+        const response = await api.get('/super-admin/dashboard');
+        const data = response.data.data;
+
+        const mappedStats: TopCard[] = [
+          {
+            id: 1,
+            icon: 'mage:users-fill',
+            title: 'Total Users',
+            count: data.total_users,
+            iconColor: 'primary.main',
+            iconBg: 'transparent.primary.main',
+          },
+          {
+            id: 2,
+            icon: 'solar:bill-list-bold',
+            title: 'Transactions',
+            count: data.total_transactions,
+            iconColor: 'secondary.main',
+            iconBg: 'transparent.secondary.main',
+          },
+          {
+            id: 3,
+            icon: 'solar:wallet-money-bold',
+            title: 'Revenue',
+            count: data.revenue,
+            iconColor: 'success.main',
+            iconBg: 'transparent.success.main',
+          },
+          {
+            id: 4,
+            icon: 'mage:user-check-fill',
+            title: 'Active Users',
+            count: data.active_users,
+            iconColor: 'warning.main',
+            iconBg: 'transparent.warning.main',
+          },
+        ];
+
+        setStats(mappedStats);
+        setRecentTransactions(data.recent_transactions || []);
+        setTopApps(data.top_apps || []);
+        setDailyStats(data.daily_stats || []);
+        setAnalyticsData(data.analytics_data || []);
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
-      } finally {
-        setLoading(false);
       }
     };
 
     fetchDashboardData();
   }, []);
 
-  const stats = [
-    {
-      label: 'Total Users',
-      value: data?.total_users || 0,
-      icon: 'solar:users-group-rounded-bold-duotone',
-      bgGradient: 'from-blue-500 to-blue-600',
-      lightBg: 'bg-blue-50',
-      textColor: 'text-blue-600',
-      trend: { value: 12.5, isPositive: true }
-    },
-    {
-      label: 'Active Users',
-      value: data?.active_users || 0,
-      icon: 'solar:user-check-bold-duotone',
-      bgGradient: 'from-green-500 to-green-600',
-      lightBg: 'bg-green-50',
-      textColor: 'text-green-600',
-      trend: { value: 8.2, isPositive: true }
-    },
-    {
-      label: 'Total Transactions',
-      value: data?.total_transactions || 0,
-      icon: 'solar:bill-list-bold-duotone',
-      bgGradient: 'from-purple-500 to-purple-600',
-      lightBg: 'bg-purple-50',
-      textColor: 'text-purple-600',
-      trend: { value: 5.4, isPositive: false }
-    },
-    {
-      label: 'Total Revenue',
-      value: data?.revenue || 0,
-      icon: 'solar:wallet-money-bold-duotone',
-      bgGradient: 'from-orange-500 to-orange-600',
-      lightBg: 'bg-orange-50',
-      textColor: 'text-orange-600',
-      isCurrency: true,
-      trend: { value: 15.7, isPositive: true }
-    },
-  ];
-
-  // Generate mock chart data
-  const chartData = {
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    revenue: [450000, 520000, 480000, 590000, 620000, 580000, 710000],
-    transactions: [2100, 2450, 2200, 2800, 3100, 2900, 3500]
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-green-200 border-t-green-600 rounded-full animate-spin"></div>
-          <p className="text-slate-500 font-medium">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Dashboard Overview</h1>
-          <p className="text-slate-500 mt-1">Welcome back, Super Admin</p>
-        </div>
-        <div className="text-right">
-          <p className="text-sm text-slate-500">Last updated</p>
-          <p className="text-sm font-semibold text-slate-900">{new Date().toLocaleString()}</p>
-        </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <StatsCard key={index} {...stat} />
-        ))}
-      </div>
-
-      {/* Charts and Activity Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Analytics Chart - spans 2 columns */}
-        <div className="lg:col-span-2">
-          <AnalyticsChart
-            title="Revenue & Transaction Analytics"
-            data={chartData}
-          />
-        </div>
-
-        {/* Top Apps */}
-        <div className="lg:col-span-1">
-          <TopApps data={data?.top_apps || []} />
-        </div>
-      </div>
-
-      {/* Recent Transactions - Full Width */}
-      <div className="grid grid-cols-1">
-        <RecentTransactions data={data?.recent_transactions || []} />
-      </div>
-    </div>
+    <Grid container px={3.75} spacing={3.75}>
+      <Grid item xs={12}>
+        <TopCards data={stats} />
+      </Grid>
+      <Grid item xs={12} md={7}>
+        <Reports data={dailyStats} />
+      </Grid>
+      <Grid item xs={12} md={5}>
+        <Analytics data={analyticsData} />
+      </Grid>
+      <Grid item xs={12} md={7}>
+        <RecentOrders data={recentTransactions} />
+      </Grid>
+      <Grid item xs={12} md={5}>
+        <TopSelling data={topApps} />
+      </Grid>
+    </Grid>
   );
 };
 

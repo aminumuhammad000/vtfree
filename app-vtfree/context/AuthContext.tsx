@@ -9,6 +9,7 @@ interface AuthContextType {
     signIn: (data: any) => Promise<void>;
     signUp: (data: any) => Promise<void>;
     signOut: () => Promise<void>;
+    updateUser: (user: any) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,7 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const response = await AuthService.login(data);
             if (response.success) {
                 setUser(response.data.user);
-                router.replace('/(tabs)');
+                // router.replace('/(tabs)'); // Handling navigation in the screen
             } else {
                 throw new Error(response.message);
             }
@@ -54,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const response = await AuthService.register(data);
             if (response.success) {
                 setUser(response.data.user);
-                router.replace('/(tabs)');
+                // router.replace('/(tabs)'); // Handling navigation in the screen
             } else {
                 throw new Error(response.message);
             }
@@ -67,6 +68,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await AuthService.logout();
         setUser(null);
         router.replace('/login');
+    }
+
+    async function updateUser(userData: any) {
+        setUser(userData);
+        await AsyncStorage.setItem('vtfree_user', JSON.stringify(userData));
     }
 
     return (

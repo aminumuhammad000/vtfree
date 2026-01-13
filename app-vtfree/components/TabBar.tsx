@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, LayoutChangeEvent } from 'rea
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import Colors from '../constants/Colors';
-import { Home, Grid, User } from 'lucide-react-native';
+import { Home, Grid, User, Wallet } from 'lucide-react-native';
 
 export default function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     const [dimensions, setDimensions] = React.useState({ height: 20, width: 100 });
@@ -87,6 +87,9 @@ export default function TabBar({ state, descriptors, navigation }: BottomTabBarP
                         }
                         {
                             label === 'My Apps' && <Grid color={isFocused ? Colors.white : Colors.gray[400]} size={24} />
+                        }
+                        {
+                            label === 'Wallet' && <Wallet color={isFocused ? Colors.white : Colors.gray[400]} size={24} />
                         }
                         {
                             label === 'Me' && <User color={isFocused ? Colors.white : Colors.gray[400]} size={24} />

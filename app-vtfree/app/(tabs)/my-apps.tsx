@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Plus, MoreVertical, Smartphone, Globe, Server } from 'lucide-react-native';
+import { Plus, Rocket, Globe, Smartphone, Monitor } from 'lucide-react-native';
 import Colors from '../../constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -10,10 +10,10 @@ import { AppService } from '../../services/app.service';
 export default function MyAppsScreen() {
     const router = useRouter();
 
-    const [apps, setApps] = React.useState<any[]>([]);
-    const [isLoading, setIsLoading] = React.useState(true);
+    const [apps, setApps] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    React.useEffect(() => {
+    useEffect(() => {
         fetchApps();
     }, []);
 
@@ -25,9 +25,11 @@ export default function MyAppsScreen() {
                     id: app.app_id,
                     name: app.app_name,
                     package: app.package_name,
-                    status: app.status === 'active' ? 'Live' : 'Building',
-                    type: 'Android', // TODO: Handle multiple platforms
-                    icon: Smartphone,
+                    // Map statuses specifically
+                    status: (app.status === 'active' || app.status === 'live') ? 'Live' : 'Building',
+                    rawStatus: app.status,
+                    platforms: app.platforms,
+                    logo: app.branding?.logo_url || null,
                     color: app.branding?.primary_color || Colors.primary
                 })));
             }
@@ -42,34 +44,60 @@ export default function MyAppsScreen() {
         <Animated.View entering={FadeInDown.delay(index * 100).springify()}>
             <TouchableOpacity
                 style={styles.appCard}
-                activeOpacity={0.8}
+                activeOpacity={0.9}
                 onPress={() => router.push({
                     pathname: '/app-details',
-                    params: {
-                        appId: item.id,
-                        name: item.name,
-                        package: item.package,
-                        status: item.status,
-                        type: item.type,
-                        color: item.color
-                    }
+                    params: { appId: item.id }
                 })}
             >
-                <View style={[styles.appIcon, { backgroundColor: `${item.color}20` }]}>
-                    <item.icon color={item.color} size={24} />
-                </View>
-                <View style={styles.appInfo}>
-                    <Text style={styles.appName}>{item.name}</Text>
-                    <Text style={styles.appPackage}>{item.package}</Text>
-                </View>
-                <View style={styles.appStatus}>
-                    <View style={[styles.statusBadge, {
-                        backgroundColor: item.status === 'Live' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)'
-                    }]}>
-                        <Text style={[styles.statusText, {
-                            color: item.status === 'Live' ? Colors.success : Colors.warning
-                        }]}>{item.status}</Text>
+                {/* Header / Banner area */}
+                <View style={[styles.cardHeader, { backgroundColor: `${item.color}15` }]}>
+                    <View style={[styles.statusTag,
+                    item.status === 'Live' ? styles.statusLive : styles.statusBuilding
+                    ]}>
+                        <View style={[styles.statusDot,
+                        item.status === 'Live' ? { backgroundColor: Colors.green[500] } : { backgroundColor: Colors.yellow[500] }
+                        ]} />
+                        <Text style={[styles.statusText,
+                        item.status === 'Live' ? { color: Colors.green[700] } : { color: Colors.yellow[700] }
+                        ]}>{item.status}</Text>
                     </View>
+                </View>
+
+                <View style={styles.cardContent}>
+                    {/* App Icon */}
+                    <View style={styles.iconContainer}>
+                        {item.logo ? (
+                            <Image source={{ uri: item.logo }} style={styles.appIconImage} />
+                        ) : (
+                            <View style={[styles.appIconPlaceholder, { backgroundColor: item.color }]}>
+                                <Text style={styles.appIconInitial}>{item.name.charAt(0)}</Text>
+                            </View>
+                        )}
+                    </View>
+
+                    {/* App Details */}
+                    <View style={styles.detailsContainer}>
+                        <Text style={styles.appName} numberOfLines={1}>{item.name}</Text>
+                        <Text style={styles.appPackage} numberOfLines={1}>{item.package}</Text>
+
+                        {/* Platform Icons */}
+                        <View style={styles.platformsRow}>
+                            {item.platforms?.android && (
+                                <View style={styles.platformIcon}><Smartphone size={12} color={Colors.gray[500]} /></View>
+                            )}
+                            {item.platforms?.ios && (
+                                <View style={styles.platformIcon}><Smartphone size={12} color={Colors.gray[500]} /></View>
+                            )}
+                            {item.platforms?.web && (
+                                <View style={styles.platformIcon}><Monitor size={12} color={Colors.gray[500]} /></View>
+                            )}
+                        </View>
+                    </View>
+
+                    <TouchableOpacity style={[styles.arrowButton, { backgroundColor: `${item.color}20` }]}>
+                        <Globe size={18} color={item.color} />
+                    </TouchableOpacity>
                 </View>
             </TouchableOpacity>
         </Animated.View>
@@ -77,28 +105,60 @@ export default function MyAppsScreen() {
 
     return (
         <View style={styles.container}>
-            <LinearGradient colors={[Colors.primary, Colors.primaryLight]} style={styles.header}>
-                <Text style={styles.headerTitle}>My Apps</Text>
-                <TouchableOpacity
-                    style={styles.addButton}
-                    onPress={() => router.push('/create-app')}
-                >
-                    <Plus color={Colors.primary} size={24} />
-                </TouchableOpacity>
+            <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+
+            {/* Metaverse / Cartoonish Header */}
+            <LinearGradient
+                colors={[Colors.primary, '#4ADE80']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.header}
+            >
+                <View style={styles.headerContent}>
+                    <View>
+                        <Text style={styles.headerTitle}>My Apps 🚀</Text>
+                        <Text style={styles.headerSubtitle}>Manage your deployed universe</Text>
+                    </View>
+                    <TouchableOpacity
+                        style={styles.addButton}
+                        activeOpacity={0.8}
+                        onPress={() => router.push('/create-app')}
+                    >
+                        <Plus color={Colors.primary} size={24} strokeWidth={3} />
+                    </TouchableOpacity>
+                </View>
+
+                {/* Decorative Elements */}
+                <View style={styles.circle1} />
+                <View style={styles.circle2} />
             </LinearGradient>
 
-            <FlatList
-                data={apps}
-                renderItem={renderItem}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
-                ListEmptyComponent={
-                    <View style={styles.emptyState}>
-                        <Text style={styles.emptyText}>No apps found. Create one!</Text>
-                    </View>
-                }
-            />
+            <View style={styles.contentContainer}>
+                <FlatList
+                    data={apps}
+                    renderItem={renderItem}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={styles.listContent}
+                    showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={
+                        !isLoading ? (
+                            <View style={styles.emptyState}>
+                                <View style={styles.emptyIconCircle}>
+                                    <Rocket size={40} color={Colors.primary} />
+                                </View>
+                                <Text style={styles.emptyTitle}>No apps yet!</Text>
+                                <Text style={styles.emptyText}>Start your journey by launching your first app globally.</Text>
+                                <TouchableOpacity
+                                    style={styles.emptyButton}
+                                    onPress={() => router.push('/create-app')}
+                                >
+                                    <Text style={styles.emptyButtonText}>Create New App</Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : null
+                    }
+                />
+            </View>
         </View>
     );
 }
@@ -106,92 +166,217 @@ export default function MyAppsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.background,
+        backgroundColor: Colors.gray[50], // Slightly off-white for better contrast
     },
     header: {
+        height: 180,
         paddingTop: 60,
-        paddingBottom: 20,
         paddingHorizontal: 20,
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    headerContent: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        borderBottomLeftRadius: 30,
-        borderBottomRightRadius: 30,
+        zIndex: 10,
     },
     headerTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
+        fontSize: 28,
+        fontWeight: '900',
         color: Colors.white,
+        letterSpacing: 0.5,
+    },
+    headerSubtitle: {
+        fontSize: 14,
+        color: 'rgba(255,255,255,0.9)',
+        marginTop: 4,
+        fontWeight: '500',
     },
     addButton: {
-        width: 44,
-        height: 44,
+        width: 48,
+        height: 48,
         backgroundColor: Colors.white,
-        borderRadius: 14,
+        borderRadius: 16,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#000',
+        shadowColor: 'rgba(0,0,0,0.2)',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
+        shadowOpacity: 0.3,
         shadowRadius: 8,
-        elevation: 5,
+        elevation: 6,
+    },
+    circle1: {
+        position: 'absolute',
+        width: 200,
+        height: 200,
+        borderRadius: 100,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        top: -50,
+        right: -50,
+    },
+    circle2: {
+        position: 'absolute',
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        bottom: -20,
+        left: 20,
+    },
+    contentContainer: {
+        flex: 1,
+        marginTop: -30, // Pull up to overlap header slightly
+        paddingHorizontal: 20,
     },
     listContent: {
-        padding: 20,
         paddingBottom: 100,
+        paddingTop: 10,
     },
     appCard: {
         backgroundColor: Colors.white,
-        borderRadius: 20,
-        padding: 16,
+        borderRadius: 24,
+        marginBottom: 20,
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 4,
+        overflow: 'hidden',
+    },
+    cardHeader: {
+        height: 48,
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        paddingHorizontal: 16,
+        paddingTop: 12,
+    },
+    statusTag: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 3,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 20,
     },
-    appIcon: {
-        width: 50,
-        height: 50,
-        borderRadius: 14,
+    statusLive: {
+        backgroundColor: Colors.green[100],
+    },
+    statusBuilding: {
+        backgroundColor: Colors.yellow[100],
+    },
+    statusDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        marginRight: 6,
+    },
+    statusText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    cardContent: {
+        padding: 20,
+        paddingTop: 0,
+        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
+    },
+    iconContainer: {
         marginRight: 16,
     },
-    appInfo: {
+    appIconImage: {
+        width: 64,
+        height: 64,
+        borderRadius: 18,
+    },
+    appIconPlaceholder: {
+        width: 64,
+        height: 64,
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    appIconInitial: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: Colors.white,
+    },
+    detailsContainer: {
         flex: 1,
     },
     appName: {
-        fontSize: 16,
-        fontWeight: '600',
+        fontSize: 18,
+        fontWeight: 'bold',
         color: Colors.text.primary,
         marginBottom: 4,
     },
     appPackage: {
         fontSize: 12,
         color: Colors.gray[500],
+        marginBottom: 8,
     },
-    appStatus: {
+    platformsRow: {
+        flexDirection: 'row',
+        gap: 6,
+    },
+    platformIcon: {
+        width: 24,
+        height: 24,
+        borderRadius: 8,
+        backgroundColor: Colors.gray[100],
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    arrowButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
         marginLeft: 8,
-    },
-    statusBadge: {
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 12,
-    },
-    statusText: {
-        fontSize: 12,
-        fontWeight: '600',
     },
     emptyState: {
         alignItems: 'center',
-        marginTop: 40,
+        paddingTop: 60,
+    },
+    emptyIconCircle: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: Colors.primaryLighter,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 20,
+    },
+    emptyTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: Colors.text.primary,
+        marginBottom: 8,
     },
     emptyText: {
+        fontSize: 14,
         color: Colors.gray[500],
+        textAlign: 'center',
+        maxWidth: 260,
+        marginBottom: 24,
+        lineHeight: 20,
+    },
+    emptyButton: {
+        backgroundColor: Colors.primary,
+        paddingHorizontal: 24,
+        paddingVertical: 14,
+        borderRadius: 16,
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    emptyButtonText: {
+        color: Colors.white,
+        fontWeight: 'bold',
         fontSize: 16,
     },
 });

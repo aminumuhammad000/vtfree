@@ -13,6 +13,9 @@ export interface ICreatedApp extends Document {
         web: boolean;
     };
 
+    // Services
+    services: string[];
+
     // Branding
     branding: {
         logo_url?: string;
@@ -89,6 +92,12 @@ const CreatedAppSchema: Schema = new Schema({
             type: Boolean,
             default: false,
         },
+    },
+
+    // Services
+    services: {
+        type: [String],
+        default: [],
     },
 
     // Branding

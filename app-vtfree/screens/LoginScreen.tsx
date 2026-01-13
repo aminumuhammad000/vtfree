@@ -6,6 +6,7 @@ import { ArrowLeft, Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import Colors from '../constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import CustomAlert from '../components/CustomAlert';
 
 const { width, height } = Dimensions.get('window');
 
@@ -18,17 +19,36 @@ export default function LoginScreen() {
     });
     const [showPassword, setShowPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [alertConfig, setAlertConfig] = useState<{ visible: boolean; type: 'success' | 'error'; title: string; message: string }>({
+        visible: false,
+        type: 'success',
+        title: '',
+        message: '',
+    });
+
+    const showAlert = (type: 'success' | 'error', title: string, message: string) => {
+        setAlertConfig({ visible: true, type, title, message });
+    };
+
+    const handleAlertClose = () => {
+        setAlertConfig(prev => ({ ...prev, visible: false }));
+        if (alertConfig.type === 'success') {
+            // @ts-ignore
+            router.replace('/(tabs)/home');
+        }
+    };
 
     const handleSubmit = async () => {
         if (!formData.email || !formData.password) {
-            alert('Please fill in all fields');
+            showAlert('error', 'Missing Fields', 'Please fill in all fields');
             return;
         }
         setIsSubmitting(true);
         try {
             await signIn(formData);
+            showAlert('success', 'Welcome Back!', 'Login Successful!');
         } catch (error: any) {
-            alert(error.message || 'Login failed');
+            showAlert('error', 'Login Failed', error.message || 'An unknown error occurred');
         } finally {
             setIsSubmitting(false);
         }
@@ -143,6 +163,13 @@ export default function LoginScreen() {
                         </Animated.View>
                     </ScrollView>
                 </KeyboardAvoidingView>
+                <CustomAlert
+                    visible={alertConfig.visible}
+                    type={alertConfig.type}
+                    title={alertConfig.title}
+                    message={alertConfig.message}
+                    onClose={handleAlertClose}
+                />
             </LinearGradient>
         </View>
     );
