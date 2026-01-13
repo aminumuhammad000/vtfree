@@ -17,11 +17,6 @@ const Payments = lazy(() => import('pages/payments'));
 const Settings = lazy(() => import('pages/settings'));
 const Profile = lazy(() => import('pages/profile'));
 
-// Customer Management
-const AllCustomers = lazy(() => import('pages/customers/AllCustomers'));
-const CustomersByApp = lazy(() => import('pages/customers/CustomersByApp'));
-const CustomersByUser = lazy(() => import('pages/customers/CustomersByUser'));
-
 // Finance
 const PlatformWallet = lazy(() => import('pages/finance/PlatformWallet'));
 const UserWallets = lazy(() => import('pages/finance/UserWallets'));
@@ -93,19 +88,6 @@ const routes = [
               {
                 path: paths.payments,
                 element: <Payments />,
-              },
-              // Customer Management
-              {
-                path: paths.customersAll,
-                element: <AllCustomers />,
-              },
-              {
-                path: paths.customersByApp,
-                element: <CustomersByApp />,
-              },
-              {
-                path: paths.customersByUser,
-                element: <CustomersByUser />,
               },
               // Finance
               {

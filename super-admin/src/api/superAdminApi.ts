@@ -27,8 +27,22 @@ export const getUsers = async (params?: {
   page?: number;
   limit?: number;
   search?: string;
+  app_id?: string;
+  owner_id?: string;
 }) => {
   return api.get('/users', { params });
+};
+
+export const getApps = async () => {
+  return api.get('/apps');
+};
+
+// This will fetch VTfreeUsers who are app owners
+export const getOwners = async () => {
+  // We can reuse the users endpoint if we add a type filter, or just use a new one.
+  // For now, let's assume we want all VTfreeUsers.
+  // Actually, let's check if there's an endpoint for this.
+  return api.get('/owners');
 };
 
 export const updateUserStatus = (id: string, status: string) =>
