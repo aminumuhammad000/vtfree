@@ -65,6 +65,10 @@ const SystemConfig = () => {
     };
 
     const handleDelete = async (key: string) => {
+        if (key.startsWith('VTPAY_')) {
+            showToast('Default gateway configuration cannot be cleared', 'warning');
+            return;
+        }
         if (!window.confirm(`Are you sure you want to clear the value for ${key}?`)) return;
         try {
             const response = await deleteConfig(key);
@@ -268,6 +272,11 @@ const SystemConfig = () => {
                                                     <span className="font-mono font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-lg text-sm border border-slate-200">
                                                         {config.key}
                                                     </span>
+                                                    {config.key.startsWith('VTPAY_') && (
+                                                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full uppercase tracking-wider">
+                                                            Default Gateway
+                                                        </span>
+                                                    )}
                                                     {config.description && (
                                                         <span className="text-sm text-slate-500 truncate border-l border-slate-200 pl-3">
                                                             {config.description}

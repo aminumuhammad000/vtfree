@@ -71,6 +71,20 @@ class ConfigService {
             { key: 'ZAINPAY_BASE_URL', group: 'PAYMENT', description: 'Zainpay Base URL' },
             { key: 'ZAINPAY_IS_LIVE', group: 'PAYMENT', description: 'Zainpay Live Mode' },
 
+            { key: 'VTPAY_API_KEY', group: 'PAYMENT', description: 'VTPay API Key (Default Gateway)' },
+            { key: 'VTPAY_SECRET_KEY', group: 'PAYMENT', description: 'VTPay Secret Key' },
+            { key: 'VTPAY_PUBLIC_KEY', group: 'PAYMENT', description: 'VTPay Public Key' },
+            { key: 'VTPAY_IS_ACTIVE', group: 'PAYMENT', description: 'VTPay Gateway Status (true/false)' },
+
+            { key: 'PAYSTACK_SECRET_KEY', group: 'PAYMENT', description: 'Paystack Secret Key' },
+            { key: 'PAYSTACK_PUBLIC_KEY', group: 'PAYMENT', description: 'Paystack Public Key' },
+            { key: 'PAYSTACK_IS_ACTIVE', group: 'PAYMENT', description: 'Paystack Gateway Status' },
+
+            { key: 'FLUTTERWAVE_SECRET_KEY', group: 'PAYMENT', description: 'Flutterwave Secret Key' },
+            { key: 'FLUTTERWAVE_PUBLIC_KEY', group: 'PAYMENT', description: 'Flutterwave Public Key' },
+            { key: 'FLUTTERWAVE_ENCRYPTION_KEY', group: 'PAYMENT', description: 'Flutterwave Encryption Key' },
+            { key: 'FLUTTERWAVE_IS_ACTIVE', group: 'PAYMENT', description: 'Flutterwave Gateway Status' },
+
             { key: 'NODE_ENV', group: 'SYSTEM', description: 'Environment (development/production)' },
         ];
 
