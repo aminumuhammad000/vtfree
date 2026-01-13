@@ -363,6 +363,12 @@ const TenantsPage: React.FC = () => {
                                         <p className="text-xs text-slate-500">Created</p>
                                         <p className="text-sm text-slate-900">{new Date(selectedTenant.createdAt).toLocaleDateString()}</p>
                                     </div>
+                                    {selectedTenant.webhookUrl && (
+                                        <div className="col-span-2">
+                                            <p className="text-xs text-slate-500">Webhook URL</p>
+                                            <p className="text-sm font-mono text-purple-600 break-all">{selectedTenant.webhookUrl}</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

@@ -608,13 +608,17 @@ router.patch('/tenants/:id/kyc', async (req: AuthenticatedRequest, res: Response
  */
 router.get('/zainboxes', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
+        // Fetch all zainboxes and populate user
         const zainboxes = await Zainbox.find()
-            .populate('userId', 'email firstName lastName businessName')
+            .populate('userId', 'email firstName lastName businessName role')
             .sort({ createdAt: -1 });
+
+        // Filter out zainboxes owned by admins
+        const filteredZainboxes = zainboxes.filter((z: any) => z.userId && z.userId.role !== 'admin');
 
         res.json({
             success: true,
-            data: zainboxes,
+            data: filteredZainboxes,
         });
     } catch (error) {
         console.error('Get all zainboxes error:', error);
@@ -782,12 +786,26 @@ router.get('/zainboxes/:zainboxCode/accounts', async (req: AuthenticatedRequest,
         }
 
         // Fetch virtual accounts from Zainpay
-        const zainpayAccounts = await zainpayService.getZainboxAccounts(zainboxCode);
+        const response = await zainpayService.getZainboxAccounts(zainboxCode);
 
-        res.json(zainpayAccounts || []);
+        if (response.code === '00') {
+            res.json({
+                success: true,
+                data: response.data || []
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                message: response.description || 'Failed to fetch accounts from Zainpay'
+            });
+        }
     } catch (error) {
         console.error('Get zainbox accounts error:', error);
-        res.status(500).json([]);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            data: []
+        });
     }
 });
 
@@ -898,7 +916,13 @@ router.get('/transactions', async (req: AuthenticatedRequest, res: Response): Pr
     try {
         const { limit = '50', offset = '0', type, status, tenantId } = req.query;
 
-        const query: any = {};
+        // Fetch admin IDs to exclude
+        const admins = await User.find({ role: 'admin' }).select('_id');
+        const adminIds = admins.map(a => a._id);
+
+        const query: any = {
+            userId: { $nin: adminIds }
+        };
         if (type && type !== 'all') query.type = type;
         if (status && status !== 'all') query.status = status;
         if (tenantId) query.userId = tenantId;
@@ -939,9 +963,14 @@ router.get('/settlements', async (req: AuthenticatedRequest, res: Response): Pro
     try {
         // For now, we'll return successful transfers as "settlements" 
         // until we have a dedicated Settlement model
+        // Fetch admin IDs to exclude
+        const admins = await User.find({ role: 'admin' }).select('_id');
+        const adminIds = admins.map(a => a._id);
+
         const settlements = await Transaction.find({
             category: 'transfer',
-            status: 'success'
+            status: 'success',
+            userId: { $nin: adminIds }
         })
             .populate('userId', 'email firstName lastName businessName')
             .sort({ createdAt: -1 });
@@ -967,7 +996,13 @@ router.get('/webhooks', async (req: AuthenticatedRequest, res: Response): Promis
     try {
         const { limit = '50', offset = '0', source, status } = req.query;
 
-        const query: any = {};
+        // Fetch admin IDs to exclude
+        const admins = await User.find({ role: 'admin' }).select('_id');
+        const adminIds = admins.map(a => a._id);
+
+        const query: any = {
+            userId: { $nin: adminIds }
+        };
         if (source && source !== 'all') query.source = source;
         if (status && status !== 'all') query.dispatchStatus = status;
 
@@ -1005,8 +1040,11 @@ router.get('/webhooks', async (req: AuthenticatedRequest, res: Response): Promis
  */
 router.get('/api-keys', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
-        const usersWithKeys = await User.find({ apiKey: { $exists: true, $ne: null } })
-            .select('email businessName firstName lastName apiKey createdAt updatedAt');
+        const usersWithKeys = await User.find({
+            apiKey: { $exists: true, $ne: null },
+            role: { $ne: 'admin' }
+        })
+            .select('email businessName firstName lastName apiKey createdAt updatedAt status');
 
         // Map to the format expected by the frontend
         const apiKeys = usersWithKeys.map(user => ({
