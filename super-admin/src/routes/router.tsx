@@ -17,11 +17,6 @@ const Payments = lazy(() => import('pages/payments'));
 const Settings = lazy(() => import('pages/settings'));
 const Profile = lazy(() => import('pages/profile'));
 
-// Customer Management
-const AllCustomers = lazy(() => import('pages/customers/AllCustomers'));
-const CustomersByApp = lazy(() => import('pages/customers/CustomersByApp'));
-const CustomersByUser = lazy(() => import('pages/customers/CustomersByUser'));
-
 // Finance
 const PlatformWallet = lazy(() => import('pages/finance/PlatformWallet'));
 const UserWallets = lazy(() => import('pages/finance/UserWallets'));
@@ -38,11 +33,7 @@ const NotificationManagement = lazy(() => import('pages/messaging/NotificationMa
 const Broadcasts = lazy(() => import('pages/messaging/Broadcasts'));
 
 // Logs
-const AuditLogs = lazy(() => import('pages/logs/AuditLogs'));
-const PaymentLogs = lazy(() => import('pages/logs/PaymentLogs'));
-const ApiLogs = lazy(() => import('pages/logs/ApiLogs'));
-const ErrorLogs = lazy(() => import('pages/logs/ErrorLogs'));
-const SecurityLogs = lazy(() => import('pages/logs/SecurityLogs'));
+const LogsPage = lazy(() => import('pages/logs'));
 
 // Support & Providers
 const Support = lazy(() => import('pages/support'));
@@ -94,19 +85,6 @@ const routes = [
                 path: paths.payments,
                 element: <Payments />,
               },
-              // Customer Management
-              {
-                path: paths.customersAll,
-                element: <AllCustomers />,
-              },
-              {
-                path: paths.customersByApp,
-                element: <CustomersByApp />,
-              },
-              {
-                path: paths.customersByUser,
-                element: <CustomersByUser />,
-              },
               // Finance
               {
                 path: paths.platformWallet,
@@ -148,24 +126,8 @@ const routes = [
               },
               // Logs
               {
-                path: paths.auditLogs,
-                element: <AuditLogs />,
-              },
-              {
-                path: paths.paymentLogs,
-                element: <PaymentLogs />,
-              },
-              {
-                path: paths.apiLogs,
-                element: <ApiLogs />,
-              },
-              {
-                path: paths.errorLogs,
-                element: <ErrorLogs />,
-              },
-              {
-                path: paths.securityLogs,
-                element: <SecurityLogs />,
+                path: paths.logs,
+                element: <LogsPage />,
               },
               // Support & Providers
               {

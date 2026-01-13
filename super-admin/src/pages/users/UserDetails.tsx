@@ -9,13 +9,10 @@ interface UserData {
     email: string;
     phone_number: string;
     status: string;
-    kyc_status: string;
     created_at: string;
     apps_count: number;
     wallet_balance: number;
     address?: string;
-    bvn?: string;
-    nin?: string;
     total_transactions: number;
     total_revenue: number;
 }
@@ -35,13 +32,10 @@ const UserDetails = () => {
             email: 'john@example.com',
             phone_number: '+2348012345678',
             status: 'active',
-            kyc_status: 'verified',
             created_at: '2024-01-15T10:30:00Z',
             apps_count: 3,
             wallet_balance: 25000,
             address: '123 Main Street, Victoria Island, Lagos',
-            bvn: '22234567890',
-            nin: '12345678901',
             total_transactions: 156,
             total_revenue: 850000
         };
@@ -70,14 +64,6 @@ const UserDetails = () => {
 
     const getStatusColor = (status: string) => {
         return status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
-    };
-
-    const getKycColor = (status: string) => {
-        switch (status) {
-            case 'verified': return 'bg-blue-100 text-blue-700';
-            case 'pending': return 'bg-yellow-100 text-yellow-700';
-            default: return 'bg-red-100 text-red-700';
-        }
     };
 
     return (
@@ -137,9 +123,6 @@ const UserDetails = () => {
                                 <span className={`px-3 py-1.5 rounded-full text-sm font-bold h-fit ${getStatusColor(user.status)}`}>
                                     {user.status.toUpperCase()}
                                 </span>
-                                <span className={`px-3 py-1.5 rounded-full text-sm font-bold h-fit ${getKycColor(user.kyc_status)}`}>
-                                    KYC: {user.kyc_status.toUpperCase()}
-                                </span>
                             </div>
                         </div>
 
@@ -151,14 +134,6 @@ const UserDetails = () => {
                             <div>
                                 <p className="text-sm text-slate-500 mb-1">Joined Date</p>
                                 <p className="font-medium text-slate-900 text-sm">{new Date(user.created_at).toLocaleDateString()}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-slate-500 mb-1">BVN</p>
-                                <p className="font-medium text-slate-900 text-sm font-mono">{user.bvn || 'Not provided'}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-slate-500 mb-1">NIN</p>
-                                <p className="font-medium text-slate-900 text-sm font-mono">{user.nin || 'Not provided'}</p>
                             </div>
                         </div>
                     </div>

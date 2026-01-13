@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
+import { getWallets } from 'api/superAdminApi';
 
 interface UserWallet {
     id: string;
@@ -15,64 +16,35 @@ interface UserWallet {
 const UserWallets = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'suspended' | 'pending'>('all');
+    const [userWallets, setUserWallets] = useState<UserWallet[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    // Mock data - replace with actual API calls
-    const userWallets: UserWallet[] = [
-        {
-            id: 'USR001',
-            userName: 'Adebayo Johnson',
-            email: 'adebayo.j@example.com',
-            balance: 1250000,
-            totalTransactions: 45,
-            lastTransaction: '2 hours ago',
-            status: 'active',
-        },
-        {
-            id: 'USR002',
-            userName: 'Chioma Okafor',
-            email: 'chioma.ok@example.com',
-            balance: 890500,
-            totalTransactions: 32,
-            lastTransaction: '5 hours ago',
-            status: 'active',
-        },
-        {
-            id: 'USR003',
-            userName: 'Ibrahim Suleiman',
-            email: 'ibrahim.s@example.com',
-            balance: 2340000,
-            totalTransactions: 78,
-            lastTransaction: '1 day ago',
-            status: 'active',
-        },
-        {
-            id: 'USR004',
-            userName: 'Blessing Nwosu',
-            email: 'blessing.n@example.com',
-            balance: 450000,
-            totalTransactions: 18,
-            lastTransaction: '3 days ago',
-            status: 'suspended',
-        },
-        {
-            id: 'USR005',
-            userName: 'Tunde Ajayi',
-            email: 'tunde.a@example.com',
-            balance: 1680000,
-            totalTransactions: 56,
-            lastTransaction: '12 hours ago',
-            status: 'active',
-        },
-        {
-            id: 'USR006',
-            userName: 'Fatima Abdullahi',
-            email: 'fatima.ab@example.com',
-            balance: 125000,
-            totalTransactions: 8,
-            lastTransaction: '2 days ago',
-            status: 'pending',
-        },
-    ];
+    useEffect(() => {
+        fetchWallets();
+    }, []);
+
+    const fetchWallets = async () => {
+        setLoading(true);
+        try {
+            const response = await getWallets();
+            if (response.data.success) {
+                const mappedWallets = response.data.data.wallets.map((w: any) => ({
+                    id: w._id,
+                    userName: w.user_id ? `${w.user_id.first_name} ${w.user_id.last_name}` : 'Unknown User',
+                    email: w.user_id?.email || 'N/A',
+                    balance: w.balance,
+                    totalTransactions: 0, // We don't have this in the wallet model yet
+                    lastTransaction: w.last_transaction_at ? new Date(w.last_transaction_at).toLocaleDateString() : 'Never',
+                    status: w.user_id?.status || 'active',
+                }));
+                setUserWallets(mappedWallets);
+            }
+        } catch (error) {
+            console.error('Failed to fetch wallets:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const filteredWallets = userWallets.filter((wallet) => {
         const matchesSearch =
