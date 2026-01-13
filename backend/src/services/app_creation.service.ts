@@ -12,6 +12,7 @@ export class AppCreationService {
         package_name: string;
         platforms: { android: boolean; ios: boolean; web: boolean };
         branding: { primary_color: string; secondary_color: string; logo_url?: string };
+        services: string[];
     }) {
         // 1. Validate Package Name
         const existingApp = await CreatedApp.findOne({ package_name: data.package_name });
@@ -34,6 +35,7 @@ export class AppCreationService {
             package_name: data.package_name,
             platforms: data.platforms,
             branding: data.branding,
+            services: data.services,
             status: 'pending',
             admin_email: data.owner_email,
             admin_password_hash: hashedPassword,

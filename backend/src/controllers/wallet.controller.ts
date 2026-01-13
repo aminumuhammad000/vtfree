@@ -22,6 +22,7 @@ export class WalletController {
   static async fundWallet(req: AuthRequest, res: Response) {
     try {
       const { amount, payment_method } = req.body;
+      const app_id = req.user?.app_id || 'default_app';
 
       if (amount <= 0) {
         return ApiResponse.error(res, 'Invalid amount', 400);

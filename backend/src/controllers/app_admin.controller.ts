@@ -96,6 +96,11 @@ export const login = async (req: Request, res: Response) => {
 export const getDashboardStats = async (req: Request, res: Response) => {
     try {
         const app_id = (req as any).user.app_id;
+        // Import models locally to avoid circular dependency issues if any, or just ensure imports are top-level
+        const { User } = await import('../models/user.model.js');
+        const { Transaction } = await import('../models/transaction.model.js');
+
+
 
         // Run aggregations in parallel
         const [
@@ -133,8 +138,8 @@ export const getDashboardStats = async (req: Request, res: Response) => {
             success: true,
             data: stats
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Dashboard stats error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
+        res.status(500).json({ success: false, message: error.message || 'Server error' });
     }
 };

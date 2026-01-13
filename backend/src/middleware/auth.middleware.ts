@@ -2,7 +2,6 @@
 import { NextFunction, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config/bootstrap.js';
-import { configService } from '../services/config.service.js';
 import { AuthRequest } from '../types/index.js';
 import { ApiResponse } from '../utils/response.js';
 
@@ -14,8 +13,15 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
       return ApiResponse.error(res, 'No token provided', 401);
     }
 
-    const decoded = jwt.verify(token, configService.getSync('JWT_SECRET') || config.jwtSecret) as { id: string; role?: string };
-    req.user = decoded;
+    const decoded = jwt.verify(token, config.jwtSecret) as any;
+    req.user = {
+      id: decoded.user_id || decoded.id,
+      email: decoded.email,
+      role: decoded.role,
+      app_id: decoded.app_id,
+      type: decoded.type
+    };
+    console.log(`[AuthMiddleware] Decoded user: ${JSON.stringify(req.user)}`);
     next();
   } catch (error) {
     return ApiResponse.error(res, 'Invalid token', 401);
@@ -58,13 +64,6 @@ export const authenticateSuperAdmin = (req: AuthRequest, res: Response, next: Ne
 export const authorize = (roles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user || (req.user.role && !roles.includes(req.user.role))) {
-      // If role is present but not in allowed list
-      return ApiResponse.error(res, 'Unauthorized access', 403);
-    }
-    // If no role in token, we might want to fetch user to check role, 
-    // but for now let's assume token has role or we proceed if we can't check.
-    // Better: if no role in token, assume unauthorized if roles are required.
-    if (!req.user || !req.user.role || !roles.includes(req.user.role)) {
       return ApiResponse.error(res, 'Unauthorized access', 403);
     }
     next();

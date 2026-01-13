@@ -53,6 +53,7 @@ export const register = async (req: Request, res: Response) => {
                     first_name: user.first_name,
                     last_name: user.last_name,
                     status: user.status,
+                    wallet_balance: user.wallet_balance,
                 },
                 token,
             },
@@ -68,8 +69,10 @@ export const login = async (req: Request, res: Response) => {
         const { email, password } = req.body;
 
         // Find user
+        console.log(`[Login] Attempting login for email: ${email}`);
         const user = await VTfreeUser.findOne({ email });
         if (!user) {
+            console.log(`[Login] User not found for email: ${email}`);
             return res.status(400).json({ success: false, message: 'Invalid credentials' });
         }
 
@@ -103,6 +106,7 @@ export const login = async (req: Request, res: Response) => {
                     first_name: user.first_name,
                     last_name: user.last_name,
                     status: user.status,
+                    wallet_balance: user.wallet_balance,
                 },
                 token,
             },
@@ -115,7 +119,7 @@ export const login = async (req: Request, res: Response) => {
 
 export const getProfile = async (req: Request, res: Response) => {
     try {
-        const user = await VTfreeUser.findById((req as any).user.user_id).select('-password');
+        const user = await VTfreeUser.findById((req as any).user.id).select('-password');
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
@@ -126,6 +130,43 @@ export const getProfile = async (req: Request, res: Response) => {
         });
     } catch (error) {
         console.error('Profile error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const updateProfile = async (req: Request, res: Response) => {
+    try {
+        const { first_name, last_name, email } = req.body;
+        const user_id = (req as any).user.id;
+
+        const user = await VTfreeUser.findById(user_id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        if (first_name) user.first_name = first_name;
+        if (last_name) user.last_name = last_name;
+        // Email update might require verification in a real app, keeping it simple for now
+        if (email) user.email = email;
+
+        await user.save();
+
+        res.json({
+            success: true,
+            message: 'Profile updated successfully',
+            data: {
+                user: {
+                    _id: user._id,
+                    email: user.email,
+                    first_name: user.first_name,
+                    last_name: user.last_name,
+                    status: user.status,
+                    wallet_balance: user.wallet_balance,
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Update profile error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };

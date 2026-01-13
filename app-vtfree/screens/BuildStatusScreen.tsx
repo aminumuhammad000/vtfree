@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
-import { useRouter } from 'expo-router';
-import { CheckCircle, Download, Globe, Monitor, Rocket, Smartphone, ArrowLeft } from 'lucide-react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { CheckCircle, Download, Globe, Monitor, Rocket, Smartphone, ArrowLeft, Lock, Copy, Eye, EyeOff } from 'lucide-react-native';
 import Colors from '../constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -23,8 +23,21 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export default function BuildStatusScreen() {
     const router = useRouter();
+    const { adminCredentials } = useLocalSearchParams();
     const [progress, setProgress] = useState(0);
     const [currentPhase, setCurrentPhase] = useState(0);
+    const [parsedCredentials, setParsedCredentials] = useState<any>(null);
+    const [showPassword, setShowPassword] = useState(false);
+
+    useEffect(() => {
+        if (adminCredentials) {
+            try {
+                setParsedCredentials(JSON.parse(adminCredentials as string));
+            } catch (e) {
+                console.error('Failed to parse admin credentials', e);
+            }
+        }
+    }, [adminCredentials]);
 
     const phases = [
         { label: 'Initializing build environment', duration: 15 },
@@ -246,6 +259,42 @@ export default function BuildStatusScreen() {
                 {/* Download Links */}
                 {isComplete && (
                     <Animated.View entering={FadeInDown.delay(300)} style={styles.downloadsSection}>
+
+                        {/* Admin Credentials Card */}
+                        {parsedCredentials && (
+                            <View style={styles.credentialsCard}>
+                                <View style={styles.credentialsHeader}>
+                                    <Lock color={Colors.white} size={20} />
+                                    <Text style={styles.credentialsTitle}>Admin Access Credentials</Text>
+                                </View>
+                                <View style={styles.credentialsContent}>
+                                    <Text style={styles.credentialsWarning}>Save these details! You won't see them again.</Text>
+
+                                    <View style={styles.credentialRow}>
+                                        <Text style={styles.credentialLabel}>Login URL:</Text>
+                                        <Text selectable style={styles.credentialValue}>{parsedCredentials.login_url}</Text>
+                                    </View>
+
+                                    <View style={styles.credentialRow}>
+                                        <Text style={styles.credentialLabel}>Email:</Text>
+                                        <Text selectable style={styles.credentialValue}>{parsedCredentials.email}</Text>
+                                    </View>
+
+                                    <View style={styles.credentialRow}>
+                                        <Text style={styles.credentialLabel}>Password:</Text>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                                            <Text selectable style={[styles.credentialValue, { flex: 1 }]}>
+                                                {showPassword ? parsedCredentials.password : '••••••••••••'}
+                                            </Text>
+                                            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ padding: 4 }}>
+                                                {showPassword ? <EyeOff size={18} color={Colors.primary} /> : <Eye size={18} color={Colors.primary} />}
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                </View>
+                            </View>
+                        )}
+
                         <Text style={styles.downloadsTitle}>Download Your App</Text>
 
                         <TouchableOpacity style={styles.downloadCard} activeOpacity={0.8}>
@@ -481,7 +530,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.primaryLighter,
     },
     phaseCurrent: {
-        backgroundColor: Colors.yellow[50],
+        backgroundColor: '#FEFCE8', // yellow-50 equivalent
     },
     phasePending: {
         backgroundColor: Colors.gray[50],
@@ -628,5 +677,48 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: Colors.gray[700],
         lineHeight: 20,
+    },
+    credentialsCard: {
+        backgroundColor: Colors.white,
+        borderRadius: 16,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: Colors.primary,
+        marginBottom: 8,
+    },
+    credentialsHeader: {
+        backgroundColor: Colors.primary,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        padding: 16,
+    },
+    credentialsTitle: {
+        color: Colors.white,
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    credentialsContent: {
+        padding: 16,
+        gap: 12,
+    },
+    credentialsWarning: {
+        fontSize: 12,
+        color: Colors.red[500],
+        fontWeight: '600',
+        marginBottom: 4,
+    },
+    credentialRow: {
+        gap: 4,
+    },
+    credentialLabel: {
+        fontSize: 12,
+        color: Colors.gray[500],
+        fontWeight: '500',
+    },
+    credentialValue: {
+        fontSize: 16,
+        color: Colors.text.primary,
+        fontWeight: '600',
     },
 });

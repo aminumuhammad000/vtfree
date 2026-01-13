@@ -6,6 +6,7 @@ import { ArrowLeft, User, Mail, Lock, Eye, EyeOff, CheckCircle } from 'lucide-re
 import Colors from '../constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, FadeInUp, LayoutAnimationConfig } from 'react-native-reanimated';
+import CustomAlert from '../components/CustomAlert';
 
 const { width, height } = Dimensions.get('window');
 
@@ -13,13 +14,11 @@ export default function RegisterScreen() {
     const router = useRouter();
     const { signUp } = useAuth();
     const [formData, setFormData] = useState({
-        first_name: '',
-        last_name: '',
+        fullName: '',
         email: '',
         password: '',
         confirmPassword: '',
         phone_number: '',
-        company_name: ''
     });
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -35,29 +34,51 @@ export default function RegisterScreen() {
     };
 
     const strength = passwordStrength(formData.password);
+    const [alertConfig, setAlertConfig] = useState<{ visible: boolean; type: 'success' | 'error'; title: string; message: string }>({
+        visible: false,
+        type: 'success',
+        title: '',
+        message: '',
+    });
+
+    const showAlert = (type: 'success' | 'error', title: string, message: string) => {
+        setAlertConfig({ visible: true, type, title, message });
+    };
+
+    const handleAlertClose = () => {
+        setAlertConfig(prev => ({ ...prev, visible: false }));
+        if (alertConfig.type === 'success') {
+            // @ts-ignore
+            router.replace('/(tabs)/home');
+        }
+    };
 
     const handleSubmit = async () => {
-        if (!formData.first_name || !formData.email || !formData.password) {
-            alert('Please fill in all required fields');
+        if (!formData.fullName || !formData.email || !formData.password) {
+            showAlert('error', 'Missing Fields', 'Please fill in all required fields');
             return;
         }
         if (formData.password !== formData.confirmPassword) {
-            alert('Passwords do not match');
+            showAlert('error', 'Mismatch', 'Passwords do not match');
             return;
         }
+
+        const nameParts = formData.fullName.trim().split(' ');
+        const first_name = nameParts[0];
+        const last_name = nameParts.slice(1).join(' ') || '';
 
         setIsSubmitting(true);
         try {
             await signUp({
-                first_name: formData.first_name,
-                last_name: formData.last_name,
+                first_name,
+                last_name,
                 email: formData.email,
                 password: formData.password,
-                phone_number: formData.phone_number,
-                company_name: formData.company_name
+                phone_number: formData.phone_number
             });
+            showAlert('success', 'Account Created', 'Registration Successful!');
         } catch (error: any) {
-            alert(error.message || 'Registration failed');
+            showAlert('error', 'Registration Failed', error.message || 'Registration failed');
         } finally {
             setIsSubmitting(false);
         }
@@ -93,33 +114,17 @@ export default function RegisterScreen() {
 
                         {/* Form Card */}
                         <Animated.View entering={FadeInUp.delay(300).springify()} style={styles.formCard}>
-                            {/* First Name */}
+                            {/* Full Name */}
                             <View style={styles.inputGroup}>
-                                <Text style={styles.label}>First Name</Text>
+                                <Text style={styles.label}>Full Name</Text>
                                 <View style={styles.inputContainer}>
                                     <User color={Colors.gray[400]} size={20} style={styles.inputIcon} />
                                     <TextInput
                                         style={styles.input}
-                                        placeholder="John"
+                                        placeholder="John Doe"
                                         placeholderTextColor={Colors.gray[400]}
-                                        value={formData.first_name}
-                                        onChangeText={(text) => setFormData({ ...formData, first_name: text })}
-                                        autoCapitalize="words"
-                                    />
-                                </View>
-                            </View>
-
-                            {/* Last Name */}
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Last Name</Text>
-                                <View style={styles.inputContainer}>
-                                    <User color={Colors.gray[400]} size={20} style={styles.inputIcon} />
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder="Doe"
-                                        placeholderTextColor={Colors.gray[400]}
-                                        value={formData.last_name}
-                                        onChangeText={(text) => setFormData({ ...formData, last_name: text })}
+                                        value={formData.fullName}
+                                        onChangeText={(text) => setFormData({ ...formData, fullName: text })}
                                         autoCapitalize="words"
                                     />
                                 </View>
@@ -159,21 +164,7 @@ export default function RegisterScreen() {
                                 </View>
                             </View>
 
-                            {/* Company Name */}
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>Company Name</Text>
-                                <View style={styles.inputContainer}>
-                                    <User color={Colors.gray[400]} size={20} style={styles.inputIcon} />
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder="My VTU Business"
-                                        placeholderTextColor={Colors.gray[400]}
-                                        value={formData.company_name}
-                                        onChangeText={(text) => setFormData({ ...formData, company_name: text })}
-                                        autoCapitalize="words"
-                                    />
-                                </View>
-                            </View>
+
 
                             {/* Password */}
                             <View style={styles.inputGroup}>
@@ -298,6 +289,13 @@ export default function RegisterScreen() {
                         </Animated.View>
                     </ScrollView>
                 </KeyboardAvoidingView>
+                <CustomAlert
+                    visible={alertConfig.visible}
+                    type={alertConfig.type}
+                    title={alertConfig.title}
+                    message={alertConfig.message}
+                    onClose={handleAlertClose}
+                />
             </LinearGradient>
         </View>
     );

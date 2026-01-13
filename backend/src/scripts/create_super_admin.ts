@@ -22,7 +22,8 @@ async function createSuperAdmin() {
         if (existingAdmin) {
             console.log('Super Admin already exists. Updating password...');
             existingAdmin.password = hashedPassword;
-            existingAdmin.name = 'Super Admin';
+            existingAdmin.first_name = 'Super';
+            existingAdmin.last_name = 'Admin';
             await existingAdmin.save();
             console.log(`✅ Super Admin updated successfully.`);
             console.log(`Email: ${email}`);
@@ -33,7 +34,8 @@ async function createSuperAdmin() {
         const newAdmin = new SuperAdmin({
             email,
             password: hashedPassword,
-            name: 'Super Admin',
+            first_name: 'Super',
+            last_name: 'Admin',
             role: 'super_admin',
             permissions: ['all']
         });

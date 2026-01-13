@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { login as loginApi } from '../api/adminApi';
 import { useAuthContext } from '../hooks/AuthContext';
 import { useToast } from '../hooks/ToastContext';
@@ -13,9 +13,24 @@ type LoginForm = {
 };
 
 const Login: React.FC = () => {
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();
-  const [apiError, setApiError] = React.useState<string | null>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const appIdFromUrl = searchParams.get('app');
+
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<LoginForm>({
+    defaultValues: {
+      app_id: appIdFromUrl || '',
+    }
+  });
+
+  // Update form value if URL param changes
+  React.useEffect(() => {
+    if (appIdFromUrl) {
+      setValue('app_id', appIdFromUrl);
+    }
+  }, [appIdFromUrl, setValue]);
+
+  const [apiError, setApiError] = React.useState<string | null>(null);
   const auth = useAuthContext();
   const toast = useToast();
 
@@ -26,7 +41,7 @@ const Login: React.FC = () => {
       setApiError(null);
       if (res.data.success) {
         console.log('Login successful, saving auth data...');
-        auth.login(res.data.data.token, res.data.data.admin);
+        auth.login(res.data.data.token, res.data.data.admin, res.data.data.app);
         console.log('Auth data saved, navigating to dashboard...');
         toast.showSuccess('Login successful! Redirecting...');
         navigate('/dashboard');
@@ -46,6 +61,10 @@ const Login: React.FC = () => {
 
   const onSubmit = (data: LoginForm) => {
     setApiError(null);
+    if (!data.app_id) {
+      setApiError("Authentication Error: App ID is required.");
+      return;
+    }
     mutation.mutate(data);
   };
 
@@ -83,6 +102,33 @@ const Login: React.FC = () => {
             </div>
           )}
 
+          {/* App ID Field - Only show if not fixed in URL */}
+          {!appIdFromUrl && (
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                App ID
+              </label>
+              <input
+                type="text"
+                {...register('app_id', {
+                  required: 'App ID is required'
+                })}
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent transition-all ${errors.app_id ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-slate-50'
+                  }`}
+                placeholder="app_xxxxxxxx"
+              />
+              {errors.app_id && (
+                <p className="text-red-500 text-sm mt-2 flex items-center">
+                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {errors.app_id.message}
+                </p>
+              )}
+              <p className="text-xs text-slate-400 mt-1">Get this from your dashboard or app link.</p>
+            </div>
+          )}
+
           {/* Email Field */}
           <div className="mb-6">
             <label className="block text-sm font-semibold text-slate-700 mb-2">
@@ -111,33 +157,7 @@ const Login: React.FC = () => {
             )}
           </div>
 
-          {/* App ID Field */}
-          <div className="mb-6">
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
-              App ID
-            </label>
-            <input
-              type="text"
-              {...register('app_id', {
-                required: 'App ID is required',
-                minLength: {
-                  value: 3,
-                  message: 'App ID must be at least 3 characters'
-                }
-              })}
-              className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-900 focus:border-transparent transition-all ${errors.app_id ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-slate-50'
-                }`}
-              placeholder="e.g. vtu_app_001 or owner-john-vtuapp-abc123"
-            />
-            {errors.app_id && (
-              <p className="text-red-500 text-sm mt-2 flex items-center">
-                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                {errors.app_id.message}
-              </p>
-            )}
-          </div>
+          {/* Duplicate App ID field removed */}
 
           {/* Password Field */}
           <div className="mb-6">

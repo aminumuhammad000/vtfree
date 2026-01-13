@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Share } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Share2, Globe, Smartphone, Play, Plus, ChevronRight } from 'lucide-react-native';
+import { ArrowLeft, Share2, Globe, Smartphone, Play, Plus, ChevronRight, Copy } from 'lucide-react-native';
 import Colors from '../constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -95,6 +95,12 @@ export default function AppDetailsScreen() {
                         <View style={styles.appInfo}>
                             <Text style={styles.appName}>{appData.name}</Text>
                             <Text style={styles.appPackage}>{appData.package}</Text>
+                            {/* APP ID DISPLAY */}
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 8, backgroundColor: 'rgba(0,0,0,0.05)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, alignSelf: 'flex-start' }}>
+                                <Text style={{ color: Colors.gray[600], fontSize: 11, fontWeight: 'bold', fontFamily: 'monospace' }} selectable>ID: {params.appId}</Text>
+                                <Copy size={12} color={Colors.gray[500]} />
+                            </View>
+
                             <View style={[styles.statusBadge, { backgroundColor: appData.status === 'Live' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)' }]}>
                                 <Text style={[styles.statusText, { color: appData.status === 'Live' ? Colors.success : Colors.warning }]}>
                                     {appData.status}
