@@ -61,9 +61,52 @@ export const getAllApps = async (req: Request, res: Response) => {
 
 export const getAllUsers = async (req: Request, res: Response) => {
     try {
-        // Fetch End Users instead of Admins
-        const users = await User.find().sort({ created_at: -1 });
-        res.json({ success: true, data: { users } });
+        const { app_id, owner_id, search } = req.query;
+        let query: any = {};
+
+        if (app_id) {
+            query.app_id = app_id;
+        }
+
+        if (owner_id) {
+            // Find all apps owned by this user
+            const apps = await CreatedApp.find({ owner_id });
+            const appIds = apps.map(app => app.app_id);
+            query.app_id = { $in: appIds };
+        }
+
+        if (search) {
+            query.$or = [
+                { first_name: { $regex: search, $options: 'i' } },
+                { last_name: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } },
+                { phone_number: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const users = await User.find(query).sort({ created_at: -1 });
+
+        // Enrich with app details
+        const enrichedUsers = await Promise.all(users.map(async (user) => {
+            const app = await CreatedApp.findOne({ app_id: user.app_id }).populate('owner_id', 'first_name last_name email');
+            return {
+                ...user.toObject(),
+                app_name: app?.app_name || 'Unknown App',
+                owner_name: app?.owner_id ? `${(app.owner_id as any).first_name} ${(app.owner_id as any).last_name}` : 'Unknown Owner'
+            };
+        }));
+
+        res.json({ success: true, data: { users: enrichedUsers } });
+    } catch (error) {
+        console.error('Get all users error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const getAllOwners = async (req: Request, res: Response) => {
+    try {
+        const owners = await VTfreeUser.find().sort({ created_at: -1 }).select('-password');
+        res.json({ success: true, data: { owners } });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error' });
     }
@@ -107,7 +150,8 @@ export const getDashboardStats = async (req: Request, res: Response) => {
             {
                 $group: {
                     _id: { $dateToString: { format: "%Y-%m-%d", date: "$created_at" } },
-                    total: { $sum: "$amount" }
+                    total: { $sum: "$amount" },
+                    count: { $sum: 1 }
                 }
             },
             { $sort: { _id: 1 } }

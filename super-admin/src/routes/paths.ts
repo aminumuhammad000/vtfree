@@ -12,10 +12,7 @@ export default {
   transactions: `/${rootPaths.pagesRoot}/transactions`,
   payments: `/${rootPaths.pagesRoot}/payments`,
 
-  // Customer Management
-  customersAll: `/${rootPaths.pagesRoot}/customers/all`,
-  customersByApp: `/${rootPaths.pagesRoot}/customers/by-app`,
-  customersByUser: `/${rootPaths.pagesRoot}/customers/by-user`,
+
 
   // Finance & Wallet
   platformWallet: `/${rootPaths.pagesRoot}/finance/platform`,

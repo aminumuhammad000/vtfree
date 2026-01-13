@@ -76,11 +76,18 @@ const Dashboard = () => {
     },
   ];
 
-  // Generate mock chart data
-  const chartData = {
+  // Map real data from API
+  const chartData = data?.daily_stats && data.daily_stats.length > 0 ? {
+    labels: data.daily_stats.map(s => {
+      const date = new Date(s._id);
+      return date.toLocaleDateString('en-US', { weekday: 'short' });
+    }),
+    revenue: data.daily_stats.map(s => s.total),
+    transactions: data.daily_stats.map(s => s.count)
+  } : {
     labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    revenue: [450000, 520000, 480000, 590000, 620000, 580000, 710000],
-    transactions: [2100, 2450, 2200, 2800, 3100, 2900, 3500]
+    revenue: [0, 0, 0, 0, 0, 0, 0],
+    transactions: [0, 0, 0, 0, 0, 0, 0]
   };
 
   if (loading) {
