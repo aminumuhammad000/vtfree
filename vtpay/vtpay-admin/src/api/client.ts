@@ -39,6 +39,7 @@ export interface Tenant {
     kycLevel: number;
     kyc_status: 'pending' | 'verified' | 'rejected';
     status: 'active' | 'inactive' | 'suspended';
+    webhookUrl?: string;
     createdAt: string;
     updatedAt: string;
 }
@@ -156,8 +157,8 @@ export const adminApi = {
     },
 
     getZainboxAccounts: async (zainboxCode: string): Promise<any[]> => {
-        const response = await api.get<any>(`/admin/zainboxes/${zainboxCode}/accounts`);
-        return response.data || [];
+        const response = await api.get<ApiResponse<any[]>>(`/admin/zainboxes/${zainboxCode}/accounts`);
+        return response.data.data || [];
     },
 
     // Fee Management

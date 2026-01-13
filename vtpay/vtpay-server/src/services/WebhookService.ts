@@ -95,9 +95,21 @@ export class WebhookService {
                 return;
             }
 
+            // Find Zainbox and its owner
             const zainbox = await Zainbox.findOne({ zainboxCode });
-            if (!zainbox || !zainbox.callbackUrl) {
-                console.warn(`No Zainbox or callback URL found for code: ${zainboxCode}`);
+            if (!zainbox) {
+                console.warn(`No Zainbox found for code: ${zainboxCode}`);
+                return;
+            }
+
+            const user = await User.findById(zainbox.userId);
+            if (!user) {
+                console.warn(`No User found for Zainbox: ${zainboxCode}`);
+                return;
+            }
+
+            if (!user.webhookUrl) {
+                console.log(`User ${user.email} has no webhook URL configured, skipping dispatch`);
                 return;
             }
 
@@ -110,7 +122,7 @@ export class WebhookService {
             const log = await WebhookLog.create({
                 source: 'vtpay',
                 eventType: event.event,
-                userId: zainbox.userId,
+                userId: user._id,
                 zainboxCode,
                 payload: event,
                 signature,
@@ -120,28 +132,31 @@ export class WebhookService {
             });
 
             try {
-                const response = await axios.post(zainbox.callbackUrl, event, {
+                console.log(`Forwarding webhook to tenant ${user.email} at ${user.webhookUrl}`);
+                const response = await axios.post(user.webhookUrl, event, {
                     headers: {
                         'Content-Type': 'application/json',
                         'VTPay-Signature': signature,
                         'User-Agent': 'VTPay-Webhook-Dispatcher/1.0',
                     },
-                    timeout: 5000, // 5 seconds timeout
+                    timeout: 10000, // 10 seconds timeout
                 });
 
                 log.dispatchStatus = 'success';
                 log.responseStatus = response.status;
-                log.responseBody = JSON.stringify(response.data);
+                log.responseBody = typeof response.data === 'object' ? JSON.stringify(response.data) : String(response.data);
                 await log.save();
 
-                console.log('Webhook dispatched successfully');
+                console.log(`Webhook successfully dispatched to ${user.webhookUrl}`);
             } catch (error: any) {
                 log.dispatchStatus = 'failed';
                 log.responseStatus = error.response?.status;
-                log.responseBody = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+                log.responseBody = error.response?.data ?
+                    (typeof error.response.data === 'object' ? JSON.stringify(error.response.data) : String(error.response.data))
+                    : error.message;
                 await log.save();
 
-                console.error('Failed to dispatch webhook to tenant:', error.message);
+                console.error(`Failed to dispatch webhook to ${user.webhookUrl}:`, error.message);
             }
         } catch (error: any) {
             console.error('Error in dispatchWebhookToTenant:', error.message);

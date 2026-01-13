@@ -17,7 +17,10 @@ import {
     ArrowRight,
     AlertTriangle,
     Wallet,
-    Banknote
+    Banknote,
+    Webhook,
+    Save,
+    Loader2
 } from 'lucide-react';
 
 export const Developer: React.FC = () => {
@@ -40,6 +43,13 @@ export const Developer: React.FC = () => {
     const [availableBalance, setAvailableBalance] = useState<number | null>(null);
     const [copied, setCopied] = useState(false);
 
+    // Webhook State
+    const [webhookUrl, setWebhookUrl] = useState<string>('');
+    const [isEditingWebhook, setIsEditingWebhook] = useState(false);
+    const [isSavingWebhook, setIsSavingWebhook] = useState(false);
+    const [webhookError, setWebhookError] = useState<string>('');
+    const [webhookSuccess, setWebhookSuccess] = useState<string>('');
+
     useEffect(() => {
         const init = async () => {
             setIsLoading(true);
@@ -47,7 +57,8 @@ export const Developer: React.FC = () => {
                 fetchUserProfile(),
                 fetchZainbox(),
                 fetchApiKey(),
-                fetchAccounts()
+                fetchAccounts(),
+                fetchWebhookUrl()
             ]);
             setIsLoading(false);
         };
@@ -91,6 +102,50 @@ export const Developer: React.FC = () => {
             setAccounts(response.data.data || []);
         } catch (error) {
             console.error('Error fetching accounts:', error);
+        }
+    };
+
+    const fetchWebhookUrl = async () => {
+        try {
+            const response = await api.get('/developer/webhook');
+            if (response.data.success && response.data.data.webhookUrl) {
+                setWebhookUrl(response.data.data.webhookUrl);
+            }
+        } catch (error) {
+            console.error('Error fetching webhook URL:', error);
+        }
+    };
+
+    const handleSaveWebhook = async () => {
+        setWebhookError('');
+        setWebhookSuccess('');
+
+        // Validate webhook URL if provided
+        if (webhookUrl && webhookUrl.trim()) {
+            try {
+                new URL(webhookUrl);
+            } catch (error) {
+                setWebhookError('Please enter a valid URL');
+                return;
+            }
+        }
+
+        setIsSavingWebhook(true);
+        try {
+            const response = await api.put('/developer/webhook', {
+                webhookUrl: webhookUrl.trim() || null
+            });
+
+            if (response.data.success) {
+                setWebhookSuccess(response.data.message);
+                setIsEditingWebhook(false);
+                setTimeout(() => setWebhookSuccess(''), 3000);
+            }
+        } catch (error: any) {
+            console.error('Error saving webhook:', error);
+            setWebhookError(error.response?.data?.message || 'Failed to save webhook URL');
+        } finally {
+            setIsSavingWebhook(false);
         }
     };
 
@@ -353,6 +408,115 @@ export const Developer: React.FC = () => {
                                     <p>
                                         Keep your secret keys safe. Do not share them in public repositories or client-side code. If you suspect a key has been compromised, regenerate it immediately.
                                     </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Webhook Configuration Section */}
+                    <div className="dev-card">
+                        <div className="dev-card-header">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-purple-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-purple-100">
+                                    <Webhook className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-subheading">Webhook Configuration</h3>
+                                    <p className="text-xs text-muted">Receive real-time payment notifications</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="dev-card-body">
+                            {webhookSuccess && (
+                                <div className="alert alert-success animate-in fade-in slide-in-from-top-2 mb-4">
+                                    <div className="alert-icon">
+                                        <Check size={18} />
+                                    </div>
+                                    <p className="text-sm font-medium">{webhookSuccess}</p>
+                                </div>
+                            )}
+
+                            {webhookError && (
+                                <div className="alert alert-error animate-in fade-in slide-in-from-top-2 mb-4">
+                                    <div className="alert-icon">
+                                        <AlertTriangle size={18} />
+                                    </div>
+                                    <p className="text-sm font-medium">{webhookError}</p>
+                                </div>
+                            )}
+
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <label className="form-label text-xs uppercase tracking-wider text-muted">Webhook URL</label>
+                                    {!isEditingWebhook && webhookUrl && (
+                                        <button
+                                            onClick={() => setIsEditingWebhook(true)}
+                                            className="text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                                        >
+                                            Edit
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div className="flex flex-col gap-3">
+                                    <input
+                                        type="url"
+                                        value={webhookUrl}
+                                        onChange={(e) => setWebhookUrl(e.target.value)}
+                                        disabled={!isEditingWebhook && !!webhookUrl}
+                                        className="form-input font-mono text-sm"
+                                        placeholder="https://your-domain.com/webhooks/vtpay"
+                                    />
+
+                                    {(isEditingWebhook || !webhookUrl) && (
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={handleSaveWebhook}
+                                                disabled={isSavingWebhook}
+                                                className="btn btn-primary bg-purple-600 hover:bg-purple-700 shadow-purple-200 flex-1 justify-center"
+                                            >
+                                                {isSavingWebhook ? (
+                                                    <>
+                                                        <Loader2 size={18} className="animate-spin" />
+                                                        Saving...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Save size={18} />
+                                                        Save Webhook
+                                                    </>
+                                                )}
+                                            </button>
+                                            {webhookUrl && (
+                                                <button
+                                                    onClick={() => {
+                                                        setIsEditingWebhook(false);
+                                                        fetchWebhookUrl();
+                                                        setWebhookError('');
+                                                    }}
+                                                    className="btn btn-outline"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="mt-4 bg-purple-50 rounded-xl p-4 border border-purple-100">
+                                <div className="flex items-start gap-3">
+                                    <Code className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                                    <div className="text-xs text-purple-900 space-y-2">
+                                        <p className="font-bold">What are webhooks?</p>
+                                        <p className="leading-relaxed">
+                                            Webhooks allow VTPay to send real-time notifications to your server when events occur, such as successful payments or virtual account credits. Configure your endpoint URL above to start receiving these notifications.
+                                        </p>
+                                        <p className="font-medium">
+                                            Events sent: <span className="font-normal">payment.successful, payment.failed, account.credited</span>
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>

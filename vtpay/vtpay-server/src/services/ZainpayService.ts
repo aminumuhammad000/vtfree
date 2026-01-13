@@ -126,7 +126,7 @@ export class ZainpayService {
     /**
      * Get all virtual accounts linked to a zainbox
      */
-    async getZainboxAccounts(zainboxCode: string): Promise<{ bankAccount: string; bankName: string; name: string }[]> {
+    async getZainboxAccounts(zainboxCode: string): Promise<ZainpayResponse<{ bankAccount: string; bankName: string; name: string }[]>> {
         const response = await this.client.get(`/zainbox/virtual-accounts/${zainboxCode}`);
         return response.data;
     }

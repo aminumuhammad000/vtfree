@@ -13,6 +13,7 @@ export interface IUserDocument extends Document {
     verificationToken?: string; // Added for email verification
     apiKey?: string;
     businessName?: string;
+    webhookUrl?: string; // Webhook URL for payment notifications
     kycLevel: number; // 0: Registered, 1: Verified, 2: Submitted, 3: Approved
     kyc_status: 'pending' | 'verified' | 'rejected';
     role: 'user' | 'admin';
@@ -79,6 +80,10 @@ const UserSchema = new Schema<IUserDocument>(
             sparse: true,
         },
         businessName: {
+            type: String,
+            trim: true,
+        },
+        webhookUrl: {
             type: String,
             trim: true,
         },

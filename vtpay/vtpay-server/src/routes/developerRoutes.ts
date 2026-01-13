@@ -94,4 +94,95 @@ router.post('/apikey', async (req: AuthenticatedRequest, res: Response): Promise
     }
 });
 
+/**
+ * Get Webhook URL
+ * GET /api/developer/webhook
+ */
+router.get('/webhook', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const userId = req.user!.id;
+        const user = await User.findById(userId);
+
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+            return;
+        }
+
+        res.json({
+            success: true,
+            data: {
+                webhookUrl: user.webhookUrl || null,
+            },
+        });
+    } catch (error) {
+        console.error('Get webhook URL error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get webhook URL',
+        });
+    }
+});
+
+/**
+ * Update Webhook URL
+ * PUT /api/developer/webhook
+ */
+router.put('/webhook', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const userId = req.user!.id;
+        const { webhookUrl } = req.body;
+
+        // Validate webhook URL if provided
+        if (webhookUrl) {
+            // Basic URL validation
+            try {
+                const url = new URL(webhookUrl);
+                if (!['http:', 'https:'].includes(url.protocol)) {
+                    res.status(400).json({
+                        success: false,
+                        message: 'Webhook URL must use HTTP or HTTPS protocol',
+                    });
+                    return;
+                }
+            } catch (error) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Invalid webhook URL format',
+                });
+                return;
+            }
+        }
+
+        const user = await User.findById(userId);
+
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+            return;
+        }
+
+        user.webhookUrl = webhookUrl || undefined;
+        await user.save();
+
+        res.json({
+            success: true,
+            message: webhookUrl ? 'Webhook URL updated successfully' : 'Webhook URL removed successfully',
+            data: {
+                webhookUrl: user.webhookUrl || null,
+            },
+        });
+    } catch (error) {
+        console.error('Update webhook URL error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update webhook URL',
+        });
+    }
+});
+
 export default router;
