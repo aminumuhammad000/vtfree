@@ -175,6 +175,57 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     }
 };
 
+export const getUserWallets = async (req: Request, res: Response) => {
+    try {
+        const { Wallet } = await import('../models/wallet.model.js');
+        const wallets = await Wallet.find()
+            .populate('user_id', 'first_name last_name email status')
+            .sort({ balance: -1 });
+
+        res.json({ success: true, data: { wallets } });
+    } catch (error) {
+        console.error('Get user wallets error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const getAllWithdrawals = async (req: Request, res: Response) => {
+    try {
+        const { Withdrawal } = await import('../models/withdrawal.model.js');
+        const withdrawals = await Withdrawal.find()
+            .populate('user_id', 'first_name last_name email')
+            .sort({ created_at: -1 });
+
+        res.json({ success: true, data: { withdrawals } });
+    } catch (error) {
+        console.error('Get withdrawals error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const updateWithdrawalStatus = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { status, reason } = req.body;
+        const { Withdrawal } = await import('../models/withdrawal.model.js');
+
+        const withdrawal = await Withdrawal.findByIdAndUpdate(
+            id,
+            { status, reason, updated_at: new Date() },
+            { new: true }
+        );
+
+        if (!withdrawal) {
+            return res.status(404).json({ success: false, message: 'Withdrawal not found' });
+        }
+
+        res.json({ success: true, message: 'Withdrawal status updated', data: { withdrawal } });
+    } catch (error) {
+        console.error('Update withdrawal status error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
 export const getAllTransactions = async (req: Request, res: Response) => {
     try {
         const transactions = await Transaction.find().sort({ created_at: -1 });
@@ -188,6 +239,94 @@ export const getAllPayments = async (req: Request, res: Response) => {
     try {
         const payments = await PlatformTransaction.find().sort({ created_at: -1 }).populate('user_id', 'email first_name last_name');
         res.json({ success: true, data: { payments } });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+// Plans Management
+export const getAllPlans = async (req: Request, res: Response) => {
+    try {
+        const { Plan } = await import('../models/plan.model.js');
+        const plans = await Plan.find().sort({ created_at: -1 });
+        res.json({ success: true, data: { plans } });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const createPlan = async (req: Request, res: Response) => {
+    try {
+        const { Plan } = await import('../models/plan.model.js');
+        const plan = new Plan(req.body);
+        await plan.save();
+        res.json({ success: true, data: { plan } });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const updatePlan = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { Plan } = await import('../models/plan.model.js');
+        const plan = await Plan.findByIdAndUpdate(id, req.body, { new: true });
+        res.json({ success: true, data: { plan } });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const deletePlan = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { Plan } = await import('../models/plan.model.js');
+        await Plan.findByIdAndDelete(id);
+        res.json({ success: true, message: 'Plan deleted' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+// Features Management
+export const getAllFeatures = async (req: Request, res: Response) => {
+    try {
+        const { Feature } = await import('../models/feature.model.js');
+        const features = await Feature.find().sort({ created_at: -1 });
+        res.json({ success: true, data: { features } });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const createFeature = async (req: Request, res: Response) => {
+    try {
+        const { Feature } = await import('../models/feature.model.js');
+        const feature = new Feature(req.body);
+        await feature.save();
+        res.json({ success: true, data: { feature } });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const updateFeature = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { Feature } = await import('../models/feature.model.js');
+        const feature = await Feature.findByIdAndUpdate(id, req.body, { new: true });
+        res.json({ success: true, data: { feature } });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const deleteFeature = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { Feature } = await import('../models/feature.model.js');
+        await Feature.findByIdAndDelete(id);
+        res.json({ success: true, message: 'Feature deleted' });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error' });
     }
@@ -272,5 +411,63 @@ export const updateSystemSettings = async (req: Request, res: Response) => {
         res.json({ success: true, message: 'System settings updated successfully' });
     } catch (error: any) {
         res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getLogs = async (req: Request, res: Response) => {
+    try {
+        const { type } = req.query;
+        const { AuditLog } = await import('../models/audit_log.model.js');
+
+        const query: any = {};
+        if (type && type !== 'all') {
+            query.type = type;
+        }
+
+        const logs = await AuditLog.find(query)
+            .sort({ created_at: -1 })
+            .limit(100);
+
+        res.json({ success: true, data: { logs } });
+    } catch (error) {
+        console.error('Get logs error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const getAllTickets = async (req: Request, res: Response) => {
+    try {
+        const { SupportTicket } = await import('../models/support_ticket.model.js');
+        const tickets = await SupportTicket.find()
+            .populate('user_id', 'first_name last_name email')
+            .sort({ created_at: -1 });
+
+        res.json({ success: true, data: { tickets } });
+    } catch (error) {
+        console.error('Get tickets error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const updateTicketStatus = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { status, priority } = req.body;
+        const { SupportTicket } = await import('../models/support_ticket.model.js');
+
+        const ticket = await SupportTicket.findByIdAndUpdate(
+            id,
+            { status, priority, updated_at: new Date() },
+            { new: true }
+        );
+
+        if (!ticket) {
+            return res.status(404).json({ success: false, message: 'Ticket not found' });
+        }
+
+        res.json({ success: true, message: 'Ticket updated', data: { ticket } });
+    } catch (error) {
+        console.error('Update ticket error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 };

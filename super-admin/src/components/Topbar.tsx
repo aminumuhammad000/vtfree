@@ -1,14 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { FiBell, FiMenu } from 'react-icons/fi';
+import React, { useState, useEffect, useRef } from 'react';
+import { FiBell, FiMenu, FiUser, FiSettings, FiLogOut, FiChevronDown } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate, Link } from 'react-router-dom';
 
 interface TopbarProps {
   onMenuClick: () => void;
 }
 
 const Topbar: React.FC<TopbarProps> = ({ onMenuClick }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Update time every second
   useEffect(() => {
@@ -18,6 +22,22 @@ const Topbar: React.FC<TopbarProps> = ({ onMenuClick }) => {
 
     return () => clearInterval(timer);
   }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/authentication/sign-in');
+  };
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', {
@@ -81,15 +101,50 @@ const Topbar: React.FC<TopbarProps> = ({ onMenuClick }) => {
         {/* Divider */}
         <div className="hidden sm:block w-px h-6 bg-slate-200"></div>
 
-        {/* Profile Info */}
-        <div className="flex items-center gap-2 lg:gap-3">
-          <div className="text-right hidden md:block">
-            <p className="text-sm font-semibold text-slate-900">Super Admin</p>
-            <p className="text-xs text-slate-500">{user?.email || 'admin@vtfree.com'}</p>
-          </div>
-          <div className="w-9 h-9 lg:w-10 lg:h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-emerald-400/30">
-            <span>SA</span>
-          </div>
+        {/* Profile Info with Dropdown */}
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setIsProfileOpen(!isProfileOpen)}
+            className="flex items-center gap-2 lg:gap-3 p-1.5 hover:bg-slate-50 rounded-xl transition-all duration-200 group"
+          >
+            <div className="text-right hidden md:block">
+              <p className="text-sm font-semibold text-slate-900 group-hover:text-emerald-600 transition-colors">Super Admin</p>
+              <p className="text-xs text-slate-500">{user?.email || 'admin@vtfree.com'}</p>
+            </div>
+            <div className="w-9 h-9 lg:w-10 lg:h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-emerald-400/30 group-hover:ring-emerald-500/50 transition-all">
+              <span>SA</span>
+            </div>
+            <FiChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {/* Dropdown Menu */}
+          {isProfileOpen && (
+            <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="px-4 py-3 border-b border-slate-50 md:hidden">
+                <p className="text-sm font-bold text-slate-900">Super Admin</p>
+                <p className="text-xs text-slate-500 truncate">{user?.email || 'admin@vtfree.com'}</p>
+              </div>
+
+              <Link
+                to="/pages/settings"
+                onClick={() => setIsProfileOpen(false)}
+                className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:text-emerald-600 hover:bg-emerald-50 transition-all duration-200"
+              >
+                <FiSettings className="w-4 h-4" />
+                <span>Profile Settings</span>
+              </Link>
+
+              <div className="h-px bg-slate-50 my-1"></div>
+
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-all duration-200"
+              >
+                <FiLogOut className="w-4 h-4" />
+                <span>Logout</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>

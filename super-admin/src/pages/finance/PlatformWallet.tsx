@@ -1,69 +1,67 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import StatsCard from '../../components/dashboard/StatsCard';
+import { getDashboardStats, getTransactions } from 'api/superAdminApi';
 
 interface Transaction {
     id: string;
-    type: 'credit' | 'debit';
+    type: 'credit' | 'debit' | 'data' | 'airtime' | 'bill';
     description: string;
     amount: number;
     date: string;
-    status: 'completed' | 'pending' | 'failed';
+    status: 'completed' | 'pending' | 'failed' | 'success';
 }
 
 const PlatformWallet = () => {
     const [selectedPeriod, setSelectedPeriod] = useState('7d');
+    const [stats, setStats] = useState({
+        totalBalance: 0,
+        totalRevenue: 0,
+        totalTransactions: 0,
+        pendingWithdrawals: 0,
+    });
+    const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    // Mock data - replace with actual API calls
-    const stats = {
-        totalBalance: 24567890,
-        totalRevenue: 5432100,
-        totalTransactions: 12847,
-        pendingWithdrawals: 234500,
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const [statsRes, transRes] = await Promise.all([
+                getDashboardStats(),
+                getTransactions()
+            ]);
+
+            if (statsRes.data.success) {
+                const data = statsRes.data.data;
+                setStats({
+                    totalBalance: data.revenue, // Assuming revenue is the balance for now
+                    totalRevenue: data.revenue,
+                    totalTransactions: data.total_transactions,
+                    pendingWithdrawals: 0, // Placeholder
+                });
+            }
+
+            if (transRes.data.success) {
+                const mappedTrans = transRes.data.data.transactions.slice(0, 5).map((t: any) => ({
+                    id: t.transaction_id,
+                    type: t.type === 'credit' ? 'credit' : 'debit',
+                    description: `${t.type.toUpperCase()} transaction for ${t.customer_phone}`,
+                    amount: t.amount,
+                    date: new Date(t.created_at).toLocaleString(),
+                    status: t.status === 'success' ? 'completed' : t.status,
+                }));
+                setRecentTransactions(mappedTrans);
+            }
+        } catch (error) {
+            console.error('Failed to fetch platform wallet data:', error);
+        } finally {
+            setLoading(false);
+        }
     };
-
-    const recentTransactions: Transaction[] = [
-        {
-            id: 'TXN001',
-            type: 'credit',
-            description: 'Transaction fees from user payments',
-            amount: 45000,
-            date: '2025-12-16 10:30 AM',
-            status: 'completed',
-        },
-        {
-            id: 'TXN002',
-            type: 'debit',
-            description: 'Withdrawal to bank account',
-            amount: 500000,
-            date: '2025-12-16 09:15 AM',
-            status: 'completed',
-        },
-        {
-            id: 'TXN003',
-            type: 'credit',
-            description: 'Platform subscription fees',
-            amount: 125000,
-            date: '2025-12-15 04:20 PM',
-            status: 'completed',
-        },
-        {
-            id: 'TXN004',
-            type: 'credit',
-            description: 'API usage charges',
-            amount: 78500,
-            date: '2025-12-15 02:45 PM',
-            status: 'completed',
-        },
-        {
-            id: 'TXN005',
-            type: 'debit',
-            description: 'Payment to service provider',
-            amount: 250000,
-            date: '2025-12-15 11:30 AM',
-            status: 'pending',
-        },
-    ];
 
     const periods = [
         { value: '24h', label: '24 Hours' },

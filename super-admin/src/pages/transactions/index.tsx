@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
+import { getTransactions } from 'api/superAdminApi';
 
 interface Transaction {
   _id: string;
@@ -23,17 +24,22 @@ const Transactions = () => {
   const [typeFilter, setTypeFilter] = useState('all');
 
   useEffect(() => {
-    // Mock data
-    const mockTransactions: Transaction[] = [
-      { _id: '1', transaction_id: 'TXN-001234', type: 'data', amount: 500, status: 'success', customer_phone: '+2348012345678', customer_name: 'Alice Johnson', app_name: 'DataHub Pro', user_name: 'John Doe', created_at: '2024-04-20T14:30:00Z', commission: 25 },
-      { _id: '2', transaction_id: 'TXN-001235', type: 'airtime', amount: 100, status: 'pending', customer_phone: '+2348023456789', customer_name: 'Bob Smith', app_name: 'QuickRecharge', user_name: 'Jane Smith', created_at: '2024-04-20T14:15:00Z', commission: 5 },
-      { _id: '3', transaction_id: 'TXN-001236', type: 'data', amount: 1500, status: 'failed', customer_phone: '+2348034567890', app_name: 'DataHub Pro', user_name: 'John Doe', created_at: '2024-04-20T13:45:00Z', commission: 0 },
-      { _id: '4', transaction_id: 'TXN-001237', type: 'bill', amount: 5000, status: 'success', customer_phone: '+2348045678901', customer_name: 'Diana Prince', app_name: 'BillPay Express', user_name: 'Bob Johnson', created_at: '2024-04-20T13:20:00Z', commission: 150 },
-      { _id: '5', transaction_id: 'TXN-001238', type: 'airtime', amount: 200, status: 'success', customer_phone: '+2348056789012', app_name: 'Mobile Topup', user_name: 'Alice Williams', created_at: '2024-04-20T12:50:00Z', commission: 10 },
-    ];
-    setTransactions(mockTransactions);
-    setLoading(false);
+    fetchTransactions();
   }, []);
+
+  const fetchTransactions = async () => {
+    setLoading(true);
+    try {
+      const response = await getTransactions();
+      if (response.data.success) {
+        setTransactions(response.data.data.transactions);
+      }
+    } catch (error) {
+      console.error('Failed to fetch transactions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredTransactions = transactions.filter(txn => {
     const matchesSearch = txn.transaction_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
