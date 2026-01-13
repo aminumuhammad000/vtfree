@@ -34,11 +34,7 @@ export default {
   communications: `/${rootPaths.pagesRoot}/communications`,
 
   // Logs
-  auditLogs: `/${rootPaths.pagesRoot}/logs/audit`,
-  paymentLogs: `/${rootPaths.pagesRoot}/logs/payments`,
-  apiLogs: `/${rootPaths.pagesRoot}/logs/api`,
-  errorLogs: `/${rootPaths.pagesRoot}/logs/errors`,
-  securityLogs: `/${rootPaths.pagesRoot}/logs/security`,
+  logs: `/${rootPaths.pagesRoot}/logs`,
 
   // Support
   support: `/${rootPaths.pagesRoot}/support`,

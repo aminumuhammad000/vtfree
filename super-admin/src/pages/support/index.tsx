@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import StatsCard from '../../components/dashboard/StatsCard';
+import { getTickets, updateTicketStatusApi } from 'api/superAdminApi';
 
 interface Ticket {
     id: string;
@@ -15,75 +16,47 @@ interface Ticket {
 }
 
 const Support = () => {
+    const [tickets, setTickets] = useState<Ticket[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterPriority, setFilterPriority] = useState<'all' | 'low' | 'medium' | 'high' | 'urgent'>('all');
     const [filterStatus, setFilterStatus] = useState<'all' | 'open' | 'in-progress' | 'resolved' | 'closed'>('all');
 
-    // Mock data
-    const stats = {
-        openTickets: 24,
-        inProgress: 12,
-        resolved: 156,
-        avgResponseTime: 2.5, // hours
+    useEffect(() => {
+        fetchTickets();
+    }, []);
+
+    const fetchTickets = async () => {
+        setLoading(true);
+        try {
+            const response = await getTickets();
+            if (response.data.success) {
+                const mappedTickets = response.data.data.tickets.map((t: any) => ({
+                    id: t.ticket_id || t._id.slice(-6).toUpperCase(),
+                    subject: t.subject,
+                    user: t.user_id ? `${t.user_id.first_name} ${t.user_id.last_name}` : 'Unknown',
+                    email: t.user_id?.email || 'N/A',
+                    priority: t.priority,
+                    status: t.status,
+                    category: t.category,
+                    createdAt: new Date(t.created_at).toLocaleString(),
+                    lastUpdated: new Date(t.updated_at).toLocaleString(),
+                }));
+                setTickets(mappedTickets);
+            }
+        } catch (error) {
+            console.error('Failed to fetch tickets:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const tickets: Ticket[] = [
-        {
-            id: 'TKT-001',
-            subject: 'Unable to process payment',
-            user: 'Adebayo Johnson',
-            email: 'adebayo.j@example.com',
-            priority: 'urgent',
-            status: 'open',
-            category: 'Payment Issues',
-            createdAt: '2025-12-16 10:30 AM',
-            lastUpdated: '2025-12-16 10:45 AM',
-        },
-        {
-            id: 'TKT-002',
-            subject: 'Account verification pending',
-            user: 'Chioma Okafor',
-            email: 'chioma.ok@example.com',
-            priority: 'high',
-            status: 'in-progress',
-            category: 'Account',
-            createdAt: '2025-12-16 09:15 AM',
-            lastUpdated: '2025-12-16 11:20 AM',
-        },
-        {
-            id: 'TKT-003',
-            subject: 'Transaction not reflected in wallet',
-            user: 'Ibrahim Suleiman',
-            email: 'ibrahim.s@example.com',
-            priority: 'high',
-            status: 'open',
-            category: 'Wallet',
-            createdAt: '2025-12-15 04:20 PM',
-            lastUpdated: '2025-12-15 04:20 PM',
-        },
-        {
-            id: 'TKT-004',
-            subject: 'How to integrate API?',
-            user: 'Blessing Nwosu',
-            email: 'blessing.n@example.com',
-            priority: 'medium',
-            status: 'resolved',
-            category: 'Technical',
-            createdAt: '2025-12-15 02:45 PM',
-            lastUpdated: '2025-12-15 05:30 PM',
-        },
-        {
-            id: 'TKT-005',
-            subject: 'Request for feature enhancement',
-            user: 'Tunde Ajayi',
-            email: 'tunde.a@example.com',
-            priority: 'low',
-            status: 'in-progress',
-            category: 'Feature Request',
-            createdAt: '2025-12-15 11:30 AM',
-            lastUpdated: '2025-12-16 09:00 AM',
-        },
-    ];
+    const stats = {
+        openTickets: tickets.filter(t => t.status === 'open').length,
+        inProgress: tickets.filter(t => t.status === 'in-progress').length,
+        resolved: tickets.filter(t => t.status === 'resolved').length,
+        avgResponseTime: 2.5, // Placeholder
+    };
 
     const filteredTickets = tickets.filter((ticket) => {
         const matchesSearch =
@@ -267,7 +240,9 @@ const Support = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {filteredTickets.map((ticket) => (
+                            {loading ? (
+                                <tr><td colSpan={7} className="px-6 py-12 text-center text-slate-500">Loading tickets...</td></tr>
+                            ) : filteredTickets.map((ticket) => (
                                 <tr
                                     key={ticket.id}
                                     className="hover:bg-slate-50 transition-colors duration-200"
@@ -314,12 +289,12 @@ const Support = () => {
                                             >
                                                 <span
                                                     className={`w-1.5 h-1.5 rounded-full ${ticket.status === 'open'
-                                                            ? 'bg-emerald-600'
-                                                            : ticket.status === 'in-progress'
-                                                                ? 'bg-blue-600'
-                                                                : ticket.status === 'resolved'
-                                                                    ? 'bg-green-600'
-                                                                    : 'bg-slate-600'
+                                                        ? 'bg-emerald-600'
+                                                        : ticket.status === 'in-progress'
+                                                            ? 'bg-blue-600'
+                                                            : ticket.status === 'resolved'
+                                                                ? 'bg-green-600'
+                                                                : 'bg-slate-600'
                                                         }`}
                                                 />
                                                 {ticket.status
