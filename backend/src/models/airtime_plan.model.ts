@@ -1,6 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IAirtimePlan extends Document {
+  app_id?: string; // Optional: if null, it's a global default
   providerId: number; // 1=mtn, 2=airtel, 3=glo, 4=9mobile
   providerName: string;
   externalPlanId?: number; // provider's plan id (like 51, 70, ...)
@@ -17,6 +18,7 @@ export interface IAirtimePlan extends Document {
 
 const AirtimePlanSchema = new Schema<IAirtimePlan>(
   {
+    app_id: { type: String, index: true }, // null means system default
     providerId: { type: Number, required: true, index: true },
     providerName: { type: String, required: true },
     externalPlanId: { type: Number },
@@ -32,8 +34,8 @@ const AirtimePlanSchema = new Schema<IAirtimePlan>(
 );
 
 // Index for quick lookups
-AirtimePlanSchema.index({ providerId: 1, type: 1, active: 1 });
-AirtimePlanSchema.index({ externalPlanId: 1 });
+AirtimePlanSchema.index({ app_id: 1, providerId: 1, type: 1, active: 1 });
+AirtimePlanSchema.index({ app_id: 1, externalPlanId: 1 });
 
 export const AirtimePlan = mongoose.model<IAirtimePlan>('AirtimePlan', AirtimePlanSchema);
 export default AirtimePlan;

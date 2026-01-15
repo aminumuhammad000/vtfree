@@ -123,4 +123,37 @@ export class NotificationController {
       return ApiResponse.error(res, error.message, 500);
     }
   }
+
+  static async sendBroadcastEmail(req: AuthRequest, res: Response) {
+    try {
+      const { subject, message } = req.body;
+      const app_id = req.user?.app_id;
+
+      if (!subject || !message) {
+        return ApiResponse.error(res, 'Subject and message are required', 400);
+      }
+
+      const { User } = await import('../models/index.js');
+      const { EmailService } = await import('../services/email.service.js');
+
+      // Find all users for this app
+      const users = await User.find({ app_id, email: { $exists: true, $ne: '' } });
+
+      if (users.length === 0) {
+        return ApiResponse.error(res, 'No users found to send email to', 404);
+      }
+
+      // Send emails (in background or sequentially for now)
+      // For a real app, this should be a background job
+      let successCount = 0;
+      for (const user of users) {
+        const sent = await EmailService.sendEmail(user.email, subject, message);
+        if (sent) successCount++;
+      }
+
+      return ApiResponse.success(res, { successCount, total: users.length }, `Email broadcast sent to ${successCount} users`);
+    } catch (error: any) {
+      return ApiResponse.error(res, error.message, 500);
+    }
+  }
 }

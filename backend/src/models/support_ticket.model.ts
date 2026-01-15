@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface ISupportTicket extends Document {
+  app_id?: string;
   user_id: mongoose.Types.ObjectId;
   subject: string;
   message: string;
@@ -13,6 +14,7 @@ export interface ISupportTicket extends Document {
 }
 
 const supportTicketSchema = new Schema<ISupportTicket>({
+  app_id: { type: String, index: true },
   user_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   subject: { type: String, required: true },
   message: { type: String, required: true },

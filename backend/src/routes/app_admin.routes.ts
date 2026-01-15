@@ -42,4 +42,30 @@ router.put('/support-content', authenticateAppAdmin, async (req, res, next) => {
 import configRoutes from './config.routes.js';
 router.use('/config', configRoutes);
 
+// Provider Management
+import { AppAdminProviderController } from '../controllers/app_admin_provider.controller.js';
+router.get('/providers', authenticateAppAdmin, AppAdminProviderController.list);
+router.get('/providers/:id', authenticateAppAdmin, AppAdminProviderController.getById);
+router.post('/providers', authenticateAppAdmin, AppAdminProviderController.create);
+router.put('/providers/:id', authenticateAppAdmin, AppAdminProviderController.update);
+router.delete('/providers/:id', authenticateAppAdmin, AppAdminProviderController.remove);
+router.post('/providers/test/:code', authenticateAppAdmin, AppAdminProviderController.testConnection);
+router.post('/providers/test-purchase/:code', authenticateAppAdmin, AppAdminProviderController.testPurchase);
+router.get('/providers/data/:code', authenticateAppAdmin, AppAdminProviderController.getProviderData);
+
+// Pricing Management
+import { AppAdminPricingController } from '../controllers/app_admin_pricing.controller.js';
+router.get('/pricing', authenticateAppAdmin, AppAdminPricingController.getAllPlans);
+router.get('/pricing/:id', authenticateAppAdmin, AppAdminPricingController.getPlanById);
+router.post('/pricing', authenticateAppAdmin, AppAdminPricingController.createPlan);
+router.put('/pricing/:id', authenticateAppAdmin, AppAdminPricingController.updatePlan);
+router.delete('/pricing/:id', authenticateAppAdmin, AppAdminPricingController.deletePlan);
+router.post('/pricing/bulk-import', authenticateAppAdmin, AppAdminPricingController.bulkImportPlans);
+router.get('/pricing/provider/:providerId', authenticateAppAdmin, AppAdminPricingController.getPlansByProvider);
+
+// Notifications & Broadcasts
+import { NotificationController } from '../controllers/notification.controller.js';
+router.post('/notifications/broadcast', authenticateAppAdmin, NotificationController.sendBroadcastNotification);
+router.post('/notifications/email-broadcast', authenticateAppAdmin, NotificationController.sendBroadcastEmail);
+
 export default router;
