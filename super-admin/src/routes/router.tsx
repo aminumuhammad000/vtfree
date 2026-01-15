@@ -29,8 +29,7 @@ const Settlements = lazy(() => import('pages/finance/Settlements'));
 const PricingPlans = lazy(() => import('pages/pricing'));
 
 // Messaging
-const NotificationManagement = lazy(() => import('pages/messaging/NotificationManagement'));
-const Broadcasts = lazy(() => import('pages/messaging/Broadcasts'));
+const Notifications = lazy(() => import('pages/messaging/Notifications'));
 
 // Logs
 const LogsPage = lazy(() => import('pages/logs'));
@@ -38,7 +37,6 @@ const LogsPage = lazy(() => import('pages/logs'));
 // Support & Providers
 const Support = lazy(() => import('pages/support'));
 const Providers = lazy(() => import('pages/providers'));
-const Communications = lazy(() => import('pages/communications/CommunicationsPage'));
 
 const SignIn = lazy(() => import('pages/authentication/SignIn'));
 const ResetPassword = lazy(() => import('pages/authentication/ResetPassword'));
@@ -118,11 +116,7 @@ const routes = [
               // Messaging
               {
                 path: paths.notifications,
-                element: <NotificationManagement />,
-              },
-              {
-                path: paths.broadcasts,
-                element: <Broadcasts />,
+                element: <Notifications />,
               },
               // Logs
               {
@@ -137,10 +131,6 @@ const routes = [
               {
                 path: paths.providers,
                 element: <Providers />,
-              },
-              {
-                path: paths.communications,
-                element: <Communications />,
               },
               {
                 path: paths.settings,

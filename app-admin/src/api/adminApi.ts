@@ -54,6 +54,8 @@ export const deleteProvider = (id: string) => api.delete(`/providers/${id}`);
 export const getProviderEnv = (id: string) => api.get(`/providers/${id}/env`);
 export const updateProviderEnv = (id: string, env: Record<string, string>) => api.put(`/providers/${id}/env`, { env });
 export const testProviderConnection = (code: string) => api.post(`/providers/test/${code}`);
+export const testProviderPurchase = (code: string, data: { type: 'airtime' | 'data', phone: string, network: string, plan?: string, amount?: number }) =>
+  api.post(`/providers/test-purchase/${code}`, data);
 export const getProviderData = (code: string, type: 'balance' | 'networks' | 'plans') =>
   api.get(`/providers/data/${code}`, { params: { type } });
 
@@ -85,6 +87,8 @@ export const updateSupportContent = (data: any) => api.put('/support-content', d
 // Notifications
 export const sendBroadcastNotification = (data: { title: string; message: string; type: string; action_link?: string }) =>
   api.post('/notifications/broadcast', data);
+export const sendBroadcastEmail = (data: { subject: string; message: string }) =>
+  api.post('/notifications/email-broadcast', data);
 
 // System Config
 export const getAllConfigs = () => api.get('/config');

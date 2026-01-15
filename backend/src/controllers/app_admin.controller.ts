@@ -41,12 +41,17 @@ export const login = async (req: Request, res: Response) => {
         console.log('Admin query result:', admin ? 'Found' : 'Not Found');
 
         if (!admin) {
+            console.log(`Login failed: Admin not found for email ${email} and app_id ${app_id}`);
             return res.status(400).json({ success: false, message: 'Invalid credentials' });
         }
 
         // Check password
+        console.log('Comparing passwords...');
         const isMatch = await bcrypt.compare(password, admin.password);
+        console.log('Password match result:', isMatch);
+
         if (!isMatch) {
+            console.log(`Login failed: Password mismatch for email ${email}`);
             return res.status(400).json({ success: false, message: 'Invalid credentials' });
         }
 
@@ -56,13 +61,13 @@ export const login = async (req: Request, res: Response) => {
         // Generate token
         const token = jwt.sign(
             {
-                user_id: admin._id,
+                id: admin._id,
                 email: admin.email,
                 app_id: admin.app_id,
                 type: 'app_admin',
                 role: admin.role
             },
-            process.env.JWT_SECRET || 'secret',
+            process.env.JWT_SECRET || 'your-secret-key',
             { expiresIn: '1d' }
         );
 
@@ -140,6 +145,71 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         });
     } catch (error: any) {
         console.error('Dashboard stats error:', error);
+        res.status(500).json({ success: false, message: error.message || 'Server error' });
+    }
+};
+
+export const updateProfile = async (req: Request, res: Response) => {
+    try {
+        const adminId = (req as any).user.id;
+        const { first_name, last_name, email } = req.body;
+
+        const admin = await AppAdmin.findById(adminId);
+        if (!admin) {
+            return res.status(404).json({ success: false, message: 'Admin not found' });
+        }
+
+        if (first_name) admin.first_name = first_name;
+        if (last_name) admin.last_name = last_name;
+        if (email) admin.email = email.toLowerCase().trim();
+
+        await admin.save();
+
+        res.json({
+            success: true,
+            message: 'Profile updated successfully',
+            data: {
+                _id: admin._id,
+                email: admin.email,
+                first_name: admin.first_name,
+                last_name: admin.last_name,
+                role: admin.role,
+                app_id: admin.app_id,
+                status: admin.status,
+                last_login: admin.last_login
+            }
+        });
+    } catch (error: any) {
+        console.error('Update profile error:', error);
+        res.status(500).json({ success: false, message: error.message || 'Server error' });
+    }
+};
+
+export const changePassword = async (req: Request, res: Response) => {
+    try {
+        const adminId = (req as any).user.id;
+        const { currentPassword, newPassword } = req.body;
+
+        const admin = await AppAdmin.findById(adminId);
+        if (!admin) {
+            return res.status(404).json({ success: false, message: 'Admin not found' });
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, admin.password);
+        if (!isMatch) {
+            return res.status(400).json({ success: false, message: 'Incorrect current password' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        admin.password = await bcrypt.hash(newPassword, salt);
+        await admin.save();
+
+        res.json({
+            success: true,
+            message: 'Password changed successfully'
+        });
+    } catch (error: any) {
+        console.error('Change password error:', error);
         res.status(500).json({ success: false, message: error.message || 'Server error' });
     }
 };

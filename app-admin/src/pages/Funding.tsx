@@ -1,17 +1,28 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useState } from 'react';
-import { createFundingAccount, deleteFundingAccount, getBanksList, getFundingAccounts, getFundingInfo, getProviderBalances, getVTPayBalance, updateFundingAccount, validateAccount } from '../api/adminApi';
+import { createFundingAccount, deleteFundingAccount, getBanksList, getFundingAccounts, getFundingInfo, getProviderBalances, getVTPayBalance, updateFundingAccount, validateAccount, getAllConfigs } from '../api/adminApi';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 
 const Funding: React.FC = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  // VTPay Balance
-  const { data: vtpayBalanceRes } = useQuery({
-    queryKey: ['vtpay-balance'],
+  // Default Gateway
+  const { data: configRes } = useQuery({
+    queryKey: ['system-configs'],
     queryFn: async () => {
-      const res = await getVTPayBalance();
+      const res = await getAllConfigs();
+      return res.data?.data || [];
+    },
+  });
+
+  const defaultGateway = configRes?.find((c: any) => c.key === 'DEFAULT_PAYMENT_GATEWAY')?.value || 'vtpay';
+
+  // Gateway Balance
+  const { data: gatewayBalanceRes } = useQuery({
+    queryKey: ['gateway-balance', defaultGateway],
+    queryFn: async () => {
+      const res = await getVTPayBalance(); // This endpoint now handles default gateway in backend
       return res.data?.data || { balance: 0 };
     },
   });
@@ -21,7 +32,6 @@ const Funding: React.FC = () => {
     queryKey: ['banks-list'],
     queryFn: async () => {
       const res = await getBanksList();
-      // VTPay API returns { banks: [...], total: number }
       return res.data?.data || [];
     },
   });
@@ -126,14 +136,14 @@ const Funding: React.FC = () => {
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
               <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-2xl"></div>
               <div className="relative">
-                <h1 className="text-2xl sm:text-3xl font-bold mb-2 tracking-tight">Funding & Balances</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold mb-2 tracking-tight text-white">Funding & Balances</h1>
                 <p className="text-green-100 text-lg">Monitor wallet balances and manage withdrawal accounts</p>
               </div>
             </div>
 
             {/* Modern Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* VTPay Balance Card */}
+              {/* Gateway Balance Card */}
               <div className="relative bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg p-6 text-white overflow-hidden group hover-lift transition-all duration-300">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:w-40 group-hover:h-40 transition-all"></div>
                 <div className="relative">
@@ -142,9 +152,9 @@ const Funding: React.FC = () => {
                       <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
                       <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
                     </svg>
-                    <p className="text-sm font-semibold uppercase tracking-wide text-purple-100">VTPay Balance</p>
+                    <p className="text-sm font-semibold uppercase tracking-wide text-purple-100">{defaultGateway} Balance</p>
                   </div>
-                  <p className="text-4xl font-extrabold mb-1">₦{Number(vtpayBalanceRes?.balance || 0).toLocaleString()}</p>
+                  <p className="text-4xl font-extrabold mb-1">₦{Number(gatewayBalanceRes?.balance || 0).toLocaleString()}</p>
                   <p className="text-xs text-purple-200 uppercase tracking-wide">Available Funds</p>
                 </div>
                 <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-white/5 rounded-full"></div>
@@ -229,7 +239,11 @@ const Funding: React.FC = () => {
                         <tr key={p.code} className="hover:bg-gray-50 transition">
                           <td className="px-6 py-4 text-sm text-gray-900">{p.name}</td>
                           <td className="px-6 py-4 text-sm text-gray-900 uppercase">{p.code}</td>
-                          <td className="px-6 py-4 text-sm text-gray-900">{p.balance === null ? 'N/A' : `₦${Number(p.balance).toLocaleString()}`}</td>
+                          <td className="px-6 py-4 text-sm text-gray-900 font-medium">
+                            {p.balance === null || p.balance === '***.**'
+                              ? (p.status === 'error' ? <span className="text-red-600">Error</span> : (p.balance === '***.**' ? '***.**' : 'N/A'))
+                              : `₦${Number(p.balance).toLocaleString()}`}
+                          </td>
                           <td className="px-6 py-4 text-sm">
                             <span className={`px-2 py-1 rounded text-xs font-semibold ${p.status === 'ok' ? 'bg-green-100 text-green-800' : (p.status === 'unsupported' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800')}`}>
                               {p.status}
