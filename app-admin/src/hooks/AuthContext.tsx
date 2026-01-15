@@ -17,7 +17,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return stored ? JSON.parse(stored) : null;
   });
   const [app, setApp] = useState<any>(() => {
-    const stored = localStorage.getItem('appInfo');
+    const stored = localStorage.getItem('app_config');
     return stored ? JSON.parse(stored) : null;
   });
 
@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setApp(app);
     localStorage.setItem('token', token);
     localStorage.setItem('admin', JSON.stringify(admin));
-    localStorage.setItem('appInfo', JSON.stringify(app));
+    if (app) localStorage.setItem('app_config', JSON.stringify(app));
   };
 
   const logout = () => {
@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setApp(null);
     localStorage.removeItem('token');
     localStorage.removeItem('admin');
-    localStorage.removeItem('appInfo');
+    localStorage.removeItem('app_config');
   };
 
   return (

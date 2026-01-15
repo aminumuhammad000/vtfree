@@ -22,23 +22,30 @@ const actions = [
   },
 ];
 
-interface AnalyticsDataItem {
-  _id: string;
-  count: number;
-}
+const AnalyticsData = [
+  {
+    id: 1,
+    value: 60,
+    name: 'Sale',
+  },
+  {
+    id: 2,
+    value: 45,
+    name: 'Distribute',
+  },
+  {
+    id: 3,
+    value: 35,
+    name: 'Return',
+  },
+  {
+    id: 4,
+    value: 30,
+    name: '',
+  },
+];
 
-interface AnalyticsProps {
-  data?: AnalyticsDataItem[];
-}
-
-const Analytics = ({ data }: AnalyticsProps) => {
-  const chartData =
-    data?.map((item: AnalyticsDataItem, index: number) => ({
-      id: index,
-      value: item.count,
-      name: item._id,
-    })) || [];
-
+const Analytics = () => {
   return (
     <Paper sx={{ px: 0, height: 410 }}>
       <Stack
@@ -55,11 +62,7 @@ const Analytics = ({ data }: AnalyticsProps) => {
       </Stack>
 
       <AnalyticsChart
-        data={
-          chartData.length > 0
-            ? chartData
-            : [{ id: 1, value: 0, name: 'No Data' }]
-        }
+        data={AnalyticsData}
         sx={{ mt: -5.5, mx: 'auto', width: 300, height: '370px !important' }}
       />
     </Paper>

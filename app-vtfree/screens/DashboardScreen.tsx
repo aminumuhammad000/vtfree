@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, RefreshControl, Dimensions, StatusBar } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect, Redirect } from 'expo-router';
 import {
     Plus,
     Zap,
@@ -17,17 +17,21 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { AppService } from '../services/app.service';
 import { WalletService } from '../services/wallet.service';
 import { AuthService } from '../services/auth.service';
+import { useAuth } from '../context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
 export default function DashboardScreen() {
     const router = useRouter();
+    const { signOut } = useAuth();
     const [user, setUser] = useState<any>(null);
     const [apps, setApps] = useState<any[]>([]);
     const [walletBalance, setWalletBalance] = useState(0);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [sessionExpired, setSessionExpired] = useState(false);
+    const isLoadingRef = React.useRef(false);
 
     const [stats, setStats] = useState({
         total: 0,
@@ -35,8 +39,40 @@ export default function DashboardScreen() {
         building: 0
     });
 
+    // If session expired, immediately redirect and render nothing
+    if (sessionExpired) {
+        return <Redirect href="/login" />;
+    }
+
+    const handleSessionExpired = async () => {
+        if (isLoadingRef.current) return; // Prevent multiple calls
+        isLoadingRef.current = true;
+
+        console.warn('Session expired - logging out...');
+
+        // Clear everything
+        await AsyncStorage.multiRemove(['vtfree_token', 'vtfree_user']);
+        await signOut();
+        setSessionExpired(true);
+        router.replace('/login');
+    };
+
     const loadData = async () => {
+        // Prevent multiple simultaneous calls
+        if (isLoadingRef.current || sessionExpired) {
+            return;
+        }
+
+        isLoadingRef.current = true;
+
         try {
+            // Ensure token exists before making API calls
+            const token = await AsyncStorage.getItem('vtfree_token');
+            if (!token) {
+                await handleSessionExpired();
+                return;
+            }
+
             // 1. Get User Info
             const userStr = await AsyncStorage.getItem('vtfree_user');
             if (userStr) {
@@ -67,27 +103,60 @@ export default function DashboardScreen() {
                 });
             }
 
-        } catch (error) {
-            console.error('Dashboard load error:', error);
+        } catch (error: any) {
+            const status = error.response?.status;
+            const msg = error.message?.toLowerCase() || '';
+            const serverMsg = error.response?.data?.message?.toLowerCase() || '';
+
+            // Check for various forms of auth errors
+            const isAuthError =
+                error.isAuthError || // Flag from axios interceptor
+                status === 401 ||
+                msg.includes('invalid token') ||
+                msg.includes('jwt') ||
+                msg.includes('unauthorized') ||
+                msg.includes('session') ||
+                msg.includes('no token') ||
+                serverMsg.includes('invalid token') ||
+                serverMsg.includes('unauthorized') ||
+                serverMsg.includes('session') ||
+                serverMsg.includes('no token');
+
+            if (isAuthError) {
+                await handleSessionExpired();
+                return;
+            } else {
+                // Only log as error if it's NOT an auth error
+                console.error('Dashboard load failed:', error);
+            }
         } finally {
-            setLoading(false);
-            setRefreshing(false);
+            isLoadingRef.current = false;
+            if (!sessionExpired) {
+                setLoading(false);
+                setRefreshing(false);
+            }
         }
     };
 
     const handleRefresh = () => {
-        setRefreshing(true);
-        loadData();
+        if (!sessionExpired) {
+            setRefreshing(true);
+            loadData();
+        }
     };
 
     useEffect(() => {
-        loadData();
+        if (!sessionExpired) {
+            loadData();
+        }
     }, []);
 
     useFocusEffect(
         React.useCallback(() => {
-            loadData();
-        }, [])
+            if (!sessionExpired && !isLoadingRef.current) {
+                loadData();
+            }
+        }, [sessionExpired])
     );
 
     const formatCurrency = (amount: number) => {

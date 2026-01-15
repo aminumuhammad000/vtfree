@@ -1,15 +1,20 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Share } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Share, Linking, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Share2, Globe, Smartphone, Play, Plus, ChevronRight, Copy } from 'lucide-react-native';
 import Colors from '../constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { AppService } from '../services/app.service';
+import { useAuth } from '../context/AuthContext';
+import { BASE_URL } from '../services/api';
 
 export default function AppDetailsScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
+    const { token } = useAuth(); // Get token
+
+    const [isBuilding, setIsBuilding] = React.useState(false);
 
     // Determine color - handle both string and array from params
     const colorParam = Array.isArray(params.color) ? params.color[0] : params.color;
@@ -19,7 +24,7 @@ export default function AppDetailsScreen() {
         name: params.name || 'VTfree App',
         package: params.package || 'com.vtfree.app',
         version: '1.0.0',
-        status: params.status || 'Building',
+        status: 'Building',
         type: params.type || 'Android',
         icon: params.type === 'Web' ? Globe : Smartphone,
         color: appColor,
@@ -43,8 +48,6 @@ export default function AppDetailsScreen() {
                     package: app.package_name,
                     status: app.status === 'active' ? 'Live' : 'Building',
                     color: app.branding?.primary_color || Colors.primary,
-                    // Mock admins for now as the API might not return them in this endpoint yet
-                    // or we need a separate endpoint for app admins
                     admins: [
                         { id: 1, name: 'Owner', role: 'Super Admin', status: 'Active' }
                     ]
@@ -55,11 +58,31 @@ export default function AppDetailsScreen() {
         }
     };
 
-    const platforms = [
-        { name: 'Website', icon: Globe, active: appData.type === 'Web' || appData.type === 'All', status: 'Live' },
-        { name: 'Android', icon: Smartphone, active: appData.type === 'Android' || appData.type === 'All', status: 'Live' },
-        { name: 'iOS', icon: Smartphone, active: appData.type === 'iOS' || appData.type === 'All', status: 'Not Active' },
-    ];
+    const handleBuildApk = async () => {
+        setIsBuilding(true);
+        try {
+            const response = await AppService.buildApp(params.appId as string);
+            if (response.success) {
+                Alert.alert('Success', 'APK built successfully! You can find it in the output folder.');
+            } else {
+                Alert.alert('Error', 'Build failed: ' + response.message);
+            }
+        } catch (error: any) {
+            Alert.alert('Error', 'Build failed: ' + error.message);
+        } finally {
+            setIsBuilding(false);
+        }
+    };
+
+    const handleDownloadSource = () => {
+        const downloadUrl = `${BASE_URL}/vtfree/apps/${params.appId}/download?token=${token}`;
+        Linking.openURL(downloadUrl);
+    };
+
+    const handleDownloadApk = () => {
+        const downloadUrl = `${BASE_URL}/vtfree/apps/${params.appId}/apk?token=${token}`;
+        Linking.openURL(downloadUrl);
+    };
 
     const handleShare = async () => {
         try {
@@ -70,6 +93,12 @@ export default function AppDetailsScreen() {
             console.error(error);
         }
     };
+
+    const platforms = [
+        { name: 'Website', icon: Globe, active: appData.type === 'Web' || appData.type === 'All', status: 'Live' },
+        { name: 'Android', icon: Smartphone, active: appData.type === 'Android' || appData.type === 'All', status: 'Live' },
+        { name: 'iOS', icon: Smartphone, active: appData.type === 'iOS' || appData.type === 'All', status: 'Not Active' },
+    ];
 
     return (
         <View style={styles.container}>
@@ -90,6 +119,7 @@ export default function AppDetailsScreen() {
                 <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.appCard}>
                     <View style={styles.appHeaderRow}>
                         <View style={[styles.appIcon, { backgroundColor: `${appData.color}20` }]}>
+                            {/* Render icon correctly */}
                             <appData.icon color={appData.color} size={40} />
                         </View>
                         <View style={styles.appInfo}>
@@ -185,6 +215,27 @@ export default function AppDetailsScreen() {
                         <ChevronRight color={Colors.gray[400]} size={20} />
                     </TouchableOpacity>
                 </Animated.View>
+
+                {/* Developer Zone */}
+                <Text style={styles.sectionTitle}>Developer Zone</Text>
+                <TouchableOpacity
+                    style={[styles.primaryButton, { backgroundColor: Colors.primary, marginBottom: 10 }]}
+                    onPress={handleBuildApk}
+                    disabled={isBuilding}
+                >
+                    <Play color={Colors.white} size={20} />
+                    <Text style={styles.primaryButtonText}>{isBuilding ? 'Building APK...' : 'Build APK'}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.primaryButton, { backgroundColor: Colors.success, marginBottom: 10 }]} onPress={handleDownloadApk}>
+                    <Smartphone color={Colors.white} size={20} />
+                    <Text style={styles.primaryButtonText}>Download APK</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={[styles.primaryButton, { backgroundColor: Colors.gray[900], marginBottom: 40 }]} onPress={handleDownloadSource}>
+                    <Copy color={Colors.white} size={20} />
+                    <Text style={styles.primaryButtonText}>Download Source Code</Text>
+                </TouchableOpacity>
 
                 <View style={{ height: 40 }} />
             </ScrollView>
@@ -422,6 +473,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 8,
         elevation: 3,
+        marginBottom: 32,
     },
     configItem: {
         flexDirection: 'row',
