@@ -1,5 +1,3 @@
-
-
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import PrivateRoute from './components/PrivateRoute';
 import AuditLogs from './pages/AuditLogs';
@@ -15,13 +13,6 @@ import Support from './pages/Support';
 import Transactions from './pages/Transactions';
 import Users from './pages/Users';
 import WalletCredit from './pages/WalletCredit';
-import VirtualAccounts from './pages/payments/VirtualAccounts';
-import Transfers from './pages/payments/Transfers';
-import Settlements from './pages/payments/Settlements';
-import PaymentLogs from './pages/payments/PaymentLogs';
-import Disputes from './pages/payments/Disputes';
-
-
 
 function App() {
   return (
@@ -41,14 +32,6 @@ function App() {
           <Route path="/support" element={<Support />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
-
-          {/* Payment Routes */}
-          <Route path="/payments/virtual-accounts" element={<VirtualAccounts />} />
-          <Route path="/payments/transfers" element={<Transfers />} />
-          <Route path="/payments/settlements" element={<Settlements />} />
-          <Route path="/payments/logs" element={<PaymentLogs />} />
-          <Route path="/payments/disputes" element={<Disputes />} />
-
         </Route>
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>

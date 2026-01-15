@@ -11,6 +11,8 @@ router.post('/login', AppAdminController.login);
 // Protected routes
 // Dashboard
 router.get('/dashboard', authenticateAppAdmin, AppAdminController.getDashboardStats);
+router.put('/profile', authenticateAppAdmin, AppAdminController.updateProfile);
+router.put('/profile/password', authenticateAppAdmin, AppAdminController.changePassword);
 
 // Disputes
 router.get('/disputes', authenticateAppAdmin, DisputeController.getDisputes);
@@ -44,6 +46,8 @@ router.use('/config', configRoutes);
 
 // Provider Management
 import { AppAdminProviderController } from '../controllers/app_admin_provider.controller.js';
+import { AppAdminFundingController } from '../controllers/app_admin_funding.controller.js';
+router.get('/providers/balances', authenticateAppAdmin, AppAdminFundingController.getProviderBalances);
 router.get('/providers', authenticateAppAdmin, AppAdminProviderController.list);
 router.get('/providers/:id', authenticateAppAdmin, AppAdminProviderController.getById);
 router.post('/providers', authenticateAppAdmin, AppAdminProviderController.create);
@@ -62,6 +66,19 @@ router.put('/pricing/:id', authenticateAppAdmin, AppAdminPricingController.updat
 router.delete('/pricing/:id', authenticateAppAdmin, AppAdminPricingController.deletePlan);
 router.post('/pricing/bulk-import', authenticateAppAdmin, AppAdminPricingController.bulkImportPlans);
 router.get('/pricing/provider/:providerId', authenticateAppAdmin, AppAdminPricingController.getPlansByProvider);
+
+// Funding & Provider Balances
+router.get('/funding/info', authenticateAppAdmin, AppAdminFundingController.getFundingInfo);
+router.get('/funding/accounts', authenticateAppAdmin, AppAdminFundingController.listAccounts);
+router.post('/funding/accounts', authenticateAppAdmin, AppAdminFundingController.createAccount);
+router.put('/funding/accounts/:id', authenticateAppAdmin, AppAdminFundingController.updateAccount);
+router.delete('/funding/accounts/:id', authenticateAppAdmin, AppAdminFundingController.deleteAccount);
+
+// Payout & Payment Gateway (VTPay/Payrant)
+import { PayoutController } from '../controllers/payout.controller.js';
+router.get('/payout/banks', authenticateAppAdmin, PayoutController.getBanksList);
+router.post('/payout/validate-account', authenticateAppAdmin, PayoutController.validateAccount);
+router.get('/payout/balance', authenticateAppAdmin, PayoutController.getVTPayBalance);
 
 // Notifications & Broadcasts
 import { NotificationController } from '../controllers/notification.controller.js';

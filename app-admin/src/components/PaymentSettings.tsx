@@ -79,10 +79,10 @@ const PaymentSettings = () => {
     }
 
     const gateways = [
-        { id: 'vtpay', name: 'VTPay', description: 'Default Gateway' },
-        { id: 'payrant', name: 'Payrant', description: 'Alternative Gateway' },
-        { id: 'paystack', name: 'Paystack', description: 'Popular in Nigeria' },
-        { id: 'monnify', name: 'Monnify', description: 'Virtual Accounts & Payments' },
+        { id: 'vtpay', name: 'VTPay', description: 'Default Gateway', disabled: false },
+        { id: 'payrant', name: 'Payrant', description: 'Alternative Gateway', disabled: false },
+        { id: 'paystack', name: 'Paystack', description: 'Coming Soon', disabled: true },
+        { id: 'monnify', name: 'Monnify', description: 'Coming Soon', disabled: true },
     ];
 
     return (
@@ -131,9 +131,9 @@ const PaymentSettings = () => {
                             {gateways.map((gw) => (
                                 <label
                                     key={gw.id}
-                                    className={`relative flex flex-col p-5 border-2 rounded-2xl cursor-pointer transition-all duration-200 ${formData.DEFAULT_PAYMENT_GATEWAY === gw.id
-                                            ? 'border-green-500 bg-green-50/50 ring-4 ring-green-500/5'
-                                            : 'border-slate-100 hover:border-slate-200 bg-slate-50/30'
+                                    className={`relative flex flex-col p-5 border-2 rounded-2xl transition-all duration-200 ${gw.disabled ? 'opacity-50 cursor-not-allowed border-slate-100 bg-slate-100/30' : 'cursor-pointer'} ${formData.DEFAULT_PAYMENT_GATEWAY === gw.id
+                                        ? 'border-green-500 bg-green-50/50 ring-4 ring-green-500/5'
+                                        : !gw.disabled ? 'border-slate-100 hover:border-slate-200 bg-slate-50/30' : ''
                                         }`}
                                 >
                                     <input
@@ -143,6 +143,7 @@ const PaymentSettings = () => {
                                         checked={formData.DEFAULT_PAYMENT_GATEWAY === gw.id}
                                         onChange={handleChange}
                                         className="hidden"
+                                        disabled={gw.disabled}
                                     />
                                     <div className="flex justify-between items-start mb-3">
                                         <div className={`p-2 rounded-lg ${formData.DEFAULT_PAYMENT_GATEWAY === gw.id ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
@@ -161,152 +162,160 @@ const PaymentSettings = () => {
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                         {/* VTPay Config */}
-                        <div className="space-y-6 p-6 bg-slate-50/50 rounded-2xl border border-slate-100">
-                            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                <span className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-100">1</span>
-                                VTPay Configuration
-                            </h3>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">API Key</label>
-                                    <div className="relative">
-                                        <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                        <input
-                                            type="text"
-                                            name="VTPAY_API_KEY"
-                                            value={formData.VTPAY_API_KEY}
-                                            onChange={handleChange}
-                                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm font-mono"
-                                            placeholder="vt_live_..."
-                                        />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Secret Key</label>
-                                    <div className="relative">
-                                        <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                        <input
-                                            type="password"
-                                            name="VTPAY_SECRET_KEY"
-                                            value={formData.VTPAY_SECRET_KEY}
-                                            onChange={handleChange}
-                                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm font-mono"
-                                            placeholder="••••••••••••"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Payrant Config */}
-                        <div className="space-y-6 p-6 bg-slate-50/50 rounded-2xl border border-slate-100">
-                            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                <span className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-100">2</span>
-                                Payrant Configuration
-                            </h3>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">API Key</label>
-                                    <div className="relative">
-                                        <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                        <input
-                                            type="text"
-                                            name="PAYRANT_API_KEY"
-                                            value={formData.PAYRANT_API_KEY}
-                                            onChange={handleChange}
-                                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm font-mono"
-                                        />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Webhook Secret</label>
-                                    <div className="relative">
-                                        <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                        <input
-                                            type="password"
-                                            name="PAYRANT_WEBHOOK_SECRET"
-                                            value={formData.PAYRANT_WEBHOOK_SECRET}
-                                            onChange={handleChange}
-                                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm font-mono"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Paystack Config */}
-                        <div className="space-y-6 p-6 bg-slate-50/50 rounded-2xl border border-slate-100">
-                            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                <span className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-100">3</span>
-                                Paystack Configuration
-                            </h3>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Secret Key</label>
-                                    <input
-                                        type="password"
-                                        name="PAYSTACK_SECRET_KEY"
-                                        value={formData.PAYSTACK_SECRET_KEY}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm font-mono"
-                                        placeholder="sk_live_..."
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Public Key</label>
-                                    <input
-                                        type="text"
-                                        name="PAYSTACK_PUBLIC_KEY"
-                                        value={formData.PAYSTACK_PUBLIC_KEY}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm font-mono"
-                                        placeholder="pk_live_..."
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Monnify Config */}
-                        <div className="space-y-6 p-6 bg-slate-50/50 rounded-2xl border border-slate-100">
-                            <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                <span className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-100">4</span>
-                                Monnify Configuration
-                            </h3>
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
+                        {formData.DEFAULT_PAYMENT_GATEWAY === 'vtpay' && (
+                            <div className="space-y-6 p-6 bg-slate-50/50 rounded-2xl border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                    <span className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-100">1</span>
+                                    VTPay Configuration
+                                </h3>
+                                <div className="space-y-4">
                                     <div>
                                         <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">API Key</label>
+                                        <div className="relative">
+                                            <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                            <input
+                                                type="text"
+                                                name="VTPAY_API_KEY"
+                                                value={formData.VTPAY_API_KEY}
+                                                onChange={handleChange}
+                                                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm font-mono"
+                                                placeholder="vt_live_..."
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Secret Key</label>
+                                        <div className="relative">
+                                            <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                            <input
+                                                type="password"
+                                                name="VTPAY_SECRET_KEY"
+                                                value={formData.VTPAY_SECRET_KEY}
+                                                onChange={handleChange}
+                                                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm font-mono"
+                                                placeholder="••••••••••••"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Payrant Config */}
+                        {formData.DEFAULT_PAYMENT_GATEWAY === 'payrant' && (
+                            <div className="space-y-6 p-6 bg-slate-50/50 rounded-2xl border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                    <span className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-100">2</span>
+                                    Payrant Configuration
+                                </h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">API Key</label>
+                                        <div className="relative">
+                                            <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                            <input
+                                                type="text"
+                                                name="PAYRANT_API_KEY"
+                                                value={formData.PAYRANT_API_KEY}
+                                                onChange={handleChange}
+                                                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm font-mono"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Webhook Secret</label>
+                                        <div className="relative">
+                                            <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                            <input
+                                                type="password"
+                                                name="PAYRANT_WEBHOOK_SECRET"
+                                                value={formData.PAYRANT_WEBHOOK_SECRET}
+                                                onChange={handleChange}
+                                                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm font-mono"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Paystack Config */}
+                        {formData.DEFAULT_PAYMENT_GATEWAY === 'paystack' && (
+                            <div className="space-y-6 p-6 bg-slate-50/50 rounded-2xl border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                    <span className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-100">3</span>
+                                    Paystack Configuration
+                                </h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Secret Key</label>
                                         <input
-                                            type="text"
-                                            name="MONNIFY_API_KEY"
-                                            value={formData.MONNIFY_API_KEY}
+                                            type="password"
+                                            name="PAYSTACK_SECRET_KEY"
+                                            value={formData.PAYSTACK_SECRET_KEY}
                                             onChange={handleChange}
                                             className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm font-mono"
+                                            placeholder="sk_live_..."
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Contract Code</label>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Public Key</label>
                                         <input
                                             type="text"
-                                            name="MONNIFY_CONTRACT_CODE"
-                                            value={formData.MONNIFY_CONTRACT_CODE}
+                                            name="PAYSTACK_PUBLIC_KEY"
+                                            value={formData.PAYSTACK_PUBLIC_KEY}
+                                            onChange={handleChange}
+                                            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm font-mono"
+                                            placeholder="pk_live_..."
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Monnify Config */}
+                        {formData.DEFAULT_PAYMENT_GATEWAY === 'monnify' && (
+                            <div className="space-y-6 p-6 bg-slate-50/50 rounded-2xl border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                    <span className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm border border-slate-100">4</span>
+                                    Monnify Configuration
+                                </h3>
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">API Key</label>
+                                            <input
+                                                type="text"
+                                                name="MONNIFY_API_KEY"
+                                                value={formData.MONNIFY_API_KEY}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm font-mono"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Contract Code</label>
+                                            <input
+                                                type="text"
+                                                name="MONNIFY_CONTRACT_CODE"
+                                                value={formData.MONNIFY_CONTRACT_CODE}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm font-mono"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Secret Key</label>
+                                        <input
+                                            type="password"
+                                            name="MONNIFY_SECRET_KEY"
+                                            value={formData.MONNIFY_SECRET_KEY}
                                             onChange={handleChange}
                                             className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm font-mono"
                                         />
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Secret Key</label>
-                                    <input
-                                        type="password"
-                                        name="MONNIFY_SECRET_KEY"
-                                        value={formData.MONNIFY_SECRET_KEY}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm font-mono"
-                                    />
-                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     <div className="flex justify-end pt-6 border-t border-slate-100">

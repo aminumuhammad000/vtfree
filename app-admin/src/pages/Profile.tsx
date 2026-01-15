@@ -137,7 +137,7 @@ const Profile: React.FC = () => {
                   </button>
                 )}
               </div>
-              
+
               <div className="flex items-center space-x-6 mb-8">
                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-3xl font-bold text-white shadow-lg">
                   {getInitials()}
@@ -157,11 +157,10 @@ const Profile: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">First Name</label>
-                    <input 
-                      type="text" 
-                      className={`w-full px-4 py-2.5 border border-slate-300 rounded-lg ${
-                        isEditingProfile ? 'bg-white focus:outline-none focus:ring-2 focus:ring-green-500' : 'bg-slate-50'
-                      } text-slate-900 font-medium`}
+                    <input
+                      type="text"
+                      className={`w-full px-4 py-2.5 border border-slate-300 rounded-lg ${isEditingProfile ? 'bg-white focus:outline-none focus:ring-2 focus:ring-green-500' : 'bg-slate-50'
+                        } text-slate-900 font-medium`}
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       readOnly={!isEditingProfile}
@@ -169,11 +168,10 @@ const Profile: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Last Name</label>
-                    <input 
-                      type="text" 
-                      className={`w-full px-4 py-2.5 border border-slate-300 rounded-lg ${
-                        isEditingProfile ? 'bg-white focus:outline-none focus:ring-2 focus:ring-green-500' : 'bg-slate-50'
-                      } text-slate-900 font-medium`}
+                    <input
+                      type="text"
+                      className={`w-full px-4 py-2.5 border border-slate-300 rounded-lg ${isEditingProfile ? 'bg-white focus:outline-none focus:ring-2 focus:ring-green-500' : 'bg-slate-50'
+                        } text-slate-900 font-medium`}
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       readOnly={!isEditingProfile}
@@ -181,11 +179,10 @@ const Profile: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Email Address</label>
-                    <input 
-                      type="email" 
-                      className={`w-full px-4 py-2.5 border border-slate-300 rounded-lg ${
-                        isEditingProfile ? 'bg-white focus:outline-none focus:ring-2 focus:ring-green-500' : 'bg-slate-50'
-                      } text-slate-900 font-medium`}
+                    <input
+                      type="email"
+                      className={`w-full px-4 py-2.5 border border-slate-300 rounded-lg ${isEditingProfile ? 'bg-white focus:outline-none focus:ring-2 focus:ring-green-500' : 'bg-slate-50'
+                        } text-slate-900 font-medium`}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       readOnly={!isEditingProfile}
@@ -193,29 +190,29 @@ const Profile: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Role</label>
-                    <input 
-                      type="text" 
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-slate-50 text-slate-900 font-medium" 
-                      value={admin?.role_id?.role_name?.replace('_', ' ').toUpperCase() || 'ADMIN'} 
-                      readOnly 
+                    <input
+                      type="text"
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-slate-50 text-slate-900 font-medium"
+                      value={admin?.role_id?.role_name?.replace('_', ' ').toUpperCase() || 'ADMIN'}
+                      readOnly
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Status</label>
-                    <input 
-                      type="text" 
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-slate-50 text-slate-900 font-medium" 
-                      value={admin?.status?.toUpperCase() || 'ACTIVE'} 
-                      readOnly 
+                    <input
+                      type="text"
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-slate-50 text-slate-900 font-medium"
+                      value={admin?.status?.toUpperCase() || 'ACTIVE'}
+                      readOnly
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-slate-700 mb-2">Last Login</label>
-                    <input 
-                      type="text" 
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-slate-50 text-slate-900 font-medium" 
-                      value={admin?.last_login_at ? new Date(admin.last_login_at).toLocaleString() : 'N/A'} 
-                      readOnly 
+                    <input
+                      type="text"
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg bg-slate-50 text-slate-900 font-medium"
+                      value={admin?.last_login ? new Date(admin.last_login).toLocaleString() : 'N/A'}
+                      readOnly
                     />
                   </div>
                 </div>
@@ -245,17 +242,17 @@ const Profile: React.FC = () => {
             {/* Change Password Card */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
               <h2 className="text-2xl font-bold text-slate-900 mb-6">Change Password</h2>
-              
+
               <form onSubmit={handlePasswordChange} className="space-y-6">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">Current Password</label>
                   <div className="relative">
-                    <input 
+                    <input
                       type={showCurrentPassword ? "text" : "password"}
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" 
-                      placeholder="Enter current password" 
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="Enter current password"
                     />
                     <button
                       type="button"
@@ -279,12 +276,12 @@ const Profile: React.FC = () => {
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">New Password</label>
                   <div className="relative">
-                    <input 
+                    <input
                       type={showNewPassword ? "text" : "password"}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" 
-                      placeholder="Enter new password (min 8 characters)" 
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="Enter new password (min 8 characters)"
                     />
                     <button
                       type="button"
@@ -308,12 +305,12 @@ const Profile: React.FC = () => {
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">Confirm New Password</label>
                   <div className="relative">
-                    <input 
+                    <input
                       type={showConfirmPassword ? "text" : "password"}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" 
-                      placeholder="Confirm new password" 
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="Confirm new password"
                     />
                     <button
                       type="button"
@@ -340,8 +337,8 @@ const Profile: React.FC = () => {
                   </div>
                 )}
 
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={changePasswordMutation.status === 'pending'}
                   className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white px-6 py-3 rounded-lg font-semibold transition"
                 >

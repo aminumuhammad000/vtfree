@@ -19,7 +19,13 @@ const IBDataSyncModal: React.FC<IBDataSyncModalProps> = ({ onClose }) => {
         setError('');
         try {
             const res: any = await getProviderData('ibdata', 'plans');
-            setPlans(res.data?.data || []);
+            // Handle nested data structures (res.data.data is our API response, which might contain data.data)
+            let plansData = res.data?.data?.data || res.data?.data || [];
+            if (plansData && typeof plansData === 'object' && !Array.isArray(plansData)) {
+                if (Array.isArray(plansData.data)) plansData = plansData.data;
+                else if (Array.isArray(plansData.plans)) plansData = plansData.plans;
+            }
+            setPlans(Array.isArray(plansData) ? plansData : []);
         } catch (err: any) {
             setError(err.response?.data?.message || err.message || 'Failed to fetch IBData plans');
         } finally {
@@ -84,8 +90,8 @@ const IBDataSyncModal: React.FC<IBDataSyncModalProps> = ({ onClose }) => {
             <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full p-8 max-h-[85vh] overflow-hidden flex flex-col">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h2 className="text-2xl font-bold text-slate-900">Sync IBData Plans</h2>
-                        <p className="text-slate-600 text-sm">Fetch latest prices from IBData and apply your markup</p>
+                        <h2 className="text-2xl font-bold text-slate-900">IBData Price Plans & Profit Margin</h2>
+                        <p className="text-slate-600 text-sm">View available plans, add your profit margin, and sync to your store</p>
                     </div>
                     <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -108,14 +114,14 @@ const IBDataSyncModal: React.FC<IBDataSyncModalProps> = ({ onClose }) => {
                     <>
                         <div className="bg-slate-50 p-4 rounded-xl mb-6 grid grid-cols-1 md:grid-cols-3 gap-4 items-end border border-slate-200">
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">Markup Type</label>
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">Profit Type</label>
                                 <select value={markupType} onChange={(e) => setMarkupType(e.target.value as any)} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none">
-                                    <option value="percent">Percentage (%)</option>
-                                    <option value="flat">Flat Amount (₦)</option>
+                                    <option value="percent">Percentage Profit (%)</option>
+                                    <option value="flat">Flat Profit (₦)</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">Markup Value</label>
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">Profit Value</label>
                                 <input type="number" value={markup} onChange={(e) => setMarkup(Number(e.target.value))} className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
                             </div>
                             <div className="text-sm text-slate-500 pb-2">
@@ -129,8 +135,8 @@ const IBDataSyncModal: React.FC<IBDataSyncModalProps> = ({ onClose }) => {
                                     <tr>
                                         <th className="px-4 py-3 text-sm font-semibold text-slate-700">Network</th>
                                         <th className="px-4 py-3 text-sm font-semibold text-slate-700">Plan Name</th>
-                                        <th className="px-4 py-3 text-sm font-semibold text-slate-700">API Price</th>
-                                        <th className="px-4 py-3 text-sm font-semibold text-slate-700">Your Price</th>
+                                        <th className="px-4 py-3 text-sm font-semibold text-slate-700">Cost Price (API)</th>
+                                        <th className="px-4 py-3 text-sm font-semibold text-slate-700">Selling Price (With Profit)</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
