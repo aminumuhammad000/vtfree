@@ -39,7 +39,7 @@ router.put('/support-content', authenticateAppAdmin, async (req, res, next) => {
 });
 
 // System Config (TODO: Filter by App ID or restrict access)
-import configRoutes from './config.routes.js';
-router.use('/config', configRoutes);
+import appConfigRoutes from './config/app_config.routes.js';
+router.use('/config', appConfigRoutes);
 
 export default router;

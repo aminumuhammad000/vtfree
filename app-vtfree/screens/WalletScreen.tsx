@@ -32,8 +32,11 @@ export default function WalletScreen() {
                 setBalance(response.data.balance);
                 setTransactions(response.data.transactions);
             }
-        } catch (error) {
-            console.error(error);
+        } catch (error: any) {
+            // Only log non-auth errors (auth errors are expected when not logged in)
+            if (!error?.isAuthError) {
+                console.error('Wallet fetch failed:', error);
+            }
         } finally {
             setLoading(false);
             setRefreshing(false);

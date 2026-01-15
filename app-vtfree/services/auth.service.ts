@@ -12,6 +12,9 @@ export const AuthService = {
     },
 
     async login(data: any) {
+        // Clear any old session data first
+        await AsyncStorage.multiRemove(['vtfree_token', 'vtfree_user']);
+
         const response = await api.post('/vtfree/auth/login', data);
         if (response.data.success) {
             await AsyncStorage.setItem('vtfree_token', response.data.data.token);

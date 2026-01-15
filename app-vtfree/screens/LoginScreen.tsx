@@ -30,9 +30,11 @@ export default function LoginScreen() {
         setAlertConfig({ visible: true, type, title, message });
     };
 
-    const handleAlertClose = () => {
+    const handleAlertClose = async () => {
         setAlertConfig(prev => ({ ...prev, visible: false }));
         if (alertConfig.type === 'success') {
+            // Small delay to ensure AsyncStorage operations complete
+            await new Promise(resolve => setTimeout(resolve, 100));
             // @ts-ignore
             router.replace('/(tabs)/home');
         }

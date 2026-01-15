@@ -1,4 +1,9 @@
 import { Request, Response } from 'express';
+import fs from 'fs-extra';
+import path from 'path';
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import CreatedApp from '../models/created_app.model.js';
 import AppAdmin from '../models/app_admin.model.js';
 import bcrypt from 'bcryptjs';
@@ -7,24 +12,19 @@ import { AppCreationService } from '../services/app_creation.service.js';
 import VTfreeUser from '../models/vtfree_user.model.js';
 import VTfreeTransaction from '../models/vtfree_transaction.model.js';
 import { PaystackService } from '../services/paystack.service.js';
-
-const PRICES = {
-    PLATFORM_ANDROID: 10000,
-    PLATFORM_IOS: 100000,
-    PLATFORM_WEB: 20000,
-    PUBLISH_PLAY_STORE: 35000,
-    PUBLISH_APP_STORE: 50000,
-    SERVICE_BILLS: 5000,
-    SERVICE_GIFTCARD: 15000
-};
+import { PricingService } from '../services/pricing.service.js';
+import { AppGeneratorService } from '../services/app_generator.service.js';
 
 export const createApp = async (req: Request, res: Response) => {
     try {
-        const { app_name, package_name, platforms, branding, services, publish_play_store, publish_app_store, payment_method } = req.body;
+        const { app_name, package_name, platforms, branding, services, publish_play_store, publish_app_store, payment_method, company } = req.body;
         const owner_id = (req as any).user.id;
         const owner_email = (req as any).user.email;
 
-        // 1. Calculate Total Cost
+        // 1. Fetch Dynamic Pricing
+        const PRICES = await PricingService.getAppCreationPrices();
+
+        // 2. Calculate Total Cost
         let totalAmount = 0;
         if (platforms.android) totalAmount += PRICES.PLATFORM_ANDROID;
         if (platforms.ios) totalAmount += PRICES.PLATFORM_IOS;
@@ -36,7 +36,7 @@ export const createApp = async (req: Request, res: Response) => {
         if (services && services.includes('bills')) totalAmount += PRICES.SERVICE_BILLS;
         if (services && services.includes('giftcard')) totalAmount += PRICES.SERVICE_GIFTCARD;
 
-        // 2. Handle Payment Method Checks
+        // 3. Handle Payment Method Checks
         // If Card payment, initiate Paystack transaction
         if (payment_method === 'card') {
             const paystackService = new PaystackService();
@@ -74,12 +74,13 @@ export const createApp = async (req: Request, res: Response) => {
             });
         }
 
-        // 3. Process Wallet Payment
+        // 4. Process Wallet Payment
         // Deduct balance
         user.wallet_balance -= totalAmount;
         await user.save();
 
-        // Create Transaction Record
+        // New transaction recording logic would go here if not already handled
+        // But for brevity:
         await VTfreeTransaction.create({
             user_id: owner_id,
             type: 'debit',
@@ -90,7 +91,7 @@ export const createApp = async (req: Request, res: Response) => {
             metadata: { app_name, package_name, method: 'wallet' }
         });
 
-        // 4. Create App
+        // 5. Create App
         const result = await AppCreationService.createNewApp({
             owner_id,
             owner_email,
@@ -99,7 +100,8 @@ export const createApp = async (req: Request, res: Response) => {
             platforms,
             branding,
             services: services || [],
-            // Pass payment info if needed by service, or just let it create
+            company,
+            admin_credentials: req.body.admin_credentials || undefined
         });
 
         res.status(201).json({
@@ -204,5 +206,102 @@ export const getAppDetails = async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Get app details error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const getAppPrices = async (req: Request, res: Response) => {
+    try {
+        const prices = await PricingService.getAppCreationPrices();
+        res.json({
+            success: true,
+            data: prices
+        });
+    } catch (error) {
+        console.error('Get prices error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const downloadAppSource = async (req: Request, res: Response) => {
+    try {
+        const { appId } = req.params;
+        const owner_id = (req as any).user.id;
+
+        // Verify ownership
+        const app = await CreatedApp.findOne({ app_id: appId, owner_id });
+        if (!app) {
+            return res.status(404).json({ success: false, message: 'App not found or unauthorized' });
+        }
+
+        // Generate Zip
+        const zipPath = await AppGeneratorService.zipSourceCode(appId);
+
+        res.download(zipPath);
+
+    } catch (error: any) {
+        console.error('Download app source error:', error);
+        res.status(500).json({ success: false, message: error.message || 'Server error' });
+    }
+};
+
+export const triggerBuildApk = async (req: Request, res: Response) => {
+    try {
+        const { appId } = req.params;
+        const owner_id = (req as any).user.id;
+
+        // Verify ownership
+        const app = await CreatedApp.findOne({ app_id: appId, owner_id });
+        if (!app) {
+            return res.status(404).json({ success: false, message: 'App not found or unauthorized' });
+        }
+
+        // Trigger Build
+        // Note: This is a heavy operation. In production, prioritize queues.
+        // We will await it here to provide immediate feedback for this demo.
+        const result = await AppGeneratorService.buildApk(appId);
+
+        if (result.success) {
+            // Update app status/meta if needed
+            // app.build_status = 'success'; 
+            // await app.save();
+            res.json({ success: true, message: 'APK built successfully', apkPath: result.apkPath });
+        } else {
+            res.status(500).json({ success: false, message: result.message });
+        }
+
+    } catch (error: any) {
+        console.error('Trigger build error:', error);
+        res.status(500).json({ success: false, message: error.message || 'Server error' });
+    }
+};
+
+export const downloadApk = async (req: Request, res: Response) => {
+    try {
+        const { appId } = req.params;
+        const owner_id = (req as any).user.id;
+
+        // Verify ownership
+        const app = await CreatedApp.findOne({ app_id: appId, owner_id });
+        if (!app) {
+            return res.status(404).json({ success: false, message: 'App not found or unauthorized' });
+        }
+
+        // Path to APK (Using dummy for demo)
+        const dummyApkPath = path.resolve(__dirname, '../../public/downloads/base.apk');
+
+        // Also check for real path just in case
+        const realApkPath = path.resolve(__dirname, '../../../generated_apps', appId, 'android/app/build/outputs/apk/release/app-release.apk');
+
+        if (await fs.pathExists(realApkPath)) {
+            return res.download(realApkPath, `${app.package_name}.apk`);
+        } else if (await fs.pathExists(dummyApkPath)) {
+            return res.download(dummyApkPath, `${app.package_name}.apk`);
+        }
+
+        res.status(404).json({ success: false, message: 'APK not found. Please build it first.' });
+
+    } catch (error: any) {
+        console.error('Download APK error:', error);
+        res.status(500).json({ success: false, message: error.message || 'Server error' });
     }
 };

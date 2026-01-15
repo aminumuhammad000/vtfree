@@ -1,3 +1,4 @@
+import { config } from '../config/env.js';
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
@@ -39,7 +40,7 @@ export const register = async (req: Request, res: Response) => {
                 type: 'vtfree_user',
                 role: 'owner'
             },
-            process.env.JWT_SECRET || 'secret',
+            config.jwtSecret,
             { expiresIn: '7d' }
         );
 
@@ -66,20 +67,37 @@ export const register = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
     try {
-        const { email, password } = req.body;
+        let { email, password } = req.body;
+
+        // Sanitize input
+        email = email?.trim().toLowerCase();
+
+        // Detailed Debug Logging
+        console.log('=== LOGIN ATTEMPT ===');
+        console.log(`📧 Email: '${email}'`);
+        console.log(`🔑 Password length: ${password?.length}`);
 
         // Find user
-        console.log(`[Login] Attempting login for email: ${email}`);
         const user = await VTfreeUser.findOne({ email });
         if (!user) {
-            console.log(`[Login] User not found for email: ${email}`);
-            return res.status(400).json({ success: false, message: 'Invalid credentials' });
+            console.log(`❌ [Login] User not found for email: '${email}'`);
+            // Check if it exists in users collection just to be helpful
+            const mongoose = require('mongoose');
+            const otherUser = await mongoose.connection.collection('users').findOne({ email });
+            if (otherUser) console.log(`⚠️ Note: User found in 'users' collection but not 'vtfreeusers'`);
+
+            return res.status(400).json({ success: false, message: 'Invalid credentials (User)' });
         }
+
+        console.log(`✅ [Login] User found: ${user._id} | Hash: ${user.password?.substring(0, 10)}...`);
 
         // Check password
         const isMatch = await bcrypt.compare(password, user.password);
+        console.log(`🔐 [Login] Password match result: ${isMatch}`);
+
         if (!isMatch) {
-            return res.status(400).json({ success: false, message: 'Invalid credentials' });
+            console.log(`❌ [Login] Password mismatch!`);
+            return res.status(400).json({ success: false, message: 'Invalid credentials (Password)' });
         }
 
         // Generate token
@@ -90,11 +108,9 @@ export const login = async (req: Request, res: Response) => {
                 type: 'vtfree_user',
                 role: 'owner'
             },
-            process.env.JWT_SECRET || 'secret',
+            config.jwtSecret,
             { expiresIn: '7d' }
         );
-
-        // Update last login (optional)
 
         res.json({
             success: true,

@@ -23,13 +23,13 @@ const Topbar: React.FC<TopbarProps> = ({ onMenuClick }) => {
   };
 
   return (
-    <header className="w-full h-16 lg:h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 shadow-sm">
+    <header className="w-full h-16 lg:h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 shadow-md sticky top-0 z-30 backdrop-blur-sm bg-white/95">
       {/* Left Section - Mobile Menu + Welcome Message */}
       <div className="flex items-center gap-3 lg:gap-4">
         {/* Mobile Menu Button */}
         <button
           onClick={onMenuClick}
-          className="lg:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition"
+          className="lg:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all duration-200 hover:scale-110"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -37,7 +37,7 @@ const Topbar: React.FC<TopbarProps> = ({ onMenuClick }) => {
         </button>
 
         <div>
-          <h2 className="text-base lg:text-xl font-bold text-slate-800">
+          <h2 className="text-base lg:text-xl font-bold text-slate-900">
             <span className="hidden sm:inline">Welcome back, </span>
             {admin?.first_name || 'Admin'}! 👋
           </h2>
@@ -55,7 +55,7 @@ const Topbar: React.FC<TopbarProps> = ({ onMenuClick }) => {
       {/* Right Section - Admin Menu */}
       <div className="flex items-center gap-3 lg:gap-6">
         {/* Notifications Icon */}
-        <button className="hidden sm:block relative p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition">
+        <button className="hidden sm:block relative p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all duration-200 hover:scale-110">
           <svg className="w-5 h-5 lg:w-6 lg:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
@@ -64,7 +64,7 @@ const Topbar: React.FC<TopbarProps> = ({ onMenuClick }) => {
               d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
             />
           </svg>
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse-slow"></span>
         </button>
 
         {/* Divider */}
@@ -74,15 +74,15 @@ const Topbar: React.FC<TopbarProps> = ({ onMenuClick }) => {
         <div className="relative">
           <button
             onClick={() => setShowDropdown(!showDropdown)}
-            className="flex items-center gap-2 lg:gap-3 px-2 lg:px-3 py-2 hover:bg-slate-100 rounded-lg transition"
+            className="flex items-center gap-2 lg:gap-3 px-2 lg:px-3 py-2 hover:bg-slate-100 rounded-lg transition-all duration-200"
           >
             {/* Avatar */}
-            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xs lg:text-sm shadow-md">
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center text-white font-bold text-xs lg:text-sm shadow-lg ring-2 ring-green-400/30">
               {getInitials()}
             </div>
             <div className="text-left hidden md:block">
-              <p className="text-sm font-semibold text-slate-800">{admin?.first_name || 'Admin'}</p>
-              <p className="text-xs text-slate-500 capitalize">{admin?.role || 'App Admin'}</p>
+              <p className="text-sm font-semibold text-slate-900">{admin?.first_name || 'Admin'}</p>
+              <p className="text-xs text-slate-500">Super Admin</p>
             </div>
             <svg
               className={`w-4 h-4 text-slate-600 transition-transform hidden md:block ${showDropdown ? 'rotate-180' : ''
@@ -101,7 +101,7 @@ const Topbar: React.FC<TopbarProps> = ({ onMenuClick }) => {
               {/* Mobile Overlay */}
               <div className="fixed inset-0 z-40 md:hidden" onClick={() => setShowDropdown(false)} />
 
-              <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-50 py-1">
+              <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 py-1 animate-fade-in-down overflow-hidden">
                 <a
                   href="/profile"
                   className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"

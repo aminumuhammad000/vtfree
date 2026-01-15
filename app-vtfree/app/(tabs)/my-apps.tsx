@@ -33,8 +33,11 @@ export default function MyAppsScreen() {
                     color: app.branding?.primary_color || Colors.primary
                 })));
             }
-        } catch (error) {
-            console.error(error);
+        } catch (error: any) {
+            // Only log non-auth errors (auth errors are expected when not logged in)
+            if (!error?.isAuthError) {
+                console.error('Apps fetch failed:', error);
+            }
         } finally {
             setIsLoading(false);
         }
