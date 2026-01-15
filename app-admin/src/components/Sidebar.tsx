@@ -73,21 +73,7 @@ const navItems: NavItem[] = [
       </svg>
     ),
   },
-  {
-    label: 'Payments',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-      </svg>
-    ),
-    children: [
-      { to: '/payments/virtual-accounts', label: 'Virtual Accounts' },
-      { to: '/payments/transfers', label: 'Transfers' },
-      { to: '/payments/settlements', label: 'Settlements' },
-      { to: '/payments/logs', label: 'Payment Logs' },
-      { to: '/payments/disputes', label: 'Disputes' },
-    ]
-  },
+
   {
     to: '/audit-logs',
     label: 'Activity Logs',
@@ -134,7 +120,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
   const [isDesktopOpen, setIsDesktopOpen] = useState(true);
-  const [expandedMenus, setExpandedMenus] = useState<string[]>(['Payments']);
+  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   const { logout } = useAuthContext();
   const navigate = useNavigate();
   const location = useLocation();
@@ -237,12 +223,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                 <>
                   <button
                     onClick={() => toggleMenu(item.label)}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200 group
-                      ${location.pathname.startsWith('/payments')
-                        ? 'bg-green-800/40 text-white'
-                        : 'text-green-100/80 hover:bg-green-800/60 hover:text-white'
-                      }
-                    `}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200 group text-green-100/80 hover:bg-green-800/60 hover:text-white`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="flex-shrink-0">{item.icon}</span>
@@ -322,7 +303,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
           </button>
           {(isDesktopOpen || isMobileOpen) && <p className="text-xs text-green-300/40 px-4">v1.0.0</p>}
         </div>
-      </aside>
+      </aside >
     </>
   );
 };

@@ -3,6 +3,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { createProvider, deleteProvider, getProviders, testProviderConnection, updateProvider, testProviderPurchase, getProviderData } from '../api/adminApi';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
+import IBDataSyncModal from '../components/IBDataSyncModal';
 
 const ALL_SERVICES = ['airtime', 'data', 'cable', 'electricity', 'exampin'];
 
@@ -174,6 +175,7 @@ const Providers: React.FC = () => {
   const [testItem, setTestItem] = useState<any | null>(null);
   const [testResults, setTestResults] = useState<any>(null);
   const [testLoading, setTestLoading] = useState(false);
+  const [isSyncOpen, setIsSyncOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -181,7 +183,14 @@ const Providers: React.FC = () => {
     queryKey: ['providers', filters.active],
     queryFn: () => getProviders(filters.active === '' ? undefined : { active: filters.active === 'true' }).then((r: any) => r.data?.data),
   });
-  const providers = data?.providers || [];
+  const providers = useMemo(() => {
+    const list = data?.providers || [];
+    return [...list].sort((a, b) => {
+      if (a.code === 'ibdata') return -1;
+      if (b.code === 'ibdata') return 1;
+      return (a.priority || 0) - (b.priority || 0);
+    });
+  }, [data]);
   const total = data?.total || 0;
 
   const createMutation = useMutation({
@@ -274,14 +283,19 @@ const Providers: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex gap-3 mb-6">
+              <div className="flex flex-wrap gap-3 mb-6">
                 <button onClick={() => { resetForm(); setIsCreateOpen(true); }} className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg font-medium">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                   Add Provider
                 </button>
 
+                <button onClick={() => setIsSyncOpen(true)} className="flex items-center gap-2 bg-white border border-green-600 text-green-600 hover:bg-green-50 px-6 py-2.5 rounded-lg transition-all font-medium">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                  Sync IBData Plans
+                </button>
+
                 <select value={filters.active} onChange={(e) => setFilters({ active: e.target.value })} className="px-4 py-2.5 border border-slate-300 rounded-lg bg-white">
-                  <option value="">All</option>
+                  <option value="">All Status</option>
                   <option value="true">Active</option>
                   <option value="false">Inactive</option>
                 </select>
@@ -342,10 +356,12 @@ const Providers: React.FC = () => {
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                 Test
                               </button>
-                              <button onClick={() => deleteMutation.mutate(p._id)} className="inline-flex items-center gap-1.5 text-red-600 hover:text-red-900 font-medium">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0l1-3h6l1 3" /></svg>
-                                Delete
-                              </button>
+                              {p.code !== 'ibdata' && (
+                                <button onClick={() => deleteMutation.mutate(p._id)} className="inline-flex items-center gap-1.5 text-red-600 hover:text-red-900 font-medium">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0l1-3h6l1 3" /></svg>
+                                  Delete
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -401,23 +417,23 @@ const Providers: React.FC = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">API Key</label>
-                        <input value={form.api_key} onChange={(e) => setForm({ ...form, api_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" placeholder="sk_..." />
+                        <input value={form.api_key} onChange={(e) => setForm({ ...form, api_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" placeholder="sk_..." disabled={form.code === 'ibdata'} type={form.code === 'ibdata' ? 'password' : 'text'} />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Secret Key</label>
-                        <input value={form.secret_key} onChange={(e) => setForm({ ...form, secret_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" placeholder="secret..." />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Username</label>
-                        <input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" placeholder="optional" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Password</label>
-                        <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" placeholder="optional" />
+                        <input value={form.secret_key} onChange={(e) => setForm({ ...form, secret_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" placeholder="secret..." disabled={form.code === 'ibdata'} type={form.code === 'ibdata' ? 'password' : 'text'} />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Priority</label>
-                        <input type="number" value={form.priority} onChange={(e) => setForm({ ...form, priority: Number(e.target.value || 1) })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
+                        <select
+                          value={form.priority}
+                          onChange={(e) => setForm({ ...form, priority: Number(e.target.value) })}
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500"
+                        >
+                          <option value={1}>1 (High)</option>
+                          <option value={2}>2 (Medium)</option>
+                          <option value={3}>3 (Low)</option>
+                        </select>
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Active</label>
@@ -492,23 +508,23 @@ const Providers: React.FC = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">API Key</label>
-                        <input value={editItem.api_key || ''} onChange={(e) => setEditItem({ ...editItem, api_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
+                        <input value={editItem.api_key || ''} onChange={(e) => setEditItem({ ...editItem, api_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" disabled={editItem.code === 'ibdata'} type={editItem.code === 'ibdata' ? 'password' : 'text'} />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Secret Key</label>
-                        <input value={editItem.secret_key || ''} onChange={(e) => setEditItem({ ...editItem, secret_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Username</label>
-                        <input value={editItem.username || ''} onChange={(e) => setEditItem({ ...editItem, username: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Password</label>
-                        <input value={editItem.password || ''} onChange={(e) => setEditItem({ ...editItem, password: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
+                        <input value={editItem.secret_key || ''} onChange={(e) => setEditItem({ ...editItem, secret_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" disabled={editItem.code === 'ibdata'} type={editItem.code === 'ibdata' ? 'password' : 'text'} />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Priority</label>
-                        <input type="number" value={editItem.priority || 1} onChange={(e) => setEditItem({ ...editItem, priority: Number(e.target.value || 1) })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
+                        <select
+                          value={editItem.priority || 1}
+                          onChange={(e) => setEditItem({ ...editItem, priority: Number(e.target.value) })}
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500"
+                        >
+                          <option value={1}>1 (High)</option>
+                          <option value={2}>2 (Medium)</option>
+                          <option value={3}>3 (Low)</option>
+                        </select>
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Active</label>
@@ -597,7 +613,7 @@ const Providers: React.FC = () => {
                                 {testResults.balanceStatus === 'success' ? (
                                   <div className="flex items-baseline gap-1">
                                     <span className="text-2xl font-black text-slate-900">
-                                      {typeof testResults.balance === 'object' ? (testResults.balance.balance || testResults.balance.wallet_balance || '0') : testResults.balance}
+                                      {testItem.code === 'ibdata' ? '***.**' : (typeof testResults.balance === 'object' ? (testResults.balance.balance || testResults.balance.wallet_balance || '0') : testResults.balance)}
                                     </span>
                                     <span className="text-xs font-bold text-slate-500 uppercase">NGN</span>
                                   </div>
@@ -650,6 +666,7 @@ const Providers: React.FC = () => {
                 </div>
               </div>
             )}
+            {isSyncOpen && <IBDataSyncModal onClose={() => setIsSyncOpen(false)} />}
           </div>
         </main>
       </div>

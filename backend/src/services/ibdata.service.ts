@@ -40,18 +40,25 @@ class IBDataService {
 
     /**
      * Get wallet balance
-     * Note: Documentation didn't specify balance endpoint, but usually exists.
-     * If not, we might need to skip or find it.
+     * GET /billpayment/balance
      */
     async getWalletBalance(configOverride?: any) {
         try {
             const api = await this.ensureClient(configOverride);
-            // Assuming there's a balance endpoint, if not this will fail gracefully
-            const res = await api.get('/user/balance');
-            return res.data;
+            const res = await api.get('/billpayment/balance');
+            const data = res.data;
+
+            if (data.success && data.data) {
+                return {
+                    balance: Number(data.data.balance),
+                    currency: data.data.currency || 'NGN',
+                    raw: data
+                };
+            }
+            return data;
         } catch (error: any) {
             logger.error('IBData getWalletBalance error:', error.response?.data || error.message);
-            return { balance: 0 }; // Fallback
+            return { balance: 0, error: error.message };
         }
     }
 
@@ -63,8 +70,9 @@ class IBDataService {
         try {
             const api = await this.ensureClient(configOverride);
             const res = await api.get('/billpayment/networks');
-            logger.info('IBData networks retrieved', { count: res.data?.length || 0 });
-            return res.data;
+            const data = res.data;
+            logger.info('IBData networks retrieved', { count: (data.data || data)?.length || 0 });
+            return data.success ? data.data : data;
         } catch (error: any) {
             logger.error('IBData getNetworks error:', error.response?.data || error.message);
             throw error;
@@ -80,8 +88,9 @@ class IBDataService {
             const api = await this.ensureClient(configOverride);
             const params = network ? { network } : {};
             const res = await api.get('/billpayment/data-plans', { params });
-            logger.info('IBData data plans retrieved', { count: res.data?.length || 0, network });
-            return res.data;
+            const data = res.data;
+            logger.info('IBData data plans retrieved', { count: (data.data || data)?.length || 0, network });
+            return data.success ? data.data : data;
         } catch (error: any) {
             logger.error('IBData getDataPlans error:', error.response?.data || error.message);
             throw error;

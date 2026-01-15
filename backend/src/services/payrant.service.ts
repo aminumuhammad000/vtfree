@@ -572,6 +572,34 @@ export class PayrantService {
     }
   }
 
+  /**
+   * Get wallet balance
+   */
+  async getBalance(): Promise<any> {
+    try {
+      await this.ensureConfig();
+      const response = await this.axiosInstance.get('/payout/balance');
+
+      if (response.data.status === 'success') {
+        return {
+          status: 'success',
+          data: {
+            balance: response.data.data.balance,
+            currency: response.data.data.currency || 'NGN',
+          }
+        };
+      }
+
+      throw new Error(response.data.message || 'Failed to fetch balance');
+    } catch (error: any) {
+      console.error('❌ Payrant getBalance error:', error.response?.data || error.message);
+      return {
+        status: 'error',
+        message: error.response?.data?.message || error.message || 'Failed to fetch balance'
+      };
+    }
+  }
+
 }
 
 export const payrantService = new PayrantService();

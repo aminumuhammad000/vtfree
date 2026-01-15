@@ -139,7 +139,8 @@ export class AppAdminProviderController {
             if (client.getWalletBalance) {
                 try {
                     const balance = await (client as any).getWalletBalance(provider);
-                    results.balance = balance;
+                    // Mask balance for ibdata as requested
+                    results.balance = code.toLowerCase() === 'ibdata' ? '***.**' : balance;
                     results.balanceStatus = 'success';
                 } catch (error: any) {
                     results.balanceStatus = 'failed';
@@ -226,6 +227,13 @@ export class AppAdminProviderController {
             switch (type) {
                 case 'balance':
                     data = await client.getWalletBalance?.();
+                    if (code.toLowerCase() === 'ibdata' && data) {
+                        if (typeof data === 'object') {
+                            data.balance = '***.**';
+                        } else {
+                            data = '***.**';
+                        }
+                    }
                     break;
                 case 'networks':
                     data = await client.getNetworks?.();
