@@ -41,12 +41,17 @@ export const login = async (req: Request, res: Response) => {
         console.log('Admin query result:', admin ? 'Found' : 'Not Found');
 
         if (!admin) {
+            console.log(`Login failed: Admin not found for email ${email} and app_id ${app_id}`);
             return res.status(400).json({ success: false, message: 'Invalid credentials' });
         }
 
         // Check password
+        console.log('Comparing passwords...');
         const isMatch = await bcrypt.compare(password, admin.password);
+        console.log('Password match result:', isMatch);
+
         if (!isMatch) {
+            console.log(`Login failed: Password mismatch for email ${email}`);
             return res.status(400).json({ success: false, message: 'Invalid credentials' });
         }
 
@@ -56,13 +61,13 @@ export const login = async (req: Request, res: Response) => {
         // Generate token
         const token = jwt.sign(
             {
-                user_id: admin._id,
+                id: admin._id,
                 email: admin.email,
                 app_id: admin.app_id,
                 type: 'app_admin',
                 role: admin.role
             },
-            process.env.JWT_SECRET || 'secret',
+            process.env.JWT_SECRET || 'your-secret-key',
             { expiresIn: '1d' }
         );
 

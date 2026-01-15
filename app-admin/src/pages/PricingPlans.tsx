@@ -11,13 +11,14 @@ import PricingBulkImportModal from '../components/PricingBulkImportModal';
 import PricingDeleteModal from '../components/PricingDeleteModal';
 import PricingEditModal from '../components/PricingEditModal';
 import PricingViewModal from '../components/PricingViewModal';
+import IBDataSyncModal from '../components/IBDataSyncModal';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 
 const PROVIDERS = [
   { id: 1, name: 'MTN' },
-  { id: 2, name: 'Glo' },
-  { id: 3, name: 'Airtel' },
+  { id: 2, name: 'Airtel' },
+  { id: 3, name: 'Glo' },
   { id: 4, name: '9mobile' },
 ];
 
@@ -35,6 +36,7 @@ const PricingPlans: React.FC = () => {
   const [editPlan, setEditPlan] = useState<any | null>(null);
   const [deletePlan, setDeletePlan] = useState<any | null>(null);
   const [showBulkImport, setShowBulkImport] = useState(false);
+  const [showIBDataSync, setShowIBDataSync] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
@@ -133,6 +135,15 @@ const PricingPlans: React.FC = () => {
                   </svg>
                   Bulk Import
                 </button>
+                <button
+                  onClick={() => setShowIBDataSync(true)}
+                  className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-6 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg font-medium"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Sync IBData
+                </button>
               </div>
 
               {/* Filters */}
@@ -227,11 +238,10 @@ const PricingPlans: React.FC = () => {
                             <td className="px-6 py-4 text-sm text-gray-900">{plan.providerName}</td>
                             <td className="px-6 py-4 text-sm">
                               <span
-                                className={`px-2 py-1 rounded text-xs font-semibold ${
-                                  plan.type === 'AIRTIME'
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-purple-100 text-purple-800'
-                                }`}
+                                className={`px-2 py-1 rounded text-xs font-semibold ${plan.type === 'AIRTIME'
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-purple-100 text-purple-800'
+                                  }`}
                               >
                                 {plan.type}
                               </span>
@@ -242,11 +252,10 @@ const PricingPlans: React.FC = () => {
                             <td className="px-6 py-4 text-sm text-gray-900">{plan.discount || 0}%</td>
                             <td className="px-6 py-4 text-sm">
                               <span
-                                className={`px-2 py-1 rounded text-xs font-semibold ${
-                                  plan.active
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-red-100 text-red-800'
-                                }`}
+                                className={`px-2 py-1 rounded text-xs font-semibold ${plan.active
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
+                                  }`}
                               >
                                 {plan.active ? 'Active' : 'Inactive'}
                               </span>
@@ -263,14 +272,14 @@ const PricingPlans: React.FC = () => {
                                 onClick={() => setEditPlan(plan)}
                                 className="inline-flex items-center gap-1.5 text-green-600 hover:text-green-900 font-medium"
                               >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                                 Edit
                               </button>
                               <button
                                 onClick={() => setDeletePlan(plan)}
                                 className="inline-flex items-center gap-1.5 text-red-600 hover:text-red-900 font-medium"
                               >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0l1-3h6l1 3"/></svg>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0l1-3h6l1 3" /></svg>
                                 Delete
                               </button>
                             </td>
@@ -339,6 +348,9 @@ const PricingPlans: React.FC = () => {
               onImport={bulkImportMutation.mutate}
               isImporting={bulkImportMutation.status === 'pending'}
             />
+          )}
+          {showIBDataSync && (
+            <IBDataSyncModal onClose={() => setShowIBDataSync(false)} />
           )}
         </main>
       </div>

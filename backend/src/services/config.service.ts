@@ -51,6 +51,8 @@ class ConfigService {
             { key: 'MAIL_PASSWORD', group: 'EMAIL', description: 'SMTP Password' },
             { key: 'MAIL_FROM_NAME', group: 'EMAIL', description: 'Sender Name' },
             { key: 'MAIL_FROM_ADDRESS', group: 'EMAIL', description: 'Sender Email Address' },
+            { key: 'MAIL_PROVIDER', group: 'EMAIL', description: 'Email Provider (gmail/other)' },
+            { key: 'DEFAULT_PAYMENT_GATEWAY', group: 'PAYMENT', description: 'Default Payment Gateway (vtpay/payrant/paystack/monnify)' },
 
             { key: 'PAYRANT_API_KEY', group: 'PAYMENT', description: 'Payrant API Key' },
             { key: 'PAYRANT_WEBHOOK_SECRET', group: 'PAYMENT', description: 'Payrant Webhook Secret' },
@@ -91,9 +93,14 @@ class ConfigService {
         for (const def of defaults) {
             const exists = await SystemConfig.findOne({ key: def.key });
             if (!exists) {
+                let value = process.env[def.key] || '';
+                if (def.key === 'JWT_SECRET' && !value) {
+                    const { config } = await import('../config/bootstrap.js');
+                    value = config.jwtSecret;
+                }
                 await SystemConfig.create({
                     key: def.key,
-                    value: process.env[def.key] || '',
+                    value,
                     group: def.group,
                     description: def.description
                 });

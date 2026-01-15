@@ -14,14 +14,14 @@ class TopupmateService {
   private api: AxiosInstance | null = null;
   private baseURL: string = 'https://connect.topupmate.com/api';
 
-  private async ensureClient() {
-    if (this.api) return this.api;
+  private async ensureClient(configOverride?: any) {
+    if (!configOverride && this.api) return this.api;
 
-    const cfg = await ProviderConfig.findOne({ code: 'topupmate' });
+    const cfg = configOverride || await ProviderConfig.findOne({ code: 'topupmate' });
     const baseURL = cfg?.base_url || this.baseURL;
     const apiKey = cfg?.api_key || (cfg?.metadata as any)?.env?.TOPUPMATE_API_KEY || config.topupmate.apiKey || '';
 
-    this.api = axios.create({
+    const client = axios.create({
       baseURL,
       headers: {
         'Content-Type': 'application/json',
@@ -31,7 +31,7 @@ class TopupmateService {
     });
 
     // Request interceptor
-    this.api.interceptors.request.use(
+    client.interceptors.request.use(
       (config) => {
         logger.info(`TopupMate API Request: ${config.method?.toUpperCase()} ${config.url}`);
         return config;
@@ -43,7 +43,7 @@ class TopupmateService {
     );
 
     // Response interceptor
-    this.api.interceptors.response.use(
+    client.interceptors.response.use(
       (response) => {
         logger.info(`TopupMate API Response: ${response.status}`, response.data);
         return response;
@@ -54,13 +54,14 @@ class TopupmateService {
       }
     );
 
-    return this.api;
+    if (!configOverride) this.api = client;
+    return client;
   }
 
   // Get service data (networks, plans, etc.)
-  async getServiceData(service: string): Promise<TopupmateResponse> {
+  async getServiceData(service: string, configOverride?: any): Promise<TopupmateResponse> {
     try {
-      const api = await this.ensureClient();
+      const api = await this.ensureClient(configOverride);
       const response = await api.get(`/services/`, {
         params: { service },
       });
@@ -72,59 +73,59 @@ class TopupmateService {
   }
 
   // Get networks
-  async getNetworks() {
-    return this.getServiceData('network');
+  async getNetworks(configOverride?: any) {
+    return this.getServiceData('network', configOverride);
   }
 
   // Get airtime pricing
-  async getAirtimePricing() {
-    return this.getServiceData('airtime');
+  async getAirtimePricing(configOverride?: any) {
+    return this.getServiceData('airtime', configOverride);
   }
 
   // Get data plans
-  async getDataPlans() {
-    return this.getServiceData('data');
+  async getDataPlans(configOverride?: any) {
+    return this.getServiceData('data', configOverride);
   }
 
   // Get data categories
-  async getDataCategories() {
-    return this.getServiceData('data-category');
+  async getDataCategories(configOverride?: any) {
+    return this.getServiceData('data-category', configOverride);
   }
 
   // Get cable providers
-  async getCableProviders() {
-    return this.getServiceData('cable-provider');
+  async getCableProviders(configOverride?: any) {
+    return this.getServiceData('cable-provider', configOverride);
   }
 
   // Get cable TV plans
-  async getCableTVPlans() {
-    return this.getServiceData('cabletv');
+  async getCableTVPlans(configOverride?: any) {
+    return this.getServiceData('cabletv', configOverride);
   }
 
   // Get electricity providers
-  async getElectricityProviders() {
-    return this.getServiceData('electricity');
+  async getElectricityProviders(configOverride?: any) {
+    return this.getServiceData('electricity', configOverride);
   }
 
   // Get exam pin providers
-  async getExamPinProviders() {
-    return this.getServiceData('exampin');
+  async getExamPinProviders(configOverride?: any) {
+    return this.getServiceData('exampin', configOverride);
   }
 
   // Get data pin plans
-  async getDataPinPlans() {
-    return this.getServiceData('datapin');
+  async getDataPinPlans(configOverride?: any) {
+    return this.getServiceData('datapin', configOverride);
   }
 
   // Get recharge card plans
-  async getRechargeCardPlans() {
-    return this.getServiceData('recharge-card');
+  async getRechargeCardPlans(configOverride?: any) {
+    return this.getServiceData('recharge-card', configOverride);
   }
 
   // Verify account balance (for checking if service is available)
-  async checkServiceStatus(service: string): Promise<boolean> {
+  async checkServiceStatus(service: string, configOverride?: any): Promise<boolean> {
     try {
-      const result = await this.getServiceData(service);
+      const result = await this.getServiceData(service, configOverride);
       return result.status === 'success';
     } catch (error) {
       return false;
@@ -139,9 +140,9 @@ class TopupmateService {
     airtime_type: string;
     ported_number: boolean;
     amount: string;
-  }): Promise<TopupmateResponse> {
+  }, configOverride?: any): Promise<TopupmateResponse> {
     try {
-      const api = await this.ensureClient();
+      const api = await this.ensureClient(configOverride);
       const response = await api.post('/airtime/', data);
       return response.data;
     } catch (error: any) {
@@ -158,9 +159,9 @@ class TopupmateService {
     ref: string;
     plan: string;
     ported_number: boolean;
-  }): Promise<TopupmateResponse> {
+  }, configOverride?: any): Promise<TopupmateResponse> {
     try {
-      const api = await this.ensureClient();
+      const api = await this.ensureClient(configOverride);
       const response = await api.post('/data/', data);
       return response.data;
     } catch (error: any) {
