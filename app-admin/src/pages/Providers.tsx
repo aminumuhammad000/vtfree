@@ -1,23 +1,181 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import React, { useMemo, useState } from 'react';
-import { createProvider, deleteProvider, getProviderEnv, getProviders, testProviderConnection, updateProvider, updateProviderEnv } from '../api/adminApi';
+import React, { useMemo, useState, useEffect } from 'react';
+import { createProvider, deleteProvider, getProviders, testProviderConnection, updateProvider, testProviderPurchase, getProviderData } from '../api/adminApi';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
+import IBDataSyncModal from '../components/IBDataSyncModal';
 
 const ALL_SERVICES = ['airtime', 'data', 'cable', 'electricity', 'exampin'];
+
+const TestPurchaseForm: React.FC<{ providerCode: string }> = ({ providerCode }) => {
+  const [type, setType] = useState<'airtime' | 'data'>('airtime');
+  const [phone, setPhone] = useState('');
+  const [network, setNetwork] = useState('');
+  const [plan, setPlan] = useState('');
+  const [amount, setAmount] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [plans, setPlans] = useState<any[]>([]);
+  const [plansLoading, setPlansLoading] = useState(false);
+
+  useEffect(() => {
+    if (type === 'data') {
+      fetchPlans();
+    }
+  }, [type, providerCode]);
+
+  const fetchPlans = async () => {
+    setPlansLoading(true);
+    try {
+      const res: any = await getProviderData(providerCode, 'plans');
+      // Handle nested data structures from different providers
+      let plansData = res.data?.data?.data || res.data?.data || [];
+      if (plansData && typeof plansData === 'object' && !Array.isArray(plansData)) {
+        // If it's an object with a data property (like Topupmate or SMEPlug sometimes)
+        if (Array.isArray(plansData.data)) plansData = plansData.data;
+        else if (Array.isArray(plansData.plans)) plansData = plansData.plans;
+      }
+      setPlans(Array.isArray(plansData) ? plansData : []);
+    } catch (e) {
+      console.error('Failed to fetch plans', e);
+    } finally {
+      setPlansLoading(false);
+    }
+  };
+
+  const handleTest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setResult(null);
+    try {
+      const res: any = await testProviderPurchase(providerCode, {
+        type,
+        phone,
+        network,
+        plan: type === 'data' ? plan : undefined,
+        amount: type === 'airtime' ? Number(amount) : undefined
+      });
+      setResult({ success: true, data: res.data?.data?.result });
+    } catch (e: any) {
+      setResult({ success: false, error: e.response?.data?.message || e.message || 'Test purchase failed' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <form onSubmit={handleTest} className="space-y-4">
+        <div className="flex p-1 bg-slate-100 rounded-lg">
+          <button
+            type="button"
+            onClick={() => setType('airtime')}
+            className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${type === 'airtime' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            Airtime
+          </button>
+          <button
+            type="button"
+            onClick={() => setType('data')}
+            className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${type === 'data' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            Data
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Phone Number</label>
+            <input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="08012345678"
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Network</label>
+            <select
+              value={network}
+              onChange={(e) => setNetwork(e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm"
+              required
+            >
+              <option value="">Select Network</option>
+              <option value="mtn">MTN</option>
+              <option value="airtel">Airtel</option>
+              <option value="glo">GLO</option>
+              <option value="9mobile">9Mobile</option>
+            </select>
+          </div>
+
+          {type === 'airtime' ? (
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Amount</label>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="100"
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm"
+                required
+              />
+            </div>
+          ) : (
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Data Plan</label>
+              <select
+                value={plan}
+                onChange={(e) => setPlan(e.target.value)}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm"
+                required
+                disabled={plansLoading}
+              >
+                <option value="">{plansLoading ? 'Loading plans...' : 'Select Plan'}</option>
+                {plans.map((p: any) => (
+                  <option key={p.id || p._id || p.plan_id} value={p.id || p._id || p.plan_id}>
+                    {p.name || p.plan_name || p.allowance} - {p.price || p.amount}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-green-100 disabled:opacity-50"
+        >
+          {loading ? 'Processing...' : `Test ${type === 'airtime' ? 'Airtime' : 'Data'} Purchase`}
+        </button>
+      </form>
+
+      {result && (
+        <div className={`p-4 rounded-xl border-2 ${result.success ? 'border-green-100 bg-green-50/30' : 'border-red-100 bg-red-50/30'}`}>
+          <p className={`text-sm font-bold mb-2 ${result.success ? 'text-green-800' : 'text-red-800'}`}>
+            {result.success ? '✓ Purchase Successful' : '✗ Purchase Failed'}
+          </p>
+          <pre className="text-[10px] bg-white p-3 rounded-lg border overflow-auto max-h-40">
+            {JSON.stringify(result.data || result.error, null, 2)}
+          </pre>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Providers: React.FC = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editItem, setEditItem] = useState<any | null>(null);
   const [filters, setFilters] = useState<{ active: string | '' }>({ active: '' });
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [envItem, setEnvItem] = useState<any | null>(null);
-  const [envMap, setEnvMap] = useState<Record<string, string>>({});
-  const [envLoading, setEnvLoading] = useState(false);
-  const [envError, setEnvError] = useState('');
   const [testItem, setTestItem] = useState<any | null>(null);
   const [testResults, setTestResults] = useState<any>(null);
   const [testLoading, setTestLoading] = useState(false);
+  const [isSyncOpen, setIsSyncOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -25,7 +183,14 @@ const Providers: React.FC = () => {
     queryKey: ['providers', filters.active],
     queryFn: () => getProviders(filters.active === '' ? undefined : { active: filters.active === 'true' }).then((r: any) => r.data?.data),
   });
-  const providers = data?.providers || [];
+  const providers = useMemo(() => {
+    const list = data?.providers || [];
+    return [...list].sort((a, b) => {
+      if (a.code === 'ibdata') return -1;
+      if (b.code === 'ibdata') return 1;
+      return (a.priority || 0) - (b.priority || 0);
+    });
+  }, [data]);
   const total = data?.total || 0;
 
   const createMutation = useMutation({
@@ -51,14 +216,6 @@ const Providers: React.FC = () => {
     }
   });
 
-  const saveEnvMutation = useMutation({
-    mutationFn: async ({ id, env }: { id: string; env: Record<string, string> }) => {
-      return updateProviderEnv(id, env).then((r: any) => r.data);
-    },
-    onSuccess: () => {
-      setEnvItem(null);
-    }
-  });
 
   const [form, setForm] = useState({
     name: '',
@@ -91,43 +248,6 @@ const Providers: React.FC = () => {
 
   const toggleActive = (p: any) => {
     updateMutation.mutate({ id: p._id, payload: { active: !p.active } });
-  };
-
-  const openEnvModal = async (p: any) => {
-    setEnvItem(p);
-    setEnvError('');
-    setEnvLoading(true);
-    try {
-      const res: any = await getProviderEnv(p._id);
-      setEnvMap(res.data?.data?.env || {});
-    } catch (e: any) {
-      setEnvError('Failed to load environment variables');
-      setEnvMap({});
-    } finally {
-      setEnvLoading(false);
-    }
-  };
-
-  const setEnvKey = (k: string, v: string) => {
-    setEnvMap((m) => ({ ...m, [k]: v }));
-  };
-
-  const removeEnvKey = (k: string) => {
-    setEnvMap((m) => {
-      const n = { ...m } as any;
-      delete n[k];
-      return n;
-    });
-  };
-
-  const addEmptyEnv = () => {
-    let base = 'NEW_KEY';
-    let idx = 1;
-    let key = base;
-    while (envMap.hasOwnProperty(key)) {
-      key = `${base}_${idx++}`;
-    }
-    setEnvMap((m) => ({ ...m, [key]: '' }));
   };
 
   const testConnection = async (p: any) => {
@@ -163,14 +283,19 @@ const Providers: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex gap-3 mb-6">
+              <div className="flex flex-wrap gap-3 mb-6">
                 <button onClick={() => { resetForm(); setIsCreateOpen(true); }} className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg font-medium">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                   Add Provider
                 </button>
 
+                <button onClick={() => setIsSyncOpen(true)} className="flex items-center gap-2 bg-white border border-green-600 text-green-600 hover:bg-green-50 px-6 py-2.5 rounded-lg transition-all font-medium">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                  Sync IBData Plans
+                </button>
+
                 <select value={filters.active} onChange={(e) => setFilters({ active: e.target.value })} className="px-4 py-2.5 border border-slate-300 rounded-lg bg-white">
-                  <option value="">All</option>
+                  <option value="">All Status</option>
                   <option value="true">Active</option>
                   <option value="false">Inactive</option>
                 </select>
@@ -227,18 +352,16 @@ const Providers: React.FC = () => {
                                   </>
                                 )}
                               </button>
-                              <button onClick={() => openEnvModal(p)} className="inline-flex items-center gap-1.5 text-purple-600 hover:text-purple-900 font-medium">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2-1.343-2-3-2zm0 10a8 8 0 100-16 8 8 0 000 16z" /></svg>
-                                Manage Env
-                              </button>
                               <button onClick={() => testConnection(p)} className="inline-flex items-center gap-1.5 text-green-600 hover:text-green-900 font-medium">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                 Test
                               </button>
-                              <button onClick={() => deleteMutation.mutate(p._id)} className="inline-flex items-center gap-1.5 text-red-600 hover:text-red-900 font-medium">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0l1-3h6l1 3" /></svg>
-                                Delete
-                              </button>
+                              {p.code !== 'ibdata' && (
+                                <button onClick={() => deleteMutation.mutate(p._id)} className="inline-flex items-center gap-1.5 text-red-600 hover:text-red-900 font-medium">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0l1-3h6l1 3" /></svg>
+                                  Delete
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -256,12 +379,34 @@ const Providers: React.FC = () => {
                   <form onSubmit={onSubmit} className="space-y-4">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Name</label>
-                      <input value={form.name} onChange={(e) => { setForm({ ...form, name: e.target.value }); if (errors.name) setErrors({ ...errors, name: '' }); }} className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.name ? 'border-red-500 focus:ring-red-500' : 'border-slate-300 focus:ring-green-500'}`} placeholder="Topupmate" />
+                      <input value={form.name} onChange={(e) => { setForm({ ...form, name: e.target.value.toUpperCase() }); if (errors.name) setErrors({ ...errors, name: '' }); }} className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.name ? 'border-red-500 focus:ring-red-500' : 'border-slate-300 focus:ring-green-500'}`} placeholder="IBDATA" />
                       {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Code</label>
-                      <input value={form.code} onChange={(e) => { setForm({ ...form, code: e.target.value }); if (errors.code) setErrors({ ...errors, code: '' }); }} className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.code ? 'border-red-500 focus:ring-red-500' : 'border-slate-300 focus:ring-green-500'}`} placeholder="topupmate | vtpass | smeplug" />
+                      <select
+                        value={form.code}
+                        onChange={(e) => {
+                          const code = e.target.value;
+                          const nameMap: Record<string, string> = {
+                            ibdata: 'IBDATA',
+                            smeplug: 'SME PLUG',
+                            topupmate: 'TOPUPMATE'
+                          };
+                          setForm({
+                            ...form,
+                            code,
+                            name: nameMap[code] || form.name
+                          });
+                          if (errors.code) setErrors({ ...errors, code: '' });
+                        }}
+                        className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.code ? 'border-red-500 focus:ring-red-500' : 'border-slate-300 focus:ring-green-500'}`}
+                      >
+                        <option value="">Select Provider Code</option>
+                        <option value="ibdata">IBData</option>
+                        <option value="smeplug">SME Plug</option>
+                        <option value="topupmate">Topupmate</option>
+                      </select>
                       {errors.code && <p className="text-red-500 text-sm mt-1">{errors.code}</p>}
                     </div>
 
@@ -272,23 +417,23 @@ const Providers: React.FC = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">API Key</label>
-                        <input value={form.api_key} onChange={(e) => setForm({ ...form, api_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" placeholder="sk_..." />
+                        <input value={form.api_key} onChange={(e) => setForm({ ...form, api_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" placeholder="sk_..." disabled={form.code === 'ibdata'} type={form.code === 'ibdata' ? 'password' : 'text'} />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Secret Key</label>
-                        <input value={form.secret_key} onChange={(e) => setForm({ ...form, secret_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" placeholder="secret..." />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Username</label>
-                        <input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" placeholder="optional" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Password</label>
-                        <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" placeholder="optional" />
+                        <input value={form.secret_key} onChange={(e) => setForm({ ...form, secret_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" placeholder="secret..." disabled={form.code === 'ibdata'} type={form.code === 'ibdata' ? 'password' : 'text'} />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Priority</label>
-                        <input type="number" value={form.priority} onChange={(e) => setForm({ ...form, priority: Number(e.target.value || 1) })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
+                        <select
+                          value={form.priority}
+                          onChange={(e) => setForm({ ...form, priority: Number(e.target.value) })}
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500"
+                        >
+                          <option value={1}>1 (High)</option>
+                          <option value={2}>2 (Medium)</option>
+                          <option value={3}>3 (Low)</option>
+                        </select>
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Active</label>
@@ -321,48 +466,6 @@ const Providers: React.FC = () => {
               </div>
             )}
 
-            {envItem && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8 max-h-[85vh] overflow-y-auto">
-                  <h2 className="text-2xl font-bold text-slate-900 mb-2">Environment Backup</h2>
-                  <p className="text-slate-600 mb-4 text-sm">Provider: <span className="font-semibold">{envItem.name}</span></p>
-                  {envLoading ? (
-                    <div className="p-6 text-center text-gray-500">Loading env...</div>
-                  ) : (
-                    <>
-                      {envError && <div className="mb-3 text-red-600 text-sm">{envError}</div>}
-                      <div className="border border-slate-200 rounded-lg divide-y">
-                        {Object.keys(envMap).length === 0 && (
-                          <div className="p-4 text-sm text-slate-600">No keys yet. Add one below.</div>
-                        )}
-                        {Object.entries(envMap).map(([k, v]) => (
-                          <div key={k} className="grid grid-cols-1 md:grid-cols-12 gap-3 p-3 items-center">
-                            <input value={k} onChange={(e) => {
-                              const newKey = e.target.value;
-                              setEnvMap((m) => {
-                                const n: any = { ...m };
-                                if (newKey && newKey !== k) {
-                                  n[newKey] = n[k];
-                                  delete n[k];
-                                }
-                                return n;
-                              });
-                            }} className="md:col-span-4 px-3 py-2 border rounded-lg text-sm" />
-                            <input value={v as string} onChange={(e) => setEnvKey(k, e.target.value)} className="md:col-span-7 px-3 py-2 border rounded-lg text-sm" />
-                            <button onClick={() => removeEnvKey(k)} className="md:col-span-1 text-red-600 hover:text-red-800 text-sm">Remove</button>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="flex gap-2 mt-4">
-                        <button type="button" onClick={addEmptyEnv} className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition text-sm">Add Key</button>
-                        <button type="button" onClick={() => setEnvItem(null)} className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition text-sm">Cancel</button>
-                        <button type="button" disabled={saveEnvMutation.status === 'pending'} onClick={() => saveEnvMutation.mutate({ id: envItem._id, env: envMap })} className="ml-auto px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition disabled:opacity-50 text-sm">{saveEnvMutation.status === 'pending' ? 'Saving...' : 'Save Env'}</button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
 
             {editItem && (
               <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -371,11 +474,32 @@ const Providers: React.FC = () => {
                   <form onSubmit={(e) => { e.preventDefault(); updateMutation.mutate({ id: editItem._id, payload: editItem }); }} className="space-y-4">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Name</label>
-                      <input value={editItem.name || ''} onChange={(e) => setEditItem({ ...editItem, name: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
+                      <input value={editItem.name || ''} onChange={(e) => setEditItem({ ...editItem, name: e.target.value.toUpperCase() })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Code</label>
-                      <input value={editItem.code || ''} onChange={(e) => setEditItem({ ...editItem, code: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
+                      <select
+                        value={editItem.code || ''}
+                        onChange={(e) => {
+                          const code = e.target.value;
+                          const nameMap: Record<string, string> = {
+                            ibdata: 'IBDATA',
+                            smeplug: 'SME PLUG',
+                            topupmate: 'TOPUPMATE'
+                          };
+                          setEditItem({
+                            ...editItem,
+                            code,
+                            name: nameMap[code] || editItem.name
+                          });
+                        }}
+                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500"
+                      >
+                        <option value="">Select Provider Code</option>
+                        <option value="ibdata">IBData</option>
+                        <option value="smeplug">SME Plug</option>
+                        <option value="topupmate">Topupmate</option>
+                      </select>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
@@ -384,23 +508,23 @@ const Providers: React.FC = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">API Key</label>
-                        <input value={editItem.api_key || ''} onChange={(e) => setEditItem({ ...editItem, api_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
+                        <input value={editItem.api_key || ''} onChange={(e) => setEditItem({ ...editItem, api_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" disabled={editItem.code === 'ibdata'} type={editItem.code === 'ibdata' ? 'password' : 'text'} />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Secret Key</label>
-                        <input value={editItem.secret_key || ''} onChange={(e) => setEditItem({ ...editItem, secret_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Username</label>
-                        <input value={editItem.username || ''} onChange={(e) => setEditItem({ ...editItem, username: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Password</label>
-                        <input value={editItem.password || ''} onChange={(e) => setEditItem({ ...editItem, password: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
+                        <input value={editItem.secret_key || ''} onChange={(e) => setEditItem({ ...editItem, secret_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" disabled={editItem.code === 'ibdata'} type={editItem.code === 'ibdata' ? 'password' : 'text'} />
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Priority</label>
-                        <input type="number" value={editItem.priority || 1} onChange={(e) => setEditItem({ ...editItem, priority: Number(e.target.value || 1) })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
+                        <select
+                          value={editItem.priority || 1}
+                          onChange={(e) => setEditItem({ ...editItem, priority: Number(e.target.value) })}
+                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500"
+                        >
+                          <option value={1}>1 (High)</option>
+                          <option value={2}>2 (Medium)</option>
+                          <option value={3}>3 (Low)</option>
+                        </select>
                       </div>
                       <div>
                         <label className="block text-sm font-semibold text-slate-700 mb-2">Active</label>
@@ -436,75 +560,113 @@ const Providers: React.FC = () => {
             {testItem && (
               <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                 <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full p-8 max-h-[85vh] overflow-y-auto">
-                  <h2 className="text-2xl font-bold text-slate-900 mb-2">Test Connection</h2>
-                  <p className="text-slate-600 mb-4 text-sm">Provider: <span className="font-semibold">{testItem.name}</span> ({testItem.code})</p>
+                  <div className="flex justify-between items-start mb-6">
+                    <div>
+                      <h2 className="text-2xl font-bold text-slate-900 mb-1">Test Provider: {testItem.name}</h2>
+                      <p className="text-slate-600 text-sm uppercase tracking-wider font-semibold">{testItem.code}</p>
+                    </div>
+                    <button onClick={() => setTestItem(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                      <svg className="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                  </div>
 
-                  {testLoading ? (
-                    <div className="p-6 text-center text-gray-500">Testing connection...</div>
-                  ) : testResults ? (
-                    <>
-                      {testResults.error ? (
-                        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                          <p className="text-red-800 font-semibold">❌ Connection Failed</p>
-                          <p className="text-red-600 text-sm mt-1">{testResults.error}</p>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Left Column: Connection Status */}
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-bold text-slate-900">Connection Status</h3>
+                        <button
+                          disabled={testLoading}
+                          onClick={() => testConnection(testItem)}
+                          className="text-sm text-green-600 hover:text-green-700 font-semibold flex items-center gap-1"
+                        >
+                          <svg className={`w-4 h-4 ${testLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                          Refresh
+                        </button>
+                      </div>
+
+                      {testLoading ? (
+                        <div className="flex flex-col items-center justify-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600 mb-4"></div>
+                          <p className="text-slate-500 font-medium">Testing connection...</p>
+                        </div>
+                      ) : testResults ? (
+                        <div className="space-y-4">
+                          {testResults.error ? (
+                            <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+                              <div className="flex items-center gap-2 text-red-800 font-bold mb-1">
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
+                                Connection Failed
+                              </div>
+                              <p className="text-red-600 text-sm">{testResults.error}</p>
+                            </div>
+                          ) : (
+                            <>
+                              {/* Balance Card */}
+                              <div className={`p-4 rounded-xl border-2 transition-all ${testResults.balanceStatus === 'success' ? 'border-green-100 bg-green-50/30' : 'border-red-100 bg-red-50/30'}`}>
+                                <div className="flex items-center justify-between mb-3">
+                                  <span className="text-sm font-bold text-slate-700 uppercase tracking-wider">Wallet Balance</span>
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${testResults.balanceStatus === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+                                    {testResults.balanceStatus === 'success' ? 'Online' : 'Offline'}
+                                  </span>
+                                </div>
+                                {testResults.balanceStatus === 'success' ? (
+                                  <div className="flex items-baseline gap-1">
+                                    <span className="text-2xl font-black text-slate-900">
+                                      {testItem.code === 'ibdata' ? '***.**' : (typeof testResults.balance === 'object' ? (testResults.balance.balance || testResults.balance.wallet_balance || '0') : testResults.balance)}
+                                    </span>
+                                    <span className="text-xs font-bold text-slate-500 uppercase">NGN</span>
+                                  </div>
+                                ) : (
+                                  <p className="text-red-600 text-xs font-medium">{testResults.balanceError}</p>
+                                )}
+                              </div>
+
+                              {/* Networks Card */}
+                              <div className={`p-4 rounded-xl border-2 transition-all ${testResults.networksStatus === 'success' ? 'border-blue-100 bg-blue-50/30' : 'border-red-100 bg-red-50/30'}`}>
+                                <div className="flex items-center justify-between mb-3">
+                                  <span className="text-sm font-bold text-slate-700 uppercase tracking-wider">Networks</span>
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${testResults.networksStatus === 'success' ? 'bg-blue-600 text-white' : 'bg-red-600 text-white'}`}>
+                                    {testResults.networksStatus === 'success' ? 'Available' : 'Error'}
+                                  </span>
+                                </div>
+                                {testResults.networksStatus === 'success' ? (
+                                  <p className="text-slate-600 text-sm font-medium">
+                                    {Array.isArray(testResults.networks) ? `${testResults.networks.length} networks found` : 'Networks data retrieved'}
+                                  </p>
+                                ) : (
+                                  <p className="text-red-600 text-xs font-medium">{testResults.networksError}</p>
+                                )}
+                              </div>
+                            </>
+                          )}
                         </div>
                       ) : (
-                        <div className="space-y-4">
-                          {/* Balance */}
-                          {testResults.balanceStatus && (
-                            <div className={`p-4 rounded-lg border ${testResults.balanceStatus === 'success' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                              <div className="flex items-center justify-between mb-2">
-                                <h3 className="font-semibold text-slate-900">Wallet Balance</h3>
-                                <span className={`text-xs px-2 py-1 rounded ${testResults.balanceStatus === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
-                                  {testResults.balanceStatus === 'success' ? '✓ Success' : '✗ Failed'}
-                                </span>
-                              </div>
-                              {testResults.balanceStatus === 'success' ? (
-                                <div className="text-sm">
-                                  <pre className="bg-white p-3 rounded border overflow-auto max-h-32">{JSON.stringify(testResults.balance, null, 2)}</pre>
-                                </div>
-                              ) : (
-                                <p className="text-red-600 text-sm">{testResults.balanceError}</p>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Networks */}
-                          {testResults.networksStatus && (
-                            <div className={`p-4 rounded-lg border ${testResults.networksStatus === 'success' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                              <div className="flex items-center justify-between mb-2">
-                                <h3 className="font-semibold text-slate-900">Networks</h3>
-                                <span className={`text-xs px-2 py-1 rounded ${testResults.networksStatus === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
-                                  {testResults.networksStatus === 'success' ? '✓ Success' : '✗ Failed'}
-                                </span>
-                              </div>
-                              {testResults.networksStatus === 'success' ? (
-                                <div className="text-sm">
-                                  <pre className="bg-white p-3 rounded border overflow-auto max-h-32">{JSON.stringify(testResults.networks, null, 2)}</pre>
-                                </div>
-                              ) : (
-                                <p className="text-red-600 text-sm">{testResults.networksError}</p>
-                              )}
-                            </div>
-                          )}
-
-                          {!testResults.balanceStatus && !testResults.networksStatus && (
-                            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                              <p className="text-green-800 text-sm">ℹ️ No tests were performed. This provider may not support balance or network queries.</p>
-                            </div>
-                          )}
+                        <div className="flex flex-col items-center justify-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                          <p className="text-slate-500 font-medium">Click refresh to test connection</p>
                         </div>
                       )}
-                    </>
-                  ) : null}
+                    </div>
 
-                  <div className="flex gap-3 mt-6">
-                    <button type="button" onClick={() => setTestItem(null)} className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition font-semibold">Close</button>
-                    <button type="button" disabled={testLoading} onClick={() => testConnection(testItem)} className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition disabled:opacity-50">{testLoading ? 'Testing...' : 'Retest'}</button>
+                    {/* Right Column: Test Purchase */}
+                    <div className="space-y-6 lg:border-l lg:pl-8 border-slate-200">
+                      <h3 className="text-lg font-bold text-slate-900">Test Purchase</h3>
+                      <TestPurchaseForm providerCode={testItem.code} />
+                    </div>
+                  </div>
+
+                  <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end">
+                    <button
+                      onClick={() => setTestItem(null)}
+                      className="px-8 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition-all shadow-lg shadow-slate-200"
+                    >
+                      Done
+                    </button>
                   </div>
                 </div>
               </div>
             )}
+            {isSyncOpen && <IBDataSyncModal onClose={() => setIsSyncOpen(false)} />}
           </div>
         </main>
       </div>

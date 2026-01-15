@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { FiEdit2, FiPlus, FiRefreshCw, FiSave, FiTrash2, FiX, FiSettings, FiMail, FiMessageSquare, FiCreditCard, FiGlobe, FiShield } from 'react-icons/fi';
-import { createConfig, deleteConfig, getAllConfigs, updateConfig } from '../api/adminApi';
+import { FiEdit2, FiRefreshCw, FiSave, FiTrash2, FiX, FiSettings, FiMail, FiMessageSquare, FiCreditCard, FiGlobe, FiShield } from 'react-icons/fi';
+import { deleteConfig, getAllConfigs, updateConfig } from '../api/adminApi';
 import { useToast } from '../hooks/ToastContext';
 
 interface SystemConfig {
@@ -19,8 +19,6 @@ const SystemConfig = () => {
     const [loading, setLoading] = useState(false);
     const [editingKey, setEditingKey] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
-    const [isAdding, setIsAdding] = useState(false);
-    const [newConfig, setNewConfig] = useState({ key: '', value: '', description: '', group: 'GENERAL' });
     const [activeGroup, setActiveGroup] = useState<string>('ALL');
 
     useEffect(() => {
@@ -81,24 +79,13 @@ const SystemConfig = () => {
         }
     };
 
-    const handleAddConfig = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            const response = await createConfig(newConfig);
-            if (response.data.success) {
-                showToast('Configuration added successfully', 'success');
-                setIsAdding(false);
-                setNewConfig({ key: '', value: '', description: '', group: 'GENERAL' });
-                fetchConfigs();
-            }
-        } catch (error: any) {
-            showToast(error.response?.data?.message || 'Failed to add configuration', 'error');
-        }
-    };
 
-    // Group configs by group name
+    // Group configs by group name and filter out specific groups
+    const excludedGroups = ['EMAIL', 'PAYMENT', 'SMS', 'SYSTEM'];
     const groupedConfigs = configs.reduce((acc, config) => {
         const group = config.group || 'GENERAL';
+        if (excludedGroups.includes(group.toUpperCase())) return acc;
+
         if (!acc[group]) acc[group] = [];
         acc[group].push(config);
         return acc;
@@ -136,92 +123,9 @@ const SystemConfig = () => {
                     >
                         <FiRefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
                     </button>
-                    <button
-                        onClick={() => setIsAdding(true)}
-                        className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-slate-200 hover:shadow-xl hover:-translate-y-0.5 font-medium"
-                    >
-                        <FiPlus className="w-5 h-5" />
-                        <span>Add Config</span>
-                    </button>
                 </div>
             </div>
 
-            {isAdding && (
-                <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-xl shadow-slate-100/50 animate-in fade-in slide-in-from-top-4 duration-300 mb-8">
-                    <div className="flex justify-between items-start mb-6">
-                        <div>
-                            <h3 className="text-lg font-bold text-slate-900">Add New Configuration</h3>
-                            <p className="text-slate-500 text-sm mt-1">Create a new system variable</p>
-                        </div>
-                        <button
-                            onClick={() => setIsAdding(false)}
-                            className="text-slate-400 hover:text-red-500 transition-colors"
-                        >
-                            <FiX className="w-5 h-5" />
-                        </button>
-                    </div>
-
-                    <form onSubmit={handleAddConfig} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <label className="text-sm font-semibold text-slate-700">Key (Uppercase)</label>
-                            <input
-                                type="text"
-                                value={newConfig.key}
-                                onChange={e => setNewConfig({ ...newConfig, key: e.target.value.toUpperCase() })}
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all font-mono text-sm"
-                                placeholder="MY_CONFIG_KEY"
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-semibold text-slate-700">Group</label>
-                            <input
-                                type="text"
-                                value={newConfig.group}
-                                onChange={e => setNewConfig({ ...newConfig, group: e.target.value.toUpperCase() })}
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all font-mono text-sm"
-                                placeholder="GENERAL"
-                                required
-                            />
-                        </div>
-                        <div className="md:col-span-2 space-y-2">
-                            <label className="text-sm font-semibold text-slate-700">Value</label>
-                            <input
-                                type="text"
-                                value={newConfig.value}
-                                onChange={e => setNewConfig({ ...newConfig, value: e.target.value })}
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all font-mono text-sm"
-                                placeholder="Config Value"
-                            />
-                        </div>
-                        <div className="md:col-span-2 space-y-2">
-                            <label className="text-sm font-semibold text-slate-700">Description</label>
-                            <input
-                                type="text"
-                                value={newConfig.description}
-                                onChange={e => setNewConfig({ ...newConfig, description: e.target.value })}
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
-                                placeholder="What is this config for?"
-                            />
-                        </div>
-                        <div className="md:col-span-2 flex justify-end gap-3 pt-4 border-t border-slate-100 mt-2">
-                            <button
-                                type="button"
-                                onClick={() => setIsAdding(false)}
-                                className="px-6 py-2.5 text-slate-600 hover:bg-slate-50 rounded-xl transition-colors font-medium"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl transition-all shadow-lg shadow-green-200 font-medium"
-                            >
-                                Save Config
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            )}
 
             <div className="flex flex-col lg:flex-row gap-8">
                 {/* Sidebar Navigation */}

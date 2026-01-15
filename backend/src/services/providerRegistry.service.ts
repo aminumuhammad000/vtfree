@@ -2,6 +2,7 @@ import ProviderConfig from '../models/provider.model.js';
 import topupmateService from './topupmate.service.js';
 import vtpassService from './vtpass.service.js';
 import smeplugService from './smeplug.service.js';
+import ibdataService from './ibdata.service.js';
 
 interface ProviderClient {
   getNetworks?: () => Promise<any>;
@@ -26,6 +27,7 @@ class ProviderRegistryService {
     topupmate: topupmateService,
     vtpass: vtpassService,
     smeplug: smeplugService,
+    ibdata: ibdataService,
   };
 
   register(code: string, client: ProviderClient) {
@@ -44,8 +46,8 @@ class ProviderRegistryService {
       const client = this.getClient(p.code);
       if (client) return { code: p.code, client };
     }
-    const fallback = this.getClient('topupmate');
-    return fallback ? { code: 'topupmate', client: fallback } : null;
+    const fallback = this.getClient('ibdata');
+    return fallback ? { code: 'ibdata', client: fallback } : null;
   }
 }
 

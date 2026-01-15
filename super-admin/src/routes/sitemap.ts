@@ -57,10 +57,10 @@ const sitemap: MenuItem[] = [
     icon: 'solar:settings-bold',
   },
   {
-    id: 'communications',
-    name: 'Communications',
-    path: paths.communications,
-    icon: 'solar:letter-bold',
+    id: 'notifications',
+    name: 'Notifications',
+    path: paths.notifications,
+    icon: 'solar:bell-bing-bold',
   },
 ];
 

@@ -16,15 +16,7 @@ export const updateConfig = async (req: Request, res: Response) => {
         const { key } = req.params;
         const { value } = req.body;
 
-        const config = await SystemConfig.findOne({ key });
-        if (!config) {
-            return res.status(404).json({ success: false, message: 'Config not found' });
-        }
-
-        if (!config.is_editable) {
-            return res.status(403).json({ success: false, message: 'This config is not editable' });
-        }
-
+        // Use upsert to allow creating if not exists (useful for new settings)
         await configService.set(key, value);
 
         res.json({ success: true, message: 'Config updated successfully', data: { key, value } });

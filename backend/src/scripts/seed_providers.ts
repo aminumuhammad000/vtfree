@@ -8,19 +8,19 @@ dotenv.config();
 
 const PROVIDERS = [
   {
-    name: 'Topupmate',
-    code: 'topupmate',
-    base_url: 'https://connect.topupmate.com/api',
-    api_key: process.env.TOPUPMATE_API_KEY || '',
+    name: 'IBData',
+    code: 'ibdata',
+    base_url: 'https://api.ibdata.com.ng/api',
+    api_key: process.env.IBDATA_API_KEY || '',
     secret_key: '',
     username: '',
     password: '',
-    active: false,
-    priority: 2,
-    supported_services: ['airtime', 'data', 'cable', 'electricity', 'exampin'],
+    active: true,
+    priority: 1,
+    supported_services: ['airtime', 'data'],
     metadata: {
       env: {
-        TOPUPMATE_API_KEY: process.env.TOPUPMATE_API_KEY || ''
+        IBDATA_API_KEY: process.env.IBDATA_API_KEY || ''
       }
     }
   },
@@ -32,12 +32,29 @@ const PROVIDERS = [
     secret_key: '',
     username: '',
     password: '',
-    active: true,
-    priority: 1,
+    active: false,
+    priority: 2,
     supported_services: ['airtime', 'data'],
     metadata: {
       env: {
         SMEPLUG_API_KEY: process.env.SMEPLUG_API_KEY || 'acc5a5e0c43bcd66498b0bf68aa38f2bf3290019e09f7305f6d158106f09475f'
+      }
+    }
+  },
+  {
+    name: 'Topupmate',
+    code: 'topupmate',
+    base_url: 'https://connect.topupmate.com/api',
+    api_key: process.env.TOPUPMATE_API_KEY || '',
+    secret_key: '',
+    username: '',
+    password: '',
+    active: false,
+    priority: 3,
+    supported_services: ['airtime', 'data', 'cable', 'electricity', 'exampin'],
+    metadata: {
+      env: {
+        TOPUPMATE_API_KEY: process.env.TOPUPMATE_API_KEY || ''
       }
     }
   }

@@ -1,6 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IProviderConfig extends Document {
+  app_id?: string; // Optional: if null, it's a global default
   name: string; // e.g., Topupmate, VTpass, SME Plug
   code: string; // machine code e.g., topupmate, vtpass, smeplug
   base_url?: string;
@@ -18,8 +19,9 @@ export interface IProviderConfig extends Document {
 
 const ProviderSchema = new Schema<IProviderConfig>(
   {
+    app_id: { type: String, index: true }, // null means system default
     name: { type: String, required: true },
-    code: { type: String, required: true, unique: true, index: true },
+    code: { type: String, required: true, index: true },
     base_url: { type: String },
     api_key: { type: String },
     secret_key: { type: String },
@@ -33,7 +35,9 @@ const ProviderSchema = new Schema<IProviderConfig>(
   { timestamps: true }
 );
 
-ProviderSchema.index({ active: 1, priority: 1 });
+// Compound index: unique provider code per app
+ProviderSchema.index({ app_id: 1, code: 1 }, { unique: true });
+ProviderSchema.index({ app_id: 1, active: 1, priority: 1 });
 
 export const ProviderConfig = mongoose.model<IProviderConfig>('ProviderConfig', ProviderSchema);
 export default ProviderConfig;

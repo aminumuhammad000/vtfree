@@ -65,43 +65,32 @@ const navItems: NavItem[] = [
     ),
   },
   {
-    label: 'Wallet Management',
+    to: '/wallet-credit',
+    label: 'Wallet Credit',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h10M7 15H5.707M7 15v4a2 2 0 002 2h6a2 2 0 002-2v-4m-4-8h4a2 2 0 012 2v8a2 2 0 01-2 2h-4a2 2 0 01-2-2V6a2 2 0 012-2z" />
       </svg>
     ),
-    children: [
-      { to: '/funding', label: 'Funding' },
-      { to: '/wallet-credit', label: 'Wallet Credit' },
-    ]
   },
+
   {
-    label: 'Payments',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-      </svg>
-    ),
-    children: [
-      { to: '/payments/virtual-accounts', label: 'Virtual Accounts' },
-      { to: '/payments/transfers', label: 'Transfers' },
-      { to: '/payments/settlements', label: 'Settlements' },
-      { to: '/payments/logs', label: 'Payment Logs' },
-      { to: '/payments/disputes', label: 'Disputes' },
-    ]
-  },
-  {
+    to: '/audit-logs',
     label: 'Activity Logs',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
     ),
-    children: [
-      { to: '/audit-logs', label: 'Audit Logs' },
-      { to: '/notifications', label: 'Notifications' },
-    ]
+  },
+  {
+    to: '/notifications',
+    label: 'Notifications',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+      </svg>
+    ),
   },
   {
     to: '/support',
@@ -238,12 +227,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                 <>
                   <button
                     onClick={() => toggleMenu(item.label)}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200 group
-                      ${location.pathname.startsWith('/payments')
-                        ? 'bg-green-800/40 text-white'
-                        : 'text-green-100/80 hover:bg-green-800/60 hover:text-white'
-                      }
-                    `}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200 group text-green-100/80 hover:bg-green-800/60 hover:text-white`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="flex-shrink-0">{item.icon}</span>
@@ -323,7 +307,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
           </button>
           {(isDesktopOpen || isMobileOpen) && <p className="text-xs text-green-300/40 px-4">v1.0.0</p>}
         </div>
-      </aside>
+      </aside >
     </>
   );
 };

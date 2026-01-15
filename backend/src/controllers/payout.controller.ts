@@ -1,21 +1,35 @@
 import { Response } from 'express';
 import { VTPayService } from '../services/vtpay.service.js';
+import { payrantService } from '../services/payrant.service.js';
+import { configService } from '../services/config.service.js';
 import { AuthRequest } from '../types/index.js';
 import { ApiResponse } from '../utils/response.js';
 
 export class PayoutController {
     /**
-     * Get list of banks from VTPay
+     * Get active payout service
+     */
+    private static async getActiveService() {
+        const defaultGateway = await configService.get('DEFAULT_PAYMENT_GATEWAY') || 'vtpay';
+        if (defaultGateway === 'payrant') {
+            return payrantService;
+        }
+        return VTPayService;
+    }
+
+    /**
+     * Get list of banks from active gateway
      */
     static async getBanksList(req: AuthRequest, res: Response) {
         try {
-            const result = await VTPayService.getBanksList();
+            const service = await this.getActiveService();
+            const result = await service.getBanksList();
 
-            if (result.status === 'success') {
-                return ApiResponse.success(res, result.data, 'Banks list retrieved successfully');
-            }
+            // VTPay returns { status, data: { banks } }
+            // Payrant returns banks array directly
+            const banks = Array.isArray(result) ? result : (result.data?.banks || result.banks || []);
 
-            return ApiResponse.error(res, result.message || 'Failed to fetch banks', 400);
+            return ApiResponse.success(res, banks, 'Banks list retrieved successfully');
         } catch (error: any) {
             return ApiResponse.error(res, error.message, 500);
         }
@@ -32,28 +46,41 @@ export class PayoutController {
                 return ApiResponse.error(res, 'Bank code and account number are required', 400);
             }
 
-            const result = await VTPayService.validateAccount(bank_code, account_number);
+            const service = await this.getActiveService();
+            const result = await service.validateAccount(bank_code, account_number);
 
-            if (result.status === 'success') {
-                return ApiResponse.success(res, result.data, 'Account validated successfully');
+            // Normalize response
+            const accountName = result.account_name || result.data?.account_name || result.accountName;
+
+            if (accountName) {
+                return ApiResponse.success(res, {
+                    verified: true,
+                    account_name: accountName
+                }, 'Account validated successfully');
             }
 
-            // Return error from VTPay
-            return ApiResponse.error(res, result.message || 'Account validation failed', 400, result.data);
+            return ApiResponse.error(res, 'Account validation failed', 400);
         } catch (error: any) {
             return ApiResponse.error(res, error.message, 500);
         }
     }
 
     /**
-     * Get VTPay balance
+     * Get balance from active gateway
      */
     static async getVTPayBalance(req: AuthRequest, res: Response) {
         try {
-            const result = await VTPayService.getBalance();
+            const service = await this.getActiveService();
+
+            // Check if service has getBalance method
+            if (typeof (service as any).getBalance !== 'function') {
+                return ApiResponse.success(res, { balance: 0, currency: 'NGN' }, 'Balance not supported for this gateway');
+            }
+
+            const result = await (service as any).getBalance();
 
             if (result.status === 'success') {
-                return ApiResponse.success(res, result.data, 'V TPaybalance retrieved successfully');
+                return ApiResponse.success(res, result.data, 'Balance retrieved successfully');
             }
 
             return ApiResponse.error(res, result.message || 'Failed to fetch balance', 400);

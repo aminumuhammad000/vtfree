@@ -3,6 +3,8 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IAppAdmin extends Document {
     app_id: string;
     email: string;
+    first_name?: string;
+    last_name?: string;
     password: string;
     role: 'owner' | 'admin' | 'support';
     permissions: string[];
@@ -23,6 +25,14 @@ const AppAdminSchema: Schema = new Schema({
         type: String,
         required: true,
         lowercase: true,
+        trim: true,
+    },
+    first_name: {
+        type: String,
+        trim: true,
+    },
+    last_name: {
+        type: String,
         trim: true,
     },
     password: {

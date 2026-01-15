@@ -43,9 +43,9 @@ class SMEPlugService {
     return id;
   }
 
-  private async ensureClient() {
-    if (this.api) return this.api;
-    const cfg = await ProviderConfig.findOne({ code: 'smeplug' });
+  private async ensureClient(configOverride?: any) {
+    if (!configOverride && this.api) return this.api;
+    const cfg = configOverride || await ProviderConfig.findOne({ code: 'smeplug' });
     const baseURL = cfg?.base_url || 'https://smeplug.ng/api';
     const apiKey = cfg?.api_key || (cfg?.metadata as any)?.env?.SMEPLUG_API_KEY || '';
 
@@ -53,7 +53,7 @@ class SMEPlugService {
       throw new Error('SMEPlug API key not configured');
     }
 
-    this.api = axios.create({
+    const client = axios.create({
       baseURL,
       headers: {
         'Content-Type': 'application/json',
@@ -62,16 +62,17 @@ class SMEPlugService {
       timeout: 30000,
     });
 
-    return this.api;
+    if (!configOverride) this.api = client;
+    return client;
   }
 
   /**
    * Get wallet balance
    * GET /v1/account/balance
    */
-  async getWalletBalance() {
+  async getWalletBalance(configOverride?: any) {
     try {
-      const api = await this.ensureClient();
+      const api = await this.ensureClient(configOverride);
       const res = await api.get('/v1/account/balance');
       logger.info('SMEPlug wallet balance retrieved', { balance: res.data });
       return res.data;
@@ -85,9 +86,9 @@ class SMEPlugService {
    * Get available networks
    * GET /v1/networks
    */
-  async getNetworks() {
+  async getNetworks(configOverride?: any) {
     try {
-      const api = await this.ensureClient();
+      const api = await this.ensureClient(configOverride);
       const res = await api.get('/v1/networks');
       logger.info('SMEPlug networks retrieved', { count: res.data?.data?.length || 0 });
       return res.data;
@@ -101,9 +102,9 @@ class SMEPlugService {
    * Get data plans
    * GET /v1/data/plans
    */
-  async getDataPlans() {
+  async getDataPlans(configOverride?: any) {
     try {
-      const api = await this.ensureClient();
+      const api = await this.ensureClient(configOverride);
       const res = await api.get('/v1/data/plans');
       logger.info('SMEPlug data plans retrieved', { count: res.data?.data?.length || 0 });
       return res.data;
@@ -117,9 +118,9 @@ class SMEPlugService {
    * Purchase airtime
    * POST /v1/airtime/purchase
    */
-  async purchaseAirtime(data: any) {
+  async purchaseAirtime(data: any, configOverride?: any) {
     try {
-      const api = await this.ensureClient();
+      const api = await this.ensureClient(configOverride);
 
       // Map controller payload to SMEPlug payload
       const payload: SMEPlugAirtimePurchase = {
@@ -150,9 +151,9 @@ class SMEPlugService {
    * POST /v1/data/purchase
    * Payload: { network_id, plan_id, phone, customer_reference }
    */
-  async purchaseData(data: any) {
+  async purchaseData(data: any, configOverride?: any) {
     try {
-      const api = await this.ensureClient();
+      const api = await this.ensureClient(configOverride);
 
       // Map controller payload to SMEPlug payload
       const payload: SMEPlugDataPurchase = {

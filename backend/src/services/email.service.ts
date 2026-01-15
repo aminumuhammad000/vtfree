@@ -3,10 +3,16 @@ import { configService } from './config.service.js';
 
 export class EmailService {
     private static async getTransporter() {
-        const host = await configService.get('MAIL_HOST');
-        const port = await configService.get('MAIL_PORT');
+        const provider = await configService.get('MAIL_PROVIDER', 'other');
+        let host = await configService.get('MAIL_HOST');
+        let port = await configService.get('MAIL_PORT');
         const user = await configService.get('MAIL_USER');
         const pass = await configService.get('MAIL_PASSWORD');
+
+        if (provider === 'gmail') {
+            host = 'smtp.gmail.com';
+            port = '465';
+        }
 
         if (!host || !user || !pass) {
             console.warn('⚠️ Email configuration missing. Emails will not be sent.');
