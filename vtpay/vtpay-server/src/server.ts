@@ -1,6 +1,7 @@
 import app from './app';
 import config from './config';
 import { connectDatabase } from './config/database';
+import { logger } from './utils/logger';
 
 const startServer = async (): Promise<void> => {
     try {
@@ -13,37 +14,30 @@ const startServer = async (): Promise<void> => {
 
         // Start Express server
         app.listen(config.port, () => {
-            console.log('');
-            console.log('╔═══════════════════════════════════════════════════════════╗');
-            console.log('║                                                           ║');
-            console.log('║   🚀 VTPay Server - Zainpay Payment Gateway               ║');
-            console.log('║                                                           ║');
-            console.log(`║   📍 Server running on port ${config.port}                        ║`);
-            console.log(`║   🌍 Environment: ${config.nodeEnv.padEnd(38)}║`);
-            console.log(`║   🔗 Zainpay API: ${config.zainpay.baseUrl.slice(0, 35).padEnd(38)}║`);
-            console.log('║                                                           ║');
-            console.log('╚═══════════════════════════════════════════════════════════╝');
+            logger.info(`🚀 VTPay Server running on port ${config.port}`);
+            logger.info(`🌍 Environment: ${config.nodeEnv}`);
+            logger.info(`🔗 Zainpay API: ${config.zainpay.baseUrl}`);
         });
     } catch (error) {
-        console.error('❌ Failed to start server:', error);
+        logger.error('❌ Failed to start server', error);
         process.exit(1);
     }
 };
 
 // Handle graceful shutdown
 process.on('SIGTERM', () => {
-    console.log('SIGTERM received, shutting down gracefully...');
+    logger.info('SIGTERM received, shutting down gracefully...');
     process.exit(0);
 });
 
 process.on('SIGINT', () => {
-    console.log('SIGINT received, shutting down gracefully...');
+    logger.info('SIGINT received, shutting down gracefully...');
     process.exit(0);
 });
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    logger.error('Unhandled Rejection', { promise, reason });
 });
 
 // Start the server

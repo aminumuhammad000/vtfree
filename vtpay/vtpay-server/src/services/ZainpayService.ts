@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import config from '../config';
+import { logger } from '../utils/logger';
 import {
     ZainpayResponse,
     CreateZainboxPayload,
@@ -46,7 +47,7 @@ export class ZainpayService {
         this.client.interceptors.response.use(
             (response) => response,
             (error: AxiosError) => {
-                console.error('Zainpay API Error:', {
+                logger.error('Zainpay API Error', {
                     method: error.config?.method?.toUpperCase(),
                     url: error.config?.url,
                     status: error.response?.status,
@@ -63,7 +64,7 @@ export class ZainpayService {
      */
     async refreshConfig() {
         try {
-            console.log('Refreshing Zainpay configuration from database...');
+            logger.info('Refreshing Zainpay configuration from database...');
             const SystemSetting = (await import('../models')).SystemSetting;
             const settings = await SystemSetting.findOne();
 
@@ -72,8 +73,8 @@ export class ZainpayService {
 
                 // Only update if keys are present
                 if (zainpayConfig.apiKey && zainpayConfig.baseUrl) {
-                    console.log(`Found Zainpay settings in DB. Mode: ${zainpayConfig.isLive ? 'LIVE' : 'SANDBOX'}`);
-                    console.log(`DB BaseURL: ${zainpayConfig.baseUrl}`);
+                    logger.info(`Found Zainpay settings in DB. Mode: ${zainpayConfig.isLive ? 'LIVE' : 'SANDBOX'}`);
+                    logger.info(`DB BaseURL: ${zainpayConfig.baseUrl}`);
 
                     this.publicKey = zainpayConfig.apiKey;
                     this.baseUrl = zainpayConfig.baseUrl;
@@ -81,13 +82,13 @@ export class ZainpayService {
 
                     this.initializeClient();
                 } else {
-                    console.log('Zainpay settings in DB are incomplete (missing apiKey or baseUrl). Using defaults/env.');
+                    logger.warn('Zainpay settings in DB are incomplete (missing apiKey or baseUrl). Using defaults/env.');
                 }
             } else {
-                console.log('No Zainpay settings found in DB. Using defaults/env.');
+                logger.info('No Zainpay settings found in DB. Using defaults/env.');
             }
         } catch (error) {
-            console.error('Failed to refresh Zainpay config:', error);
+            logger.error('Failed to refresh Zainpay config', error);
         }
     }
 

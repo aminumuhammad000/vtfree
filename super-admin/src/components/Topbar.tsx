@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiBell, FiMenu, FiUser, FiSettings, FiLogOut, FiChevronDown } from 'react-icons/fi';
+import { FiBell, FiMenu, FiSettings, FiLogOut, FiChevronDown } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 

@@ -15,12 +15,7 @@ export default {
 
 
   // Finance & Wallet
-  platformWallet: `/${rootPaths.pagesRoot}/finance/platform`,
-  userWallets: `/${rootPaths.pagesRoot}/finance/wallets`,
-  withdrawals: `/${rootPaths.pagesRoot}/finance/withdrawals`,
-  revenueAnalytics: `/${rootPaths.pagesRoot}/finance/analytics`,
-  transfers: `/${rootPaths.pagesRoot}/finance/transfers`,
-  settlements: `/${rootPaths.pagesRoot}/finance/settlements`,
+  finance: `/${rootPaths.pagesRoot}/finance`,
 
   // Pricing
   pricing: `/${rootPaths.pagesRoot}/pricing`,
@@ -45,6 +40,7 @@ export default {
   signin: `/${rootPaths.authRoot}/sign-in`,
   signup: `/${rootPaths.authRoot}/sign-up`,
   resetPassword: `/${rootPaths.authRoot}/reset-password`,
+  help: `/${rootPaths.pagesRoot}/help`,
   404: `/${rootPaths.errorRoot}/404`,
 };
 

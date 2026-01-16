@@ -27,6 +27,7 @@ import appAdminRoutes from './app_admin.routes.js';
 import superAdminRoutes from './super_admin.routes.js';
 import vtfreeAppRoutes from './vtfree_app.routes.js';
 import vtfreeAuthRoutes from './vtfree_auth.routes.js';
+import vtpayRoutes from './vtpay.routes.js';
 
 export default (app: Express) => {
   // ... your existing routes
@@ -48,6 +49,9 @@ export default (app: Express) => {
 
   // Bill payment routes
   app.use('/api/v1/billpayment', billPaymentRoutes);
+
+  // VTPay routes
+  app.use('/api/v1/vtpay', vtpayRoutes);
 
   // Health check
   app.get('/health', (req: Request, res: Response) => {

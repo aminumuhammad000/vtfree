@@ -21,14 +21,12 @@ const PlatformWallet = () => {
         pendingWithdrawals: 0,
     });
     const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
-    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetchData();
     }, []);
 
     const fetchData = async () => {
-        setLoading(true);
         try {
             const [statsRes, transRes] = await Promise.all([
                 getDashboardStats(),
@@ -58,8 +56,6 @@ const PlatformWallet = () => {
             }
         } catch (error) {
             console.error('Failed to fetch platform wallet data:', error);
-        } finally {
-            setLoading(false);
         }
     };
 

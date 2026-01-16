@@ -8,14 +8,12 @@ type LogType = 'audit' | 'api' | 'error' | 'security' | 'payment';
 const ConsolidatedLogs = () => {
     const [activeTab, setActiveTab] = useState<LogType>('audit');
     const [logs, setLogs] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetchLogs();
     }, [activeTab]);
 
     const fetchLogs = async () => {
-        setLoading(true);
         try {
             const response = await getLogs(activeTab);
             if (response.data.success) {
@@ -34,8 +32,6 @@ const ConsolidatedLogs = () => {
             }
         } catch (error) {
             console.error('Failed to fetch logs:', error);
-        } finally {
-            setLoading(false);
         }
     };
 
