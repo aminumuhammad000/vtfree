@@ -67,6 +67,7 @@ const ZainboxSchema = new Schema<IZainboxDocument>(
 
 // Indexes
 ZainboxSchema.index({ userId: 1 });
+ZainboxSchema.index({ zainboxCode: 1 });
 
 export const Zainbox = mongoose.model<IZainboxDocument>('Zainbox', ZainboxSchema);
 export default Zainbox;

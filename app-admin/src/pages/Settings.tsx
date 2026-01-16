@@ -20,7 +20,11 @@ interface SupportContent {
 const Settings = () => {
     const { showToast } = useToast();
     const [isMobileOpen, setIsMobileOpen] = useState(false);
+<<<<<<< HEAD
     const [activeTab, setActiveTab] = useState<'general' | 'email' | 'payment'>('general');
+=======
+    const [activeTab, setActiveTab] = useState<'general' | 'system' | 'email' | 'payment'>('general');
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<SupportContent>({
         email: '',
@@ -173,6 +177,11 @@ const Settings = () => {
                         </form>
                     </div>
                 );
+<<<<<<< HEAD
+=======
+            case 'system':
+                return <SystemConfig />;
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
             case 'email':
                 return <EmailSettings />;
             case 'payment':
@@ -232,6 +241,21 @@ const Settings = () => {
                                     <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600" />
                                 )}
                             </button>
+<<<<<<< HEAD
+=======
+                            <button
+                                onClick={() => setActiveTab('system')}
+                                className={`px-6 py-3 font-medium text-sm transition-colors relative whitespace-nowrap ${activeTab === 'system'
+                                    ? 'text-green-600'
+                                    : 'text-slate-500 hover:text-slate-700'
+                                    }`}
+                            >
+                                System Configuration
+                                {activeTab === 'system' && (
+                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600" />
+                                )}
+                            </button>
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
                         </div>
 
                         {renderTabContent()}

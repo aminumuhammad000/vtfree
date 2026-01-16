@@ -1,6 +1,10 @@
 import axios from 'axios';
 
+<<<<<<< HEAD
 const API_URL = 'http://localhost:5000/api/v1/super-admin';
+=======
+const API_URL = 'http://localhost:5000/api/super-admin';
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 
 const api = axios.create({
   baseURL: API_URL,
@@ -51,8 +55,13 @@ export const approveKyc = (id: string) => api.put(`/users/${id}/kyc/approve`);
 export const rejectKyc = (id: string, reason: string) =>
   api.put(`/users/${id}/kyc/reject`, { reason });
 
+<<<<<<< HEAD
 export const getTransactions = async (params?: any) => {
   return api.get('/transactions', { params });
+=======
+export const getTransactions = async () => {
+  return api.get('/transactions');
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 };
 
 export const getPayments = async () => {
@@ -125,6 +134,7 @@ export const updateTicketStatusApi = async (id: string, status: string, priority
   return api.patch(`/tickets/${id}/status`, { status, priority });
 };
 
+<<<<<<< HEAD
 // VTPay
 export const getVTPaySettings = async () => api.get('/vtpay/settings');
 export const updateVTPaySettings = async (data: any) => api.post('/vtpay/settings', data);
@@ -134,6 +144,8 @@ export const createVTPayAccount = async (data: any) => api.post('/vtpay/accounts
 export const getVTPayAccountBalance = async (accountNumber: string) => api.get(`/vtpay/accounts/${accountNumber}/balance`);
 export const getVTPayAccountTransactions = async (accountNumber: string) => api.get(`/vtpay/accounts/${accountNumber}/transactions`);
 
+=======
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 const superAdminApi = {
   getDashboardStats,
   getUsers,
@@ -160,6 +172,7 @@ const superAdminApi = {
   getLogs,
   getTickets,
   updateTicketStatus: updateTicketStatusApi,
+<<<<<<< HEAD
   getVTPaySettings,
   updateVTPaySettings,
   getVTPayPlatformBalance,
@@ -167,6 +180,8 @@ const superAdminApi = {
   createVTPayAccount,
   getVTPayAccountBalance,
   getVTPayAccountTransactions,
+=======
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 };
 
 export default superAdminApi;

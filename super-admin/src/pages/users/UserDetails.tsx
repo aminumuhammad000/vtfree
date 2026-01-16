@@ -1,7 +1,10 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { useState, useEffect } from 'react';
+<<<<<<< HEAD
 import { UserService } from 'services/user.service';
+=======
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 
 interface UserData {
     _id: string;
@@ -18,7 +21,10 @@ interface UserData {
     total_revenue?: number;
     type: 'vtfree-users' | 'admin-users';
     role?: string;
+<<<<<<< HEAD
     app_id?: string;
+=======
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
     virtual_account?: {
         bank: string;
         account_number: string;
@@ -35,6 +41,7 @@ const UserDetails = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+<<<<<<< HEAD
         const fetchUser = async () => {
             if (!id) return;
             setLoading(true);
@@ -74,6 +81,39 @@ const UserDetails = () => {
         };
 
         fetchUser();
+=======
+        // Mock data
+        const mockUser: UserData = {
+            _id: id || '1',
+            first_name: 'John',
+            last_name: 'Doe',
+            email: 'john@example.com',
+            phone_number: '+2348012345678',
+            status: 'active',
+            created_at: '2024-01-15T10:30:00Z',
+            address: '123 Main Street, Victoria Island, Lagos',
+            type: userType,
+            ...(userType === 'vtfree-users' ? {
+                apps_count: 3,
+                wallet_balance: 25000,
+                total_transactions: 156,
+                total_revenue: 850000,
+                virtual_account: {
+                    bank: 'Wema Bank',
+                    account_number: '1234567890',
+                    account_name: 'John Doe'
+                }
+            } : {
+                role: 'Support Admin',
+                apps_count: 0,
+                wallet_balance: 0,
+                total_transactions: 0,
+                total_revenue: 0
+            })
+        };
+        setUser(mockUser);
+        setLoading(false);
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
     }, [id, userType]);
 
     if (loading) {
@@ -155,6 +195,7 @@ const UserDetails = () => {
                                         <Icon icon="logos:whatsapp-icon" width="16" height="16" />
                                         <span>{user.phone_number}</span>
                                     </a>
+<<<<<<< HEAD
                                     {user.type === 'admin-users' && user.app_id && (
                                         <>
                                             <span>•</span>
@@ -164,6 +205,8 @@ const UserDetails = () => {
                                             </div>
                                         </>
                                     )}
+=======
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
                                 </div>
                             </div>
                             <div className="flex gap-2">

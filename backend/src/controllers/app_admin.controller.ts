@@ -211,6 +211,7 @@ export const changePassword = async (req: Request, res: Response) => {
     } catch (error: any) {
         console.error('Change password error:', error);
         res.status(500).json({ success: false, message: error.message || 'Server error' });
+<<<<<<< HEAD
     }
 };
 
@@ -259,5 +260,7 @@ export const deleteAuditLog = async (req: Request, res: Response) => {
         res.json({ success: true, message: 'Audit log deleted successfully' });
     } catch (error: any) {
         res.status(500).json({ success: false, message: error.message });
+=======
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
     }
 };

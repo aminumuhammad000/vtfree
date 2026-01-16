@@ -14,10 +14,13 @@ router.get('/dashboard', authenticateAppAdmin, AppAdminController.getDashboardSt
 router.put('/profile', authenticateAppAdmin, AppAdminController.updateProfile);
 router.put('/profile/password', authenticateAppAdmin, AppAdminController.changePassword);
 
+<<<<<<< HEAD
 // Audit Logs
 router.get('/audit-logs', authenticateAppAdmin, AppAdminController.getAuditLogs);
 router.delete('/audit-logs/:id', authenticateAppAdmin, AppAdminController.deleteAuditLog);
 
+=======
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 // Disputes
 router.get('/disputes', authenticateAppAdmin, DisputeController.getDisputes);
 router.get('/disputes/:id', authenticateAppAdmin, DisputeController.getDisputeById);
@@ -77,9 +80,12 @@ router.get('/funding/accounts', authenticateAppAdmin, AppAdminFundingController.
 router.post('/funding/accounts', authenticateAppAdmin, AppAdminFundingController.createAccount);
 router.put('/funding/accounts/:id', authenticateAppAdmin, AppAdminFundingController.updateAccount);
 router.delete('/funding/accounts/:id', authenticateAppAdmin, AppAdminFundingController.deleteAccount);
+<<<<<<< HEAD
 router.post('/funding/virtual-account', authenticateAppAdmin, AppAdminFundingController.generateVirtualAccount);
 router.get('/funding/ibdata-balance', authenticateAppAdmin, AppAdminFundingController.getIBDataBalance);
 router.get('/funding/vtpay-accounts', authenticateAppAdmin, AppAdminFundingController.getVTPayAccounts);
+=======
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 
 // Payout & Payment Gateway (VTPay/Payrant)
 import { PayoutController } from '../controllers/payout.controller.js';
@@ -91,6 +97,7 @@ router.get('/payout/balance', authenticateAppAdmin, PayoutController.getVTPayBal
 import { NotificationController } from '../controllers/notification.controller.js';
 router.post('/notifications/broadcast', authenticateAppAdmin, NotificationController.sendBroadcastNotification);
 router.post('/notifications/email-broadcast', authenticateAppAdmin, NotificationController.sendBroadcastEmail);
+<<<<<<< HEAD
 
 // Support Messages
 import { AppAdminSupportController } from '../controllers/app_admin_support.controller.js';
@@ -98,5 +105,7 @@ router.get('/support/messages', authenticateAppAdmin, AppAdminSupportController.
 router.get('/support/messages/:id', authenticateAppAdmin, AppAdminSupportController.getTicketById);
 router.post('/support/messages/:id/reply', authenticateAppAdmin, AppAdminSupportController.replyToTicket);
 router.patch('/support/messages/:id/status', authenticateAppAdmin, AppAdminSupportController.updateStatus);
+=======
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 
 export default router;

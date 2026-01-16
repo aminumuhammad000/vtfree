@@ -58,31 +58,18 @@ export class ZainpayService {
     }
 
     /**
-     * Refresh configuration from SystemSetting
+     * Refresh configuration from database
      */
     async refreshConfig() {
         try {
-            logger.info('Refreshing Zainpay configuration from database...');
-            const SystemSetting = (await import('../models')).SystemSetting;
+            const { SystemSetting } = await import('../models/SystemSetting');
             const settings = await SystemSetting.findOne();
-
-            if (settings && settings.integrations.zainpay) {
-                const zainpayConfig = settings.integrations.zainpay;
-
-                // Only update if keys are present
-                if (zainpayConfig.apiKey && zainpayConfig.baseUrl) {
-                    logger.info(`Found Zainpay settings in DB. Mode: ${zainpayConfig.isLive ? 'LIVE' : 'SANDBOX'}`);
-                    logger.info(`DB BaseURL: ${zainpayConfig.baseUrl}`);
-
-                    this.publicKey = zainpayConfig.apiKey;
-                    this.baseUrl = zainpayConfig.baseUrl;
-
-                    this.initializeClient();
-                } else {
-                    logger.warn('Zainpay settings in DB are incomplete (missing apiKey or baseUrl). Using defaults/env.');
-                }
-            } else {
-                logger.info('No Zainpay settings found in DB. Using defaults/env.');
+            if (settings && settings.integrations?.zainpay) {
+                const zp = settings.integrations.zainpay;
+                this.baseUrl = zp.baseUrl || config.zainpay.baseUrl;
+                this.publicKey = zp.apiKey || config.zainpay.publicKey;
+                this.initializeClient();
+                logger.info('Zainpay config refreshed from database');
             }
         } catch (error) {
             logger.error('Failed to refresh Zainpay config', error);

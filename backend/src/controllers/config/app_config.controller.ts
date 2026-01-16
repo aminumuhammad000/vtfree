@@ -10,6 +10,7 @@ export const getAppConfigs = async (req: Request, res: Response) => {
             return res.status(404).json({ success: false, message: 'App not found' });
         }
 
+<<<<<<< HEAD
         // Map CreatedApp fields to the key/value format the frontend expects
         const configs = [
             // Branding
@@ -41,6 +42,15 @@ export const getAppConfigs = async (req: Request, res: Response) => {
         res.json({
             success: true,
             data: configs
+=======
+        res.json({
+            success: true,
+            data: {
+                branding: app.branding,
+                services: app.services,
+                status: app.status
+            }
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
         });
     } catch (error: any) {
         res.status(500).json({ success: false, message: error.message });
@@ -50,8 +60,12 @@ export const getAppConfigs = async (req: Request, res: Response) => {
 export const updateAppConfig = async (req: Request, res: Response) => {
     try {
         const app_id = (req as any).user.app_id;
+<<<<<<< HEAD
         const { key } = req.params;
         const { value } = req.body;
+=======
+        const { branding, services } = req.body;
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 
         const app = await CreatedApp.findOne({ app_id });
 
@@ -59,6 +73,7 @@ export const updateAppConfig = async (req: Request, res: Response) => {
             return res.status(404).json({ success: false, message: 'App not found' });
         }
 
+<<<<<<< HEAD
         // Initialize objects if they don't exist
         if (!app.email_settings) app.email_settings = {} as any;
         if (!app.payment_settings) app.payment_settings = {} as any;
@@ -89,12 +104,29 @@ export const updateAppConfig = async (req: Request, res: Response) => {
                 return res.status(400).json({ success: false, message: `Unknown config key: ${key}` });
         }
 
+=======
+        // Update fields if provided
+        if (branding) {
+            app.branding = { ...app.branding, ...branding };
+        }
+
+        // Services might require more validation in a real scenario (e.g. paying for upgrades)
+        // For now preventing service updates via this endpoint or strictly validating
+        // if (services) app.services = services; 
+
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
         await app.save();
 
         res.json({
             success: true,
             message: 'App configuration updated successfully',
+<<<<<<< HEAD
             data: { key, value }
+=======
+            data: {
+                branding: app.branding
+            }
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
         });
     } catch (error: any) {
         res.status(500).json({ success: false, message: error.message });

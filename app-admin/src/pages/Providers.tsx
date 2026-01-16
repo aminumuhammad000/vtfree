@@ -613,7 +613,11 @@ const Providers: React.FC = () => {
                                 {testResults.balanceStatus === 'success' ? (
                                   <div className="flex items-baseline gap-1">
                                     <span className="text-2xl font-black text-slate-900">
+<<<<<<< HEAD
                                       {typeof testResults.balance === 'object' ? (testResults.balance.balance || testResults.balance.wallet_balance || '0') : testResults.balance}
+=======
+                                      {testItem.code === 'ibdata' ? '***.**' : (typeof testResults.balance === 'object' ? (testResults.balance.balance || testResults.balance.wallet_balance || '0') : testResults.balance)}
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
                                     </span>
                                     <span className="text-xs font-bold text-slate-500 uppercase">NGN</span>
                                   </div>

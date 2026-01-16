@@ -34,7 +34,10 @@ const LogsPage = lazy(() => import('pages/logs'));
 // Support & Providers
 const Support = lazy(() => import('pages/support'));
 const Providers = lazy(() => import('pages/providers'));
+<<<<<<< HEAD
 const VTPayManagement = lazy(() => import('pages/vtpay'));
+=======
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 
 const SignIn = lazy(() => import('pages/authentication/SignIn'));
 const ResetPassword = lazy(() => import('pages/authentication/ResetPassword'));

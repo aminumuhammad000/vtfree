@@ -50,7 +50,11 @@ export class PayoutController {
             const result = await service.validateAccount(bank_code, account_number);
 
             // Normalize response
+<<<<<<< HEAD
             const accountName = result.account_name || result.data?.account_name || result.data?.accountName || result.accountName;
+=======
+            const accountName = result.account_name || result.data?.account_name || result.accountName;
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 
             if (accountName) {
                 return ApiResponse.success(res, {

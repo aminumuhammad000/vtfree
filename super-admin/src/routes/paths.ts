@@ -35,7 +35,10 @@ export default {
   // Settings & Profile
   settings: `/${rootPaths.pagesRoot}/settings`,
   profile: `/${rootPaths.pagesRoot}/profile`,
+<<<<<<< HEAD
   vtpay: `/${rootPaths.pagesRoot}/vtpay`,
+=======
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 
   // Auth
   signin: `/${rootPaths.authRoot}/sign-in`,

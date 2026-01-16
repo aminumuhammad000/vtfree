@@ -98,6 +98,7 @@ class IBDataService {
     }
 
     /**
+<<<<<<< HEAD
      * Get cable tv plans
      * GET /billpayment/cable-plans
      */
@@ -134,6 +135,8 @@ class IBDataService {
     }
 
     /**
+=======
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
      * Purchase airtime
      * POST /billpayment/airtime
      */

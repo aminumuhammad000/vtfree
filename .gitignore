@@ -9,4 +9,7 @@ build
 .DS_Store
 coverage
 .vscode
+<<<<<<< HEAD
 backend/logs/
+=======
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf

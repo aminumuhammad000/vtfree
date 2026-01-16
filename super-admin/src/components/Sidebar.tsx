@@ -39,6 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
         </svg>
       ),
     },
+<<<<<<< HEAD
     {
       to: '/pages/apps',
       label: 'App Management',
@@ -49,6 +50,25 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
       ),
     },
 
+=======
+
+    {
+      label: 'Wallet & Finance',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+        </svg>
+      ),
+      children: [
+        { to: '/pages/finance/platform', label: 'Platform Wallet' },
+        { to: '/pages/finance/wallets', label: 'User Wallets' },
+        { to: '/pages/finance/withdrawals', label: 'Withdrawals' },
+        { to: '/pages/finance/transfers', label: 'Transfers' },
+        { to: '/pages/finance/settlements', label: 'Settlements' },
+        { to: '/pages/finance/analytics', label: 'Revenue Analytics' },
+      ]
+    },
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
     {
       to: '/pages/transactions',
       label: 'Transactions',
@@ -68,13 +88,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
       ),
     },
     {
+<<<<<<< HEAD
       to: '/pages/messaging/notifications',
+=======
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
       label: 'Notifications',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
         </svg>
       ),
+<<<<<<< HEAD
+=======
+      children: [
+        { to: '/pages/messaging/notifications', label: 'In-App Notifications' },
+        { to: '/pages/messaging/broadcasts', label: 'Broadcast Emails' },
+      ]
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
     },
     {
       to: '/pages/logs',
@@ -95,6 +125,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
       ),
     },
     {
+<<<<<<< HEAD
       to: '/pages/vtpay',
       label: 'VTPay Management',
       icon: (
@@ -104,6 +135,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
       ),
     },
     {
+=======
+>>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
       to: '/pages/settings',
       label: 'Settings',
       icon: (

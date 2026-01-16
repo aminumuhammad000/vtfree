@@ -7,6 +7,7 @@ const SettingsPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
     const [showApiKey, setShowApiKey] = useState(false);
+    const [showSecretKey, setShowSecretKey] = useState(false);
     const [showEmailPass, setShowEmailPass] = useState(false);
 
     // Settings state
@@ -33,6 +34,7 @@ const SettingsPage: React.FC = () => {
         integrations: {
             zainpay: {
                 apiKey: '',
+                secretKey: '',
                 baseUrl: 'https://api.zainpay.ng',
                 isLive: false,
             }
