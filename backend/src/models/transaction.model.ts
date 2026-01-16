@@ -27,7 +27,7 @@ const transactionSchema = new Schema<ITransaction>({
   receipt_url: { type: String },
   error_message: { type: String },
   created_at: { type: Date, default: Date.now },
-  created_at: { type: Date, default: Date.now },
+
   updated_at: { type: Date, default: Date.now },
   app_id: { type: String, index: true }
 });

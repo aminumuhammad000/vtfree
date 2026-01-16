@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Dimensions, Image, Switch, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Dimensions, Image, Switch, Platform, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
     ArrowLeft,
@@ -16,12 +16,19 @@ import {
     Smartphone,
     Globe,
     Monitor,
-    ChevronDown
+    ChevronDown,
+    Wallet,
+    CreditCard
 } from 'lucide-react-native';
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 import Animated, { FadeInRight, FadeOutLeft, Layout, SlideInRight, SlideOutLeft } from 'react-native-reanimated';
 import Colors from '../constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppService } from '../services/app.service';
+import { Modal } from 'react-native';
+import ColorPicker, { Panel1, Swatches, Preview, OpacitySlider, HueSlider } from 'reanimated-color-picker';
+import * as ImagePicker from 'expo-image-picker';
 
 const { width } = Dimensions.get('window');
 
@@ -30,7 +37,7 @@ export default function CreateAppScreen() {
     const [currentStep, setCurrentStep] = useState(1);
     const [formData, setFormData] = useState({
         // Step 1: Branding
-        logo: null,
+        logo: null as string | null,
         primaryColor: '#16A34A',
         secondaryColor: '#22C55E',
         appName: '',
@@ -43,48 +50,93 @@ export default function CreateAppScreen() {
         address: '',
         website: '',
 
-        // Step 3: VTU Configuration
-        apiProvider: 'smeplug',
-        apiKey: '',
-        webhook: '',
-        paymentGateway: 'paystack',
-
-        // Step 4: Services
+        // Step 3: Services
         services: [] as string[],
 
-        // Step 5: Admin Panel
+        // Step 4: Admin Panel
         adminEmail: '',
         adminPassword: '',
 
-        // Step 6: Build Options
+        // Step 5: Build Options
         platforms: [] as string[],
-        publishPlayStore: false
+        publishPlayStore: false,
+        publishAppStore: false,
+        paymentMethod: 'wallet' as 'wallet' | 'card'
     });
 
-    const totalSteps = 7;
+    const [showColorPicker, setShowColorPicker] = useState(false);
+    const [activeColorType, setActiveColorType] = useState<'primary' | 'secondary'>('primary');
+
+    const onSelectColor = ({ hex }: { hex: string }) => {
+        if (activeColorType === 'primary') {
+            setFormData(prev => ({ ...prev, primaryColor: hex }));
+        } else {
+            setFormData(prev => ({ ...prev, secondaryColor: hex }));
+        }
+    };
+
+    const totalSteps = 6;
 
     const steps = [
         { number: 1, title: 'Branding', icon: Palette },
         { number: 2, title: 'Business Info', icon: Building2 },
-        { number: 3, title: 'VTU Config', icon: Settings },
-        { number: 4, title: 'Services', icon: CheckSquare },
-        { number: 5, title: 'Admin Panel', icon: Shield },
-        { number: 6, title: 'Build Options', icon: Rocket },
-        { number: 7, title: 'Review', icon: Check }
+        { number: 3, title: 'Services', icon: CheckSquare },
+        { number: 4, title: 'Admin Panel', icon: Shield },
+        { number: 5, title: 'Build Options', icon: Rocket },
+        { number: 6, title: 'Review', icon: Check }
     ];
 
     const servicesList = [
-        { id: 'airtime', label: 'Airtime', icon: '📱' },
-        { id: 'data', label: 'Data', icon: '📶' },
-        { id: 'cable', label: 'Cable TV', icon: '📺' },
-        { id: 'electricity', label: 'Electricity', icon: '⚡' },
-        { id: 'exam', label: 'Exam Pins', icon: '📝' },
-        { id: 'airtime2cash', label: 'Airtime to Cash', icon: '💰' },
-        { id: 'sms', label: 'Bulk SMS', icon: '💬' },
-        { id: 'others', label: 'Others', icon: '➕' }
+        { id: 'airtime', label: 'Airtime', icon: '📱', price: 3000 },
+        { id: 'data', label: 'Data', icon: '📶', price: 5000 },
+        { id: 'cable', label: 'Cable TV', icon: '📺', price: 3000 },
+        { id: 'electricity', label: 'Electricity', icon: '⚡', price: 3000 },
+        { id: 'exam', label: 'Exam Pins', icon: '📝', price: 3000 },
+        { id: 'airtime2cash', label: 'Airtime to Cash', icon: '💰', price: 5000 },
+        { id: 'sms', label: 'Bulk SMS', icon: '💬', price: 3000 },
+        { id: 'giftcard', label: 'Gift Card', icon: '🎁', price: 5000 }
     ];
 
+    const calculateTotal = () => {
+        let total = 0;
+        // Services
+        formData.services.forEach(serviceId => {
+            const service = servicesList.find(s => s.id === serviceId);
+            if (service) total += service.price;
+        });
+
+        // Platform Base Fees
+        if (formData.platforms.includes('android')) total += 10000; // Android App Base Price
+        if (formData.platforms.includes('ios')) total += 100000;   // iOS App Base Price
+        if (formData.platforms.includes('web')) total += 20000;    // Web App Base Price
+
+        // Publishing Fees
+        if (formData.platforms.includes('android') && formData.publishPlayStore) total += 35000;
+        if (formData.platforms.includes('ios') && formData.publishAppStore) total += 50000;
+
+        return total;
+    };
+
+    const formatCurrency = (amount: number) => {
+        return `₦${amount.toLocaleString()}`;
+    };
+
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const pickImage = async () => {
+        // No permissions request is necessary for launching the image library
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.5,
+            base64: true,
+        });
+
+        if (!result.canceled) {
+            setFormData({ ...formData, logo: `data:image/jpeg;base64,${result.assets[0].base64}` });
+        }
+    };
 
     const handleNext = async () => {
         if (currentStep < totalSteps) {
@@ -99,31 +151,93 @@ export default function CreateAppScreen() {
         try {
             const payload = {
                 app_name: formData.appName,
-                package_name: `com.vtfree.${formData.appName.toLowerCase().replace(/\s+/g, '')}`, // Simple generation
+                package_name: `com.vtfree.${formData.appName.toLowerCase().replace(/\s+/g, '')}`,
                 platforms: {
                     android: formData.platforms.includes('android'),
-                    ios: false, // Not in UI yet
+                    ios: formData.platforms.includes('ios'),
                     web: formData.platforms.includes('web')
                 },
+                publish_play_store: formData.publishPlayStore,
+                publish_app_store: formData.publishAppStore,
                 branding: {
                     primary_color: formData.primaryColor,
                     secondary_color: formData.secondaryColor,
-                    logo_url: formData.logo // Assuming this handles URL or base64 later
-                }
+                    logo_url: formData.logo || 'https://via.placeholder.com/150'
+                },
+                services: formData.services,
+                payment_method: formData.paymentMethod
             };
 
             const response = await AppService.createApp(payload);
+
+            if (response.success && !response.payment_required) {
+                router.push({
+                    pathname: '/build-status',
+                    params: {
+                        appId: response.data.app.app_id,
+                        adminCredentials: JSON.stringify(response.data.admin_credentials)
+                    }
+                });
+            } else if (response.payment_required) {
+                // Handle Card Payment URL
+                const { payment_url, reference } = response;
+                await WebBrowser.openBrowserAsync(payment_url);
+
+                // Show Verification Alert/Modal
+                Alert.alert(
+                    'Complete Payment',
+                    'Please complete the payment in the browser. Once done, click "Check Payment Status".',
+                    [
+                        { text: 'Cancel', style: 'cancel', onPress: () => setIsSubmitting(false) },
+                        {
+                            text: 'Check Payment Status',
+                            onPress: async () => await verifyPayment(reference, payload)
+                        }
+                    ]
+                );
+            } else {
+                if (response.code === 'INSUFFICIENT_FUNDS') {
+                    Alert.alert(
+                        'Insufficient Funds',
+                        `You need ₦${(response.data.required || 0).toLocaleString()} but have ₦${(response.data.current || 0).toLocaleString()}. Please fund your wallet.`,
+                        [
+                            { text: 'Cancel', style: 'cancel' },
+                            { text: 'My Wallet', onPress: () => router.push('/wallet') }
+                        ]
+                    );
+                } else {
+                    Alert.alert('Error', response.message || 'Failed to create app');
+                }
+                setIsSubmitting(false); // Only stop submitting on error/insufficient funds, not on payment redirect
+            }
+        } catch (error: any) {
+            Alert.alert('Error', error.message || 'An error occurred');
+            setIsSubmitting(false);
+        }
+    };
+
+    const verifyPayment = async (reference: string, appPayload: any) => {
+        setIsSubmitting(true);
+        try {
+            // Call verify endpoint (need to add to AppService)
+            // For now assuming AppService.verifyAppPayment exists or using raw fetch/axios if needed, 
+            // but let's assume I'll add it to AppService next.
+            // Actually, I'll use a direct fetch here or assume AppService update comes next.
+            const response = await AppService.verifyAppPayment(reference, appPayload);
             if (response.success) {
                 router.push({
                     pathname: '/build-status',
-                    params: { appId: response.data.app.app_id }
+                    params: {
+                        appId: response.data.app.app_id,
+                        adminCredentials: JSON.stringify(response.data.admin_credentials)
+                    }
                 });
             } else {
-                alert(response.message || 'Failed to create app');
+                Alert.alert('Payment Failed', response.message || 'Could not verify payment. Please try again or contact support.');
+                setIsSubmitting(false);
             }
         } catch (error: any) {
-            alert(error.message || 'An error occurred');
-        } finally {
+            Alert.alert('Error', 'Verification failed: ' + error.message);
             setIsSubmitting(false);
         }
     };
@@ -167,10 +281,16 @@ export default function CreateAppScreen() {
                         {/* Logo Upload */}
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>App Logo</Text>
-                            <TouchableOpacity style={styles.uploadBox}>
-                                <Upload color={Colors.gray[400]} size={32} style={{ marginBottom: 8 }} />
-                                <Text style={styles.uploadText}>Click to upload logo</Text>
-                                <Text style={styles.uploadSubtext}>PNG, JPG up to 2MB</Text>
+                            <TouchableOpacity style={styles.uploadBox} onPress={pickImage}>
+                                {formData.logo ? (
+                                    <Image source={{ uri: formData.logo }} style={{ width: 80, height: 80, borderRadius: 8 }} resizeMode="contain" />
+                                ) : (
+                                    <>
+                                        <Upload color={Colors.gray[400]} size={32} style={{ marginBottom: 8 }} />
+                                        <Text style={styles.uploadText}>Click to upload logo</Text>
+                                        <Text style={styles.uploadSubtext}>PNG, JPG up to 2MB</Text>
+                                    </>
+                                )}
                             </TouchableOpacity>
                         </View>
 
@@ -202,27 +322,60 @@ export default function CreateAppScreen() {
                         <View style={styles.row}>
                             <View style={[styles.inputGroup, { flex: 1 }]}>
                                 <Text style={styles.label}>Primary Color</Text>
-                                <View style={styles.colorInputContainer}>
+                                <TouchableOpacity
+                                    style={styles.colorInputContainer}
+                                    onPress={() => {
+                                        setActiveColorType('primary');
+                                        setShowColorPicker(true);
+                                    }}
+                                >
                                     <View style={[styles.colorPreview, { backgroundColor: formData.primaryColor }]} />
-                                    <TextInput
-                                        style={[styles.input, { flex: 1 }]}
-                                        value={formData.primaryColor}
-                                        onChangeText={(text) => setFormData({ ...formData, primaryColor: text })}
-                                    />
-                                </View>
+                                    <View style={{ flex: 1, paddingVertical: 12 }}>
+                                        <Text style={{ fontSize: 16, color: Colors.text.primary }}>{formData.primaryColor}</Text>
+                                    </View>
+                                </TouchableOpacity>
                             </View>
                             <View style={[styles.inputGroup, { flex: 1 }]}>
                                 <Text style={styles.label}>Secondary Color</Text>
-                                <View style={styles.colorInputContainer}>
+                                <TouchableOpacity
+                                    style={styles.colorInputContainer}
+                                    onPress={() => {
+                                        setActiveColorType('secondary');
+                                        setShowColorPicker(true);
+                                    }}
+                                >
                                     <View style={[styles.colorPreview, { backgroundColor: formData.secondaryColor }]} />
-                                    <TextInput
-                                        style={[styles.input, { flex: 1 }]}
-                                        value={formData.secondaryColor}
-                                        onChangeText={(text) => setFormData({ ...formData, secondaryColor: text })}
-                                    />
-                                </View>
+                                    <View style={{ flex: 1, paddingVertical: 12 }}>
+                                        <Text style={{ fontSize: 16, color: Colors.text.primary }}>{formData.secondaryColor}</Text>
+                                    </View>
+                                </TouchableOpacity>
                             </View>
                         </View>
+
+                        <Modal visible={showColorPicker} animationType='slide' transparent={true}>
+                            <View style={styles.modalOverlay}>
+                                <View style={styles.modalContent}>
+                                    <View style={styles.modalHeader}>
+                                        <Text style={styles.modalTitle}>Select {activeColorType === 'primary' ? 'Primary' : 'Secondary'} Color</Text>
+                                        <TouchableOpacity onPress={() => setShowColorPicker(false)}>
+                                            <Text style={styles.closeButtonText}>Done</Text>
+                                        </TouchableOpacity>
+                                    </View>
+
+                                    <ColorPicker
+                                        style={{ width: '100%', height: 400 }}
+                                        value={activeColorType === 'primary' ? formData.primaryColor : formData.secondaryColor}
+                                        onComplete={onSelectColor}
+                                    >
+                                        <Preview />
+                                        <Panel1 />
+                                        <HueSlider />
+                                        <OpacitySlider />
+                                        <Swatches />
+                                    </ColorPicker>
+                                </View>
+                            </View>
+                        </Modal>
 
                         {/* Live Preview */}
                         <View style={styles.previewContainer}>
@@ -313,59 +466,8 @@ export default function CreateAppScreen() {
                         </View>
                     </Animated.View>
                 );
+
             case 3:
-                return (
-                    <Animated.View entering={FadeInRight} exiting={FadeOutLeft} style={styles.stepContainer}>
-                        <View style={styles.stepHeader}>
-                            <Text style={styles.stepTitle}>VTU Configuration</Text>
-                            <Text style={styles.stepSubtitle}>Connect your API provider</Text>
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>API Provider</Text>
-                            <View style={styles.pickerContainer}>
-                                <Text style={styles.pickerText}>{formData.apiProvider}</Text>
-                                <ChevronDown color={Colors.gray[500]} size={20} />
-                            </View>
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <View style={styles.labelRow}>
-                                <Text style={styles.label}>API Key</Text>
-                                <HelpCircle color={Colors.primary} size={16} />
-                            </View>
-                            <TextInput
-                                style={styles.input}
-                                value={formData.apiKey}
-                                onChangeText={(text) => setFormData({ ...formData, apiKey: text })}
-                                placeholder="sk_live_xxxxxxxxxxxxx"
-                                placeholderTextColor={Colors.gray[400]}
-                            />
-                            <Text style={styles.helperText}>💡 Find this in your {formData.apiProvider} dashboard</Text>
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Webhook URL (Optional)</Text>
-                            <TextInput
-                                style={styles.input}
-                                value={formData.webhook}
-                                onChangeText={(text) => setFormData({ ...formData, webhook: text })}
-                                placeholder="https://yourapp.com/webhook"
-                                keyboardType="url"
-                                placeholderTextColor={Colors.gray[400]}
-                            />
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Payment Gateway</Text>
-                            <View style={styles.pickerContainer}>
-                                <Text style={styles.pickerText}>{formData.paymentGateway}</Text>
-                                <ChevronDown color={Colors.gray[500]} size={20} />
-                            </View>
-                        </View>
-                    </Animated.View>
-                );
-            case 4:
                 return (
                     <Animated.View entering={FadeInRight} exiting={FadeOutLeft} style={styles.stepContainer}>
                         <View style={styles.stepHeader}>
@@ -391,6 +493,10 @@ export default function CreateAppScreen() {
                                             styles.serviceLabel,
                                             isSelected && styles.serviceLabelSelected
                                         ]}>{service.label}</Text>
+                                        <Text style={[
+                                            styles.servicePrice,
+                                            isSelected && styles.servicePriceSelected
+                                        ]}>{formatCurrency(service.price)}</Text>
                                         {isSelected && (
                                             <View style={styles.checkIcon}>
                                                 <Check color={Colors.primary} size={16} />
@@ -402,7 +508,7 @@ export default function CreateAppScreen() {
                         </View>
                     </Animated.View>
                 );
-            case 5:
+            case 4:
                 return (
                     <Animated.View entering={FadeInRight} exiting={FadeOutLeft} style={styles.stepContainer}>
                         <View style={styles.stepHeader}>
@@ -437,13 +543,18 @@ export default function CreateAppScreen() {
 
                         <View style={styles.securityTip}>
                             <Shield color={Colors.primary} size={20} />
-                            <Text style={styles.securityTipText}>
-                                <Text style={{ fontWeight: 'bold' }}>Security Tip:</Text> Use a strong password with at least 8 characters.
-                            </Text>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.securityTipText}>
+                                    <Text style={{ fontWeight: 'bold' }}>What is this?</Text> This creates your Master Admin account.
+                                </Text>
+                                <Text style={styles.securityTipSubtext}>
+                                    You will use these credentials to log in to your secure backend dashboard where you can manage users, view transactions, set prices, and configure your app settings.
+                                </Text>
+                            </View>
                         </View>
                     </Animated.View>
                 );
-            case 6:
+            case 5:
                 return (
                     <Animated.View entering={FadeInRight} exiting={FadeOutLeft} style={styles.stepContainer}>
                         <View style={styles.stepHeader}>
@@ -453,9 +564,9 @@ export default function CreateAppScreen() {
 
                         <View style={styles.platformsContainer}>
                             {[
-                                { id: 'android', label: 'Android App', icon: Smartphone, desc: 'APK for Android devices' },
-                                { id: 'web', label: 'Web App', icon: Globe, desc: 'Progressive web application' },
-                                { id: 'admin', label: 'Admin Panel', icon: Monitor, desc: 'Web-based admin dashboard' }
+                                { id: 'android', label: 'Android App', icon: Smartphone, desc: 'APK for Android devices', price: 10000 },
+                                { id: 'ios', label: 'iOS App', icon: Smartphone, desc: 'App for iPhones & iPads', price: 100000 },
+                                { id: 'web', label: 'Web App', icon: Globe, desc: 'Progressive web application', price: 20000 }
                             ].map((platform) => {
                                 const isSelected = formData.platforms.includes(platform.id);
                                 return (
@@ -477,6 +588,7 @@ export default function CreateAppScreen() {
                                         <View style={styles.platformInfo}>
                                             <Text style={styles.platformTitle}>{platform.label}</Text>
                                             <Text style={styles.platformDesc}>{platform.desc}</Text>
+                                            <Text style={styles.platformPrice}>{formatCurrency(platform.price)}</Text>
                                         </View>
                                         {isSelected && <Check color={Colors.primary} size={24} />}
                                     </TouchableOpacity>
@@ -494,13 +606,30 @@ export default function CreateAppScreen() {
                                 />
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.optionTitle}>Publish to Google Play Store</Text>
-                                    <Text style={styles.optionDesc}>We'll help you publish your app (additional fees apply)</Text>
+                                    <Text style={styles.optionPrice}>₦35,000</Text>
+                                    <Text style={styles.optionDesc}>We'll help you publish your app on the Play Store</Text>
+                                </View>
+                            </Animated.View>
+                        )}
+
+                        {formData.platforms.includes('ios') && (
+                            <Animated.View entering={FadeInRight} style={styles.playStoreOption}>
+                                <Switch
+                                    value={formData.publishAppStore}
+                                    onValueChange={(val) => setFormData({ ...formData, publishAppStore: val })}
+                                    trackColor={{ false: Colors.gray[200], true: Colors.primaryLight }}
+                                    thumbColor={formData.publishAppStore ? Colors.primary : Colors.gray[100]}
+                                />
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.optionTitle}>Publish to Apple App Store</Text>
+                                    <Text style={styles.optionPrice}>₦50,000</Text>
+                                    <Text style={styles.optionDesc}>We'll help you publish your app on the App Store</Text>
                                 </View>
                             </Animated.View>
                         )}
                     </Animated.View>
                 );
-            case 7:
+            case 6:
                 return (
                     <Animated.View entering={FadeInRight} exiting={FadeOutLeft} style={styles.stepContainer}>
                         <View style={styles.stepHeader}>
@@ -533,7 +662,7 @@ export default function CreateAppScreen() {
                         <View style={styles.reviewSection}>
                             <View style={styles.reviewHeader}>
                                 <Text style={styles.reviewTitle}>Services</Text>
-                                <TouchableOpacity onPress={() => setCurrentStep(4)}>
+                                <TouchableOpacity onPress={() => setCurrentStep(3)}>
                                     <Text style={styles.editLink}>Edit</Text>
                                 </TouchableOpacity>
                             </View>
@@ -553,11 +682,94 @@ export default function CreateAppScreen() {
                             </View>
                         </View>
 
-                        <View style={styles.estimateBox}>
-                            <Rocket color={Colors.white} size={32} />
-                            <View>
-                                <Text style={styles.estimateTitle}>Estimated Build Time</Text>
-                                <Text style={styles.estimateTime}>3-5 minutes</Text>
+                        {/* Payment Method Selection */}
+                        <View style={styles.reviewSection}>
+                            <Text style={styles.reviewTitle}>Payment Method</Text>
+                            <View style={{ gap: 12, marginTop: 12 }}>
+                                <TouchableOpacity
+                                    style={[styles.paymentOption, formData.paymentMethod === 'wallet' && styles.paymentOptionSelected]}
+                                    onPress={() => setFormData({ ...formData, paymentMethod: 'wallet' })}
+                                >
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                                        <Wallet color={formData.paymentMethod === 'wallet' ? Colors.primary : Colors.gray[600]} size={24} />
+                                        <View>
+                                            <Text style={styles.paymentOptionTitle}>Wallet Balance</Text>
+                                            <Text style={styles.paymentOptionSub}>Pay from your VTfree wallet</Text>
+                                        </View>
+                                    </View>
+                                    <View style={[styles.radio, formData.paymentMethod === 'wallet' && styles.radioSelected]} />
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.paymentOption, formData.paymentMethod === 'card' && styles.paymentOptionSelected]}
+                                    onPress={() => setFormData({ ...formData, paymentMethod: 'card' })}
+                                >
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                                        <CreditCard color={formData.paymentMethod === 'card' ? Colors.primary : Colors.gray[600]} size={24} />
+                                        <View>
+                                            <Text style={styles.paymentOptionTitle}>Debit/Credit Card</Text>
+                                            <Text style={styles.paymentOptionSub}>Pay securely via Paystack</Text>
+                                        </View>
+                                    </View>
+                                    <View style={[styles.radio, formData.paymentMethod === 'card' && styles.radioSelected]} />
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        {/* Bill Summary */}
+                        <View style={styles.billSummary}>
+                            <Text style={styles.billTitle}>Bill Summary</Text>
+
+                            {/* Services Breakdown */}
+                            {formData.services.map(id => {
+                                const s = servicesList.find(sl => sl.id === id);
+                                if (!s) return null;
+                                return (
+                                    <View key={id} style={styles.billRow}>
+                                        <Text style={styles.billItem}>{s.label}</Text>
+                                        <Text style={styles.billPrice}>{formatCurrency(s.price)}</Text>
+                                    </View>
+                                );
+                            })}
+
+                            {/* Platform Fees */}
+                            {formData.platforms.includes('android') && (
+                                <View style={styles.billRow}>
+                                    <Text style={styles.billItem}>Android App</Text>
+                                    <Text style={styles.billPrice}>{formatCurrency(10000)}</Text>
+                                </View>
+                            )}
+                            {formData.platforms.includes('ios') && (
+                                <View style={styles.billRow}>
+                                    <Text style={styles.billItem}>iOS App</Text>
+                                    <Text style={styles.billPrice}>{formatCurrency(100000)}</Text>
+                                </View>
+                            )}
+                            {formData.platforms.includes('web') && (
+                                <View style={styles.billRow}>
+                                    <Text style={styles.billItem}>Web App</Text>
+                                    <Text style={styles.billPrice}>{formatCurrency(20000)}</Text>
+                                </View>
+                            )}
+
+                            {/* Publishing Fees */}
+                            {formData.platforms.includes('android') && formData.publishPlayStore && (
+                                <View style={styles.billRow}>
+                                    <Text style={styles.billItem}>Play Store Publishing</Text>
+                                    <Text style={styles.billPrice}>{formatCurrency(35000)}</Text>
+                                </View>
+                            )}
+                            {formData.platforms.includes('ios') && formData.publishAppStore && (
+                                <View style={styles.billRow}>
+                                    <Text style={styles.billItem}>Apple Store Publishing</Text>
+                                    <Text style={styles.billPrice}>{formatCurrency(50000)}</Text>
+                                </View>
+                            )}
+
+                            <View style={styles.billDivider} />
+                            <View style={styles.billTotalRow}>
+                                <Text style={styles.billTotalText}>Total Amount</Text>
+                                <Text style={styles.billTotalAmount}>{formatCurrency(calculateTotal())}</Text>
                             </View>
                         </View>
                     </Animated.View>
@@ -578,7 +790,9 @@ export default function CreateAppScreen() {
                     <Text style={styles.headerTitle}>Create New App</Text>
                     <Text style={styles.headerSubtitle}>Step {currentStep} of {totalSteps}</Text>
                 </View>
-                <View style={{ width: 40 }} />
+                <View style={styles.totalBadge}>
+                    <Text style={styles.totalBadgeText}>{formatCurrency(calculateTotal())}</Text>
+                </View>
             </View>
 
             {/* Progress Bar */}
@@ -662,6 +876,17 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.white,
         borderBottomWidth: 1,
         borderBottomColor: Colors.gray[200],
+    },
+    totalBadge: {
+        backgroundColor: Colors.primary,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+    },
+    totalBadgeText: {
+        color: Colors.white,
+        fontWeight: 'bold',
+        fontSize: 14,
     },
     backButton: {
         width: 40,
@@ -1072,5 +1297,144 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: Colors.white,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+    },
+    modalContent: {
+        backgroundColor: Colors.white,
+        borderRadius: 24,
+        padding: 24,
+        width: '100%',
+        maxHeight: '80%',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: Colors.text.primary,
+    },
+    closeButtonText: {
+        fontSize: 16,
+        color: Colors.primary,
+        fontWeight: '600',
+    },
+    servicePrice: {
+        fontSize: 12,
+        color: Colors.gray[500],
+        marginTop: 4,
+        fontWeight: '600',
+    },
+    servicePriceSelected: {
+        color: Colors.primary,
+    },
+    securityTipSubtext: {
+        fontSize: 12,
+        color: Colors.gray[600],
+        marginTop: 4,
+        lineHeight: 18,
+    },
+    optionPrice: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: Colors.primary,
+        marginVertical: 2,
+    },
+    platformPrice: {
+        fontSize: 12,
+        color: Colors.gray[500],
+        marginTop: 2,
+        fontWeight: '600',
+    },
+    billSummary: {
+        backgroundColor: Colors.gray[50],
+        borderRadius: 16,
+        padding: 20,
+        marginTop: 24,
+        borderWidth: 1,
+        borderColor: Colors.gray[200],
+    },
+    billTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: Colors.text.primary,
+        marginBottom: 16,
+    },
+    billRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 12,
+    },
+    billItem: {
+        fontSize: 14,
+        color: Colors.gray[600],
+    },
+    billPrice: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: Colors.text.primary,
+    },
+    billDivider: {
+        height: 1,
+        backgroundColor: Colors.gray[200],
+        marginVertical: 16,
+    },
+    billTotalRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    billTotalText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: Colors.text.primary,
+    },
+    billTotalAmount: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: Colors.primary,
+    },
+    paymentOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 16,
+        backgroundColor: Colors.white,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Colors.gray[200],
+    },
+    paymentOptionSelected: {
+        borderColor: Colors.primary,
+        backgroundColor: Colors.primaryLighter,
+    },
+    paymentOptionTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: Colors.text.primary,
+    },
+    paymentOptionSub: {
+        fontSize: 12,
+        color: Colors.gray[500],
+    },
+    radio: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        borderWidth: 2,
+        borderColor: Colors.gray[300],
+    },
+    radioSelected: {
+        borderColor: Colors.primary,
+        borderWidth: 6,
     },
 });

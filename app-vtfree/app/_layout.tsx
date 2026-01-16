@@ -19,7 +19,7 @@ export default function RootLayout() {
                     <Stack.Screen name="login" options={{ headerShown: false }} />
                     <Stack.Screen name="register" options={{ headerShown: false }} />
                     <Stack.Screen name="dashboard" options={{ headerShown: false }} />
-                    <Stack.Screen name="create-app" options={{ headerShown: false }} />
+                    <Stack.Screen name="create-app/index" options={{ headerShown: false }} />
                     <Stack.Screen name="build-status" options={{ headerShown: false }} />
                     <Stack.Screen name="app-details" options={{ headerShown: false }} />
                     <Stack.Screen name="support" options={{ headerShown: false }} />

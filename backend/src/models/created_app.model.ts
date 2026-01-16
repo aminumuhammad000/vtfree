@@ -13,6 +13,9 @@ export interface ICreatedApp extends Document {
         web: boolean;
     };
 
+    // Services
+    services: string[];
+
     // Branding
     branding: {
         logo_url?: string;
@@ -26,6 +29,14 @@ export interface ICreatedApp extends Document {
         app_display_name?: string;
         app_tagline?: string;
         last_updated?: Date;
+    };
+
+    // Company Details
+    company?: {
+        name?: string;
+        email?: string;
+        phone?: string;
+        address?: string;
     };
 
     // Status
@@ -91,6 +102,12 @@ const CreatedAppSchema: Schema = new Schema({
         },
     },
 
+    // Services
+    services: {
+        type: [String],
+        default: [],
+    },
+
     // Branding
     branding: {
         logo_url: {
@@ -132,6 +149,14 @@ const CreatedAppSchema: Schema = new Schema({
         last_updated: {
             type: Date,
         },
+    },
+
+    // Company Details
+    company: {
+        name: { type: String, trim: true },
+        email: { type: String, trim: true },
+        phone: { type: String, trim: true },
+        address: { type: String, trim: true },
     },
 
     // Status

@@ -12,6 +12,7 @@ export interface IVTfreeUser extends Document {
     verification_token?: string;
     reset_password_token?: string;
     reset_password_expires?: Date;
+    wallet_balance: number;
     created_at: Date;
     updated_at: Date;
 }
@@ -46,6 +47,10 @@ const VTfreeUserSchema: Schema = new Schema({
     company_name: {
         type: String,
         trim: true,
+    },
+    wallet_balance: {
+        type: Number,
+        default: 0,
     },
     status: {
         type: String,

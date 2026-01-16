@@ -1,49 +1,52 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { config } from '../config/bootstrap.js';
+import SuperAdmin from '../models/super_admin.model.js';
 
 async function ensureSuperAdmin() {
     try {
-        console.log('🔌 Connecting to MongoDB...');
+        console.log('🔌 Connecting to MongoDB at:', config.mongoUri);
         await mongoose.connect(config.mongoUri);
         console.log('✅ Connected to MongoDB');
 
-        const email = 'admin@vtuapp.com';
-        const password = 'password123';
+        const email = 'superadmin@vtuapp.com';
+        const password = 'SuperAdmin@123';
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Check SuperAdmin
-        try {
-            const { default: SuperAdmin } = await import('../models/super_admin.model.js');
-            let superAdmin = await SuperAdmin.findOne({ email });
+        // Check if admin exists
+        let admin = await SuperAdmin.findOne({ email });
 
-            if (superAdmin) {
-                console.log('Found existing SuperAdmin. Updating...');
-                superAdmin.password = hashedPassword;
-                superAdmin.status = 'active';
-                superAdmin.role = 'super_admin';
-                await superAdmin.save();
-                console.log('✅ SuperAdmin updated successfully.');
-            } else {
-                console.log('SuperAdmin not found. Creating...');
-                superAdmin = await SuperAdmin.create({
-                    email,
-                    password: hashedPassword,
-                    name: 'Super Admin',
-                    role: 'super_admin',
-                    status: 'active',
-                    permissions: ['all']
-                });
-                console.log('✅ SuperAdmin created successfully.');
-            }
-        } catch (e) {
-            console.error('❌ Error handling SuperAdmin:', e);
+        if (!admin) {
+            console.log('Creating Super Admin...');
+            admin = await SuperAdmin.create({
+                email,
+                password: hashedPassword,
+                first_name: 'Super',
+                last_name: 'Admin',
+                role: 'super_admin',
+                permissions: ['all'],
+                status: 'active'
+            });
+            console.log('✅ Super Admin created');
+        } else {
+            console.log('Super Admin exists. Updating password...');
+            admin.password = hashedPassword;
+            admin.status = 'active';
+            await admin.save();
+            console.log('✅ Super Admin password updated');
         }
+
+        console.log(`
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📧 Email: ${email}
+🔑 Password: ${password}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        `);
 
         await mongoose.disconnect();
         console.log('\n✅ Done!');
     } catch (error) {
-        console.error('❌ Error ensuring super admin:', error);
+        console.error('❌ Error:', error);
         process.exit(1);
     }
 }

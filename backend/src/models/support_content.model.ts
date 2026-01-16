@@ -9,6 +9,7 @@ export interface ISupportContent extends Document {
     instagramUrl?: string;
     websiteUrl?: string;
     updated_at: Date;
+    app_id?: string;
 }
 
 const supportContentSchema = new Schema<ISupportContent>({

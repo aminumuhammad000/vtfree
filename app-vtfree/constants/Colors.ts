@@ -27,13 +27,17 @@ export const Colors = {
     green: {
         50: '#F0FDF4',
         100: '#DCFCE7',
+        200: '#BBF7D0',
+        300: '#86EFAC',
         500: '#22C55E',
         600: '#16A34A',
         700: '#15803D',
     },
 
     yellow: {
+        50: '#FFFBEB',
         100: '#FEF3C7',
+        200: '#FDE68A',
         500: '#F59E0B',
         700: '#B45309',
     },
@@ -41,6 +45,7 @@ export const Colors = {
     red: {
         100: '#FEE2E2',
         500: '#EF4444',
+        600: '#DC2626',
         700: '#B91C1C',
     },
 

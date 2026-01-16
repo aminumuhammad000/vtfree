@@ -3,6 +3,7 @@ import AppAdmin from '../models/app_admin.model.js';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { AdminGenerationService } from './admin_generation.service.js';
+import { AppGeneratorService } from './app_generator.service.js';
 
 export class AppCreationService {
     static async createNewApp(data: {
@@ -12,6 +13,9 @@ export class AppCreationService {
         package_name: string;
         platforms: { android: boolean; ios: boolean; web: boolean };
         branding: { primary_color: string; secondary_color: string; logo_url?: string };
+        services: string[];
+        company?: { name?: string; email?: string; phone?: string; address?: string };
+        admin_credentials?: { email: string; password: string };
     }) {
         // 1. Validate Package Name
         const existingApp = await CreatedApp.findOne({ package_name: data.package_name });
@@ -22,9 +26,19 @@ export class AppCreationService {
         // 2. Generate App ID
         const app_id = `app_${uuidv4().split('-')[0]}`;
 
-        // 3. Generate Admin Credentials
-        const adminCredentials = await AdminGenerationService.generateCredentials();
-        const hashedPassword = await bcrypt.hash(adminCredentials.password, 10);
+        // 3. Generate or Use Admin Credentials
+        let adminEmail = data.owner_email;
+        let adminPassword = '';
+
+        if (data.admin_credentials && data.admin_credentials.email && data.admin_credentials.password) {
+            adminEmail = data.admin_credentials.email;
+            adminPassword = data.admin_credentials.password;
+        } else {
+            const creds = await AdminGenerationService.generateCredentials();
+            adminPassword = creds.password;
+        }
+
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
         // 4. Create App Record
         const newApp = new CreatedApp({
@@ -34,8 +48,10 @@ export class AppCreationService {
             package_name: data.package_name,
             platforms: data.platforms,
             branding: data.branding,
-            status: 'pending',
-            admin_email: data.owner_email,
+            services: data.services,
+            company: data.company, // Add company details
+            status: 'building',
+            admin_email: adminEmail,
             admin_password_hash: hashedPassword,
         });
 
@@ -44,17 +60,36 @@ export class AppCreationService {
         // 5. Create Admin Account
         await AdminGenerationService.createAdminAccount({
             app_id,
-            email: data.owner_email,
+            email: adminEmail,
             password_hash: hashedPassword,
             role: 'owner',
             created_by: data.owner_id
         });
 
+        // 6. Trigger App Generation (Async)
+        // We don't await this to keep the API response fast, but we should log errors.
+        AppGeneratorService.generateSourceCode({
+            app_id,
+            app_name: data.app_name,
+            package_name: data.package_name,
+            branding: data.branding,
+            owner_id: data.owner_id
+        }).then(async () => {
+            console.log(`[AppCreation] App generated for ${app_id}`);
+            // Update status to live or provisioned
+            newApp.status = 'live'; // or 'provisioned'
+            await newApp.save();
+        }).catch(async (err) => {
+            console.error(`[AppCreation] Generation failed for ${app_id}:`, err);
+            newApp.status = 'suspended'; // failed state
+            await newApp.save();
+        });
+
         return {
             app: newApp,
             admin_credentials: {
-                email: data.owner_email,
-                password: adminCredentials.password,
+                email: adminEmail,
+                password: adminPassword,
                 login_url: `https://admin.vtfree.com/login?app=${app_id}`
             }
         };

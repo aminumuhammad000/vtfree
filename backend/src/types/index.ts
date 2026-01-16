@@ -14,6 +14,7 @@ export interface IVirtualAccount {
 
 export interface IUser extends Document {
   _id: Types.ObjectId;
+  app_id: string;
   email: string;
   phone_number: string;
   password_hash: string;
@@ -40,12 +41,12 @@ export interface IUser extends Document {
   nin?: string;
   bvn?: string;
   transaction_pin?: string;
-  app_id?: string;
 }
 
 export interface IWallet extends Document {
   _id: Types.ObjectId;
   user_id: Types.ObjectId;
+  app_id: string;
   // camelCase alias
   userId?: Types.ObjectId;
   balance: number;
@@ -58,6 +59,7 @@ export interface IWallet extends Document {
 export interface ITransaction extends Document {
   _id: Types.ObjectId;
   user_id: Types.ObjectId;
+  app_id: string;
   // camelCase alias
   user?: any;
   wallet_id: Types.ObjectId;
@@ -78,7 +80,6 @@ export interface ITransaction extends Document {
   updated_at: Date;
   metadata?: any;
   gateway?: string;
-  app_id?: string;
 }
 
 export interface IOperator extends Document {
@@ -186,6 +187,7 @@ export interface IOTP extends Document {
 export interface INotification extends Document {
   _id: Types.ObjectId;
   user_id?: Types.ObjectId;
+  app_id: string;
   type: string;
   title: string;
   message: string;
@@ -224,6 +226,7 @@ export interface ISupportTicket extends Document {
   _id: Types.ObjectId;
   user_id?: Types.ObjectId;
   admin_id?: Types.ObjectId;
+  app_id: string;
   subject: string;
   description: string;
   status: 'new' | 'open' | 'pending_user' | 'resolved' | 'closed';
@@ -249,8 +252,8 @@ export interface AuthRequest extends Request {
   user?: {
     id: string;
     role?: string;
-    type?: string;
-    app_id?: string;
     email?: string;
+    app_id?: string;
+    type?: string;
   };
 }

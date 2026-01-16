@@ -5,16 +5,19 @@ import { router } from 'expo-router';
 
 interface AuthContextType {
     user: any | null;
+    token: string | null;
     isLoading: boolean;
     signIn: (data: any) => Promise<void>;
     signUp: (data: any) => Promise<void>;
     signOut: () => Promise<void>;
+    updateUser: (user: any) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<any | null>(null);
+    const [token, setToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -24,9 +27,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async function checkUser() {
         try {
             const userJson = await AsyncStorage.getItem('vtfree_user');
-            const token = await AsyncStorage.getItem('vtfree_token');
-            if (userJson && token) {
+            const storedToken = await AsyncStorage.getItem('vtfree_token');
+            if (userJson && storedToken) {
                 setUser(JSON.parse(userJson));
+                setToken(storedToken);
             }
         } catch (e) {
             console.error(e);
@@ -39,8 +43,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             const response = await AuthService.login(data);
             if (response.success) {
+                // AuthService.login already saved token/user to AsyncStorage
                 setUser(response.data.user);
-                router.replace('/(tabs)');
+                setToken(response.data.token);
+                // router.replace('/(tabs)'); // Handling navigation in the screen
             } else {
                 throw new Error(response.message);
             }
@@ -53,8 +59,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             const response = await AuthService.register(data);
             if (response.success) {
+                // AuthService.register already saved token/user to AsyncStorage
                 setUser(response.data.user);
-                router.replace('/(tabs)');
+                setToken(response.data.token);
+                // router.replace('/(tabs)'); // Handling navigation in the screen
             } else {
                 throw new Error(response.message);
             }
@@ -66,11 +74,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async function signOut() {
         await AuthService.logout();
         setUser(null);
+        setToken(null);
         router.replace('/login');
     }
 
+    async function updateUser(userData: any) {
+        setUser(userData);
+        await AsyncStorage.setItem('vtfree_user', JSON.stringify(userData));
+    }
+
     return (
-        <AuthContext.Provider value={{ user, isLoading, signIn, signUp, signOut }}>
+        <AuthContext.Provider value={{ user, token, isLoading, signIn, signUp, signOut, updateUser }}>
             {children}
         </AuthContext.Provider>
     );

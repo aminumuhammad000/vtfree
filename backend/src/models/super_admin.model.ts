@@ -3,7 +3,8 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface ISuperAdmin extends Document {
     email: string;
     password: string;
-    name: string;
+    first_name: string;
+    last_name: string;
     role: 'super_admin';
     permissions: string[];
     status: 'active' | 'suspended';
@@ -24,9 +25,12 @@ const SuperAdminSchema: Schema = new Schema({
         type: String,
         required: true,
     },
-    name: {
+    first_name: {
         type: String,
-        required: true,
+        trim: true,
+    },
+    last_name: {
+        type: String,
         trim: true,
     },
     role: {

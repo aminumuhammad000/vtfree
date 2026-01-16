@@ -3,7 +3,8 @@ import { createContext, useContext, useState, type ReactNode } from 'react';
 interface AuthContextType {
   token: string | null;
   admin: any;
-  login: (token: string, admin: any) => void;
+  app: any;
+  login: (token: string, admin: any, app: any) => void;
   logout: () => void;
 }
 
@@ -15,23 +16,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const stored = localStorage.getItem('admin');
     return stored ? JSON.parse(stored) : null;
   });
+  const [app, setApp] = useState<any>(() => {
+    const stored = localStorage.getItem('app_config');
+    return stored ? JSON.parse(stored) : null;
+  });
 
-  const login = (token: string, admin: any) => {
+  const login = (token: string, admin: any, app: any) => {
     setToken(token);
     setAdmin(admin);
+    setApp(app);
     localStorage.setItem('token', token);
     localStorage.setItem('admin', JSON.stringify(admin));
+    if (app) localStorage.setItem('app_config', JSON.stringify(app));
   };
 
   const logout = () => {
     setToken(null);
     setAdmin(null);
+    setApp(null);
     localStorage.removeItem('token');
     localStorage.removeItem('admin');
+    localStorage.removeItem('app_config');
   };
 
   return (
-    <AuthContext.Provider value={{ token, admin, login, logout }}>
+    <AuthContext.Provider value={{ token, admin, app, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

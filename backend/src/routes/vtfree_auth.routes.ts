@@ -10,5 +10,6 @@ router.post('/login', VTfreeAuthController.login);
 
 // Protected routes
 router.get('/profile', authenticateVTfreeUser, VTfreeAuthController.getProfile);
+router.put('/profile', authenticateVTfreeUser, VTfreeAuthController.updateProfile);
 
 export default router;
