@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { configService } from './config.service.js';
+import logger from '../utils/logger.js';
 
 export interface CreateVirtualAccountDto {
     bankType: string;
@@ -15,28 +16,20 @@ export class VTPayService {
     private static axiosInstance: AxiosInstance | null = null;
 
     /**
-     * Initialize VTPay API key and Axios instance
+     * Get an Axios instance for a specific API key
      */
-    private static async init() {
-        if (this.axiosInstance) return;
-
-        // Fetch from ConfigService
-        const apiKey = await configService.get('VTPAY_API_KEY');
-        const baseURL = await configService.get('VTPAY_BASE_URL');
-
-        if (baseURL) {
-            this.baseURL = baseURL;
-        }
+    private static async getClient(customApiKey?: string) {
+        const apiKey = customApiKey || await configService.get('VTPAY_API_KEY');
+        const baseURL = await configService.get('VTPAY_BASE_URL') || this.baseURL;
 
         if (!apiKey) {
             throw new Error('VTPay API key not configured');
         }
 
-        this.apiKey = apiKey;
-        this.axiosInstance = axios.create({
-            baseURL: this.baseURL,
+        return axios.create({
+            baseURL: baseURL,
             headers: {
-                'x-api-key': this.apiKey,
+                'x-api-key': apiKey,
                 'Content-Type': 'application/json',
             },
         });
@@ -45,9 +38,9 @@ export class VTPayService {
     /**
      * Create a new virtual account
      */
-    static async createVirtualAccount(data: CreateVirtualAccountDto) {
-        await this.init();
+    static async createVirtualAccount(data: CreateVirtualAccountDto, customApiKey?: string) {
         try {
+            const client = await this.getClient(customApiKey);
             // Normalize phone number: if 10 digits, prepend '0'
             let normalizedPhone = String(data.phone).trim();
             if (normalizedPhone.length === 10) {
@@ -55,127 +48,153 @@ export class VTPayService {
             }
 
             const payload = { ...data, phone: normalizedPhone };
-            const response = await this.axiosInstance!.post('/virtual-accounts', payload);
+            const response = await client.post('/virtual-accounts', payload);
             return response.data;
         } catch (error: any) {
-            console.error('VTPay createVirtualAccount error:', error.response?.data || error.message);
-            throw new Error(error.response?.data?.message || 'Failed to create virtual account');
+            if (error.response) {
+                logger.error(`VTPay API Error (${error.response.status}):`, error.response.data);
+            } else {
+                logger.error('VTPay Request Error:', error.message);
+            }
+            throw new Error(error.response?.data?.message || error.response?.data?.error || 'Failed to create virtual account');
         }
     }
 
     /**
      * Get list of virtual accounts
      */
-    static async getVirtualAccounts() {
-        await this.init();
+    static async getVirtualAccounts(customApiKey?: string) {
         try {
-            const response = await this.axiosInstance!.get('/virtual-accounts');
+            const client = await this.getClient(customApiKey);
+            const response = await client.get('/virtual-accounts');
             return response.data;
         } catch (error: any) {
-            console.error('VTPay getVirtualAccounts error:', error.response?.data || error.message);
-            throw new Error(error.response?.data?.message || 'Failed to fetch virtual accounts');
+            if (error.response) {
+                logger.error(`VTPay getVirtualAccounts API Error (${error.response.status}):`, error.response.data);
+            } else {
+                logger.error('VTPay getVirtualAccounts Request Error:', error.message);
+            }
+            throw new Error(error.response?.data?.message || error.response?.data?.error || 'Failed to fetch virtual accounts');
         }
     }
 
     /**
      * Get account balance
      */
-    static async getAccountBalance(accountNumber: string) {
-        await this.init();
+    static async getAccountBalance(accountNumber: string, customApiKey?: string) {
         try {
-            const response = await this.axiosInstance!.get(`/virtual-accounts/${accountNumber}/balance`);
+            const client = await this.getClient(customApiKey);
+            const response = await client.get(`/virtual-accounts/${accountNumber}/balance`);
             return response.data;
         } catch (error: any) {
-            console.error('VTPay getAccountBalance error:', error.response?.data || error.message);
-            throw new Error(error.response?.data?.message || 'Failed to fetch account balance');
+            if (error.response) {
+                logger.error(`VTPay getAccountBalance API Error (${error.response.status}):`, error.response.data);
+            } else {
+                logger.error('VTPay getAccountBalance Request Error:', error.message);
+            }
+            throw new Error(error.response?.data?.message || error.response?.data?.error || 'Failed to fetch account balance');
         }
     }
 
     /**
      * Get transactions for a specific account
      */
-    static async getTransactions(accountNumber: string) {
-        await this.init();
+    static async getTransactions(accountNumber: string, customApiKey?: string) {
         try {
-            const response = await this.axiosInstance!.get(`/virtual-accounts/${accountNumber}/transactions`);
+            const client = await this.getClient(customApiKey);
+            const response = await client.get(`/virtual-accounts/${accountNumber}/transactions`);
             return response.data;
         } catch (error: any) {
-            console.error('VTPay getTransactions error:', error.response?.data || error.message);
-            throw new Error(error.response?.data?.message || 'Failed to fetch account transactions');
+            if (error.response) {
+                logger.error(`VTPay getTransactions API Error (${error.response.status}):`, error.response.data);
+            } else {
+                logger.error('VTPay getTransactions Request Error:', error.message);
+            }
+            throw new Error(error.response?.data?.message || error.response?.data?.error || 'Failed to fetch account transactions');
         }
     }
 
     /**
      * Get all transactions (Admin view)
      */
-    static async getAllTransactions(limit = 50, offset = 0) {
-        await this.init();
+    static async getAllTransactions(limit = 50, offset = 0, customApiKey?: string) {
         try {
-            const response = await this.axiosInstance!.get('/admin/transactions', {
+            const client = await this.getClient(customApiKey);
+            const response = await client.get('/admin/transactions', {
                 params: { limit, offset }
             });
             return response.data;
         } catch (error: any) {
-            // Fallback: if /admin/transactions fails (e.g. not an admin key), 
-            // we might want to try a different approach or just throw
-            console.error('VTPay getAllTransactions error:', error.response?.data || error.message);
-            throw new Error(error.response?.data?.message || 'Failed to fetch all transactions');
+            if (error.response) {
+                logger.error(`VTPay getAllTransactions API Error (${error.response.status}):`, error.response.data);
+            } else {
+                logger.error('VTPay getAllTransactions Request Error:', error.message);
+            }
+            throw new Error(error.response?.data?.message || error.response?.data?.error || 'Failed to fetch all transactions');
         }
     }
 
     /**
      * Get platform wallet balance
      */
-    static async getPlatformBalance() {
-        await this.init();
+    static async getPlatformBalance(customApiKey?: string) {
         try {
-            const response = await this.axiosInstance!.get('/wallet/balance');
+            const client = await this.getClient(customApiKey);
+            const response = await client.get('/wallet/balance');
             return response.data;
         } catch (error: any) {
-            console.error('VTPay getPlatformBalance error:', error.response?.data || error.message);
-            throw new Error(error.response?.data?.message || 'Failed to fetch platform balance');
+            if (error.response) {
+                logger.error(`VTPay getPlatformBalance API Error (${error.response.status}):`, error.response.data);
+            } else {
+                logger.error('VTPay getPlatformBalance Request Error:', error.message);
+            }
+            throw new Error(error.response?.data?.message || error.response?.data?.error || 'Failed to fetch platform balance');
         }
     }
 
     /**
      * Get list of banks
      */
-    static async getBanksList() {
-        await this.init();
+    static async getBanksList(customApiKey?: string) {
         try {
-            // Return empty list as default since we don't have the specific endpoint yet
-            return { status: 'success', data: { banks: [] } };
+            const client = await this.getClient(customApiKey);
+            const response = await client.get('/banks');
+            return response.data;
         } catch (error: any) {
-            return { status: 'success', data: { banks: [] } };
+            if (error.response) {
+                logger.error(`VTPay getBanksList API Error (${error.response.status}):`, error.response.data);
+            } else {
+                logger.error('VTPay getBanksList Request Error:', error.message);
+            }
+            // Fallback to empty list to prevent crashes
+            return { success: false, data: [] };
         }
     }
 
     /**
      * Get balance (generic)
      */
-    static async getBalance() {
-        return this.getPlatformBalance();
+    static async getBalance(customApiKey?: string) {
+        return this.getPlatformBalance(customApiKey);
     }
 
     /**
      * Validate account
      */
-    static async validateAccount(bankCode: string, accountNumber: string) {
-        await this.init();
-        // Return mock validation for now to prevent crashes
-        return {
-            status: 'success',
-            data: {
-                account_name: 'Verified Account',
-                account_number: accountNumber
+    static async validateAccount(bankCode: string, accountNumber: string, customApiKey?: string) {
+        try {
+            const client = await this.getClient(customApiKey);
+            const response = await client.get('/banks/verify', {
+                params: { bankCode, accountNumber }
+            });
+            return response.data;
+        } catch (error: any) {
+            if (error.response) {
+                logger.error(`VTPay validateAccount API Error (${error.response.status}):`, error.response.data);
+            } else {
+                logger.error('VTPay validateAccount Request Error:', error.message);
             }
-        };
-    }
-
-    /**
-     * Force re-initialization of the axios instance (useful when settings change)
-     */
-    static forceInit() {
-        this.axiosInstance = null;
+            throw new Error(error.response?.data?.message || 'Failed to verify account');
+        }
     }
 }

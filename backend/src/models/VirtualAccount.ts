@@ -13,66 +13,73 @@ export interface IVirtualAccount extends Document {
     virtualAccountNo?: string;
     identityType?: string;
     licenseNumber?: string;
+    bankType?: string;
   };
   isActive: boolean;
+  generatedBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const VirtualAccountSchema = new Schema<IVirtualAccount>(
   {
-    user: { 
-      type: Schema.Types.ObjectId, 
+    user: {
+      type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
       index: true
     },
-    accountNumber: { 
-      type: String, 
+    accountNumber: {
+      type: String,
       required: true,
       unique: true,
       index: true
     },
-    accountName: { 
-      type: String, 
-      required: true 
+    accountName: {
+      type: String,
+      required: true
     },
-    bankName: { 
-      type: String, 
+    bankName: {
+      type: String,
       default: 'PalmPay',
-      required: true 
+      required: true
     },
-    provider: { 
-      type: String, 
-      default: 'payrant',
-      enum: ['payrant', 'monnify', 'flutterwave'],
-      required: true 
+    provider: {
+      type: String,
+      default: 'vtpay',
+      enum: ['payrant', 'monnify', 'flutterwave', 'vtpay', 'ibdata'],
+      required: true
     },
-    reference: { 
-      type: String, 
+    reference: {
+      type: String,
       required: true,
       unique: true,
       index: true
     },
-    status: { 
-      type: String, 
+    status: {
+      type: String,
       default: 'active',
       enum: ['active', 'inactive', 'suspended'],
-      required: true 
+      required: true
     },
     metadata: {
       type: Schema.Types.Mixed,
       default: {}
     },
-    isActive: { 
-      type: Boolean, 
-      default: true 
+    isActive: {
+      type: Boolean,
+      default: true
+    },
+    generatedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'AppAdmin',
+      index: true
     }
   },
   {
     timestamps: true,
     toJSON: {
-      transform: function(doc: any, ret: any) {
+      transform: function (doc: any, ret: any) {
         ret.id = ret._id;
         delete ret._id;
         delete ret.__v;
@@ -82,7 +89,7 @@ const VirtualAccountSchema = new Schema<IVirtualAccount>(
   }
 );
 
-// Create a compound index for user and provider to ensure one account per provider per user
-VirtualAccountSchema.index({ user: 1, provider: 1 }, { unique: true });
+// Create a compound index for user and provider for faster lookups
+VirtualAccountSchema.index({ user: 1, provider: 1 });
 
 export default mongoose.model<IVirtualAccount>('VirtualAccount', VirtualAccountSchema);

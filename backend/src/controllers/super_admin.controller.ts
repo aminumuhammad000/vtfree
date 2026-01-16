@@ -830,9 +830,6 @@ export const updateVTPaySettings = async (req: Request, res: Response) => {
         if (apiKey !== undefined) await configService.set('VTPAY_API_KEY', apiKey);
         if (baseURL !== undefined) await configService.set('VTPAY_BASE_URL', baseURL);
 
-        // Force VTPayService to re-initialize with new settings
-        VTPayService.forceInit();
-
         res.json({ success: true, message: 'VTPay settings updated successfully' });
     } catch (error: any) {
         logger.error('Error updating VTPay settings:', error);

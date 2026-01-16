@@ -24,12 +24,10 @@ export class ZainpayService {
     private client!: AxiosInstance;
     private baseUrl: string;
     private publicKey: string;
-    private secretKey: string;
 
     constructor() {
         this.baseUrl = config.zainpay.baseUrl;
         this.publicKey = config.zainpay.publicKey;
-        this.secretKey = config.zainpay.secretKey;
 
         this.initializeClient();
     }
@@ -78,7 +76,6 @@ export class ZainpayService {
 
                     this.publicKey = zainpayConfig.apiKey;
                     this.baseUrl = zainpayConfig.baseUrl;
-                    this.secretKey = zainpayConfig.secretKey;
 
                     this.initializeClient();
                 } else {

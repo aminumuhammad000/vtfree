@@ -136,6 +136,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
         });
 
         if (zainpayResponse.code !== '00') {
+            console.error('Zainpay Error Response:', zainpayResponse);
             res.status(400).json({
                 success: false,
                 message: zainpayResponse.description || 'Failed to create virtual account',
@@ -145,11 +146,14 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
 
         const accountData = zainpayResponse.data!;
 
+        // Clean account name: remove "Zainpay" prefix if present
+        const cleanedAccountName = accountData.accountName.replace(/Zainpay/gi, '').trim();
+
         // Save virtual account to database
         const virtualAccount = new VirtualAccount({
             userId: new mongoose.Types.ObjectId(userId),
             accountNumber: accountData.accountNumber,
-            accountName: accountData.accountName,
+            accountName: cleanedAccountName,
             bankName: accountData.bankName,
             bankType,
             zainboxCode: targetZainboxCode,
@@ -209,7 +213,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
                             await VirtualAccount.create({
                                 userId: new mongoose.Types.ObjectId(userId),
                                 accountNumber: zAccount.bankAccount,
-                                accountName: zAccount.name,
+                                accountName: zAccount.name.replace(/Zainpay/gi, '').trim(),
                                 bankName: zAccount.bankName,
                                 bankType: 'gtBank', // Default or infer from bankName if possible
                                 zainboxCode: userZainbox.zainboxCode,

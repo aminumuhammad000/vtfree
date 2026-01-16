@@ -11,8 +11,6 @@ const PaymentSettings = () => {
     const [formData, setFormData] = useState({
         DEFAULT_PAYMENT_GATEWAY: 'vtpay',
         VTPAY_API_KEY: '',
-        VTPAY_SECRET_KEY: '',
-        VTPAY_PUBLIC_KEY: '',
         PAYRANT_API_KEY: '',
         PAYRANT_WEBHOOK_SECRET: '',
         PAYSTACK_SECRET_KEY: '',
@@ -180,20 +178,6 @@ const PaymentSettings = () => {
                                                 onChange={handleChange}
                                                 className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm font-mono"
                                                 placeholder="vt_live_..."
-                                            />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Secret Key</label>
-                                        <div className="relative">
-                                            <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                            <input
-                                                type="password"
-                                                name="VTPAY_SECRET_KEY"
-                                                value={formData.VTPAY_SECRET_KEY}
-                                                onChange={handleChange}
-                                                className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm font-mono"
-                                                placeholder="••••••••••••"
                                             />
                                         </div>
                                     </div>

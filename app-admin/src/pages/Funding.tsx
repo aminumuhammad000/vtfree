@@ -47,7 +47,7 @@ const Funding: React.FC = () => {
     queryKey: ['ibdata-balance'],
     queryFn: async () => {
       const res = await getIBDataBalance();
-      return res.data?.data || { balance: 0, account: null };
+      return res.data?.data || { balance: 0, accounts: [] };
     }
   });
 
@@ -116,6 +116,12 @@ const Funding: React.FC = () => {
     type: 'manual' as 'manual' | 'virtual'
   });
 
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [generateForm, setGenerateForm] = useState({
+    provider: 'ibdata',
+    bank: 'moniepoint'
+  });
+
   // Account verification state
   const [verifying, setVerifying] = useState(false);
   const [verifiedName, setVerifiedName] = useState('');
@@ -171,7 +177,7 @@ const Funding: React.FC = () => {
         account_number: form.accountNumber,
       });
 
-      if (res.data?.status === 'success' && res.data?.data?.verified) {
+      if (res.data?.success && res.data?.data?.verified) {
         setVerifiedName(res.data.data.account_name);
         setForm({ ...form, accountName: res.data.data.account_name });
       } else {
@@ -198,9 +204,10 @@ const Funding: React.FC = () => {
   });
 
   const generateAccountMut = useMutation({
-    mutationFn: () => generateVirtualAccount().then(r => r.data),
+    mutationFn: (data: { provider: string; bank: string }) => generateVirtualAccount(data).then(r => r.data),
     onSuccess: () => {
       refetchIBData();
+      setShowGenerateModal(false);
       showSuccess('Virtual account generated successfully!');
     },
     onError: (err: any) => {
@@ -238,7 +245,7 @@ const Funding: React.FC = () => {
                     </svg>
                     <p className="text-sm font-semibold uppercase tracking-wide text-purple-100">{defaultGateway} Balance</p>
                   </div>
-                  <p className="text-4xl font-extrabold mb-1">₦{Number(gatewayBalanceRes?.balance || 0).toLocaleString()}</p>
+                  <p className="text-4xl font-extrabold mb-1">₦{Number((balancesRes as any)?.vtpayBalance || 0).toLocaleString()}</p>
                   <p className="text-xs text-purple-200 uppercase tracking-wide">Available Funds</p>
                 </div>
                 <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-white/5 rounded-full"></div>
@@ -285,7 +292,7 @@ const Funding: React.FC = () => {
                     <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                     </svg>
-                    <p className="text-sm font-semibold uppercase tracking-wide text-green-100">Withdrawal Accounts</p>
+                    <p className="text-sm font-semibold uppercase tracking-wide text-green-100">Total Accounts</p>
                   </div>
                   <p className="text-4xl font-extrabold mb-1">{accounts.length}</p>
                   <p className="text-xs text-green-200 uppercase tracking-wide">Configured Accounts</p>
@@ -345,21 +352,19 @@ const Funding: React.FC = () => {
                           <td className="px-6 py-4 text-sm">
                             {p.code.toLowerCase() === 'ibdata' && (
                               <div className="flex flex-col gap-2">
-                                {ibdataBalanceRes?.account ? (
-                                  <div className="text-xs bg-slate-100 p-2 rounded">
-                                    <p className="font-semibold text-slate-700">Virtual Account:</p>
-                                    <p>{ibdataBalanceRes.account.bankName}</p>
-                                    <p className="font-mono">{ibdataBalanceRes.account.accountNumber}</p>
-                                    <p>{ibdataBalanceRes.account.accountName}</p>
-                                  </div>
-                                ) : (
+                                {(ibdataBalanceRes?.totalOwnerAccounts ?? 0) < 3 ? (
                                   <button
-                                    onClick={() => generateAccountMut.mutate()}
+                                    onClick={() => {
+                                      setGenerateForm({ provider: 'ibdata', bank: 'moniepoint' });
+                                      setShowGenerateModal(true);
+                                    }}
                                     disabled={generateAccountMut.status === 'pending'}
                                     className="text-xs bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-700 disabled:opacity-50"
                                   >
                                     {generateAccountMut.status === 'pending' ? 'Generating...' : 'Generate Virtual Account'}
                                   </button>
+                                ) : (
+                                  <span className="text-xs text-slate-500 italic">Limit reached (3/3)</span>
                                 )}
                               </div>
                             )}
@@ -409,7 +414,7 @@ const Funding: React.FC = () => {
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {accounts.length === 0 && (
-                        <tr><td colSpan={5} className="px-6 py-4 text-center text-gray-500">No accounts yet.</td></tr>
+                        <tr><td colSpan={7} className="px-6 py-4 text-center text-gray-500 italic">No funding or withdrawal accounts found.</td></tr>
                       )}
                       {accounts.map((a: any) => (
                         <tr key={a._id} className="hover:bg-gray-50">
@@ -644,6 +649,59 @@ const Funding: React.FC = () => {
                       ? (updateMut.status === 'pending' ? 'Saving...' : 'Save Changes')
                       : (createMut.status === 'pending' ? 'Adding...' : 'Add Account')
                     }
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Generate Virtual Account Modal */}
+          {showGenerateModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Generate Virtual Account</h3>
+                  <button onClick={() => setShowGenerateModal(false)} className="p-2 text-slate-500 hover:text-slate-700">✕</button>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Provider</p>
+                    <p className="text-sm font-bold text-slate-900">IBData</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Select Bank</label>
+                    <select
+                      value={generateForm.bank}
+                      onChange={e => setGenerateForm({ ...generateForm, bank: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                    >
+                      <option value="moniepoint">Moniepoint</option>
+                      <option value="fidelity">Fidelity Bank</option>
+                      <option value="sterling">Sterling Bank</option>
+                      <option value="gtbank">GTBank</option>
+                      <option value="fcmb">FCMB</option>
+                    </select>
+                  </div>
+
+                  <div className="bg-blue-50 p-3 rounded-lg text-xs text-blue-700">
+                    <p>Generating a virtual account will create a unique bank account for funding your wallet. Funds sent to this account will be credited automatically.</p>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    onClick={() => setShowGenerateModal(false)}
+                    className="px-4 py-2 rounded-lg border border-slate-300 hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => generateAccountMut.mutate(generateForm)}
+                    disabled={generateAccountMut.status === 'pending'}
+                    className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+                  >
+                    {generateAccountMut.status === 'pending' ? 'Generating...' : 'Generate Now'}
                   </button>
                 </div>
               </div>
