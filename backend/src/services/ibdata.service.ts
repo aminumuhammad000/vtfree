@@ -98,6 +98,42 @@ class IBDataService {
     }
 
     /**
+     * Get cable tv plans
+     * GET /billpayment/cable-plans
+     */
+    async getCablePlans(configOverride?: any) {
+        try {
+            const api = await this.ensureClient(configOverride);
+            const res = await api.get('/billpayment/cable-plans');
+            const data = res.data;
+            logger.info('IBData cable plans retrieved', { count: (data.data || data)?.length || 0 });
+            return data.success ? data.data : data;
+        } catch (error: any) {
+            logger.error('IBData getCablePlans error:', error.response?.data || error.message);
+            // Fallback to empty array if endpoint doesn't exist yet
+            return [];
+        }
+    }
+
+    /**
+     * Get utility plans
+     * GET /billpayment/utility-plans
+     */
+    async getUtilityPlans(configOverride?: any) {
+        try {
+            const api = await this.ensureClient(configOverride);
+            const res = await api.get('/billpayment/utility-plans');
+            const data = res.data;
+            logger.info('IBData utility plans retrieved', { count: (data.data || data)?.length || 0 });
+            return data.success ? data.data : data;
+        } catch (error: any) {
+            logger.error('IBData getUtilityPlans error:', error.response?.data || error.message);
+            // Fallback to empty array if endpoint doesn't exist yet
+            return [];
+        }
+    }
+
+    /**
      * Purchase airtime
      * POST /billpayment/airtime
      */

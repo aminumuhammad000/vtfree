@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 import {
   bulkImportPricingPlans,
   createPricingPlan,
@@ -7,6 +8,7 @@ import {
   getPricingPlans,
   updatePricingPlan,
   getProviderData,
+  getProviders,
 } from '../api/adminApi';
 import PricingBulkImportModal from '../components/PricingBulkImportModal';
 import PricingDeleteModal from '../components/PricingDeleteModal';
@@ -40,7 +42,27 @@ const PricingPlans: React.FC = () => {
   const [showIBDataSync, setShowIBDataSync] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'my-plans' | 'ibdata-plans'>('my-plans');
+  const [activeTab, setActiveTab] = useState<string>('my-plans');
+
+  // Fetch active providers for dynamic tabs
+  const { data: providersData } = useQuery({
+    queryKey: ['active-providers'],
+    queryFn: () => getProviders({ active: true }).then((res: any) => res.data?.data?.providers || []),
+  });
+
+  const activeProviders = useMemo(() => {
+    const providers = providersData || [];
+    // Filter out IBData if it's in the list because we'll handle it explicitly as default if needed,
+    // or just let it be in the list. The user said "ibdata is default".
+    // Let's just use the list, but ensure IBData is always an option if it's the fallback.
+    // For now, we'll trust the active list, but if IBData isn't there, we might want to add it?
+    // User: "ibdata is defoult". We'll assume it should always be available.
+    const hasIbdata = providers.find((p: any) => p.code.toLowerCase() === 'ibdata');
+    if (!hasIbdata) {
+      return [{ code: 'ibdata', name: 'IBData' }, ...providers];
+    }
+    return providers;
+  }, [providersData]);
 
   const params = {
     page,
@@ -52,6 +74,7 @@ const PricingPlans: React.FC = () => {
   const { data, status } = useQuery({
     queryKey: ['pricing-plans', page, providerId, type],
     queryFn: () => getPricingPlans(params).then((res: any) => res.data?.data),
+    enabled: activeTab === 'my-plans',
   });
 
   const plans = data?.plans || [];
@@ -113,19 +136,22 @@ const PricingPlans: React.FC = () => {
               </div>
 
               {/* Navigation Tabs */}
-              <div className="flex border-b border-slate-200 mb-8">
+              <div className="flex border-b border-slate-200 mb-8 overflow-x-auto">
                 <button
                   onClick={() => setActiveTab('my-plans')}
-                  className={`px-6 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'my-plans' ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                  className={`px-6 py-3 text-sm font-bold transition-all border-b-2 whitespace-nowrap ${activeTab === 'my-plans' ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                 >
                   My Pricing Plans
                 </button>
-                <button
-                  onClick={() => setActiveTab('ibdata-plans')}
-                  className={`px-6 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'ibdata-plans' ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                >
-                  IBData Direct Plans
-                </button>
+                {activeProviders.map((p: any) => (
+                  <button
+                    key={p.code}
+                    onClick={() => setActiveTab(p.code)}
+                    className={`px-6 py-3 text-sm font-bold transition-all border-b-2 whitespace-nowrap uppercase ${activeTab === p.code ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                  >
+                    {p.name} Direct Plans
+                  </button>
+                ))}
               </div>
 
               {activeTab === 'my-plans' && (
@@ -328,7 +354,7 @@ const PricingPlans: React.FC = () => {
                 )}
               </div>
             ) : (
-              <IBDataPlansView />
+              <DirectPlansView providerCode={activeTab} />
             )}
           </div>
 
@@ -375,12 +401,22 @@ const PricingPlans: React.FC = () => {
   );
 };
 
-const IBDataPlansView: React.FC = () => {
+interface DirectPlansViewProps {
+  providerCode: string;
+}
+
+const DirectPlansView: React.FC<DirectPlansViewProps> = ({ providerCode }) => {
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [profit, setProfit] = useState<number>(10);
+
+  // Global Profit Settings
+  const [globalProfit, setGlobalProfit] = useState<number>(10);
   const [profitType, setProfitType] = useState<'percent' | 'flat'>('percent');
+
+  // Individual Profit Overrides
+  const [customProfits, setCustomProfits] = useState<Record<string, number>>({});
+
   const [searchTerm, setSearchTerm] = useState('');
   const [networkFilter, setNetworkFilter] = useState('');
   const queryClient = useQueryClient();
@@ -389,7 +425,7 @@ const IBDataPlansView: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const res: any = await getProviderData('ibdata', 'plans');
+      const res: any = await getProviderData(providerCode, 'plans');
       let plansData = res.data?.data?.data || res.data?.data || [];
       if (plansData && typeof plansData === 'object' && !Array.isArray(plansData)) {
         if (Array.isArray(plansData.data)) plansData = plansData.data;
@@ -397,19 +433,20 @@ const IBDataPlansView: React.FC = () => {
       }
       setPlans(Array.isArray(plansData) ? plansData : []);
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Failed to fetch IBData plans');
+      setError(err.response?.data?.message || err.message || `Failed to fetch ${providerCode} plans`);
     } finally {
       setLoading(false);
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchPlans();
-  }, []);
+    setCustomProfits({}); // Reset custom profits when provider changes
+  }, [providerCode]);
 
-  const filteredPlans = React.useMemo(() => {
+  const filteredPlans = useMemo(() => {
     return plans.filter(p => {
-      const matchesSearch = p.plan_name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = (p.plan_name || p.name || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesNetwork = networkFilter === '' || String(p.network) === networkFilter;
       return matchesSearch && matchesNetwork;
     });
@@ -419,38 +456,55 @@ const IBDataPlansView: React.FC = () => {
     mutationFn: (plansData: any[]) => bulkImportPricingPlans(plansData).then((res: any) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pricing-plans'] });
-      alert('Plans synced successfully!');
+      toast.success('Plans synced successfully!');
     },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || err.message || 'Failed to sync plans');
+    }
   });
 
-  const handleSync = () => {
-    const formattedPlans = filteredPlans.map((p: any) => {
-      let finalPrice = Number(p.price);
-      if (profitType === 'percent') {
-        finalPrice = finalPrice + (finalPrice * (profit / 100));
-      } else {
-        finalPrice = finalPrice + profit;
+  const getPlanProfit = (planId: string) => {
+    return customProfits[planId] !== undefined ? customProfits[planId] : globalProfit;
+  };
+
+  const calculateSellingPrice = (price: number, profit: number) => {
+    if (profitType === 'percent') {
+      return price + (price * (profit / 100));
+    }
+    return price + profit;
+  };
+
+  const formatPlanForSync = (p: any) => {
+    const profit = getPlanProfit(p.plan_id || p.id);
+    const costPrice = Number(p.price || p.amount || 0);
+    const finalPrice = calculateSellingPrice(costPrice, profit);
+
+    return {
+      providerId: Number(p.network),
+      providerName: getNetworkName(p.network),
+      externalPlanId: p.plan_id || p.id,
+      code: `${providerCode.toUpperCase()}_${p.plan_id || p.id}`,
+      name: p.plan_name || p.name,
+      price: Math.ceil(finalPrice),
+      type: (p.plan_type || p.type) === 'DATA' ? 'DATA' : 'AIRTIME',
+      discount: 0,
+      active: true,
+      metadata: {
+        validity: p.validity,
+        data_value: p.data_value,
+        original_price: costPrice,
+        source_provider: providerCode
       }
+    };
+  };
 
-      return {
-        providerId: Number(p.network),
-        providerName: getNetworkName(p.network),
-        externalPlanId: p.plan_id,
-        code: `IBDATA_${p.plan_id}`,
-        name: p.plan_name,
-        price: Math.ceil(finalPrice),
-        type: p.plan_type === 'DATA' ? 'DATA' : 'AIRTIME',
-        discount: 0,
-        active: true,
-        metadata: {
-          validity: p.validity,
-          data_value: p.data_value,
-          original_price: p.price
-        }
-      };
-    });
-
+  const handleBulkSync = () => {
+    const formattedPlans = filteredPlans.map(formatPlanForSync);
     importMutation.mutate(formattedPlans);
+  };
+
+  const handleSingleSync = (p: any) => {
+    importMutation.mutate([formatPlanForSync(p)]);
   };
 
   const getNetworkName = (id: string) => {
@@ -458,7 +512,7 @@ const IBDataPlansView: React.FC = () => {
     return map[id] || 'UNKNOWN';
   };
 
-  if (loading) return <div className="p-12 text-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div><p className="mt-4 text-slate-500">Fetching IBData plans...</p></div>;
+  if (loading) return <div className="p-12 text-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div><p className="mt-4 text-slate-500">Fetching plans...</p></div>;
   if (error) return <div className="p-12 text-center text-red-500"><p>{error}</p><button onClick={fetchPlans} className="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg">Retry</button></div>;
 
   return (
@@ -466,18 +520,26 @@ const IBDataPlansView: React.FC = () => {
       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
         <div className="flex flex-wrap gap-6 items-end">
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-sm font-bold text-slate-700 mb-2">Profit Type</label>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Global Profit Type</label>
             <select value={profitType} onChange={(e) => setProfitType(e.target.value as any)} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white">
               <option value="percent">Percentage Profit (%)</option>
               <option value="flat">Flat Profit (₦)</option>
             </select>
           </div>
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-sm font-bold text-slate-700 mb-2">Profit Value</label>
-            <input type="number" value={profit} onChange={(e) => setProfit(Number(e.target.value))} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
+            <label className="block text-sm font-bold text-slate-700 mb-2">Global Profit Value</label>
+            <input
+              type="number"
+              value={globalProfit}
+              onChange={(e) => {
+                setGlobalProfit(Number(e.target.value));
+                setCustomProfits({}); // Reset custom profits when global changes to apply to all
+              }}
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+            />
           </div>
-          <button onClick={handleSync} disabled={importMutation.status === 'pending' || filteredPlans.length === 0} className="bg-green-600 hover:bg-green-700 text-white px-8 py-2.5 rounded-lg font-bold transition shadow-lg shadow-green-100 disabled:opacity-50">
-            {importMutation.status === 'pending' ? 'Syncing...' : `Sync ${filteredPlans.length} Plans to My Store`}
+          <button onClick={handleBulkSync} disabled={importMutation.status === 'pending' || filteredPlans.length === 0} className="bg-green-600 hover:bg-green-700 text-white px-8 py-2.5 rounded-lg font-bold transition shadow-lg shadow-green-100 disabled:opacity-50">
+            {importMutation.status === 'pending' ? 'Syncing...' : `Sync ${filteredPlans.length} Plans`}
           </button>
         </div>
 
@@ -514,24 +576,46 @@ const IBDataPlansView: React.FC = () => {
               <tr>
                 <th className="px-6 py-4 text-sm font-bold text-slate-700">Network</th>
                 <th className="px-6 py-4 text-sm font-bold text-slate-700">Plan Name</th>
-                <th className="px-6 py-4 text-sm font-bold text-slate-700">Cost Price (API)</th>
-                <th className="px-6 py-4 text-sm font-bold text-slate-700">Selling Price (With Profit)</th>
+                <th className="px-6 py-4 text-sm font-bold text-slate-700">Cost Price</th>
+                <th className="px-6 py-4 text-sm font-bold text-slate-700 w-32">Profit ({profitType === 'percent' ? '%' : '₦'})</th>
+                <th className="px-6 py-4 text-sm font-bold text-slate-700">Selling Price</th>
+                <th className="px-6 py-4 text-sm font-bold text-slate-700">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredPlans.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-slate-500">No plans match your filters.</td>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">No plans match your filters.</td>
                 </tr>
               ) : (
                 filteredPlans.map((p: any) => {
-                  const sellingPrice = profitType === 'percent' ? p.price + (p.price * profit / 100) : p.price + profit;
+                  const planId = p.plan_id || p.id;
+                  const profit = getPlanProfit(planId);
+                  const costPrice = Number(p.price || p.amount || 0);
+                  const sellingPrice = calculateSellingPrice(costPrice, profit);
+
                   return (
-                    <tr key={p.plan_id} className="hover:bg-slate-50 transition">
+                    <tr key={planId} className="hover:bg-slate-50 transition">
                       <td className="px-6 py-4 text-sm text-slate-600 font-medium">{getNetworkName(p.network)}</td>
-                      <td className="px-6 py-4 text-sm text-slate-900 font-bold">{p.plan_name}</td>
-                      <td className="px-6 py-4 text-sm text-slate-500">₦{p.price}</td>
+                      <td className="px-6 py-4 text-sm text-slate-900 font-bold">{p.plan_name || p.name}</td>
+                      <td className="px-6 py-4 text-sm text-slate-500">₦{costPrice}</td>
+                      <td className="px-6 py-4">
+                        <input
+                          type="number"
+                          value={profit}
+                          onChange={(e) => setCustomProfits(prev => ({ ...prev, [planId]: Number(e.target.value) }))}
+                          className="w-24 px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-green-500 outline-none text-sm"
+                        />
+                      </td>
                       <td className="px-6 py-4 text-sm text-green-600 font-black">₦{Math.ceil(sellingPrice)}</td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => handleSingleSync(p)}
+                          className="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-xs font-bold transition"
+                        >
+                          Sync
+                        </button>
+                      </td>
                     </tr>
                   );
                 })

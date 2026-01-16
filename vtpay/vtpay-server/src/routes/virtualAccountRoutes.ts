@@ -227,9 +227,12 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
         }
 
         // 4. Return all accounts from DB
-        const accounts = await VirtualAccount.find({
-            userId: new mongoose.Types.ObjectId(userId),
-        }).sort({ createdAt: -1 });
+        const query: any = {};
+        if (req.user!.role !== 'admin') {
+            query.userId = new mongoose.Types.ObjectId(userId);
+        }
+
+        const accounts = await VirtualAccount.find(query).sort({ createdAt: -1 });
 
         res.json({
             success: true,
@@ -263,11 +266,13 @@ router.get('/:accountNumber/balance', async (req: AuthenticatedRequest, res: Res
         const userId = req.user!.id;
         const { accountNumber } = req.params;
 
-        // Verify account belongs to user
-        const account = await VirtualAccount.findOne({
-            userId: new mongoose.Types.ObjectId(userId),
-            accountNumber,
-        });
+        // Verify account belongs to user (or user is admin)
+        const query: any = { accountNumber };
+        if (req.user!.role !== 'admin') {
+            query.userId = new mongoose.Types.ObjectId(userId);
+        }
+
+        const account = await VirtualAccount.findOne(query);
 
         if (!account) {
             res.status(404).json({
@@ -311,11 +316,13 @@ router.patch('/:accountNumber/status', async (req: AuthenticatedRequest, res: Re
         const { accountNumber } = req.params;
         const { status } = req.body; // true for active, false for inactive
 
-        // Verify account belongs to user
-        const account = await VirtualAccount.findOne({
-            userId: new mongoose.Types.ObjectId(userId),
-            accountNumber,
-        });
+        // Verify account belongs to user (or user is admin)
+        const query: any = { accountNumber };
+        if (req.user!.role !== 'admin') {
+            query.userId = new mongoose.Types.ObjectId(userId);
+        }
+
+        const account = await VirtualAccount.findOne(query);
 
         if (!account) {
             res.status(404).json({
@@ -370,11 +377,13 @@ router.get('/:accountNumber/transactions', async (req: AuthenticatedRequest, res
         const userId = req.user!.id;
         const { accountNumber } = req.params;
 
-        // Verify account belongs to user
-        const account = await VirtualAccount.findOne({
-            userId: new mongoose.Types.ObjectId(userId),
-            accountNumber,
-        });
+        // Verify account belongs to user (or user is admin)
+        const query: any = { accountNumber };
+        if (req.user!.role !== 'admin') {
+            query.userId = new mongoose.Types.ObjectId(userId);
+        }
+
+        const account = await VirtualAccount.findOne(query);
 
         if (!account) {
             res.status(404).json({

@@ -6,14 +6,21 @@ import { AuthRequest } from '../types/index.js';
 
 export class AppAdminPricingController {
     /**
-     * Get all airtime/data plans for the current app
+     * Get all airtime/data plans for the current app (including global plans)
      */
     static async getAllPlans(req: AuthRequest, res: Response): Promise<void> {
         try {
             const app_id = req.user?.app_id;
             const { providerId, type, active } = req.query;
 
-            const filter: any = { app_id };
+            const filter: any = {
+                $or: [
+                    { app_id: app_id },
+                    { app_id: null },
+                    { app_id: { $exists: false } }
+                ]
+            };
+
             if (providerId) filter.providerId = parseInt(providerId as string);
             if (type) filter.type = type;
             if (active !== undefined) filter.active = active === 'true';
@@ -34,7 +41,14 @@ export class AppAdminPricingController {
         try {
             const app_id = req.user?.app_id;
             const { id } = req.params;
-            const plan = await AirtimePlan.findOne({ _id: id, app_id });
+            const plan = await AirtimePlan.findOne({
+                _id: id,
+                $or: [
+                    { app_id: app_id },
+                    { app_id: null },
+                    { app_id: { $exists: false } }
+                ]
+            });
 
             if (!plan) {
                 ApiResponse.error(res, 'Plan not found', 404);
@@ -92,9 +106,10 @@ export class AppAdminPricingController {
             const { id } = req.params;
             const { providerId, providerName, externalPlanId, code, name, price, type, discount, meta, active } = req.body;
 
+            // Only allow updating plans that belong to this app
             const plan = await AirtimePlan.findOne({ _id: id, app_id });
             if (!plan) {
-                ApiResponse.error(res, 'Plan not found', 404);
+                ApiResponse.error(res, 'Plan not found or you do not have permission to edit it', 404);
                 return;
             }
 
@@ -125,9 +140,10 @@ export class AppAdminPricingController {
             const app_id = req.user?.app_id;
             const { id } = req.params;
 
+            // Only allow deleting plans that belong to this app
             const plan = await AirtimePlan.findOneAndDelete({ _id: id, app_id });
             if (!plan) {
-                ApiResponse.error(res, 'Plan not found', 404);
+                ApiResponse.error(res, 'Plan not found or you do not have permission to delete it', 404);
                 return;
             }
 
@@ -170,7 +186,7 @@ export class AppAdminPricingController {
     }
 
     /**
-     * Get plans by provider for the current app
+     * Get plans by provider for the current app (including global plans)
      */
     static async getPlansByProvider(req: AuthRequest, res: Response): Promise<void> {
         try {
@@ -178,7 +194,15 @@ export class AppAdminPricingController {
             const { providerId } = req.params;
             const { type } = req.query;
 
-            const filter: any = { app_id, providerId: parseInt(providerId), active: true };
+            const filter: any = {
+                $or: [
+                    { app_id: app_id },
+                    { app_id: null },
+                    { app_id: { $exists: false } }
+                ],
+                providerId: parseInt(providerId),
+                active: true
+            };
             if (type) filter.type = type;
 
             const plans = await AirtimePlan.find(filter).sort({ price: 1 });

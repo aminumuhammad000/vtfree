@@ -3,6 +3,7 @@ import mongoose, { Schema } from 'mongoose';
 import { IAuditLog } from '../types.js';
 
 const auditLogSchema = new Schema<IAuditLog>({
+  app_id: { type: String, index: true },
   admin_id: { type: Schema.Types.ObjectId, ref: 'AdminUser' },
   user_id: { type: Schema.Types.ObjectId, ref: 'User' },
   action: { type: String, required: true },

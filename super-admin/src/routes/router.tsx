@@ -12,6 +12,7 @@ const AuthLayout = lazy(() => import('layouts/auth-layout'));
 const Dashboard = lazy(() => import('pages/dashboard'));
 const Apps = lazy(() => import('pages/apps'));
 const Users = lazy(() => import('pages/users'));
+const UserDetails = lazy(() => import('pages/users/UserDetails'));
 const Transactions = lazy(() => import('pages/transactions'));
 const Payments = lazy(() => import('pages/payments'));
 const Settings = lazy(() => import('pages/settings'));
@@ -33,6 +34,7 @@ const LogsPage = lazy(() => import('pages/logs'));
 // Support & Providers
 const Support = lazy(() => import('pages/support'));
 const Providers = lazy(() => import('pages/providers'));
+const VTPayManagement = lazy(() => import('pages/vtpay'));
 
 const SignIn = lazy(() => import('pages/authentication/SignIn'));
 const ResetPassword = lazy(() => import('pages/authentication/ResetPassword'));
@@ -68,8 +70,17 @@ const routes = [
                 element: <Apps />,
               },
               {
-                path: paths.users,
-                element: <Users />,
+                path: 'pages/users',
+                children: [
+                  {
+                    index: true,
+                    element: <Users />,
+                  },
+                  {
+                    path: ':id',
+                    element: <UserDetails />,
+                  },
+                ],
               },
               {
                 path: paths.transactions,
@@ -111,6 +122,10 @@ const routes = [
               {
                 path: paths.settings,
                 element: <Settings />,
+              },
+              {
+                path: paths.vtpay,
+                element: <VTPayManagement />,
               },
               {
                 path: paths.profile,

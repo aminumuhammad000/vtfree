@@ -22,15 +22,16 @@ const Transactions = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [source, setSource] = useState<'local' | 'vtpay'>('local');
 
   useEffect(() => {
     fetchTransactions();
-  }, []);
+  }, [source]);
 
   const fetchTransactions = async () => {
     setLoading(true);
     try {
-      const response = await getTransactions();
+      const response = await getTransactions({ source });
       if (response.data.success) {
         setTransactions(response.data.data.transactions);
       }
@@ -79,9 +80,25 @@ const Transactions = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">Transactions</h1>
-        <p className="text-slate-500 mt-1">Monitor all platform transactions</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">Transactions</h1>
+          <p className="text-slate-500 mt-1">Monitor all platform transactions</p>
+        </div>
+        <div className="bg-white p-1 rounded-xl border border-slate-200 flex items-center shadow-sm">
+          <button
+            onClick={() => setSource('local')}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${source === 'local' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}
+          >
+            Local Transactions
+          </button>
+          <button
+            onClick={() => setSource('vtpay')}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${source === 'vtpay' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}
+          >
+            VTPay Transactions
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}

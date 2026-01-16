@@ -68,6 +68,9 @@ export const createFundingAccount = (data: { bankName: string; accountName: stri
 export const updateFundingAccount = (id: string, data: Partial<{ bankName: string; accountName: string; accountNumber: string; instructions?: string; active?: boolean }>) =>
   api.put(`/funding/accounts/${id}`, data);
 export const deleteFundingAccount = (id: string) => api.delete(`/funding/accounts/${id}`);
+export const generateVirtualAccount = () => api.post('/funding/virtual-account');
+export const getIBDataBalance = () => api.get('/funding/ibdata-balance');
+export const getVTPayAccounts = () => api.get('/funding/vtpay-accounts');
 
 // Transactions
 export const getTransactions = (params?: { page?: number; limit?: number; status?: string; type?: string }) =>

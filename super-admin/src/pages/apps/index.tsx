@@ -10,12 +10,22 @@ interface App {
     first_name: string;
     last_name: string;
     email: string;
+    phone?: string;
   };
   status: string;
   created_at: string;
   package_name: string;
   total_revenue?: number;
   total_transactions?: number;
+  total_end_users?: number;
+  download_url?: string;
+  version?: string;
+  platforms?: {
+    android: boolean;
+    ios: boolean;
+    web: boolean;
+  };
+  services?: string[];
 }
 
 const Apps = () => {
@@ -23,6 +33,7 @@ const Apps = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedApp, setSelectedApp] = useState<App | null>(null);
 
   const fetchApps = async () => {
     try {
@@ -134,19 +145,21 @@ const Apps = () => {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase">App Details</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase">Owner</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase">Package Name</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase">Status</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase">Revenue</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase">Created</th>
                 <th className="px-6 py-4 text-right text-xs font-semibold text-slate-600 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-                <tr><td colSpan={5} className="px-6 py-12 text-center">
+                <tr><td colSpan={7} className="px-6 py-12 text-center">
                   <div className="flex justify-center"><div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>
                 </td></tr>
               ) : filteredApps.length === 0 ? (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-500">No apps found</td></tr>
+                <tr><td colSpan={7} className="px-6 py-12 text-center text-slate-500">No apps found</td></tr>
               ) : (
                 filteredApps.map((app) => (
                   <tr key={app._id} className="hover:bg-slate-50/50 transition-colors">
@@ -161,18 +174,30 @@ const Apps = () => {
                         </div>
                       </div>
                     </td>
+                    <td className="px-6 py-4">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-slate-900">{app.owner_id?.first_name} {app.owner_id?.last_name}</p>
+                        <p className="text-xs text-slate-500 truncate">{app.owner_id?.email}</p>
+                      </div>
+                    </td>
                     <td className="px-6 py-4 text-sm text-slate-600 font-mono">{app.package_name}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(app.status)}`}>
                         {app.status.toUpperCase()}
                       </span>
                     </td>
+                    <td className="px-6 py-4 text-sm font-bold text-emerald-600">
+                      ₦{(app.total_revenue || 0).toLocaleString()}
+                    </td>
                     <td className="px-6 py-4 text-sm text-slate-500">
                       {new Date(app.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-                        <Icon icon="solar:menu-dots-bold" width="20" height="20" className="text-slate-400" />
+                      <button
+                        onClick={() => setSelectedApp(app)}
+                        className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                      >
+                        <Icon icon="solar:eye-bold" width="20" height="20" className="text-slate-400 hover:text-blue-600" />
                       </button>
                     </td>
                   </tr>
@@ -182,6 +207,162 @@ const Apps = () => {
           </table>
         </div>
       </div>
+
+      {/* App Details Modal */}
+      {selectedApp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md">
+              <h3 className="text-lg font-bold text-slate-900">App Details</h3>
+              <button
+                onClick={() => setSelectedApp(null)}
+                className="p-2 hover:bg-slate-200 rounded-full transition-colors"
+              >
+                <Icon icon="solar:close-circle-bold" width="24" height="24" className="text-slate-400" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* App Info Section */}
+              <div className="flex items-start gap-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                  {selectedApp.app_name[0]}
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold text-slate-900">{selectedApp.app_name}</h2>
+                  <p className="text-slate-500 font-mono text-sm">{selectedApp.package_name}</p>
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(selectedApp.status)}`}>
+                      {selectedApp.status.toUpperCase()}
+                    </span>
+                    <span className="text-slate-300">•</span>
+                    <span className="text-sm text-slate-500">ID: {selectedApp.app_id}</span>
+                    <span className="text-slate-300">•</span>
+                    <span className="text-sm text-slate-500">v{selectedApp.version || '1.0.0'}</span>
+                  </div>
+                </div>
+                {selectedApp.download_url && (
+                  <a
+                    href={selectedApp.download_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors shadow-sm"
+                  >
+                    <Icon icon="solar:download-bold" width="20" height="20" />
+                    Download App
+                  </a>
+                )}
+              </div>
+
+              {/* Platforms & Services */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                  <h4 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                    <Icon icon="solar:devices-bold" className="text-indigo-500" />
+                    Platforms
+                  </h4>
+                  <div className="flex gap-3">
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${selectedApp.platforms?.android ? 'bg-green-50 border-green-200 text-green-700' : 'bg-slate-100 border-slate-200 text-slate-400'}`}>
+                      <Icon icon="logos:android-icon" width="20" />
+                      <span className="text-sm font-medium">Android</span>
+                    </div>
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${selectedApp.platforms?.ios ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-slate-100 border-slate-200 text-slate-400'}`}>
+                      <Icon icon="logos:apple" width="20" />
+                      <span className="text-sm font-medium">iOS</span>
+                    </div>
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${selectedApp.platforms?.web ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-slate-100 border-slate-200 text-slate-400'}`}>
+                      <Icon icon="logos:chrome" width="20" />
+                      <span className="text-sm font-medium">Web</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                  <h4 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                    <Icon icon="solar:layers-bold" className="text-orange-500" />
+                    Active Features
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedApp.services && selectedApp.services.length > 0 ? (
+                      selectedApp.services.map((service, idx) => (
+                        <span key={idx} className="px-2.5 py-1 bg-white border border-slate-200 rounded-md text-xs font-medium text-slate-600 shadow-sm">
+                          {service.replace(/_/g, ' ').toUpperCase()}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-sm text-slate-400 italic">No specific features listed</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Owner Details */}
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                  <h4 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                    <Icon icon="solar:user-circle-bold" className="text-blue-500" />
+                    Owner Information
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Name:</span>
+                      <span className="font-medium text-slate-900">{selectedApp.owner_id?.first_name} {selectedApp.owner_id?.last_name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Email:</span>
+                      <span className="font-medium text-slate-900">{selectedApp.owner_id?.email}</span>
+                    </div>
+                    {selectedApp.owner_id?.phone && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Phone:</span>
+                        <span className="font-medium text-slate-900">{selectedApp.owner_id.phone}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* App Stats */}
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                  <h4 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                    <Icon icon="solar:chart-bold" className="text-emerald-500" />
+                    Performance Stats
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Total End Users:</span>
+                      <span className="font-bold text-blue-600">{(selectedApp.total_end_users || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Total Revenue:</span>
+                      <span className="font-bold text-emerald-600">₦{(selectedApp.total_revenue || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Transactions:</span>
+                      <span className="font-medium text-slate-900">{(selectedApp.total_transactions || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Created At:</span>
+                      <span className="font-medium text-slate-900">{new Date(selectedApp.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+              <button
+                onClick={() => setSelectedApp(null)}
+                className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -55,10 +55,37 @@ export interface ICreatedApp extends Document {
     admin_email: string;
     admin_password_hash: string;
 
+    // Email Settings
+    email_settings: {
+        provider: 'gmail' | 'other';
+        host?: string;
+        port?: string;
+        user?: string;
+        password?: string;
+        from_name?: string;
+        from_address?: string;
+    };
+
+    // Payment Settings
+    payment_settings: {
+        default_gateway: string;
+        vtpay_api_key?: string;
+        vtpay_secret_key?: string;
+        vtpay_public_key?: string;
+        payrant_api_key?: string;
+        payrant_webhook_secret?: string;
+        paystack_secret_key?: string;
+        paystack_public_key?: string;
+        monnify_api_key?: string;
+        monnify_secret_key?: string;
+        monnify_contract_code?: string;
+    };
+
     // Timestamps
     created_at: Date;
     updated_at: Date;
     launched_at?: Date;
+    version: string;
 }
 
 const CreatedAppSchema: Schema = new Schema({
@@ -67,6 +94,10 @@ const CreatedAppSchema: Schema = new Schema({
         required: true,
         unique: true,
         index: true,
+    },
+    version: {
+        type: String,
+        default: '1.0.0',
     },
     owner_id: {
         type: Schema.Types.ObjectId,
@@ -203,6 +234,32 @@ const CreatedAppSchema: Schema = new Schema({
     admin_password_hash: {
         type: String,
         required: true,
+    },
+
+    // Email Settings
+    email_settings: {
+        provider: { type: String, enum: ['gmail', 'other'], default: 'other' },
+        host: { type: String },
+        port: { type: String },
+        user: { type: String },
+        password: { type: String },
+        from_name: { type: String },
+        from_address: { type: String },
+    },
+
+    // Payment Settings
+    payment_settings: {
+        default_gateway: { type: String, default: 'vtpay' },
+        vtpay_api_key: { type: String },
+        vtpay_secret_key: { type: String },
+        vtpay_public_key: { type: String },
+        payrant_api_key: { type: String },
+        payrant_webhook_secret: { type: String },
+        paystack_secret_key: { type: String },
+        paystack_public_key: { type: String },
+        monnify_api_key: { type: String },
+        monnify_secret_key: { type: String },
+        monnify_contract_code: { type: String },
     },
 
     // Timestamps

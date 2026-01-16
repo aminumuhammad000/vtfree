@@ -237,6 +237,7 @@ export interface ISupportTicket extends Document {
 
 export interface IAuditLog extends Document {
   _id: Types.ObjectId;
+  app_id?: string;
   admin_id?: Types.ObjectId;
   user_id?: Types.ObjectId;
   action: string;

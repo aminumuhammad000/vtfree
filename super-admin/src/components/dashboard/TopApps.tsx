@@ -43,7 +43,7 @@ const TopApps: React.FC<TopAppsProps> = ({ data }) => {
                                     <span className="text-slate-700 font-medium">{app.app_name}</span>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-sm font-bold text-slate-900">₦{app.total_revenue.toLocaleString()}</p>
+                                    <p className="text-sm font-bold text-slate-900">₦{(app.total_revenue || 0).toLocaleString()}</p>
                                     <p className="text-xs text-slate-500">{app.total_transactions} txns</p>
                                 </div>
                             </div>

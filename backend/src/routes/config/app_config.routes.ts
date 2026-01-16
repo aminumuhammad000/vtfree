@@ -8,6 +8,6 @@ const router = express.Router();
 router.use(authenticateAppAdmin);
 
 router.get('/', AppConfigController.getAppConfigs);
-router.put('/', AppConfigController.updateAppConfig);
+router.put('/:key', AppConfigController.updateAppConfig);
 
 export default router;

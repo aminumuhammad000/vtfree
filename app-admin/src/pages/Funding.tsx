@@ -1,11 +1,27 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useState } from 'react';
-import { createFundingAccount, deleteFundingAccount, getBanksList, getFundingAccounts, getFundingInfo, getProviderBalances, getVTPayBalance, updateFundingAccount, validateAccount, getAllConfigs } from '../api/adminApi';
+import {
+  createFundingAccount,
+  deleteFundingAccount,
+  getBanksList,
+  getFundingAccounts,
+  getFundingInfo,
+  getProviderBalances,
+  getVTPayBalance,
+  updateFundingAccount,
+  validateAccount,
+  getAllConfigs,
+  generateVirtualAccount,
+  getIBDataBalance,
+  getVTPayAccounts
+} from '../api/adminApi';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
+import { useToast } from '../hooks/ToastContext';
 
 const Funding: React.FC = () => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const { showSuccess, showError } = useToast();
 
   // Default Gateway
   const { data: configRes } = useQuery({
@@ -16,7 +32,7 @@ const Funding: React.FC = () => {
     },
   });
 
-  const defaultGateway = configRes?.find((c: any) => c.key === 'DEFAULT_PAYMENT_GATEWAY')?.value || 'vtpay';
+  const defaultGateway = Array.isArray(configRes) ? (configRes.find((c: any) => c.key === 'DEFAULT_PAYMENT_GATEWAY')?.value || 'vtpay') : 'vtpay';
 
   // Gateway Balance
   const { data: gatewayBalanceRes } = useQuery({
@@ -26,6 +42,24 @@ const Funding: React.FC = () => {
       return res.data?.data || { balance: 0 };
     },
   });
+
+  const { data: ibdataBalanceRes, refetch: refetchIBData } = useQuery({
+    queryKey: ['ibdata-balance'],
+    queryFn: async () => {
+      const res = await getIBDataBalance();
+      return res.data?.data || { balance: 0, account: null };
+    }
+  });
+
+  // VTPay Accounts
+  const { data: vtpayAccountsRes } = useQuery({
+    queryKey: ['vtpay-accounts'],
+    queryFn: async () => {
+      const res = await getVTPayAccounts();
+      return res.data?.data || [];
+    }
+  });
+  const vtpayAccounts = Array.isArray(vtpayAccountsRes) ? vtpayAccountsRes : [];
 
   // Banks List
   const { data: banksRes, status: banksStatus } = useQuery({
@@ -42,7 +76,7 @@ const Funding: React.FC = () => {
     queryKey: ['provider-balances'],
     queryFn: async () => {
       const res = await getProviderBalances();
-      return res.data?.data as { providers: Array<{ code: string; name: string; balance: number | null; currency: string | null; status: string }>; total: number };
+      return res.data?.data as { providers: Array<{ code: string; name: string; balance: number | string | null; currency: string | null; status: string }>; total: number };
     }
   });
 
@@ -71,15 +105,54 @@ const Funding: React.FC = () => {
 
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
-  const [form, setForm] = useState({ bankName: '', bankCode: '', accountName: '', accountNumber: '', instructions: '', active: true });
+  const [form, setForm] = useState({
+    bankName: '',
+    bankCode: '',
+    accountName: '',
+    accountNumber: '',
+    instructions: '',
+    active: true,
+    provider: 'manual',
+    type: 'manual' as 'manual' | 'virtual'
+  });
 
   // Account verification state
   const [verifying, setVerifying] = useState(false);
   const [verifiedName, setVerifiedName] = useState('');
   const [verificationError, setVerificationError] = useState('');
 
-  const openCreate = () => { setEditing(null); setForm({ bankName: '', bankCode: '', accountName: '', accountNumber: '', instructions: '', active: true }); setVerifiedName(''); setVerificationError(''); setShowForm(true); };
-  const openEdit = (acc: any) => { setEditing(acc); setForm({ bankName: acc.bankName, bankCode: acc.bankCode || '', accountName: acc.accountName, accountNumber: acc.accountNumber, instructions: acc.instructions || '', active: !!acc.active }); setVerifiedName(acc.accountName); setVerificationError(''); setShowForm(true); };
+  const openCreate = () => {
+    setEditing(null);
+    setForm({
+      bankName: '',
+      bankCode: '',
+      accountName: '',
+      accountNumber: '',
+      instructions: '',
+      active: true,
+      provider: 'manual',
+      type: 'manual'
+    });
+    setVerifiedName('');
+    setVerificationError('');
+    setShowForm(true);
+  };
+  const openEdit = (acc: any) => {
+    setEditing(acc);
+    setForm({
+      bankName: acc.bankName,
+      bankCode: acc.bankCode || '',
+      accountName: acc.accountName,
+      accountNumber: acc.accountNumber,
+      instructions: acc.instructions || '',
+      active: !!acc.active,
+      provider: acc.provider || 'manual',
+      type: acc.type || 'manual'
+    });
+    setVerifiedName(acc.accountName);
+    setVerificationError('');
+    setShowForm(true);
+  };
 
   // Handle account verification
   const handleVerifyAccount = async () => {
@@ -122,6 +195,17 @@ const Funding: React.FC = () => {
   const deleteMut = useMutation({
     mutationFn: (id: string) => deleteFundingAccount(id).then(r => r.data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['funding-accounts'] }); queryClient.invalidateQueries({ queryKey: ['funding-info'] }); },
+  });
+
+  const generateAccountMut = useMutation({
+    mutationFn: () => generateVirtualAccount().then(r => r.data),
+    onSuccess: () => {
+      refetchIBData();
+      showSuccess('Virtual account generated successfully!');
+    },
+    onError: (err: any) => {
+      showError(err.response?.data?.message || 'Failed to generate virtual account');
+    }
   });
 
   return (
@@ -227,12 +311,13 @@ const Funding: React.FC = () => {
                         <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Code</th>
                         <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Balance</th>
                         <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
+                        <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {providers.length === 0 && (
                         <tr>
-                          <td colSpan={4} className="px-6 py-4 text-center text-gray-500">No providers.</td>
+                          <td colSpan={5} className="px-6 py-4 text-center text-gray-500">No providers.</td>
                         </tr>
                       )}
                       {providers.map((p) => (
@@ -240,14 +325,44 @@ const Funding: React.FC = () => {
                           <td className="px-6 py-4 text-sm text-gray-900">{p.name}</td>
                           <td className="px-6 py-4 text-sm text-gray-900 uppercase">{p.code}</td>
                           <td className="px-6 py-4 text-sm text-gray-900 font-medium">
-                            {p.balance === null || p.balance === '***.**'
-                              ? (p.status === 'error' ? <span className="text-red-600">Error</span> : (p.balance === '***.**' ? '***.**' : 'N/A'))
-                              : `₦${Number(p.balance).toLocaleString()}`}
+                            {p.code.toLowerCase() === 'ibdata' ? (
+                              // Special display for IBData
+                              <div className="flex flex-col">
+                                <span>₦{Number(ibdataBalanceRes?.balance || 0).toLocaleString()}</span>
+                                <span className="text-xs text-gray-500">My Wallet Balance</span>
+                              </div>
+                            ) : (
+                              p.balance === null || p.balance === '***.**'
+                                ? (p.status === 'error' ? <span className="text-red-600">Error</span> : (p.balance === '***.**' ? '***.**' : 'N/A'))
+                                : `₦${Number(p.balance).toLocaleString()}`
+                            )}
                           </td>
                           <td className="px-6 py-4 text-sm">
                             <span className={`px-2 py-1 rounded text-xs font-semibold ${p.status === 'ok' ? 'bg-green-100 text-green-800' : (p.status === 'unsupported' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800')}`}>
                               {p.status}
                             </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm">
+                            {p.code.toLowerCase() === 'ibdata' && (
+                              <div className="flex flex-col gap-2">
+                                {ibdataBalanceRes?.account ? (
+                                  <div className="text-xs bg-slate-100 p-2 rounded">
+                                    <p className="font-semibold text-slate-700">Virtual Account:</p>
+                                    <p>{ibdataBalanceRes.account.bankName}</p>
+                                    <p className="font-mono">{ibdataBalanceRes.account.accountNumber}</p>
+                                    <p>{ibdataBalanceRes.account.accountName}</p>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => generateAccountMut.mutate()}
+                                    disabled={generateAccountMut.status === 'pending'}
+                                    className="text-xs bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-700 disabled:opacity-50"
+                                  >
+                                    {generateAccountMut.status === 'pending' ? 'Generating...' : 'Generate Virtual Account'}
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -286,6 +401,8 @@ const Funding: React.FC = () => {
                         <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Bank</th>
                         <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Account Name</th>
                         <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Account Number</th>
+                        <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Provider</th>
+                        <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Type</th>
                         <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
                         <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
                       </tr>
@@ -299,16 +416,26 @@ const Funding: React.FC = () => {
                           <td className="px-6 py-4 text-sm">{a.bankName}</td>
                           <td className="px-6 py-4 text-sm">{a.accountName}</td>
                           <td className="px-6 py-4 text-sm tracking-wider">{a.accountNumber}</td>
+                          <td className="px-6 py-4 text-sm uppercase">{a.provider || 'manual'}</td>
+                          <td className="px-6 py-4 text-sm">
+                            <span className={`px-2 py-1 rounded text-xs font-semibold ${a.type === 'virtual' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-800'}`}>
+                              {a.type || 'manual'}
+                            </span>
+                          </td>
                           <td className="px-6 py-4 text-sm"><span className={`px-2 py-1 rounded text-xs font-semibold ${a.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{a.active ? 'Active' : 'Inactive'}</span></td>
                           <td className="px-6 py-4 text-sm space-x-3">
-                            <button onClick={() => openEdit(a)} className="inline-flex items-center gap-1.5 text-green-600 hover:text-green-900 font-medium">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                              Edit
-                            </button>
-                            <button onClick={() => deleteMut.mutate(a._id)} className="inline-flex items-center gap-1.5 text-red-600 hover:text-red-900 font-medium">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0l1-3h6l1 3" /></svg>
-                              Delete
-                            </button>
+                            {!a.isVirtual && (
+                              <>
+                                <button onClick={() => openEdit(a)} className="inline-flex items-center gap-1.5 text-green-600 hover:text-green-900 font-medium">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                                  Edit
+                                </button>
+                                <button onClick={() => deleteMut.mutate(a._id)} className="inline-flex items-center gap-1.5 text-red-600 hover:text-red-900 font-medium">
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0l1-3h6l1 3" /></svg>
+                                  Delete
+                                </button>
+                              </>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -328,6 +455,50 @@ const Funding: React.FC = () => {
                   <button onClick={() => { setShowForm(false); setEditing(null); }} className="p-2 text-slate-500 hover:text-slate-700">✕</button>
                 </div>
                 <div className="grid grid-cols-1 gap-4">
+                  {/* Provider Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Provider *</label>
+                    <select
+                      value={form.provider}
+                      onChange={e => setForm({ ...form, provider: e.target.value })}
+                      className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                      <option value="manual">Manual / Other</option>
+                      <option value="ibdata">IBData</option>
+                      <option value="vtpay">VTPay</option>
+                      <option value="payrant">Payrant</option>
+                    </select>
+                  </div>
+
+                  {/* VTPay Account Selection (if provider is VTPay) */}
+                  {form.provider === 'vtpay' && vtpayAccounts.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">Select VTPay Account</label>
+                      <select
+                        onChange={e => {
+                          const acc = vtpayAccounts.find((a: any) => a.accountNumber === e.target.value);
+                          if (acc) {
+                            setForm({
+                              ...form,
+                              bankName: acc.bankName,
+                              accountName: acc.accountName,
+                              accountNumber: acc.accountNumber,
+                              type: 'virtual'
+                            });
+                            setVerifiedName(acc.accountName);
+                          }
+                        }}
+                        className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                      >
+                        <option value="">-- Choose an account --</option>
+                        {vtpayAccounts.map((acc: any) => (
+                          <option key={acc.accountNumber} value={acc.accountNumber}>
+                            {acc.bankName} - {acc.accountNumber} ({acc.accountName})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   {/* Bank Selection Dropdown */}
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Bank *</label>

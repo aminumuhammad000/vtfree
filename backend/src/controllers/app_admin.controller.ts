@@ -213,3 +213,51 @@ export const changePassword = async (req: Request, res: Response) => {
         res.status(500).json({ success: false, message: error.message || 'Server error' });
     }
 };
+
+export const getAuditLogs = async (req: Request, res: Response) => {
+    try {
+        const app_id = (req as any).user.app_id;
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const skip = (page - 1) * limit;
+
+        const { AuditLog } = await import('../models/audit_log.model.js');
+        const { ApiResponse } = await import('../utils/response.js');
+
+        const logs = await AuditLog.find({ app_id })
+            .populate('admin_id', 'first_name last_name email')
+            .populate('user_id', 'first_name last_name email')
+            .skip(skip)
+            .limit(limit)
+            .sort({ timestamp: -1 });
+
+        const total = await AuditLog.countDocuments({ app_id });
+
+        return ApiResponse.paginated(res, logs, {
+            page,
+            limit,
+            total,
+            pages: Math.ceil(total / limit)
+        }, 'Audit logs retrieved successfully');
+    } catch (error: any) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const deleteAuditLog = async (req: Request, res: Response) => {
+    try {
+        const app_id = (req as any).user.app_id;
+        const { id } = req.params;
+
+        const { AuditLog } = await import('../models/audit_log.model.js');
+
+        const log = await AuditLog.findOneAndDelete({ _id: id, app_id });
+        if (!log) {
+            return res.status(404).json({ success: false, message: 'Audit log not found' });
+        }
+
+        res.json({ success: true, message: 'Audit log deleted successfully' });
+    } catch (error: any) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};

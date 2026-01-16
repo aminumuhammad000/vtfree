@@ -14,9 +14,12 @@ import Transactions from './pages/Transactions';
 import Users from './pages/Users';
 import WalletCredit from './pages/WalletCredit';
 
+import { Toaster } from 'react-hot-toast';
+
 function App() {
   return (
     <Router>
+      <Toaster position="top-right" reverseOrder={false} />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route element={<PrivateRoute />}>

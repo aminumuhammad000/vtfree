@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import ProviderConfig from '../models/provider.model.js';
 import providerRegistry from '../services/providerRegistry.service.js';
 import logger from '../utils/logger.js';
@@ -138,9 +139,21 @@ export class AppAdminProviderController {
 
             if (client.getWalletBalance) {
                 try {
-                    const balance = await (client as any).getWalletBalance(provider);
-                    // Mask balance for ibdata as requested
-                    results.balance = code.toLowerCase() === 'ibdata' ? '***.**' : balance;
+                    if (code.toLowerCase() === 'ibdata') {
+                        // For IBData, show the App Owner's wallet balance
+                        const CreatedApp = (await import('../models/created_app.model.js')).default;
+                        const app = await CreatedApp.findOne({ app_id });
+                        if (app) {
+                            const VTfreeUser = (await import('../models/vtfree_user.model.js')).default;
+                            const user = await VTfreeUser.findById(app.owner_id);
+                            results.balance = user ? user.wallet_balance : 0;
+                        } else {
+                            results.balance = 0;
+                        }
+                    } else {
+                        const balance = await (client as any).getWalletBalance(provider);
+                        results.balance = balance;
+                    }
                     results.balanceStatus = 'success';
                 } catch (error: any) {
                     results.balanceStatus = 'failed';
@@ -226,13 +239,19 @@ export class AppAdminProviderController {
             let data: any = null;
             switch (type) {
                 case 'balance':
-                    data = await client.getWalletBalance?.();
-                    if (code.toLowerCase() === 'ibdata' && data) {
-                        if (typeof data === 'object') {
-                            data.balance = '***.**';
+                    if (code.toLowerCase() === 'ibdata') {
+                        // For IBData, show the App Owner's wallet balance
+                        const CreatedApp = (await import('../models/created_app.model.js')).default;
+                        const app = await CreatedApp.findOne({ app_id });
+                        if (app) {
+                            const VTfreeUser = (await import('../models/vtfree_user.model.js')).default;
+                            const user = await VTfreeUser.findById(app.owner_id);
+                            data = { balance: user ? user.wallet_balance : 0, currency: 'NGN' };
                         } else {
-                            data = '***.**';
+                            data = { balance: 0, currency: 'NGN' };
                         }
+                    } else {
+                        data = await client.getWalletBalance?.();
                     }
                     break;
                 case 'networks':
@@ -240,6 +259,22 @@ export class AppAdminProviderController {
                     break;
                 case 'plans':
                     data = await client.getDataPlans?.();
+
+                    // Apply global profit if it's IBData
+                    if (code.toLowerCase() === 'ibdata' && Array.isArray(data)) {
+                        const globalPlans = await (mongoose.model('AirtimePlan') as any).find({ app_id: null });
+                        data = data.map((p: any) => {
+                            const globalPlan = globalPlans.find((gp: any) => gp.externalPlanId === p.plan_id || gp.code === `IBDATA_${p.plan_id}`);
+                            if (globalPlan) {
+                                return {
+                                    ...p,
+                                    price: globalPlan.price, // This is the selling price set by super admin
+                                    original_price: p.price // Keep original for reference
+                                };
+                            }
+                            return p;
+                        });
+                    }
                     break;
                 default:
                     return ApiResponse.error(res, 'Invalid type', 400);

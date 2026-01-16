@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import paths from 'routes/paths';
+import { UserService, User as BackendUser } from 'services/user.service';
 
 type UserType = 'vtfree-users' | 'admin-users';
 
@@ -16,6 +17,7 @@ interface User {
     type: UserType;
     virtual_account?: { bank: string; account_number: string } | null;
     role?: string;
+    app_id?: string;
     lastActive?: string;
 }
 
@@ -25,83 +27,58 @@ const Users = () => {
     const [activeTab, setActiveTab] = useState<UserType>('vtfree-users');
     const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
     const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
+    const [owners, setOwners] = useState<User[]>([]);
+    const [admins, setAdmins] = useState<User[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    // Mock data
-    const users: User[] = [
-        {
-            id: '1',
-            name: 'John Doe',
-            email: 'john@example.com',
-            phone: '+2348012345678',
-            status: 'active',
-            balance: 25000,
-            date: '2024-01-15',
-            type: 'vtfree-users',
-            virtual_account: { bank: 'Wema Bank', account_number: '1234567890' },
-            lastActive: '2 hours ago'
-        },
-        {
-            id: '2',
-            name: 'Jane Smith',
-            email: 'jane@example.com',
-            phone: '+2348098765432',
-            status: 'suspended',
-            balance: 5000,
-            date: '2024-01-14',
-            type: 'vtfree-users',
-            virtual_account: null,
-            lastActive: '1 day ago'
-        },
-        {
-            id: '3',
-            name: 'Mike Johnson',
-            email: 'mike@example.com',
-            phone: '+2348055555555',
-            status: 'active',
-            balance: 150000,
-            date: '2024-01-13',
-            type: 'admin-users',
-            role: 'Support Admin',
-            lastActive: '5 min ago'
-        },
-        {
-            id: '4',
-            name: 'Sarah Connor',
-            email: 'sarah@vtpay.com',
-            phone: '+2348011111111',
-            status: 'active',
-            balance: 0,
-            date: '2024-01-10',
-            type: 'admin-users',
-            role: 'Finance Manager',
-            lastActive: '1 hour ago'
-        },
-        {
-            id: '5',
-            name: 'David Wilson',
-            email: 'david@example.com',
-            phone: '+2348077777777',
-            status: 'pending',
-            balance: 0,
-            date: '2024-01-16',
-            type: 'vtfree-users',
-            virtual_account: null,
-            lastActive: 'Never'
+    useEffect(() => {
+        fetchAllData();
+    }, []);
+
+    const mapBackendToFrontend = (u: BackendUser, type: UserType): User => ({
+        id: u._id,
+        name: `${u.first_name} ${u.last_name}`,
+        email: u.email,
+        phone: u.phone_number || 'N/A',
+        status: u.status,
+        balance: u.wallet_balance,
+        date: new Date(u.created_at).toLocaleDateString(),
+        type: type,
+        role: u.role,
+        app_id: u.app_id,
+        lastActive: u.last_login ? new Date(u.last_login).toLocaleString() : 'Never'
+    });
+
+    const fetchAllData = async () => {
+        setLoading(true);
+        try {
+            const [ownersData, adminsData] = await Promise.all([
+                UserService.getOwners(),
+                UserService.getAdmins()
+            ]);
+
+            setOwners(ownersData.map(u => mapBackendToFrontend(u, 'vtfree-users')));
+            setAdmins(adminsData.map(u => mapBackendToFrontend(u, 'admin-users')));
+        } catch (error) {
+            console.error('Error fetching users:', error);
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
 
-    const filteredUsers = users.filter(user =>
-        user.type === activeTab &&
-        (user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.phone.includes(searchTerm))
+    const currentUsers = activeTab === 'vtfree-users' ? owners : admins;
+
+    const filteredUsers = currentUsers.filter(user =>
+        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.phone.includes(searchTerm)
     );
 
     const stats = {
-        total: users.filter(u => u.type === activeTab).length,
-        active: users.filter(u => u.type === activeTab && u.status === 'active').length,
-        suspended: users.filter(u => u.type === activeTab && u.status === 'suspended').length,
-        pending: users.filter(u => u.type === activeTab && u.status === 'pending').length,
+        total: currentUsers.length,
+        active: currentUsers.filter(u => u.status === 'active').length,
+        suspended: currentUsers.filter(u => u.status === 'suspended').length,
+        pending: currentUsers.filter(u => u.status === 'pending').length,
     };
 
     const getStatusColor = (status: string) => {
@@ -119,10 +96,29 @@ const Users = () => {
         setSelectedUsers([]);
     };
 
-    const handleUserAction = (userId: string, action: string) => {
-        console.log(`Performing ${action} on user:`, userId);
+    const handleUserAction = async (userId: string, action: string) => {
         setActionMenuOpen(null);
-        // Implement individual action logic
+        let status: 'active' | 'suspended' | 'pending' = 'active';
+
+        if (action === 'approve') status = 'active';
+        else if (action === 'suspend') status = 'suspended';
+        else if (action === 'ban') status = 'suspended'; // Or add a 'banned' status if supported
+
+        try {
+            let success = false;
+            if (activeTab === 'vtfree-users') {
+                success = await UserService.updateOwnerStatus(userId, status);
+            } else {
+                success = await UserService.updateAdminStatus(userId, status);
+            }
+
+            if (success) {
+                // Refresh data
+                fetchAllData();
+            }
+        } catch (error) {
+            console.error(`Error performing ${action} on user:`, error);
+        }
     };
 
     const toggleUserSelection = (userId: string) => {
@@ -222,7 +218,7 @@ const Users = () => {
                         <Icon icon="solar:users-group-rounded-bold" width="20" />
                         <span>VTFree Users</span>
                         <span className="ml-1 px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs font-bold">
-                            {users.filter(u => u.type === 'vtfree-users').length}
+                            {owners.length}
                         </span>
                     </button>
                     <button
@@ -235,7 +231,7 @@ const Users = () => {
                         <Icon icon="solar:shield-user-bold" width="20" />
                         <span>Admin Users</span>
                         <span className="ml-1 px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs font-bold">
-                            {users.filter(u => u.type === 'admin-users').length}
+                            {admins.length}
                         </span>
                     </button>
                 </div>
@@ -327,7 +323,10 @@ const Users = () => {
                                     </>
                                 )}
                                 {activeTab === 'admin-users' && (
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Role</th>
+                                    <>
+                                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">App ID</th>
+                                        <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Role</th>
+                                    </>
                                 )}
                                 <th className="px-6 py-4 text-center text-xs font-bold text-slate-700 uppercase tracking-wider">Status</th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Last Active</th>
@@ -335,7 +334,16 @@ const Users = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {filteredUsers.map((user) => (
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={8} className="px-6 py-16 text-center">
+                                        <div className="flex flex-col items-center justify-center">
+                                            <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                                            <p className="text-slate-500 font-medium">Loading users...</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : filteredUsers.map((user) => (
                                 <tr
                                     key={user.id}
                                     className="hover:bg-slate-50 transition-colors group"
@@ -383,11 +391,16 @@ const Users = () => {
                                         </>
                                     )}
                                     {activeTab === 'admin-users' && (
-                                        <td className="px-6 py-4">
-                                            <span className="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold">
-                                                {user.role}
-                                            </span>
-                                        </td>
+                                        <>
+                                            <td className="px-6 py-4">
+                                                <span className="text-sm font-mono text-slate-600">{user.app_id || 'N/A'}</span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold">
+                                                    {user.role}
+                                                </span>
+                                            </td>
+                                        </>
                                     )}
                                     <td className="px-6 py-4">
                                         <div className="flex justify-center">
@@ -462,7 +475,7 @@ const Users = () => {
                             ))}
                             {filteredUsers.length === 0 && (
                                 <tr>
-                                    <td colSpan={activeTab === 'vtfree-users' ? 8 : 7} className="px-6 py-16 text-center">
+                                    <td colSpan={8} className="px-6 py-16 text-center">
                                         <div className="flex flex-col items-center justify-center">
                                             <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                                                 <Icon icon="solar:users-group-rounded-linear" className="text-slate-400" width="48" />
@@ -481,7 +494,7 @@ const Users = () => {
                 {filteredUsers.length > 0 && (
                     <div className="px-6 py-4 bg-slate-50 border-t-2 border-slate-200 flex items-center justify-between">
                         <p className="text-sm text-slate-600">
-                            Showing <span className="font-bold text-slate-900">{filteredUsers.length}</span> of <span className="font-bold text-slate-900">{users.filter(u => u.type === activeTab).length}</span> users
+                            Showing <span className="font-bold text-slate-900">{filteredUsers.length}</span> of <span className="font-bold text-slate-900">{currentUsers.length}</span> users
                         </p>
                         <div className="flex gap-2">
                             <button className="px-4 py-2 border-2 border-slate-200 rounded-lg text-slate-600 hover:border-slate-300 hover:bg-white transition-all font-semibold text-sm">

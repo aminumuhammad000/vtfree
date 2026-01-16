@@ -7,6 +7,8 @@ export interface IFundingAccount extends Document {
   accountNumber: string;
   instructions?: string;
   active: boolean;
+  provider?: string; // e.g. 'ibdata', 'vtpay', 'manual'
+  type: 'manual' | 'virtual';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -17,6 +19,8 @@ const FundingAccountSchema = new Schema<IFundingAccount>({
   accountName: { type: String, required: true },
   accountNumber: { type: String, required: true },
   instructions: { type: String },
+  provider: { type: String, default: 'manual' },
+  type: { type: String, enum: ['manual', 'virtual'], default: 'manual' },
   active: { type: Boolean, default: true },
 }, { timestamps: true });
 

@@ -39,23 +39,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
         </svg>
       ),
     },
-
     {
-      label: 'Wallet & Finance',
+      to: '/pages/apps',
+      label: 'App Management',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
         </svg>
       ),
-      children: [
-        { to: '/pages/finance/platform', label: 'Platform Wallet' },
-        { to: '/pages/finance/wallets', label: 'User Wallets' },
-        { to: '/pages/finance/withdrawals', label: 'Withdrawals' },
-        { to: '/pages/finance/transfers', label: 'Transfers' },
-        { to: '/pages/finance/settlements', label: 'Settlements' },
-        { to: '/pages/finance/analytics', label: 'Revenue Analytics' },
-      ]
     },
+
     {
       to: '/pages/transactions',
       label: 'Transactions',
@@ -75,16 +68,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
       ),
     },
     {
+      to: '/pages/messaging/notifications',
       label: 'Notifications',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
         </svg>
       ),
-      children: [
-        { to: '/pages/messaging/notifications', label: 'In-App Notifications' },
-        { to: '/pages/messaging/broadcasts', label: 'Broadcast Emails' },
-      ]
     },
     {
       to: '/pages/logs',
@@ -101,6 +91,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+      ),
+    },
+    {
+      to: '/pages/vtpay',
+      label: 'VTPay Management',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
         </svg>
       ),
     },

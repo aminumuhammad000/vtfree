@@ -7,6 +7,9 @@ import AnalyticsChart from 'components/dashboard/AnalyticsChart';
 
 interface DashboardData {
   total_users: number;
+  total_end_users: number;
+  total_apps: number;
+  total_app_admins: number;
   total_transactions: number;
   revenue: number;
   active_users: number;
@@ -38,31 +41,31 @@ const Dashboard = () => {
 
   const stats = [
     {
-      label: 'Total Users',
-      value: data?.total_users || 0,
-      icon: 'solar:users-group-rounded-bold-duotone',
+      label: 'Total Apps',
+      value: data?.total_apps || 0,
+      icon: 'solar:smartphone-2-bold-duotone',
       bgGradient: 'from-blue-500 to-blue-600',
       lightBg: 'bg-blue-50',
       textColor: 'text-blue-600',
       trend: { value: 12.5, isPositive: true }
     },
     {
-      label: 'Active Users',
-      value: data?.active_users || 0,
-      icon: 'solar:user-check-bold-duotone',
-      bgGradient: 'from-green-500 to-green-600',
-      lightBg: 'bg-green-50',
-      textColor: 'text-green-600',
-      trend: { value: 8.2, isPositive: true }
-    },
-    {
-      label: 'Total Transactions',
-      value: data?.total_transactions || 0,
-      icon: 'solar:bill-list-bold-duotone',
+      label: 'App Admins',
+      value: data?.total_app_admins || 0, // App Admins
+      icon: 'solar:user-id-bold-duotone',
       bgGradient: 'from-purple-500 to-purple-600',
       lightBg: 'bg-purple-50',
       textColor: 'text-purple-600',
-      trend: { value: 5.4, isPositive: false }
+      trend: { value: 8.2, isPositive: true }
+    },
+    {
+      label: 'End Users',
+      value: data?.total_end_users || 0,
+      icon: 'solar:users-group-rounded-bold-duotone',
+      bgGradient: 'from-green-500 to-green-600',
+      lightBg: 'bg-green-50',
+      textColor: 'text-green-600',
+      trend: { value: 5.4, isPositive: true }
     },
     {
       label: 'Total Revenue',

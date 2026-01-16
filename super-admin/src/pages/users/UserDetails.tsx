@@ -1,6 +1,7 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import { useState, useEffect } from 'react';
+import { UserService } from 'services/user.service';
 
 interface UserData {
     _id: string;
@@ -17,6 +18,7 @@ interface UserData {
     total_revenue?: number;
     type: 'vtfree-users' | 'admin-users';
     role?: string;
+    app_id?: string;
     virtual_account?: {
         bank: string;
         account_number: string;
@@ -33,37 +35,45 @@ const UserDetails = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Mock data
-        const mockUser: UserData = {
-            _id: id || '1',
-            first_name: 'John',
-            last_name: 'Doe',
-            email: 'john@example.com',
-            phone_number: '+2348012345678',
-            status: 'active',
-            created_at: '2024-01-15T10:30:00Z',
-            address: '123 Main Street, Victoria Island, Lagos',
-            type: userType,
-            ...(userType === 'vtfree-users' ? {
-                apps_count: 3,
-                wallet_balance: 25000,
-                total_transactions: 156,
-                total_revenue: 850000,
-                virtual_account: {
-                    bank: 'Wema Bank',
-                    account_number: '1234567890',
-                    account_name: 'John Doe'
+        const fetchUser = async () => {
+            if (!id) return;
+            setLoading(true);
+            try {
+                let data;
+                if (userType === 'vtfree-users') {
+                    data = await UserService.getOwnerById(id);
+                } else {
+                    data = await UserService.getAdminById(id);
                 }
-            } : {
-                role: 'Support Admin',
-                apps_count: 0,
-                wallet_balance: 0,
-                total_transactions: 0,
-                total_revenue: 0
-            })
+
+                if (data) {
+                    const mappedUser: UserData = {
+                        _id: data._id,
+                        first_name: data.first_name,
+                        last_name: data.last_name,
+                        email: data.email,
+                        phone_number: data.phone_number || 'N/A',
+                        status: data.status,
+                        created_at: data.created_at,
+                        type: userType,
+                        wallet_balance: data.wallet_balance,
+                        role: data.role,
+                        app_id: data.app_id,
+                        // Add other fields if available in backend
+                        apps_count: 0,
+                        total_transactions: 0,
+                        total_revenue: 0
+                    };
+                    setUser(mappedUser);
+                }
+            } catch (error) {
+                console.error('Error fetching user details:', error);
+            } finally {
+                setLoading(false);
+            }
         };
-        setUser(mockUser);
-        setLoading(false);
+
+        fetchUser();
     }, [id, userType]);
 
     if (loading) {
@@ -145,6 +155,15 @@ const UserDetails = () => {
                                         <Icon icon="logos:whatsapp-icon" width="16" height="16" />
                                         <span>{user.phone_number}</span>
                                     </a>
+                                    {user.type === 'admin-users' && user.app_id && (
+                                        <>
+                                            <span>•</span>
+                                            <div className="flex items-center gap-1 text-blue-600">
+                                                <Icon icon="solar:globus-linear" width="16" height="16" />
+                                                <span className="font-semibold">App ID: {user.app_id}</span>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                             <div className="flex gap-2">

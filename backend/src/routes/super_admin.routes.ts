@@ -12,6 +12,18 @@ router.use(authenticateSuperAdmin);
 router.get('/apps', SuperAdminController.getAllApps);
 router.get('/users', SuperAdminController.getAllUsers);
 router.get('/owners', SuperAdminController.getAllOwners);
+router.get('/owners/:id', SuperAdminController.getOwnerById);
+router.get('/admins', SuperAdminController.getAllAdmins);
+router.get('/admins/:id', SuperAdminController.getAdminById);
+
+// Pricing & Plans
+router.get('/pricing/ibdata-plans', SuperAdminController.getIBDataPlans);
+router.post('/pricing/update-profit', SuperAdminController.updatePlanProfit);
+router.post('/pricing/sync-ibdata', SuperAdminController.syncIBDataPlans);
+router.get('/pricing/ibdata-balance', SuperAdminController.getIBDataBalance);
+
+router.patch('/owners/:id/status', SuperAdminController.updateOwnerStatus);
+router.patch('/admins/:id/status', SuperAdminController.updateAdminStatus);
 router.get('/dashboard', SuperAdminController.getDashboardStats);
 router.get('/transactions', SuperAdminController.getAllTransactions);
 router.get('/payments', SuperAdminController.getAllPayments);
@@ -35,6 +47,15 @@ router.delete('/features/:id', SuperAdminController.deleteFeature);
 router.get('/settings', SuperAdminController.getSystemSettings);
 router.patch('/settings', SuperAdminController.updateSystemSettings);
 router.get('/logs', SuperAdminController.getLogs);
+
+// VTPay Management
+router.get('/vtpay/settings', SuperAdminController.getVTPaySettings);
+router.post('/vtpay/settings', SuperAdminController.updateVTPaySettings);
+router.get('/vtpay/balance', SuperAdminController.getVTPayPlatformBalance);
+router.get('/vtpay/accounts', SuperAdminController.getVTPayAccounts);
+router.post('/vtpay/accounts', SuperAdminController.createVTPayAccount);
+router.get('/vtpay/accounts/:accountNumber/balance', SuperAdminController.getVTPayAccountBalance);
+router.get('/vtpay/accounts/:accountNumber/transactions', SuperAdminController.getVTPayAccountTransactions);
 
 // Tickets
 router.get('/tickets', SuperAdminController.getAllTickets);
