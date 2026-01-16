@@ -17,14 +17,12 @@ const UserWallets = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'suspended' | 'pending'>('all');
     const [userWallets, setUserWallets] = useState<UserWallet[]>([]);
-    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetchWallets();
     }, []);
 
     const fetchWallets = async () => {
-        setLoading(true);
         try {
             const response = await getWallets();
             if (response.data.success) {
@@ -41,8 +39,6 @@ const UserWallets = () => {
             }
         } catch (error) {
             console.error('Failed to fetch wallets:', error);
-        } finally {
-            setLoading(false);
         }
     };
 

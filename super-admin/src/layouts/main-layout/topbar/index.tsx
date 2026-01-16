@@ -17,7 +17,6 @@ interface TopbarProps {
 const Topbar = ({
   expand,
   mobileOpen,
-  setExpand,
   setMobileOpen,
   drawerWidth,
   miniDrawerWidth,

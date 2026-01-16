@@ -18,12 +18,8 @@ const Settings = lazy(() => import('pages/settings'));
 const Profile = lazy(() => import('pages/profile'));
 
 // Finance
-const PlatformWallet = lazy(() => import('pages/finance/PlatformWallet'));
-const UserWallets = lazy(() => import('pages/finance/UserWallets'));
-const Withdrawals = lazy(() => import('pages/finance/Withdrawals'));
-const RevenueAnalytics = lazy(() => import('pages/finance/RevenueAnalytics'));
-const Transfers = lazy(() => import('pages/finance/Transfers'));
-const Settlements = lazy(() => import('pages/finance/Settlements'));
+// Finance
+const Finance = lazy(() => import('pages/finance'));
 
 // Pricing
 const PricingPlans = lazy(() => import('pages/pricing'));
@@ -85,28 +81,8 @@ const routes = [
               },
               // Finance
               {
-                path: paths.platformWallet,
-                element: <PlatformWallet />,
-              },
-              {
-                path: paths.userWallets,
-                element: <UserWallets />,
-              },
-              {
-                path: paths.withdrawals,
-                element: <Withdrawals />,
-              },
-              {
-                path: paths.revenueAnalytics,
-                element: <RevenueAnalytics />,
-              },
-              {
-                path: paths.transfers,
-                element: <Transfers />,
-              },
-              {
-                path: paths.settlements,
-                element: <Settlements />,
+                path: paths.finance,
+                element: <Finance />,
               },
               // Pricing
               {

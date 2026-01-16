@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import axios from 'axios';
 import config from '../config';
+import { logger } from '../utils/logger';
 import { VirtualAccount, Zainbox, WebhookLog, User } from '../models';
 import { walletService } from './WalletService';
 import { WebhookEvent, WebhookDepositEvent, WebhookTransferSuccessEvent, WebhookTransferFailedEvent } from '../types/zainpay';
@@ -19,7 +20,7 @@ export class WebhookService {
      */
     verifySignature(payload: string, signature: string): boolean {
         if (!signature) {
-            console.error('No signature provided');
+            logger.error('No signature provided');
             return false;
         }
 
@@ -35,8 +36,8 @@ export class WebhookService {
      * Process incoming webhook event
      */
     async processWebhook(event: WebhookEvent): Promise<{ success: boolean; message: string }> {
-        console.log(`Processing webhook event: ${event.event}`);
-        console.log('Webhook data:', JSON.stringify(event.data, null, 2));
+        logger.info(`Processing webhook event: ${event.event}`);
+        logger.debug('Webhook data', event.data);
 
         try {
             // Log incoming Zainpay webhook
@@ -68,7 +69,7 @@ export class WebhookService {
                     break;
 
                 default:
-                    console.warn(`Unknown webhook event type: ${(event as any).event}`);
+                    logger.warn(`Unknown webhook event type: ${(event as any).event}`);
                     result = { success: false, message: `Unknown event type: ${(event as any).event}` };
             }
 
@@ -79,7 +80,7 @@ export class WebhookService {
 
             return result;
         } catch (error) {
-            console.error('Error processing webhook:', error);
+            logger.error('Error processing webhook', error);
             return { success: false, message: 'Error processing webhook' };
         }
     }
@@ -91,25 +92,25 @@ export class WebhookService {
         try {
             const zainboxCode = event.data.zainboxCode;
             if (!zainboxCode) {
-                console.warn('No zainboxCode in webhook event, cannot dispatch to tenant');
+                logger.warn('No zainboxCode in webhook event, cannot dispatch to tenant');
                 return;
             }
 
             // Find Zainbox and its owner
             const zainbox = await Zainbox.findOne({ zainboxCode });
             if (!zainbox) {
-                console.warn(`No Zainbox found for code: ${zainboxCode}`);
+                logger.warn(`No Zainbox found for code: ${zainboxCode}`);
                 return;
             }
 
             const user = await User.findById(zainbox.userId);
             if (!user) {
-                console.warn(`No User found for Zainbox: ${zainboxCode}`);
+                logger.warn(`No User found for Zainbox: ${zainboxCode}`);
                 return;
             }
 
             if (!user.webhookUrl) {
-                console.log(`User ${user.email} has no webhook URL configured, skipping dispatch`);
+                logger.info(`User ${user.email} has no webhook URL configured, skipping dispatch`);
                 return;
             }
 
@@ -132,7 +133,7 @@ export class WebhookService {
             });
 
             try {
-                console.log(`Forwarding webhook to tenant ${user.email} at ${user.webhookUrl}`);
+                logger.info(`Forwarding webhook to tenant ${user.email} at ${user.webhookUrl}`);
                 const response = await axios.post(user.webhookUrl, event, {
                     headers: {
                         'Content-Type': 'application/json',
@@ -147,7 +148,7 @@ export class WebhookService {
                 log.responseBody = typeof response.data === 'object' ? JSON.stringify(response.data) : String(response.data);
                 await log.save();
 
-                console.log(`Webhook successfully dispatched to ${user.webhookUrl}`);
+                logger.info(`Webhook successfully dispatched to ${user.webhookUrl}`);
             } catch (error: any) {
                 log.dispatchStatus = 'failed';
                 log.responseStatus = error.response?.status;
@@ -156,10 +157,10 @@ export class WebhookService {
                     : error.message;
                 await log.save();
 
-                console.error(`Failed to dispatch webhook to ${user.webhookUrl}:`, error.message);
+                logger.error(`Failed to dispatch webhook to ${user.webhookUrl}`, error.message);
             }
         } catch (error: any) {
-            console.error('Error in dispatchWebhookToTenant:', error.message);
+            logger.error('Error in dispatchWebhookToTenant', error.message);
         }
     }
 
@@ -175,14 +176,14 @@ export class WebhookService {
         });
 
         if (!virtualAccount) {
-            console.error(`Virtual account not found: ${data.beneficiaryAccountNumber}`);
+            logger.error(`Virtual account not found: ${data.beneficiaryAccountNumber}`);
             return { success: false, message: 'Virtual account not found' };
         }
 
         // Check if this transaction has already been processed
         const existingTransaction = await walletService.getTransactionByExternalRef(data.txnRef);
         if (existingTransaction) {
-            console.log(`Transaction already processed: ${data.txnRef}`);
+            logger.info(`Transaction already processed: ${data.txnRef}`);
             return { success: true, message: 'Transaction already processed' };
         }
 
@@ -209,7 +210,7 @@ export class WebhookService {
             virtualAccount.reference // Pass the customer reference
         );
 
-        console.log(`Successfully credited wallet for user ${virtualAccount.userId} with ${amountInKobo} kobo`);
+        logger.info(`Successfully credited wallet for user ${virtualAccount.userId} with ${amountInKobo} kobo`);
         return { success: true, message: 'Deposit processed successfully' };
     }
 
@@ -225,7 +226,7 @@ export class WebhookService {
         });
 
         if (!virtualAccount) {
-            console.error(`Virtual account not found: ${data.accountNumber}`);
+            logger.error(`Virtual account not found: ${data.accountNumber}`);
             return { success: false, message: 'Virtual account not found' };
         }
 
@@ -240,7 +241,7 @@ export class WebhookService {
             });
         }
 
-        console.log(`Transfer success processed for txnRef: ${data.txnRef}`);
+        logger.info(`Transfer success processed for txnRef: ${data.txnRef}`);
         return { success: true, message: 'Transfer success processed' };
     }
 
@@ -256,7 +257,7 @@ export class WebhookService {
         });
 
         if (!virtualAccount) {
-            console.error(`Virtual account not found: ${data.accountNumber}`);
+            logger.error(`Virtual account not found: ${data.accountNumber}`);
             return { success: false, message: 'Virtual account not found' };
         }
 
@@ -286,7 +287,7 @@ export class WebhookService {
                 }
             );
 
-            console.log(`Refunded ${refundAmount} kobo for failed transfer: ${data.internalTxnRef}`);
+            logger.info(`Refunded ${refundAmount} kobo for failed transfer: ${data.internalTxnRef}`);
         }
 
         return { success: true, message: 'Transfer failure processed and refunded' };

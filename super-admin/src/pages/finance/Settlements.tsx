@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Icon } from '@iconify/react';
 import { getPayments } from 'api/superAdminApi';
 
 const Settlements: React.FC = () => {

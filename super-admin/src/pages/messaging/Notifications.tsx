@@ -93,27 +93,29 @@ const Notifications = () => {
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex p-1 bg-slate-100 rounded-2xl w-fit">
-                <button
-                    onClick={() => setActiveTab('in-app')}
-                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all ${activeTab === 'in-app'
-                            ? 'bg-white text-emerald-600 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700'
-                        }`}
-                >
-                    <Icon icon="solar:bell-bing-bold" width="20" />
-                    In-App Notification
-                </button>
-                <button
-                    onClick={() => setActiveTab('email')}
-                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all ${activeTab === 'email'
-                            ? 'bg-white text-emerald-600 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700'
-                        }`}
-                >
-                    <Icon icon="solar:letter-bold" width="20" />
-                    Email Broadcast
-                </button>
+            <div className="border-b border-slate-200">
+                <div className="flex gap-2 overflow-x-auto">
+                    <button
+                        onClick={() => setActiveTab('in-app')}
+                        className={`flex items-center gap-2 px-6 py-3 font-semibold text-sm transition-all duration-300 border-b-2 whitespace-nowrap ${activeTab === 'in-app'
+                            ? 'border-emerald-600 text-emerald-600'
+                            : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
+                            }`}
+                    >
+                        <Icon icon="solar:bell-bing-bold" width="20" />
+                        <span>In-App Notification</span>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('email')}
+                        className={`flex items-center gap-2 px-6 py-3 font-semibold text-sm transition-all duration-300 border-b-2 whitespace-nowrap ${activeTab === 'email'
+                            ? 'border-emerald-600 text-emerald-600'
+                            : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
+                            }`}
+                    >
+                        <Icon icon="solar:letter-bold" width="20" />
+                        <span>Email Broadcast</span>
+                    </button>
+                </div>
             </div>
 
             {status && (
@@ -143,8 +145,8 @@ const Notifications = () => {
                                             type="button"
                                             onClick={() => setTargetType(t.id as any)}
                                             className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 ${targetType === t.id
-                                                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm'
-                                                    : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-slate-200'
+                                                ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm'
+                                                : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-slate-200'
                                                 }`}
                                         >
                                             <Icon icon={t.icon} width="28" />
@@ -197,8 +199,8 @@ const Notifications = () => {
                                                         </div>
                                                     </div>
                                                     <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selectedUsers.includes(user._id)
-                                                            ? 'bg-emerald-500 border-emerald-500 text-white'
-                                                            : 'border-slate-200'
+                                                        ? 'bg-emerald-500 border-emerald-500 text-white'
+                                                        : 'border-slate-200'
                                                         }`}>
                                                         {selectedUsers.includes(user._id) && <Icon icon="solar:check-read-bold" width="14" />}
                                                     </div>
@@ -232,8 +234,8 @@ const Notifications = () => {
                                                         type="button"
                                                         onClick={() => setType(t.id as any)}
                                                         className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 transition-all ${type === t.id
-                                                                ? `border-${t.color}-500 bg-${t.color}-50 text-${t.color}-700`
-                                                                : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-slate-200'
+                                                            ? `border-${t.color}-500 bg-${t.color}-50 text-${t.color}-700`
+                                                            : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-slate-200'
                                                             }`}
                                                     >
                                                         <Icon icon={t.icon} width="18" />
@@ -292,8 +294,8 @@ const Notifications = () => {
                                 type="submit"
                                 disabled={isSending || (targetType !== 'all' && selectedUsers.length === 0)}
                                 className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold transition-all shadow-lg ${isSending || (targetType !== 'all' && selectedUsers.length === 0)
-                                        ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
-                                        : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-emerald-200 active:scale-95'
+                                    ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
+                                    : 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-emerald-200 active:scale-95'
                                     }`}
                             >
                                 {isSending ? (

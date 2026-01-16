@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import StatsCard from '../../components/dashboard/StatsCard';
-import { getTickets, updateTicketStatusApi } from 'api/superAdminApi';
+import { getTickets } from 'api/superAdminApi';
 
 interface Ticket {
     id: string;

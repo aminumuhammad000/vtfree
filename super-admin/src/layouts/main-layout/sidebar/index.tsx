@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 
 interface NavItem {
@@ -39,18 +39,13 @@ const navItems: NavItem[] = [
   },
 
   {
+    to: '/pages/finance',
     label: 'Wallet & Finance',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
       </svg>
     ),
-    children: [
-      { to: '/pages/finance/platform', label: 'Platform Wallet' },
-      { to: '/pages/finance/wallets', label: 'User Wallets' },
-      { to: '/pages/finance/withdrawals', label: 'Withdrawals' },
-      { to: '/pages/finance/analytics', label: 'Revenue Analytics' },
-    ]
   },
   {
     to: '/pages/transactions',
@@ -80,30 +75,22 @@ const navItems: NavItem[] = [
     ),
   },
   {
-    label: 'System Management',
+    to: '/pages/messaging/notifications',
+    label: 'Notifications',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
       </svg>
     ),
-    children: [
-      { to: '/pages/messaging/notifications', label: 'Notifications' },
-      { to: '/pages/messaging/broadcasts', label: 'Broadcasts' },
-    ]
   },
   {
+    to: '/pages/logs',
     label: 'Activity Logs',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
     ),
-    children: [
-      { to: '/pages/logs/audit', label: 'Audit Logs' },
-      { to: '/pages/logs/api', label: 'API Logs' },
-      { to: '/pages/logs/errors', label: 'Error Logs' },
-      { to: '/pages/logs/security', label: 'Security Logs' },
-    ]
   },
   {
     to: '/pages/support',
@@ -139,7 +126,6 @@ const Sidebar = ({ mobileOpen, setMobileOpen }: SidebarProps) => {
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['Wallet & Finance']);
   const { logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const handleLogout = () => {
     logout();

@@ -18,6 +18,7 @@ import {
     helpRoutes,
 } from './routes';
 import config from './config';
+import { logger } from './utils/logger';
 
 const app: Application = express();
 
@@ -58,7 +59,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     const start = Date.now();
     res.on('finish', () => {
         const duration = Date.now() - start;
-        console.log(`${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`);
+        logger.info(`${req.method} ${req.path}`, { statusCode: res.statusCode, duration: `${duration}ms` });
     });
     next();
 });
@@ -97,7 +98,7 @@ app.use((req: Request, res: Response) => {
 
 // Global error handler
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-    console.error('Unhandled error:', err);
+    logger.error('Unhandled error', err);
     res.status(500).json({
         success: false,
         message: 'Internal server error',
