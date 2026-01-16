@@ -120,8 +120,8 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
   const [isDesktopOpen, setIsDesktopOpen] = useState(true);
-  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
-  const { logout } = useAuthContext();
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(['Payments']);
+  const { logout, app } = useAuthContext();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -170,14 +170,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
         <div className="p-4 lg:p-6 border-b border-green-700/50 flex items-center justify-between transition-all">
           {(isDesktopOpen || isMobileOpen) && (
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow">
-                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L9 5.414V18a1 1 0 102 0V5.414l6.293 6.293a1 1 0 001.414-1.414l-7-7z" />
-                </svg>
+              <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow overflow-hidden">
+                {app?.logo ? (
+                  <img src={app.logo} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L9 5.414V18a1 1 0 102 0V5.414l6.293 6.293a1 1 0 001.414-1.414l-7-7z" />
+                  </svg>
+                )}
               </div>
               <div>
-                <h1 className="text-lg font-bold bg-gradient-to-r from-green-400 to-green-600 bg-clip-text text-transparent">
-                  VTU
+                <h1 className="text-lg font-bold bg-gradient-to-r from-green-400 to-green-600 bg-clip-text text-transparent truncate max-w-[120px]">
+                  {app?.name || 'VTU'}
                 </h1>
                 <p className="text-xs text-green-300/60">Admin Panel</p>
               </div>

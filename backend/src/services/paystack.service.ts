@@ -64,9 +64,9 @@ interface PaystackVerifyResponse {
 export class PaystackService {
   private readonly api: AxiosInstance;
   private readonly baseUrl: string;
-  private readonly secretKey: string;
-  private readonly publicKey: string;
-  private readonly webhookSecret: string;
+  private secretKey: string;
+  private publicKey: string;
+  private webhookSecret: string;
 
   constructor() {
     this.baseUrl = 'https://api.paystack.co';

@@ -1,0 +1,403 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, Modal, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
+import { ArrowLeft, Wallet, ArrowUpRight, ArrowDownLeft, X, CreditCard } from 'lucide-react-native';
+import Colors from '../constants/Colors';
+import { LinearGradient } from 'expo-linear-gradient';
+import { WalletService } from '../services/wallet.service';
+import { useAuth } from '../context/AuthContext';
+
+export default function WalletScreen() {
+    const router = useRouter();
+    const { user } = useAuth();
+
+    const [balance, setBalance] = useState(0);
+    const [transactions, setTransactions] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    // Funding State
+    const [showFundModal, setShowFundModal] = useState(false);
+    const [fundAmount, setFundAmount] = useState('');
+    const [funding, setFunding] = useState(false);
+
+    useEffect(() => {
+        fetchWalletData();
+    }, []);
+
+    const fetchWalletData = async () => {
+        try {
+            const response = await WalletService.getWallet();
+            if (response.success) {
+                setBalance(response.data.balance);
+                setTransactions(response.data.transactions);
+            }
+        } catch (error: any) {
+            // Only log non-auth errors (auth errors are expected when not logged in)
+            if (!error?.isAuthError) {
+                console.error('Wallet fetch failed:', error);
+            }
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    const handleRefresh = () => {
+        setRefreshing(true);
+        fetchWalletData();
+    };
+
+    const handleFundWallet = async () => {
+        if (!fundAmount || isNaN(Number(fundAmount)) || Number(fundAmount) <= 0) {
+            Alert.alert('Invalid Amount', 'Please enter a valid amount');
+            return;
+        }
+
+        setFunding(true);
+        try {
+            const response = await WalletService.fundWallet(Number(fundAmount));
+            if (response.success) {
+                Alert.alert('Success', 'Wallet funded successfully!');
+                setBalance(response.data.balance);
+                // Prepend new transaction (assuming mock response structure)
+                setTransactions([response.data.transaction, ...transactions]);
+                setShowFundModal(false);
+                setFundAmount('');
+            }
+        } catch (error: any) {
+            Alert.alert('Error', error.response?.data?.message || 'Failed to fund wallet');
+        } finally {
+            setFunding(false);
+        }
+    };
+
+    const formatCurrency = (amount: number) => {
+        return '₦' + amount.toLocaleString();
+    };
+
+    return (
+        <View style={styles.container}>
+            {/* Header */}
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                    <ArrowLeft color={Colors.text.primary} size={24} />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>My Wallet</Text>
+                <View style={{ width: 40 }} />
+            </View>
+
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[Colors.primary]} />}
+            >
+                {/* Balance Card */}
+                <LinearGradient
+                    colors={[Colors.primary, Colors.primaryLight]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.balanceCard}
+                >
+                    <View style={styles.balanceHeader}>
+                        <Text style={styles.balanceLabel}>Total Balance</Text>
+                        <Wallet color={Colors.white} size={24} opacity={0.8} />
+                    </View>
+                    <Text style={styles.balanceValue}>{formatCurrency(balance)}</Text>
+
+                    <View style={styles.cardActions}>
+                        <TouchableOpacity style={styles.fundButton} onPress={() => setShowFundModal(true)}>
+                            <CreditCard color={Colors.primary} size={20} />
+                            <Text style={styles.fundButtonText}>Fund Wallet</Text>
+                        </TouchableOpacity>
+                    </View>
+                </LinearGradient>
+
+                {/* Transactions */}
+                <Text style={styles.sectionTitle}>Recent Transactions</Text>
+
+                {loading ? (
+                    <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 20 }} />
+                ) : transactions.length > 0 ? (
+                    <View style={styles.transactionsList}>
+                        {transactions.map((tx) => (
+                            <View key={tx._id} style={styles.transactionItem}>
+                                <View style={[
+                                    styles.iconBox,
+                                    { backgroundColor: tx.type === 'credit' ? Colors.green[100] : Colors.red[100] }
+                                ]}>
+                                    {tx.type === 'credit' ? (
+                                        <ArrowDownLeft color={Colors.green[600]} size={20} />
+                                    ) : (
+                                        <ArrowUpRight color={Colors.red[500]} size={20} />
+                                    )}
+                                </View>
+                                <View style={styles.txInfo}>
+                                    <Text style={styles.txDesc}>{tx.description}</Text>
+                                    <Text style={styles.txDate}>{new Date(tx.created_at).toLocaleDateString()} • {new Date(tx.created_at).toLocaleTimeString()}</Text>
+                                </View>
+                                <Text style={[
+                                    styles.txAmount,
+                                    { color: tx.type === 'credit' ? Colors.green[600] : Colors.red[500] }
+                                ]}>
+                                    {tx.type === 'credit' ? '+' : '-'}{formatCurrency(tx.amount)}
+                                </Text>
+                            </View>
+                        ))}
+                    </View>
+                ) : (
+                    <View style={styles.emptyState}>
+                        <Text style={styles.emptyText}>No transactions yet</Text>
+                    </View>
+                )}
+            </ScrollView>
+
+            {/* Fund Modal */}
+            <Modal
+                transparent
+                visible={showFundModal}
+                animationType="fade"
+                onRequestClose={() => setShowFundModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Fund Wallet</Text>
+                            <TouchableOpacity onPress={() => setShowFundModal(false)}>
+                                <X color={Colors.gray[500]} size={24} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={styles.inputLabel}>Enter Amount (₦)</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={fundAmount}
+                            onChangeText={setFundAmount}
+                            placeholder="e.g. 5000"
+                            keyboardType="numeric"
+                            autoFocus
+                        />
+
+                        {/* Quick Amounts */}
+                        <View style={styles.quickAmounts}>
+                            {[5000, 10000, 20000, 50000].map(amt => (
+                                <TouchableOpacity
+                                    key={amt}
+                                    style={styles.quickChip}
+                                    onPress={() => setFundAmount(amt.toString())}
+                                >
+                                    <Text style={styles.quickChipText}>{formatCurrency(amt)}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        <TouchableOpacity
+                            style={styles.submitFundButton}
+                            onPress={handleFundWallet}
+                            disabled={funding}
+                        >
+                            {funding ? (
+                                <ActivityIndicator color={Colors.white} />
+                            ) : (
+                                <Text style={styles.submitFundButtonText}>Proceed to Pay</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+        </View>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: Colors.background,
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        paddingTop: 48,
+        backgroundColor: Colors.white,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.gray[100],
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: Colors.text.primary,
+    },
+    scrollContent: {
+        padding: 16,
+    },
+    balanceCard: {
+        borderRadius: 20,
+        padding: 24,
+        marginBottom: 24,
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.2,
+        shadowRadius: 16,
+        elevation: 8,
+    },
+    balanceHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    balanceLabel: {
+        color: 'rgba(255,255,255,0.8)',
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    balanceValue: {
+        fontSize: 32,
+        fontWeight: 'bold',
+        color: Colors.white,
+        marginBottom: 24,
+    },
+    cardActions: {
+        flexDirection: 'row',
+    },
+    fundButton: {
+        backgroundColor: Colors.white,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 12,
+        gap: 8,
+    },
+    fundButtonText: {
+        color: Colors.primary,
+        fontWeight: 'bold',
+        fontSize: 14,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: Colors.text.primary,
+        marginBottom: 16,
+        marginLeft: 4,
+    },
+    transactionsList: {
+        backgroundColor: Colors.white,
+        borderRadius: 16,
+        padding: 8,
+    },
+    transactionItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.gray[100],
+    },
+    iconBox: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    txInfo: {
+        flex: 1,
+    },
+    txDesc: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: Colors.text.primary,
+        marginBottom: 2,
+    },
+    txDate: {
+        fontSize: 12,
+        color: Colors.gray[500],
+    },
+    txAmount: {
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    emptyState: {
+        alignItems: 'center',
+        marginTop: 40,
+    },
+    emptyText: {
+        color: Colors.gray[500],
+    },
+
+    // Modal
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+    },
+    modalContent: {
+        backgroundColor: Colors.white,
+        borderRadius: 24,
+        padding: 24,
+        width: '100%',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    inputLabel: {
+        fontSize: 14,
+        color: Colors.gray[600],
+        marginBottom: 8,
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: Colors.gray[200],
+        borderRadius: 12,
+        padding: 16,
+        fontSize: 18,
+        marginBottom: 16,
+        color: Colors.text.primary,
+    },
+    quickAmounts: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: 24,
+    },
+    quickChip: {
+        backgroundColor: Colors.gray[100],
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+    },
+    quickChipText: {
+        color: Colors.gray[700],
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    submitFundButton: {
+        backgroundColor: Colors.primary,
+        paddingVertical: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    submitFundButtonText: {
+        color: Colors.white,
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+});

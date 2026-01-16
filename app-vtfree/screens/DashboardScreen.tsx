@@ -1,211 +1,317 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, Image } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, RefreshControl, Dimensions, StatusBar } from 'react-native';
+import { useRouter, useFocusEffect, Redirect } from 'expo-router';
 import {
-    Menu,
-    X,
     Plus,
-    Settings,
-    FileText,
-    Headphones,
+    Zap,
     Smartphone,
     CheckCircle,
     Clock,
     Eye,
-    TrendingUp,
-    Zap,
-    Home,
+    Bell,
+    Wallet,
+    TrendingUp
 } from 'lucide-react-native';
 import Colors from '../constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
+import { AppService } from '../services/app.service';
+import { WalletService } from '../services/wallet.service';
+import { AuthService } from '../services/auth.service';
+import { useAuth } from '../context/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
 export default function DashboardScreen() {
     const router = useRouter();
-    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const { signOut } = useAuth();
+    const [user, setUser] = useState<any>(null);
+    const [apps, setApps] = useState<any[]>([]);
+    const [walletBalance, setWalletBalance] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [sessionExpired, setSessionExpired] = useState(false);
+    const isLoadingRef = React.useRef(false);
 
-    const stats = [
-        { icon: Smartphone, label: 'Total Apps', value: '3', color: Colors.primary },
-        { icon: CheckCircle, label: 'Active', value: '2', color: Colors.primaryLight },
-        { icon: Clock, label: 'Building', value: '1', color: Colors.yellow[500] },
-        { icon: TrendingUp, label: 'This Month', value: '+2', color: Colors.primary },
-    ];
+    const [stats, setStats] = useState({
+        total: 0,
+        active: 0,
+        building: 0
+    });
 
-    const apps = [
-        {
-            id: '1',
-            name: 'My VTU App',
-            status: 'ready',
-            icon: '📱',
-            buildProgress: 100,
-            createdAt: '2 days ago',
-            services: ['Airtime', 'Data', 'Cable TV'],
-        },
-        {
-            id: '2',
-            name: 'QuickRecharge',
-            status: 'building',
-            icon: '⚡',
-            buildProgress: 67,
-            createdAt: '5 hours ago',
-            services: ['Airtime', 'Data', 'Electricity'],
-        },
-        {
-            id: '3',
-            name: 'VTU Pro',
-            status: 'ready',
-            icon: '🚀',
-            buildProgress: 100,
-            createdAt: '1 week ago',
-            services: ['All Services'],
-        },
-    ];
+    // If session expired, immediately redirect and render nothing
+    if (sessionExpired) {
+        return <Redirect href="/login" />;
+    }
 
-    const menuItems = [
-        { icon: Home, label: 'Dashboard', page: 'Dashboard' as const },
-        { icon: FileText, label: 'Documentation', page: 'Documentation' as const },
-        { icon: Settings, label: 'Settings', page: 'Settings' as const },
-        { icon: Headphones, label: 'Support', page: 'Support' as const },
-    ];
+    const handleSessionExpired = async () => {
+        if (isLoadingRef.current) return; // Prevent multiple calls
+        isLoadingRef.current = true;
+
+        console.warn('Session expired - logging out...');
+
+        // Clear everything
+        await AsyncStorage.multiRemove(['vtfree_token', 'vtfree_user']);
+        await signOut();
+        setSessionExpired(true);
+        router.replace('/login');
+    };
+
+    const loadData = async () => {
+        // Prevent multiple simultaneous calls
+        if (isLoadingRef.current || sessionExpired) {
+            return;
+        }
+
+        isLoadingRef.current = true;
+
+        try {
+            // Ensure token exists before making API calls
+            const token = await AsyncStorage.getItem('vtfree_token');
+            if (!token) {
+                await handleSessionExpired();
+                return;
+            }
+
+            // 1. Get User Info
+            const userStr = await AsyncStorage.getItem('vtfree_user');
+            if (userStr) {
+                setUser(JSON.parse(userStr));
+            } else {
+                // Fallback fetch if not in storage
+                const profile = await AuthService.getProfile();
+                if (profile.success) setUser(profile.data.user);
+            }
+
+            // 2. Get Wallet
+            const walletRes = await WalletService.getWallet();
+            if (walletRes.success) {
+                setWalletBalance(walletRes.data.balance || 0);
+            }
+
+            // 3. Get Apps
+            const appsRes = await AppService.getMyApps();
+            if (appsRes.success) {
+                const fetchedApps = appsRes.data.apps || [];
+                setApps(fetchedApps);
+
+                // Stats
+                setStats({
+                    total: fetchedApps.length,
+                    active: fetchedApps.filter((app: any) => app.status === 'live').length,
+                    building: fetchedApps.filter((app: any) => app.status === 'building' || app.status === 'pending').length
+                });
+            }
+
+        } catch (error: any) {
+            const status = error.response?.status;
+            const msg = error.message?.toLowerCase() || '';
+            const serverMsg = error.response?.data?.message?.toLowerCase() || '';
+
+            // Check for various forms of auth errors
+            const isAuthError =
+                error.isAuthError || // Flag from axios interceptor
+                status === 401 ||
+                msg.includes('invalid token') ||
+                msg.includes('jwt') ||
+                msg.includes('unauthorized') ||
+                msg.includes('session') ||
+                msg.includes('no token') ||
+                serverMsg.includes('invalid token') ||
+                serverMsg.includes('unauthorized') ||
+                serverMsg.includes('session') ||
+                serverMsg.includes('no token');
+
+            if (isAuthError) {
+                await handleSessionExpired();
+                return;
+            } else {
+                // Only log as error if it's NOT an auth error
+                console.error('Dashboard load failed:', error);
+            }
+        } finally {
+            isLoadingRef.current = false;
+            if (!sessionExpired) {
+                setLoading(false);
+                setRefreshing(false);
+            }
+        }
+    };
+
+    const handleRefresh = () => {
+        if (!sessionExpired) {
+            setRefreshing(true);
+            loadData();
+        }
+    };
+
+    useEffect(() => {
+        if (!sessionExpired) {
+            loadData();
+        }
+    }, []);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            if (!sessionExpired && !isLoadingRef.current) {
+                loadData();
+            }
+        }, [sessionExpired])
+    );
+
+    const formatCurrency = (amount: number) => {
+        return `₦${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
 
     return (
         <View style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <View style={styles.headerLeft}>
-                    <TouchableOpacity onPress={() => setSidebarOpen(!sidebarOpen)} style={styles.menuButton}>
-                        <Menu color={Colors.gray[700]} size={24} />
-                    </TouchableOpacity>
-                    <View>
-                        <Text style={styles.headerTitle}>Dashboard</Text>
-                        <Text style={styles.headerSubtitle}>Manage your VTU apps</Text>
-                    </View>
-                </View>
+            <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
 
-                <TouchableOpacity
-                    onPress={() => router.push('/create-app')}
-                    style={styles.newAppButton}
-                    activeOpacity={0.8}
-                >
-                    <LinearGradient colors={[Colors.primary, Colors.primaryLight]} style={styles.newAppGradient}>
-                        <Plus color={Colors.white} size={20} />
-                    </LinearGradient>
+            {/* Custom Header (No Hamburger) */}
+            <View style={styles.header}>
+                <View>
+                    <Text style={styles.greeting}>Hello, {user?.first_name || 'Creator'} 👋</Text>
+                    <Text style={styles.subtitle}>Welcome back to VTfree</Text>
+                </View>
+                <TouchableOpacity style={styles.profileButton} onPress={() => router.push('/profile')}>
+                    <Image
+                        source={require('../assets/images/logo.png')}
+                        style={styles.profileAvatar}
+                    />
                 </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
-                {/* Stats Grid */}
-                <View style={styles.statsGrid}>
-                    {stats.map((stat, index) => (
-                        <View key={index} style={styles.statCard}>
-                            <View style={[styles.statIcon, { backgroundColor: `${stat.color}20` }]}>
-                                <stat.icon color={stat.color} size={24} />
-                            </View>
-                            <Text style={styles.statLabel}>{stat.label}</Text>
-                            <Text style={styles.statValue}>{stat.value}</Text>
+            <ScrollView
+                style={styles.content}
+                contentContainerStyle={styles.scrollContent}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[Colors.primary]} />}
+            >
+                {/* Wallet Card */}
+                <LinearGradient
+                    colors={[Colors.primary, Colors.primary]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.walletCard}
+                >
+                    <View style={styles.walletInfo}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                            <Wallet color="rgba(255,255,255,0.8)" size={20} />
+                            <Text style={styles.walletLabel}>Wallet Balance</Text>
                         </View>
-                    ))}
-                </View>
-
-                {/* Quick Action */}
-                <LinearGradient colors={[Colors.primary, Colors.primaryLight]} style={styles.actionCard}>
-                    <View>
-                        <Text style={styles.actionTitle}>Ready to build your app?</Text>
-                        <Text style={styles.actionSubtitle}>Create a custom VTU app in just a few minutes</Text>
-                        <TouchableOpacity
-                            onPress={() => router.push('/create-app')}
-                            style={styles.actionButton}
-                            activeOpacity={0.8}
-                        >
-                            <Zap color={Colors.primary} size={20} />
-                            <Text style={styles.actionButtonText}>Start Building</Text>
-                        </TouchableOpacity>
+                        <Text style={styles.walletAmount}>{formatCurrency(walletBalance)}</Text>
                     </View>
-                    <Image
-                        source={require('../assets/images/logo.png')}
-                        style={{ width: 80, height: 80, opacity: 0.3, tintColor: Colors.white }}
-                        resizeMode="contain"
-                    />
+                    <TouchableOpacity
+                        style={styles.fundButton}
+                        activeOpacity={0.8}
+                        onPress={() => router.push('/wallet')}
+                    >
+                        <Plus color={Colors.primary} size={20} />
+                        <Text style={styles.fundButtonText}>Add Money</Text>
+                    </TouchableOpacity>
                 </LinearGradient>
 
-                {/* Apps List */}
-                <View style={styles.appsSection}>
-                    <View style={styles.appsSectionHeader}>
-                        <Text style={styles.appsSectionTitle}>Your Apps</Text>
-                        <TouchableOpacity>
+                {/* Quick Stats Row */}
+                <View style={styles.statsRow}>
+                    <View style={styles.statItem}>
+                        <Text style={styles.statValue}>{stats.total}</Text>
+                        <Text style={styles.statLabel}>Total Apps</Text>
+                    </View>
+                    <View style={styles.statDivider} />
+                    <View style={styles.statItem}>
+                        <Text style={[styles.statValue, { color: Colors.green[600] }]}>{stats.active}</Text>
+                        <Text style={styles.statLabel}>Live</Text>
+                    </View>
+                    <View style={styles.statDivider} />
+                    <View style={styles.statItem}>
+                        <Text style={[styles.statValue, { color: Colors.yellow[600] }]}>{stats.building}</Text>
+                        <Text style={styles.statLabel}>Building</Text>
+                    </View>
+                </View>
+
+                {/* Create App Banner */}
+                <TouchableOpacity
+                    style={styles.createBanner}
+                    activeOpacity={0.9}
+                    onPress={() => router.push('/create-app')}
+                >
+                    <LinearGradient
+                        colors={[Colors.primaryLight, Colors.primary]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={styles.createBannerGradient}
+                    >
+                        <View style={styles.createBannerContent}>
+                            <View style={styles.createIconBox}>
+                                <Zap color={Colors.primary} size={24} fill={Colors.primary} />
+                            </View>
+                            <View>
+                                <Text style={styles.createBannerTitle}>Create New App</Text>
+                                <Text style={styles.createBannerSubtitle}>Launch a VTU app in minutes</Text>
+                            </View>
+                        </View>
+                        <View style={styles.arrowBox}>
+                            <Plus color={Colors.white} size={24} />
+                        </View>
+                    </LinearGradient>
+                </TouchableOpacity>
+
+                {/* Recent Apps Section */}
+                <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Your Applications</Text>
+                    {apps.length > 0 && (
+                        <TouchableOpacity onPress={() => router.push('/my-apps')}>
                             <Text style={styles.viewAllText}>View All</Text>
                         </TouchableOpacity>
-                    </View>
+                    )}
+                </View>
 
+                {apps.length === 0 && !loading ? (
+                    <View style={styles.emptyState}>
+                        <Image
+                            source={require('../assets/images/logo.png')}
+                            style={[styles.emptyParams, { opacity: 0.1, tintColor: Colors.gray[400] }]}
+                        />
+                        <Text style={styles.emptyTitle}>No apps yet</Text>
+                        <Text style={styles.emptySubtitle}>Start your journey by creating your first VTU app today.</Text>
+                    </View>
+                ) : (
                     <View style={styles.appsList}>
-                        {apps.map((app) => (
-                            <View key={app.id} style={styles.appCard}>
-                                <View style={styles.appHeader}>
-                                    <Text style={styles.appIcon}>{app.icon}</Text>
-                                    <View style={styles.appInfo}>
-                                        <Text style={styles.appName}>{app.name}</Text>
-                                        <Text style={styles.appDate}>{app.createdAt}</Text>
+                        {apps.slice(0, 3).map((app) => (
+                            <TouchableOpacity
+                                key={app._id}
+                                style={styles.appCard}
+                                activeOpacity={0.7}
+                                onPress={() => router.push({ pathname: '/app-details', params: { appId: app.app_id } })}
+                            >
+                                <View style={styles.appCardHeader}>
+                                    {app.branding?.logo_url ? (
+                                        <Image
+                                            source={{ uri: app.branding.logo_url }}
+                                            style={styles.appLogo}
+                                            resizeMode="cover"
+                                        />
+                                    ) : (
+                                        <View style={[styles.appLogoPlaceholder, { backgroundColor: app.branding?.primary_color || Colors.primary }]}>
+                                            <Text style={styles.appLogoText}>{app.app_name?.charAt(0)}</Text>
+                                        </View>
+                                    )}
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.appName} numberOfLines={1}>{app.app_name}</Text>
+                                        <Text style={styles.appPackage} numberOfLines={1}>{app.package_name}</Text>
                                     </View>
-                                    <View style={[styles.statusBadge, app.status === 'ready' ? styles.statusReady : styles.statusBuilding]}>
-                                        {app.status === 'ready' ? (
-                                            <CheckCircle color={Colors.green[700]} size={16} />
-                                        ) : (
-                                            <Clock color={Colors.yellow[700]} size={16} />
-                                        )}
-                                        <Text style={app.status === 'ready' ? styles.statusReadyText : styles.statusBuildingText}>
-                                            {app.status}
+                                    <View style={[styles.statusBadge, app.status === 'live' ? styles.statusLive : styles.statusBuilding]}>
+                                        <Text style={[styles.statusText, app.status === 'live' ? styles.statusTextLive : styles.statusTextBuilding]}>
+                                            {app.status === 'live' ? 'Live' : 'Building'}
                                         </Text>
                                     </View>
                                 </View>
-
-                                {/* Build Progress */}
-                                {app.status === 'building' && (
-                                    <View style={styles.progressSection}>
-                                        <View style={styles.progressHeader}>
-                                            <Text style={styles.progressLabel}>Build Progress</Text>
-                                            <Text style={styles.progressValue}>{app.buildProgress}%</Text>
-                                        </View>
-                                        <View style={styles.progressBar}>
-                                            <View style={[styles.progressFill, { width: `${app.buildProgress}%` }]} />
-                                        </View>
-                                    </View>
-                                )}
-
-                                {/* Services */}
-                                <View style={styles.servicesContainer}>
-                                    {app.services.map((service, i) => (
-                                        <View key={i} style={styles.serviceChip}>
-                                            <Text style={styles.serviceChipText}>{service}</Text>
-                                        </View>
-                                    ))}
-                                </View>
-
-                                {/* Actions */}
-                                <TouchableOpacity
-                                    style={styles.viewDetailsButton}
-                                    onPress={() => router.push({ pathname: '/app-details', params: { appId: app.id } })}
-                                    activeOpacity={0.8}
-                                >
-                                    <Eye color={Colors.white} size={18} />
-                                    <Text style={styles.viewDetailsText}>View Details</Text>
-                                </TouchableOpacity>
-                            </View>
+                            </TouchableOpacity>
                         ))}
                     </View>
-                </View>
-            </ScrollView>
+                )}
 
-            {/* Floating Help Button */}
-            <TouchableOpacity
-                style={styles.helpButton}
-                onPress={() => router.push('/support')}
-                activeOpacity={0.8}
-            >
-                <LinearGradient colors={[Colors.primary, Colors.primaryLight]} style={styles.helpButtonGradient}>
-                    <Headphones color={Colors.white} size={24} />
-                </LinearGradient>
-            </TouchableOpacity>
+                <View style={{ height: 100 }} />
+            </ScrollView>
         </View>
     );
 }
@@ -216,141 +322,187 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.background,
     },
     header: {
-        backgroundColor: Colors.white,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        paddingTop: 48,
+        paddingHorizontal: 20,
+        paddingTop: 60,
+        paddingBottom: 20,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
+        backgroundColor: Colors.background,
     },
-    headerLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16,
-    },
-    menuButton: {
-        width: 40,
-        height: 40,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: '600',
+    greeting: {
+        fontSize: 24,
+        fontWeight: 'bold',
         color: Colors.text.primary,
+        marginBottom: 4,
     },
-    headerSubtitle: {
-        fontSize: 12,
-        color: Colors.gray[600],
+    subtitle: {
+        fontSize: 14,
+        color: Colors.gray[500],
     },
-    newAppButton: {
-        borderRadius: 12,
-        overflow: 'hidden',
+    profileButton: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: Colors.white,
+        padding: 4,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
+        shadowOpacity: 0.1,
         shadowRadius: 4,
-        elevation: 4,
+        elevation: 3,
     },
-    newAppGradient: {
-        paddingHorizontal: 16,
-        paddingVertical: 10,
+    profileAvatar: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 20,
+        backgroundColor: Colors.gray[100],
     },
     content: {
         flex: 1,
     },
     scrollContent: {
-        padding: 16,
+        paddingHorizontal: 20,
+        paddingBottom: 40,
     },
-    statsGrid: {
+    walletCard: {
+        borderRadius: 24,
+        padding: 24,
         flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 12,
-        marginBottom: 16,
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 24,
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 16,
+        elevation: 10,
     },
-    statCard: {
+    walletInfo: {
+        flex: 1,
+    },
+    walletLabel: {
+        color: 'rgba(255,255,255,0.9)',
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    walletAmount: {
+        color: Colors.white,
+        fontSize: 28,
+        fontWeight: 'bold',
+    },
+    fundButton: {
+        backgroundColor: Colors.white,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    fundButtonText: {
+        color: Colors.primary,
+        fontWeight: '700',
+        fontSize: 14,
+    },
+    statsRow: {
+        flexDirection: 'row',
         backgroundColor: Colors.white,
         borderRadius: 16,
-        padding: 16,
-        width: (width - 44) / 2,
-        borderWidth: 1,
-        borderColor: Colors.gray[100],
-    },
-    statIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 12,
+        padding: 20,
+        marginBottom: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
         alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 12,
+    },
+    statItem: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    statDivider: {
+        width: 1,
+        height: 30,
+        backgroundColor: Colors.gray[200],
+    },
+    statValue: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: Colors.text.primary,
+        marginBottom: 4,
     },
     statLabel: {
         fontSize: 12,
-        color: Colors.gray[600],
+        color: Colors.gray[500],
+        fontWeight: '500',
+    },
+    createBanner: {
+        borderRadius: 20,
+        marginBottom: 32,
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 12,
+        elevation: 6,
+    },
+    createBannerGradient: {
+        borderRadius: 20,
+        padding: 4,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingRight: 20,
+    },
+    createBannerContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        flex: 1,
+    },
+    createIconBox: {
+        width: 48,
+        height: 48,
+        borderRadius: 14,
+        backgroundColor: Colors.white,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 16,
+    },
+    createBannerTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: Colors.white,
         marginBottom: 4,
     },
-    statValue: {
-        fontSize: 24,
-        fontWeight: '600',
-        color: Colors.text.primary,
-    },
-    actionCard: {
-        borderRadius: 16,
-        padding: 24,
-        marginBottom: 16,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    actionTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: Colors.white,
-        marginBottom: 8,
-    },
-    actionSubtitle: {
-        fontSize: 14,
+    createBannerSubtitle: {
+        fontSize: 12,
         color: 'rgba(255,255,255,0.9)',
-        marginBottom: 16,
     },
-    actionButton: {
-        backgroundColor: Colors.white,
-        flexDirection: 'row',
+    arrowBox: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.2)',
         alignItems: 'center',
-        gap: 8,
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 12,
-        alignSelf: 'flex-start',
+        justifyContent: 'center',
     },
-    actionButtonText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: Colors.primary,
-    },
-    appsSection: {
-        marginBottom: 80,
-    },
-    appsSectionHeader: {
+    sectionHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 16,
     },
-    appsSectionTitle: {
+    sectionTitle: {
         fontSize: 18,
-        fontWeight: '600',
+        fontWeight: 'bold',
         color: Colors.text.primary,
     },
     viewAllText: {
-        fontSize: 14,
         color: Colors.primary,
+        fontSize: 14,
+        fontWeight: '600',
     },
     appsList: {
         gap: 16,
@@ -358,131 +510,90 @@ const styles = StyleSheet.create({
     appCard: {
         backgroundColor: Colors.white,
         borderRadius: 16,
-        padding: 20,
+        padding: 16,
+        marginBottom: 0,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
         borderWidth: 1,
         borderColor: Colors.gray[100],
     },
-    appHeader: {
+    appCardHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 16,
+        gap: 16,
     },
-    appIcon: {
-        fontSize: 32,
-        marginRight: 12,
+    appLogo: {
+        width: 56,
+        height: 56,
+        borderRadius: 14,
+        backgroundColor: Colors.gray[100],
     },
-    appInfo: {
-        flex: 1,
+    appLogoPlaceholder: {
+        width: 56,
+        height: 56,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    appLogoText: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: Colors.white,
     },
     appName: {
         fontSize: 16,
-        fontWeight: '600',
+        fontWeight: 'bold',
         color: Colors.text.primary,
         marginBottom: 4,
     },
-    appDate: {
+    appPackage: {
         fontSize: 12,
-        color: Colors.gray[600],
+        color: Colors.gray[500],
     },
     statusBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 20,
     },
-    statusReady: {
+    statusLive: {
         backgroundColor: Colors.green[100],
     },
     statusBuilding: {
         backgroundColor: Colors.yellow[100],
     },
-    statusReadyText: {
+    statusText: {
         fontSize: 12,
+        fontWeight: '600',
+    },
+    statusTextLive: {
         color: Colors.green[700],
-        fontWeight: '500',
     },
-    statusBuildingText: {
-        fontSize: 12,
+    statusTextBuilding: {
         color: Colors.yellow[700],
-        fontWeight: '500',
     },
-    progressSection: {
+    emptyState: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 40,
+    },
+    emptyParams: {
+        width: 80,
+        height: 80,
         marginBottom: 16,
     },
-    progressHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+    emptyTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: Colors.gray[800],
         marginBottom: 8,
     },
-    progressLabel: {
-        fontSize: 12,
-        color: Colors.gray[600],
-    },
-    progressValue: {
-        fontSize: 12,
-        color: Colors.primary,
-        fontWeight: '600',
-    },
-    progressBar: {
-        height: 8,
-        backgroundColor: Colors.gray[200],
-        borderRadius: 4,
-        overflow: 'hidden',
-    },
-    progressFill: {
-        height: '100%',
-        backgroundColor: Colors.primary,
-    },
-    servicesContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-        marginBottom: 16,
-    },
-    serviceChip: {
-        backgroundColor: Colors.primaryLighter,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 8,
-    },
-    serviceChipText: {
-        fontSize: 12,
-        color: Colors.primary,
-    },
-    viewDetailsButton: {
-        backgroundColor: Colors.primary,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        paddingVertical: 12,
-        borderRadius: 12,
-    },
-    viewDetailsText: {
+    emptySubtitle: {
         fontSize: 14,
-        fontWeight: '600',
-        color: Colors.white,
-    },
-    helpButton: {
-        position: 'absolute',
-        bottom: 24,
-        right: 24,
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 8,
-        overflow: 'hidden',
-    },
-    helpButtonGradient: {
-        width: '100%',
-        height: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
+        color: Colors.gray[500],
+        textAlign: 'center',
+        maxWidth: 240,
     },
 });

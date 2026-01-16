@@ -14,5 +14,20 @@ export const AppService = {
     async getAppDetails(appId: string) {
         const response = await api.get(`/vtfree/apps/${appId}`);
         return response.data;
+    },
+
+    async verifyAppPayment(reference: string, appPayload: any) {
+        const response = await api.post('/vtfree/apps/verify-payment', { reference, appPayload });
+        return response.data;
+    },
+
+    async getAppPrices() {
+        const response = await api.get('/vtfree/apps/prices');
+        return response.data;
+    },
+
+    async buildApp(appId: string) {
+        const response = await api.post(`/vtfree/apps/${appId}/build`);
+        return response.data;
     }
 };

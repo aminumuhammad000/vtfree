@@ -26,7 +26,7 @@ const Login: React.FC = () => {
       setApiError(null);
       if (res.data.success) {
         console.log('Login successful, saving auth data...');
-        auth.login(res.data.data.token, res.data.data.admin);
+        auth.login(res.data.data.token, res.data.data.admin, res.data.data.app);
         console.log('Auth data saved, navigating to dashboard...');
         toast.showSuccess('Login successful! Redirecting...');
         navigate('/dashboard');

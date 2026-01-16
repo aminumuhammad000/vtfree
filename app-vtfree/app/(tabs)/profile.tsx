@@ -1,98 +1,161 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Image, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Camera, User, Mail, Shield, Bell, HelpCircle, LogOut, ChevronRight } from 'lucide-react-native';
+import {
+    Camera,
+    User,
+    Mail,
+    Shield,
+    Bell,
+    HelpCircle,
+    LogOut,
+    ChevronRight,
+    CheckCircle,
+    BadgeCheck
+} from 'lucide-react-native';
 import Colors from '../../constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { useAuth } from '../../context/AuthContext';
+import { AuthService } from '../../services/auth.service';
+
 export default function ProfileScreen() {
     const router = useRouter();
-    const [name, setName] = useState('John Doe');
-    const [email, setEmail] = useState('john@example.com');
+    const { user, updateUser, signOut } = useAuth();
 
+    const [firstName, setFirstName] = useState(user?.first_name || '');
+    const [lastName, setLastName] = useState(user?.last_name || '');
+    const [email, setEmail] = useState(user?.email || '');
+    const [isUpdating, setIsUpdating] = useState(false);
+
+    // Removed 'My Wallet' as requested
     const settings = [
-        { icon: Shield, title: 'Security', subtitle: 'Password, 2FA' },
-        { icon: Bell, title: 'Notifications', subtitle: 'Push, Email' },
-        { icon: HelpCircle, title: 'Help & Support', subtitle: 'FAQ, Contact Us' },
+        { icon: Shield, title: 'Security', subtitle: 'Password, 2FA', route: '/settings' },
+        { icon: Bell, title: 'Notifications', subtitle: 'Push, Email', route: '/settings' },
+        { icon: HelpCircle, title: 'Help & Support', subtitle: 'FAQ, Contact Us', route: '/support' },
     ];
+
+    const handleUpdate = async () => {
+        setIsUpdating(true);
+        try {
+            const result = await AuthService.updateProfile({
+                first_name: firstName,
+                last_name: lastName,
+                email: email
+            });
+            if (result.success) {
+                await updateUser(result.data.user);
+                alert('Profile updated successfully');
+            } else {
+                alert(result.message || 'Failed to update profile');
+            }
+        } catch (error: any) {
+            alert(error.message || 'An error occurred');
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    const handleSettingPress = (route: string) => {
+        router.push(route as any);
+    };
 
     return (
         <View style={styles.container}>
-            <LinearGradient colors={[Colors.primary, Colors.primaryLight]} style={styles.headerBackground} />
+            <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
+
+            <View style={styles.header}>
+                <Text style={styles.headerTitle}>Profile</Text>
+            </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                <Text style={styles.headerTitle}>Me</Text>
 
-                {/* Profile Card */}
-                <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.profileCard}>
-                    <View style={styles.avatarContainer}>
+                {/* Profile Avatar & Header */}
+                <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.profileHeader}>
+                    <View style={styles.avatarWrapper}>
                         <Image
-                            source={{ uri: 'https://ui-avatars.com/api/?name=John+Doe&background=random' }}
+                            source={{ uri: `https://api.dicebear.com/7.x/notionists/png?seed=${firstName}${lastName}&backgroundColor=b6e3f4` }}
                             style={styles.avatar}
                         />
                         <TouchableOpacity style={styles.editBadge}>
-                            <Camera color={Colors.white} size={16} />
+                            <Camera color={Colors.white} size={14} />
                         </TouchableOpacity>
                     </View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Full Name</Text>
-                        <View style={styles.inputContainer}>
-                            <User color={Colors.gray[400]} size={20} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                value={name}
-                                onChangeText={setName}
-                            />
+                    <View style={styles.nameContainer}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
+                            <Text style={styles.userName}>{firstName} {lastName}</Text>
+                            {/* Verification Tick */}
+                            {user?.email_verified && (
+                                <BadgeCheck color={Colors.primary} size={20} fill={Colors.primaryLight} />
+                            )}
                         </View>
+                        {user?.email_verified ? (
+                            <View style={styles.verifiedTag}>
+                                <Text style={styles.verifiedText}>Verified</Text>
+                            </View>
+                        ) : (
+                            <Text style={styles.userEmail}>{email}</Text>
+                        )}
                     </View>
+                </Animated.View>
 
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Email Address</Text>
-                        <View style={styles.inputContainer}>
-                            <Mail color={Colors.gray[400]} size={20} style={styles.inputIcon} />
-                            <TextInput
-                                style={styles.input}
-                                value={email}
-                                onChangeText={setEmail}
-                            />
+                {/* Edit Profile Action */}
+                <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.actionSection}>
+                    <TouchableOpacity
+                        style={styles.editProfileButton}
+                        onPress={() => router.push('/edit-profile')}
+                        activeOpacity={0.8}
+                    >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                            <View style={styles.editIconBox}>
+                                <User color={Colors.primary} size={20} />
+                            </View>
+                            <Text style={styles.editProfileText}>Edit Profile Details</Text>
                         </View>
-                    </View>
-
-                    <TouchableOpacity style={styles.updateButton}>
-                        <Text style={styles.updateButtonText}>Update Profile</Text>
+                        <ChevronRight color={Colors.gray[400]} size={20} />
                     </TouchableOpacity>
                 </Animated.View>
 
-                {/* Settings List */}
-                <Text style={styles.sectionTitle}>Settings</Text>
-                <View style={styles.settingsList}>
-                    {settings.map((item, index) => (
-                        <Animated.View key={index} entering={FadeInDown.delay(300 + index * 100).springify()}>
-                            <TouchableOpacity style={styles.settingItem}>
-                                <View style={[styles.settingIcon, { backgroundColor: Colors.gray[100] }]}>
-                                    <item.icon color={Colors.gray[700]} size={20} />
-                                </View>
-                                <View style={styles.settingInfo}>
-                                    <Text style={styles.settingTitle}>{item.title}</Text>
-                                    <Text style={styles.settingSubtitle}>{item.subtitle}</Text>
-                                </View>
-                                <ChevronRight color={Colors.gray[400]} size={20} />
-                            </TouchableOpacity>
-                            {index < settings.length - 1 && <View style={styles.divider} />}
-                        </Animated.View>
-                    ))}
-                </View>
+                {/* Settings */}
+                <Animated.View entering={FadeInDown.delay(300).springify()} style={styles.section}>
+                    <Text style={styles.sectionTitle}>Settings</Text>
+                    <View style={styles.settingsCard}>
+                        {settings.map((item, index) => (
+                            <React.Fragment key={index}>
+                                <TouchableOpacity
+                                    style={styles.settingItem}
+                                    onPress={() => handleSettingPress(item.route)}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={styles.settingIconBox}>
+                                        <item.icon color={Colors.gray[600]} size={20} />
+                                    </View>
+                                    <View style={styles.settingContent}>
+                                        <Text style={styles.settingLabel}>{item.title}</Text>
+                                        <Text style={styles.settingSubLabel}>{item.subtitle}</Text>
+                                    </View>
+                                    <ChevronRight color={Colors.gray[400]} size={20} />
+                                </TouchableOpacity>
+                                {index < settings.length - 1 && <View style={styles.settingsDivider} />}
+                            </React.Fragment>
+                        ))}
+                    </View>
+                </Animated.View>
 
                 {/* Logout */}
-                <TouchableOpacity
-                    style={styles.logoutButton}
-                    onPress={() => router.replace('/login')}
-                >
-                    <LogOut color={Colors.red[500]} size={20} />
-                    <Text style={styles.logoutText}>Log Out</Text>
-                </TouchableOpacity>
+                <Animated.View entering={FadeInDown.delay(400).springify()} style={{ marginBottom: 40 }}>
+                    <TouchableOpacity
+                        style={styles.logoutButton}
+                        onPress={signOut}
+                        activeOpacity={0.8}
+                    >
+                        <LogOut color={Colors.red[500]} size={20} />
+                        <Text style={styles.logoutText}>Log Out</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.versionText}>v1.0.0 • VTfree</Text>
+                </Animated.View>
 
                 <View style={{ height: 100 }} />
             </ScrollView>
@@ -105,160 +168,179 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: Colors.background,
     },
-    headerBackground: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 250,
-        borderBottomLeftRadius: 30,
-        borderBottomRightRadius: 30,
+    header: {
+        paddingTop: 60,
+        paddingBottom: 20,
+        paddingHorizontal: 20,
+        backgroundColor: Colors.background,
+        alignItems: 'center',
+    },
+    headerTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: Colors.text.primary,
     },
     scrollContent: {
         paddingHorizontal: 20,
-        paddingTop: 60,
     },
-    headerTitle: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: Colors.white,
-        marginBottom: 24,
-        textAlign: 'center',
-    },
-    profileCard: {
-        backgroundColor: Colors.white,
-        borderRadius: 24,
-        padding: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 5,
-        marginBottom: 32,
+    profileHeader: {
         alignItems: 'center',
+        marginBottom: 32,
     },
-    avatarContainer: {
+    avatarWrapper: {
         position: 'relative',
-        marginBottom: 24,
+        marginBottom: 16,
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 16,
+        elevation: 8,
     },
     avatar: {
         width: 100,
         height: 100,
-        borderRadius: 50,
+        borderRadius: 40,
         borderWidth: 4,
         borderColor: Colors.white,
     },
     editBadge: {
         position: 'absolute',
-        bottom: 0,
-        right: 0,
+        bottom: -4,
+        right: -4,
         backgroundColor: Colors.primary,
         width: 32,
         height: 32,
-        borderRadius: 16,
+        borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
-        borderWidth: 2,
+        borderWidth: 3,
         borderColor: Colors.white,
     },
-    inputGroup: {
-        width: '100%',
-        marginBottom: 16,
-        gap: 8,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: Colors.gray[700],
-        marginLeft: 4,
-    },
-    inputContainer: {
-        position: 'relative',
-    },
-    inputIcon: {
-        position: 'absolute',
-        left: 16,
-        top: 16,
-        zIndex: 1,
-    },
-    input: {
-        backgroundColor: Colors.gray[50],
-        borderWidth: 1,
-        borderColor: Colors.gray[200],
-        borderRadius: 16,
-        paddingVertical: 14,
-        paddingHorizontal: 48,
-        fontSize: 16,
-        color: Colors.text.primary,
-    },
-    updateButton: {
-        backgroundColor: Colors.primary,
-        paddingVertical: 16,
-        paddingHorizontal: 32,
-        borderRadius: 16,
-        marginTop: 8,
-        width: '100%',
+    nameContainer: {
         alignItems: 'center',
+        gap: 4,
     },
-    updateButtonText: {
-        color: Colors.white,
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    sectionTitle: {
-        fontSize: 18,
+    userName: {
+        fontSize: 24,
         fontWeight: 'bold',
         color: Colors.text.primary,
-        marginBottom: 16,
     },
-    settingsList: {
+    verifiedTag: {
+        backgroundColor: Colors.green[50],
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Colors.green[200],
+        marginTop: 4,
+    },
+    verifiedText: {
+        fontSize: 12,
+        color: Colors.green[700],
+        fontWeight: '600',
+    },
+    userEmail: {
+        fontSize: 14,
+        color: Colors.gray[500],
+    },
+    section: {
+        marginBottom: 24,
+    },
+    sectionTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: Colors.gray[500],
+        marginBottom: 12,
+        marginLeft: 4,
+    },
+    actionSection: {
+        marginBottom: 24,
+    },
+    editProfileButton: {
         backgroundColor: Colors.white,
         borderRadius: 20,
-        padding: 8,
-        marginBottom: 24,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: Colors.gray[100],
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    editIconBox: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: Colors.primaryLighter,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    editProfileText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: Colors.text.primary,
+    },
+    settingsCard: {
+        backgroundColor: Colors.white,
+        borderRadius: 20,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: Colors.gray[100],
     },
     settingItem: {
         flexDirection: 'row',
         alignItems: 'center',
         padding: 16,
+        gap: 16,
     },
-    settingIcon: {
+    settingIconBox: {
         width: 40,
         height: 40,
         borderRadius: 12,
+        backgroundColor: Colors.gray[50],
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 16,
     },
-    settingInfo: {
+    settingContent: {
         flex: 1,
     },
-    settingTitle: {
+    settingLabel: {
         fontSize: 16,
         fontWeight: '600',
         color: Colors.text.primary,
     },
-    settingSubtitle: {
+    settingSubLabel: {
         fontSize: 12,
         color: Colors.gray[500],
+        marginTop: 2,
     },
-    divider: {
+    settingsDivider: {
         height: 1,
         backgroundColor: Colors.gray[100],
         marginLeft: 72,
     },
     logoutButton: {
+        backgroundColor: '#FEF2F2',
+        paddingVertical: 16,
+        borderRadius: 16,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        padding: 16,
-        backgroundColor: '#FEE2E2',
-        borderRadius: 16,
+        marginBottom: 16,
     },
     logoutText: {
-        color: Colors.red[500],
+        color: Colors.red[600],
         fontSize: 16,
         fontWeight: '600',
+    },
+    versionText: {
+        textAlign: 'center',
+        color: Colors.gray[400],
+        fontSize: 12,
     },
 });

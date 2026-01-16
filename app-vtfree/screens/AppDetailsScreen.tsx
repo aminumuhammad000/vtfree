@@ -1,33 +1,238 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Image, Linking, ActivityIndicator, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Smartphone } from 'lucide-react-native';
+import {
+    ArrowLeft,
+    Download,
+    Settings,
+    Globe,
+    Smartphone,
+    Edit3,
+    CheckCircle,
+    Clock,
+    AlertTriangle,
+    Share2,
+    BarChart2,
+    Box,
+    Copy
+} from 'lucide-react-native';
 import Colors from '../constants/Colors';
+import { LinearGradient } from 'expo-linear-gradient';
+import { AppService } from '../services/app.service';
 
 export default function AppDetailsScreen() {
     const router = useRouter();
     const { appId } = useLocalSearchParams();
+    const [app, setApp] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const scrollY = new Animated.Value(0);
+
+    const [downloading, setDownloading] = useState(false);
+
+    useEffect(() => {
+        fetchDetails();
+    }, [appId]);
+
+    const fetchDetails = async () => {
+        if (!appId) return;
+        try {
+            const response = await AppService.getAppDetails(appId as string);
+            if (response.success) {
+                setApp(response.data.app);
+            }
+        } catch (error) {
+            console.error('Error fetching app details:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDownload = async (platform: 'android' | 'ios') => {
+        // Placeholder logic for download
+        if (platform === 'android' && app?.build_status === 'success') {
+            // In a real scenario, this would link to the APK url
+            Alert.alert('Download Started', 'Your APK is downloading...');
+            // Linking.openURL(app.download_url);
+        } else {
+            Alert.alert('Not Ready', 'Build is not ready for download yet.');
+        }
+    };
+
+    // Status Logic
+    const isLive = app?.status === 'live' || app?.status === 'active';
+    const isBuilding = app?.status === 'building' || app?.build_status === 'pending';
+
+    if (loading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
+        );
+    }
+
+    if (!app) {
+        return (
+            <View style={styles.loadingContainer}>
+                <Text>App not found</Text>
+            </View>
+        )
+    }
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <ArrowLeft color={Colors.text.primary} size={24} />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>App Details</Text>
-                <View style={{ width: 40 }} />
+            {/* Animated Header Background */}
+            <View style={styles.headerBgContainer}>
+                <LinearGradient
+                    colors={[app.branding?.primary_color || Colors.primary, Colors.background]}
+                    style={styles.headerGradient}
+                    start={{ x: 0.5, y: 0 }}
+                    end={{ x: 0.5, y: 1 }}
+                />
             </View>
 
-            <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
-                <View style={styles.placeholder}>
-                    <Image
-                        source={require('../assets/images/logo.png')}
-                        style={{ width: 80, height: 80, tintColor: Colors.primary, marginBottom: 16 }}
-                        resizeMode="contain"
-                    />
-                    <Text style={styles.placeholderTitle}>App Details</Text>
-                    <Text style={styles.placeholderText}>App ID: {appId || 'N/A'}</Text>
+            {/* Custom Nav Bar */}
+            <View style={styles.navBar}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.navButton}>
+                    <ArrowLeft color={Colors.text.primary} size={24} />
+                </TouchableOpacity>
+                <Text style={styles.navTitle} numberOfLines={1}>{app.app_name}</Text>
+                <TouchableOpacity onPress={() => router.push({ pathname: '/edit-app', params: { appId: app.app_id } })} style={styles.navButton}>
+                    <Edit3 color={Colors.text.primary} size={24} />
+                </TouchableOpacity>
+            </View>
+
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+            >
+                {/* App Hero Section */}
+                <View style={styles.heroSection}>
+                    <View style={styles.iconWrapper}>
+                        {app.branding?.logo_url ? (
+                            <Image source={{ uri: app.branding.logo_url }} style={styles.appIcon} />
+                        ) : (
+                            <View style={[styles.appIconPlaceholder, { backgroundColor: app.branding?.primary_color || Colors.primary }]}>
+                                <Text style={styles.appIconText}>{app.app_name.charAt(0)}</Text>
+                            </View>
+                        )}
+                        <View style={styles.platformBadgeRow}>
+                            {app.platforms?.android && <View style={styles.miniBadge}><Smartphone size={10} color={Colors.white} /></View>}
+                            {app.platforms?.web && <View style={styles.miniBadge}><Globe size={10} color={Colors.white} /></View>}
+                        </View>
+                    </View>
+
+                    <Text style={styles.heroTitle}>{app.app_name}</Text>
+                    <Text style={styles.heroPackage}>{app.package_name}</Text>
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 10, backgroundColor: 'rgba(0,0,0,0.05)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+                        <Text style={{ color: Colors.gray[600], fontSize: 12, fontWeight: 'bold', fontFamily: 'monospace' }} selectable>ID: {app.app_id}</Text>
+                        <TouchableOpacity onPress={() => Alert.alert('Copied', app.app_id)}>
+                            <Copy size={12} color={Colors.gray[600]} />
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={[styles.statusPill, isLive ? styles.statusLive : styles.statusBuilding]}>
+                        {isLive ? <CheckCircle size={14} color={Colors.green[700]} /> : <Clock size={14} color={Colors.yellow[700]} />}
+                        <Text style={[styles.statusText, isLive ? styles.textLive : styles.textBuilding]}>
+                            {isLive ? 'Live & Active' : 'Build in Progress'}
+                        </Text>
+                    </View>
                 </View>
+
+                {/* Main Actions Grid */}
+                <View style={styles.gridContainer}>
+                    {/* Download Card */}
+                    <TouchableOpacity
+                        style={[styles.actionCard, styles.primaryCard]}
+                        onPress={() => handleDownload('android')}
+                        activeOpacity={0.9}
+                    >
+                        <View style={styles.cardIconCircle}>
+                            <Download color={Colors.white} size={24} />
+                        </View>
+                        <View>
+                            <Text style={styles.cardTitleWhite}>Download APK</Text>
+                            <Text style={styles.cardSubWhite}>v1.0.0 • 15MB</Text>
+                        </View>
+                    </TouchableOpacity>
+
+                    {/* Dashboard/Analytics Card */}
+                    <TouchableOpacity style={styles.actionCard} activeOpacity={0.7}>
+                        <View style={[styles.cardIconBg, { backgroundColor: Colors.primaryLighter }]}>
+                            <BarChart2 color={Colors.primary} size={24} />
+                        </View>
+                        <Text style={styles.cardTitle}>Analytics</Text>
+                        <Text style={styles.cardSub}>0 Users</Text>
+                    </TouchableOpacity>
+
+                    {/* Edit / Config Card */}
+                    <TouchableOpacity
+                        style={styles.actionCard}
+                        activeOpacity={0.7}
+                        onPress={() => router.push({ pathname: '/edit-app', params: { appId: app.app_id } })}
+                    >
+                        <View style={[styles.cardIconBg, { backgroundColor: Colors.gray[100] }]}>
+                            <Settings color={Colors.gray[700]} size={24} />
+                        </View>
+                        <Text style={styles.cardTitle}>Configuration</Text>
+                        <Text style={styles.cardSub}>Manage services</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Information Sections */}
+                <View style={styles.infoSection}>
+                    <Text style={styles.sectionHeader}>Build Details</Text>
+
+                    <View style={styles.infoRow}>
+                        <View style={styles.infoItem}>
+                            <Text style={styles.infoLabel}>Version</Text>
+                            <Text style={styles.infoValue}>1.0.0</Text>
+                        </View>
+                        <View style={styles.divider} />
+                        <View style={styles.infoItem}>
+                            <Text style={styles.infoLabel}>SDK</Text>
+                            <Text style={styles.infoValue}>33</Text>
+                        </View>
+                        <View style={styles.divider} />
+                        <View style={styles.infoItem}>
+                            <Text style={styles.infoLabel}>Size</Text>
+                            <Text style={styles.infoValue}>~15 MB</Text>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Admin Details Section */}
+                <View style={styles.infoSection}>
+                    <Text style={styles.sectionHeader}>Admin Details</Text>
+                    <View style={styles.adminInfoRow}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.infoLabel}>App ID</Text>
+                            <Text style={styles.infoValueSelectable} selectable>{app.app_id}</Text>
+                        </View>
+                        <TouchableOpacity onPress={() => {
+                            Alert.alert('Copied', `App ID ${app.app_id} copied to clipboard`);
+                            // Clipboard.setString(app.app_id); // Requires expo-clipboard
+                        }}>
+                            <Copy size={20} color={Colors.primary} />
+                        </TouchableOpacity>
+                    </View>
+                    <Text style={styles.helperText}>Use this ID to login to your Admin Panel manually.</Text>
+                </View>
+
+                {/* Services List */}
+                <View style={styles.infoSection}>
+                    <Text style={styles.sectionHeader}>Active Services</Text>
+                    <View style={styles.servicesGrid}>
+                        {(app.services || []).map((service: string, index: number) => (
+                            <View key={index} style={styles.serviceTag}>
+                                <Box size={14} color={Colors.gray[600]} />
+                                <Text style={styles.serviceText}>{service}</Text>
+                            </View>
+                        ))}
+                    </View>
+                </View>
+
+                <View style={{ height: 40 }} />
             </ScrollView>
         </View>
     );
@@ -38,48 +243,275 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: Colors.background,
     },
-    header: {
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    headerBgContainer: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 300,
+        zIndex: -1,
+    },
+    headerGradient: {
+        flex: 1,
+        opacity: 0.15,
+    },
+    navBar: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        paddingTop: 48,
-        backgroundColor: Colors.white,
+        paddingTop: 50,
+        paddingHorizontal: 20,
+        paddingBottom: 10,
     },
-    backButton: {
+    navButton: {
         width: 40,
         height: 40,
         alignItems: 'center',
         justifyContent: 'center',
+        backgroundColor: 'rgba(255,255,255,0.8)',
+        borderRadius: 12,
+        backdropFilter: 'blur(10px)',
     },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: '600',
+    navTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
         color: Colors.text.primary,
-    },
-    content: {
-        flex: 1,
     },
     scrollContent: {
-        flexGrow: 1,
+        paddingHorizontal: 20,
+        paddingTop: 10,
+    },
+    heroSection: {
+        alignItems: 'center',
+        marginBottom: 30,
+        marginTop: 10,
+    },
+    iconWrapper: {
+        position: 'relative',
+        marginBottom: 16,
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.2,
+        shadowRadius: 20,
+        elevation: 10,
+    },
+    appIcon: {
+        width: 100,
+        height: 100,
+        borderRadius: 24,
+    },
+    appIconPlaceholder: {
+        width: 100,
+        height: 100,
+        borderRadius: 24,
+        alignItems: 'center',
         justifyContent: 'center',
-        alignItems: 'center',
-        padding: 24,
     },
-    placeholder: {
-        alignItems: 'center',
+    appIconText: {
+        fontSize: 40,
+        fontWeight: 'bold',
+        color: Colors.white,
     },
-    placeholderTitle: {
+    platformBadgeRow: {
+        position: 'absolute',
+        bottom: -6,
+        right: -6,
+        flexDirection: 'row',
+        gap: 4,
+    },
+    miniBadge: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: Colors.text.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 2,
+        borderColor: Colors.white,
+    },
+    heroTitle: {
         fontSize: 24,
+        fontWeight: 'bold',
+        color: Colors.text.primary,
+        marginBottom: 4,
+        textAlign: 'center',
+    },
+    heroPackage: {
+        fontSize: 14,
+        color: Colors.gray[500],
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    statusPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1,
+    },
+    statusLive: {
+        backgroundColor: Colors.green[50],
+        borderColor: Colors.green[200],
+    },
+    statusBuilding: {
+        backgroundColor: Colors.yellow[50],
+        borderColor: Colors.yellow[200],
+    },
+    statusText: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    textLive: { color: Colors.green[700] },
+    textBuilding: { color: Colors.yellow[700] },
+
+    gridContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+        marginBottom: 24,
+    },
+    actionCard: {
+        backgroundColor: Colors.white,
+        borderRadius: 20,
+        padding: 16,
+        width: '48%', // Roughly half minus gap
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 12,
+        elevation: 3,
+        minHeight: 140,
+        justifyContent: 'space-between',
+    },
+    primaryCard: {
+        width: '100%',
+        backgroundColor: Colors.primary,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        gap: 16,
+        minHeight: 100,
+    },
+    cardIconCircle: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    cardTitleWhite: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: Colors.white,
+    },
+    cardSubWhite: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.8)',
+    },
+    cardIconBg: {
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 12,
+    },
+    cardTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: Colors.text.primary,
+        marginBottom: 4,
+    },
+    cardSub: {
+        fontSize: 12,
+        color: Colors.gray[500],
+    },
+
+    infoSection: {
+        backgroundColor: Colors.white,
+        borderRadius: 24,
+        padding: 20,
+        marginBottom: 20,
+    },
+    sectionHeader: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: Colors.text.primary,
+        marginBottom: 16,
+    },
+    infoRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    infoItem: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    divider: {
+        width: 1,
+        height: 30,
+        backgroundColor: Colors.gray[200],
+    },
+    infoLabel: {
+        fontSize: 12,
+        color: Colors.gray[500],
+        marginBottom: 4,
+    },
+    infoValue: {
+        fontSize: 16,
         fontWeight: '600',
         color: Colors.text.primary,
-        marginTop: 16,
-        marginBottom: 8,
     },
-    placeholderText: {
+    infoValueSelectable: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: Colors.text.primary,
+        fontFamily: 'monospace', // Make it look like code
+    },
+    adminInfoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: Colors.gray[50],
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Colors.gray[200],
+    },
+    helperText: {
+        fontSize: 12,
+        color: Colors.gray[500],
+        marginTop: 8,
+    },
+
+    servicesGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    serviceTag: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        backgroundColor: Colors.gray[50],
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Colors.gray[100],
+    },
+    serviceText: {
         fontSize: 14,
-        color: Colors.gray[600],
-        textAlign: 'center',
+        color: Colors.gray[700],
+        fontWeight: '500',
     },
 });

@@ -12,6 +12,9 @@ export const AuthService = {
     },
 
     async login(data: any) {
+        // Clear any old session data first
+        await AsyncStorage.multiRemove(['vtfree_token', 'vtfree_user']);
+
         const response = await api.post('/vtfree/auth/login', data);
         if (response.data.success) {
             await AsyncStorage.setItem('vtfree_token', response.data.data.token);
@@ -27,6 +30,14 @@ export const AuthService = {
 
     async getProfile() {
         const response = await api.get('/vtfree/auth/profile');
+        return response.data;
+    },
+
+    async updateProfile(data: any) {
+        const response = await api.put('/vtfree/auth/profile', data);
+        if (response.data.success) {
+            await AsyncStorage.setItem('vtfree_user', JSON.stringify(response.data.data.user));
+        }
         return response.data;
     }
 };

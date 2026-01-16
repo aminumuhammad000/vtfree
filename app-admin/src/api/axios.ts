@@ -6,7 +6,7 @@ import axios from 'axios';
 //     : 'http://localhost:5000/api/admin';
 
 
-const BASE_URL = "http://localhost:5000/api/app-admin";
+const BASE_URL = "http://127.0.0.1:5000/api/v1/app-admin";
 // const BASE_URL = "http://13.62.46.174/api/admin";
 // const BASE_URL = "https://api.ibdata.com.ng/api/admin";
 
@@ -50,7 +50,7 @@ api.interceptors.response.use(
 
 // General API instance for non-admin endpoints
 // const API_BASE = "http://13.62.46.174/api/";
-const API_BASE = "http://localhost:5000/api/app-admin/";
+const API_BASE = "http://127.0.0.1:5000/api/v1/";
 
 export const generalApi = axios.create({
   baseURL: API_BASE,
