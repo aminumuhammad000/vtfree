@@ -52,7 +52,8 @@ export class WalletService {
         narration: string,
         externalRef?: string,
         metadata?: Record<string, any>,
-        customerReference?: string
+        customerReference?: string,
+        fee: number = 0
     ): Promise<typeof Transaction.prototype> {
         // Removed transaction session for standalone MongoDB compatibility
         // const session = await mongoose.startSession();
@@ -78,7 +79,7 @@ export class WalletService {
                 type: 'credit',
                 category,
                 amount,
-                fee: 0,
+                fee,
                 balanceBefore,
                 balanceAfter,
                 reference: `TXN-${uuidv4()}`,

@@ -208,12 +208,15 @@ export class WebhookService {
         }
 
         // Credit the user's wallet
-        // Amount is in kobo in the new webhook format
-        const amountInKobo = parseInt(data.amountAfterCharges, 10);
+        // VTPay charges 0.6% on the deposited amount
+        // We use depositedAmount (total amount sent) as the base
+        const depositedAmount = parseInt(data.depositedAmount, 10);
+        const fee = Math.floor(depositedAmount * 0.006); // 0.6% fee
+        const amountToCredit = depositedAmount - fee;
 
         const transaction = await walletService.creditWallet(
             virtualAccount.userId.toString(),
-            amountInKobo,
+            amountToCredit,
             'deposit',
             data.narration || `Deposit from ${data.senderName}`,
             data.txnRef,
@@ -226,8 +229,11 @@ export class WebhookService {
                 txnChargesAmount: data.txnChargesAmount,
                 zainboxCode: data.zainboxCode,
                 paymentDate: data.paymentDate,
+                originalAmountAfterCharges: data.amountAfterCharges, // Log what Zainpay would have given us
+                vtpayFee: fee
             },
-            virtualAccount.reference // Pass the customer reference
+            virtualAccount.reference, // Pass the customer reference
+            fee // Pass the calculated fee
         );
 
         // Send email notification to user
@@ -240,7 +246,7 @@ export class WebhookService {
             );
         }
 
-        logger.info(`Successfully credited wallet for user ${virtualAccount.userId} with ${amountInKobo} kobo`);
+        logger.info(`Successfully credited wallet for user ${virtualAccount.userId} with ${amountToCredit} kobo (Fee: ${fee})`);
         return { success: true, message: 'Deposit processed successfully' };
     }
 
