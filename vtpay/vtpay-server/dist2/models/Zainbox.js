@@ -95,7 +95,6 @@ const ZainboxSchema = new mongoose_1.Schema({
 });
 // Indexes
 ZainboxSchema.index({ userId: 1 });
-ZainboxSchema.index({ zainboxCode: 1 });
 exports.Zainbox = mongoose_1.default.model('Zainbox', ZainboxSchema);
 exports.default = exports.Zainbox;
 //# sourceMappingURL=Zainbox.js.map
