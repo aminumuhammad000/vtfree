@@ -14,7 +14,6 @@ import {
     Search,
     Filter,
     Eye,
-    Trash2,
     Calendar,
     ArrowUpRight,
     ArrowDownLeft,
@@ -45,11 +44,6 @@ export const VirtualAccounts: React.FC = () => {
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [accountTransactions, setAccountTransactions] = useState<any[]>([]);
     const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
-
-    // Delete State
-    const [accountToDelete, setAccountToDelete] = useState<any>(null);
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
 
     // Zainbox State
     const [zainbox, setZainbox] = useState<any>(null);
@@ -132,28 +126,6 @@ export const VirtualAccounts: React.FC = () => {
         setSelectedAccount(account);
         setShowDetailModal(true);
         fetchAccountTransactions(account.accountNumber);
-    };
-
-    const handleDeleteClick = (account: any) => {
-        setAccountToDelete(account);
-        setShowDeleteModal(true);
-    };
-
-    const confirmDelete = async () => {
-        if (!accountToDelete) return;
-
-        setIsDeleting(true);
-        try {
-            await api.delete(`/virtual-accounts/${accountToDelete.id}`);
-            await fetchAccounts();
-            setShowDeleteModal(false);
-            setAccountToDelete(null);
-        } catch (error) {
-            console.error('Error deleting account:', error);
-            alert('Failed to delete account');
-        } finally {
-            setIsDeleting(false);
-        }
     };
 
     const handleCreateAccount = async (e: React.FormEvent) => {
