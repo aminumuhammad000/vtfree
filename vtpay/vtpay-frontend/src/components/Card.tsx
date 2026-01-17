@@ -16,14 +16,14 @@ export const Card: React.FC<CardProps> = ({
     noPadding = false,
 }) => {
     return (
-        <div className={`card ${className}`}>
+        <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden ${className}`}>
             {(title || action) && (
-                <div className="card-header">
-                    {title && <h3>{title}</h3>}
+                <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                    {title && <h3 className="text-base font-bold text-gray-900">{title}</h3>}
                     {action && <div>{action}</div>}
                 </div>
             )}
-            <div className={noPadding ? 'card-body-no-padding' : 'card-body'}>
+            <div className={noPadding ? '' : 'p-6'}>
                 {children}
             </div>
         </div>

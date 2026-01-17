@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
-import { Loader2, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Loader2, ArrowRight, ArrowLeft, CheckCircle, User, Building, Mail, Phone, Lock, AlertCircle } from 'lucide-react';
 
 export const Register: React.FC = () => {
     const navigate = useNavigate();
@@ -90,203 +90,243 @@ export const Register: React.FC = () => {
 
     if (successMessage) {
         return (
-            <div className="auth-card" style={{ textAlign: 'center' }}>
-                <div style={{ marginBottom: '1.5rem' }}>
-                    <div style={{
-                        display: 'inline-flex',
-                        padding: '1rem',
-                        background: 'var(--success-bg)',
-                        borderRadius: '50%'
-                    }}>
-                        <CheckCircle size={48} style={{ color: 'var(--success)' }} />
+            <div className="min-h-screen flex items-center justify-center bg-green-50 p-4">
+                <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden text-center p-8">
+                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <CheckCircle size={40} className="text-green-600" />
                     </div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Check Your Email</h2>
+                    <p className="text-gray-600 mb-8">{successMessage}</p>
+                    <button
+                        onClick={() => navigate('/login')}
+                        className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-green-200"
+                    >
+                        Go to Login
+                    </button>
                 </div>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem' }}>Check Your Email</h2>
-                <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>{successMessage}</p>
-                <button onClick={() => navigate('/login')} className="auth-submit-btn">
-                    Go to Login
-                </button>
             </div>
         );
     }
 
     return (
-        <div className="auth-card">
-            {/* Header */}
-            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: '0.5rem' }}>
-                    Create Account
-                </h2>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                    Step {currentStep} of {totalSteps}
-                </p>
-            </div>
-
-            {/* Progress Bar */}
-            <div style={{ marginBottom: '2rem' }}>
-                <div className="step-progress-bar">
-                    <div className="step-progress-fill" style={{ width: `${progress}%` }}></div>
-                </div>
-                <div className="step-indicators">
-                    {[1, 2, 3].map((step) => (
-                        <div
-                            key={step}
-                            className={`step-indicator ${step < currentStep ? 'complete' :
-                                step === currentStep ? 'active' : ''
-                                }`}
-                        >
-                            {step < currentStep ? '✓' : step}
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {error && (
-                <div className="alert alert-error">
-                    <div className="alert-icon">
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                        </svg>
+        <div className="min-h-screen flex items-center justify-center bg-green-50 p-4">
+            <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+                <div className="p-8">
+                    {/* Header */}
+                    <div className="text-center mb-8">
+                        <h2 className="text-2xl font-bold text-gray-900">Create Account</h2>
+                        <p className="text-sm text-gray-500 mt-1">Step {currentStep} of {totalSteps}</p>
                     </div>
-                    <div className="alert-content">
-                        <p>{error}</p>
-                    </div>
-                </div>
-            )}
 
-            <form onSubmit={handleSubmit} className="auth-form">
-                {/* Step 1: Personal Information */}
-                {currentStep === 1 && (
-                    <div className="animate-fade-in">
-                        <h3 style={{ fontWeight: 600, fontSize: '1.125rem', marginBottom: '1.5rem' }}>Personal Information</h3>
-                        <div className="form-group">
-                            <label className="form-label">Full Name</label>
-                            <input
-                                type="text"
-                                name="fullName"
-                                value={formData.fullName}
-                                onChange={handleChange}
-                                placeholder="John Doe"
-                                className="form-input"
-                                required
-                            />
+                    {/* Progress Bar */}
+                    <div className="mb-8">
+                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-4">
+                            <div
+                                className="h-full bg-green-600 rounded-full transition-all duration-500 ease-out"
+                                style={{ width: `${progress}%` }}
+                            ></div>
                         </div>
-                        <div className="form-group">
-                            <label className="form-label">Business Name</label>
-                            <input
-                                type="text"
-                                name="businessName"
-                                value={formData.businessName}
-                                onChange={handleChange}
-                                placeholder="Acme Corp"
-                                className="form-input"
-                                required
-                            />
+                        <div className="flex justify-between px-2">
+                            {[1, 2, 3].map((step) => (
+                                <div
+                                    key={step}
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${step < currentStep ? 'bg-green-600 text-white' :
+                                            step === currentStep ? 'bg-green-100 text-green-700 ring-4 ring-green-50' :
+                                                'bg-gray-100 text-gray-400'
+                                        }`}
+                                >
+                                    {step < currentStep ? '✓' : step}
+                                </div>
+                            ))}
                         </div>
-                        <button type="button" onClick={handleNext} className="auth-submit-btn">
-                            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                Continue <ArrowRight size={18} />
-                            </span>
-                        </button>
                     </div>
-                )}
 
-                {/* Step 2: Contact Information */}
-                {currentStep === 2 && (
-                    <div className="animate-fade-in">
-                        <h3 style={{ fontWeight: 600, fontSize: '1.125rem', marginBottom: '1.5rem' }}>Contact Information</h3>
-                        <div className="form-group">
-                            <label className="form-label">Email Address</label>
-                            <input
-                                type="email"
-                                name="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                placeholder="you@example.com"
-                                className="form-input"
-                                required
-                            />
+                    {error && (
+                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 animate-fade-in">
+                            <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+                            <p className="text-sm text-red-800 font-medium">{error}</p>
                         </div>
-                        <div className="form-group">
-                            <label className="form-label">Phone Number</label>
-                            <input
-                                type="tel"
-                                name="phone"
-                                value={formData.phone}
-                                onChange={handleChange}
-                                placeholder="08012345678"
-                                className="form-input"
-                                required
-                            />
-                        </div>
-                        <div className="auth-form-buttons">
-                            <button type="button" onClick={handleBack} className="btn btn-outline">
-                                <ArrowLeft size={18} /> Back
-                            </button>
-                            <button type="button" onClick={handleNext} className="auth-submit-btn" style={{ flex: 1 }}>
-                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Step 1: Personal Information */}
+                        {currentStep === 1 && (
+                            <div className="space-y-6 animate-fade-in">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-2">Full Name</label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <User className="h-5 w-5 text-gray-400" />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            name="fullName"
+                                            value={formData.fullName}
+                                            onChange={handleChange}
+                                            placeholder="John Doe"
+                                            className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none transition-all bg-gray-50 focus:bg-white"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-2">Business Name</label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <Building className="h-5 w-5 text-gray-400" />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            name="businessName"
+                                            value={formData.businessName}
+                                            onChange={handleChange}
+                                            placeholder="Acme Corp"
+                                            className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none transition-all bg-gray-50 focus:bg-white"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleNext}
+                                    className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-green-200 flex items-center justify-center gap-2"
+                                >
                                     Continue <ArrowRight size={18} />
-                                </span>
-                            </button>
-                        </div>
-                    </div>
-                )}
+                                </button>
+                            </div>
+                        )}
 
-                {/* Step 3: Security */}
-                {currentStep === 3 && (
-                    <div className="animate-fade-in">
-                        <h3 style={{ fontWeight: 600, fontSize: '1.125rem', marginBottom: '1.5rem' }}>Security</h3>
-                        <div className="form-group">
-                            <label className="form-label">Password</label>
-                            <input
-                                type="password"
-                                name="password"
-                                value={formData.password}
-                                onChange={handleChange}
-                                placeholder="••••••••"
-                                className="form-input"
-                                required
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label className="form-label">Confirm Password</label>
-                            <input
-                                type="password"
-                                name="confirmPassword"
-                                value={formData.confirmPassword}
-                                onChange={handleChange}
-                                placeholder="••••••••"
-                                className="form-input"
-                                required
-                            />
-                        </div>
-                        <p className="password-hint">
-                            💡 Password must be at least 8 characters long
-                        </p>
-                        <div className="auth-form-buttons">
-                            <button type="button" onClick={handleBack} className="btn btn-outline">
-                                <ArrowLeft size={18} /> Back
-                            </button>
-                            <button type="submit" className="auth-submit-btn" style={{ flex: 1 }} disabled={isLoading}>
-                                {isLoading ? (
-                                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                        <Loader2 size={20} style={{ animation: 'spin 0.8s linear infinite' }} />
-                                        Creating...
-                                    </span>
-                                ) : (
-                                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                        Create Account
-                                    </span>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </form>
+                        {/* Step 2: Contact Information */}
+                        {currentStep === 2 && (
+                            <div className="space-y-6 animate-fade-in">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-2">Email Address</label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <Mail className="h-5 w-5 text-gray-400" />
+                                        </div>
+                                        <input
+                                            type="email"
+                                            name="email"
+                                            value={formData.email}
+                                            onChange={handleChange}
+                                            placeholder="you@example.com"
+                                            className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none transition-all bg-gray-50 focus:bg-white"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-2">Phone Number</label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <Phone className="h-5 w-5 text-gray-400" />
+                                        </div>
+                                        <input
+                                            type="tel"
+                                            name="phone"
+                                            value={formData.phone}
+                                            onChange={handleChange}
+                                            placeholder="08012345678"
+                                            className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none transition-all bg-gray-50 focus:bg-white"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={handleBack}
+                                        className="px-6 py-3 border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl font-bold transition-all flex items-center gap-2"
+                                    >
+                                        <ArrowLeft size={18} /> Back
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleNext}
+                                        className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-green-200 flex items-center justify-center gap-2"
+                                    >
+                                        Continue <ArrowRight size={18} />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
 
-            <div className="auth-footer">
-                Already have an account?{' '}
-                <Link to="/login">Sign In</Link>
+                        {/* Step 3: Security */}
+                        {currentStep === 3 && (
+                            <div className="space-y-6 animate-fade-in">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-2">Password</label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <Lock className="h-5 w-5 text-gray-400" />
+                                        </div>
+                                        <input
+                                            type="password"
+                                            name="password"
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                            placeholder="••••••••"
+                                            className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none transition-all bg-gray-50 focus:bg-white"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-2">Confirm Password</label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <Lock className="h-5 w-5 text-gray-400" />
+                                        </div>
+                                        <input
+                                            type="password"
+                                            name="confirmPassword"
+                                            value={formData.confirmPassword}
+                                            onChange={handleChange}
+                                            placeholder="••••••••"
+                                            className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none transition-all bg-gray-50 focus:bg-white"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <p className="text-xs text-gray-500 flex items-center gap-1">
+                                    💡 Password must be at least 8 characters long
+                                </p>
+                                <div className="flex gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={handleBack}
+                                        className="px-6 py-3 border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl font-bold transition-all flex items-center gap-2"
+                                    >
+                                        <ArrowLeft size={18} /> Back
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-green-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                        disabled={isLoading}
+                                    >
+                                        {isLoading ? (
+                                            <>
+                                                <Loader2 size={20} className="animate-spin" />
+                                                Creating...
+                                            </>
+                                        ) : (
+                                            'Create Account'
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </form>
+                </div>
+                <div className="bg-gray-50 p-6 text-center border-t border-gray-100">
+                    <p className="text-sm text-gray-600">
+                        Already have an account?{' '}
+                        <Link to="/login" className="font-bold text-green-600 hover:text-green-700 hover:underline">
+                            Sign In
+                        </Link>
+                    </p>
+                </div>
             </div>
         </div>
     );

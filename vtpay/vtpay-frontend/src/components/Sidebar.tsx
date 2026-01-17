@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -12,17 +12,20 @@ import {
     ShieldCheck,
     HelpCircle,
     User,
-    Send
+    Send,
+    ChevronLeft,
+    ChevronRight,
+    X
 } from 'lucide-react';
-import '../styles/sidebar.css';
 
 interface SidebarProps {
     isMobileOpen: boolean;
     setIsMobileOpen: (open: boolean) => void;
+    isDesktopOpen: boolean;
+    setIsDesktopOpen: (open: boolean) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
-    const [isDesktopOpen, setIsDesktopOpen] = useState(true);
+const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen, isDesktopOpen, setIsDesktopOpen }) => {
     const { logout } = useAuth();
     const navigate = useNavigate();
 
@@ -55,63 +58,58 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
             {/* Mobile Overlay */}
             {isMobileOpen && (
                 <div
-                    className="sidebar-overlay active lg:hidden"
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden transition-opacity"
                     onClick={() => setIsMobileOpen(false)}
                 />
             )}
 
             {/* Sidebar */}
             <aside
-                className={`sidebar ${isMobileOpen ? 'open' : ''} ${isDesktopOpen ? 'sidebar-expanded' : 'sidebar-collapsed'}`}
+                className={`fixed top-0 left-0 z-50 h-screen bg-green-900 border-r border-green-800 transition-all duration-300 ease-in-out flex flex-col
+                    ${isMobileOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0'}
+                    ${isDesktopOpen ? 'lg:w-64' : 'lg:w-20'}
+                `}
             >
                 {/* Logo Section */}
-                <div className="sidebar-header">
-                    {(isDesktopOpen || isMobileOpen) && (
-                        <div className="sidebar-brand">
-                            <div className="sidebar-logo-icon">
-                                <span className="sidebar-logo-text-inner">V</span>
+                <div className="h-20 flex items-center justify-between px-6 border-b border-green-800">
+                    {(isDesktopOpen || isMobileOpen) ? (
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-green-700 font-bold text-lg shadow-lg">
+                                V
                             </div>
-                            <div className="sidebar-logo-text">
-                                <h1>VTPay</h1>
-                                <p>Dashboard</p>
+                            <div className="flex flex-col">
+                                <h1 className="text-lg font-bold text-white leading-none">VTPay</h1>
+                                <p className="text-[10px] text-green-200 font-medium tracking-wider uppercase mt-0.5">Dashboard</p>
                             </div>
                         </div>
-                    )}
-                    {!isDesktopOpen && !isMobileOpen && (
-                        <div className="sidebar-logo-icon sidebar-logo-centered">
-                            <span className="sidebar-logo-text-inner">V</span>
+                    ) : (
+                        <div className="w-full flex justify-center">
+                            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-green-700 font-bold text-lg shadow-lg">
+                                V
+                            </div>
                         </div>
                     )}
 
                     {/* Desktop Toggle */}
                     <button
                         onClick={() => setIsDesktopOpen(!isDesktopOpen)}
-                        className="sidebar-toggle-btn hidden lg:block"
+                        className="hidden lg:flex w-6 h-6 items-center justify-center text-green-300 hover:text-white hover:bg-green-800 rounded-full transition-all absolute -right-3 top-7 bg-green-900 border border-green-700 shadow-sm"
                     >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d={isDesktopOpen ? 'M15 19l-7-7 7-7' : 'M9 5l7 7-7 7'}
-                            />
-                        </svg>
+                        {isDesktopOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
                     </button>
 
                     {/* Mobile Close */}
                     <button
                         onClick={() => setIsMobileOpen(false)}
-                        className="sidebar-close-btn lg:hidden"
+                        className="lg:hidden text-green-300 hover:text-white"
                     >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                        <X size={24} />
                     </button>
                 </div>
 
                 {/* Navigation */}
-                <nav className="sidebar-nav">
-                    <ul className="sidebar-nav-list">
+                <nav className="flex-1 overflow-y-auto py-6 px-3 custom-scrollbar">
+                    <ul className="space-y-1.5">
                         {navItems.map((item) => (
                             <li key={item.path}>
                                 <NavLink
@@ -119,12 +117,27 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                                     end={item.exact}
                                     onClick={handleNavClick}
                                     className={({ isActive }) =>
-                                        `sidebar-nav-item ${isActive ? 'active' : ''}`
+                                        `flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative
+                                        ${isActive
+                                            ? 'bg-green-800 text-white font-bold shadow-sm ring-1 ring-green-700'
+                                            : 'text-green-100 hover:bg-green-800/50 hover:text-white font-medium'
+                                        }
+                                        ${!isDesktopOpen && !isMobileOpen ? 'justify-center' : ''}
+                                        `
                                     }
                                 >
-                                    <span className="sidebar-nav-icon">{item.icon}</span>
+                                    <span className={`flex-shrink-0 transition-colors ${!isDesktopOpen && !isMobileOpen ? '' : ''}`}>
+                                        {item.icon}
+                                    </span>
                                     {(isDesktopOpen || isMobileOpen) && (
-                                        <span className="sidebar-nav-label">{item.label}</span>
+                                        <span className="text-sm truncate">{item.label}</span>
+                                    )}
+
+                                    {/* Tooltip for collapsed state */}
+                                    {!isDesktopOpen && !isMobileOpen && (
+                                        <div className="absolute left-full ml-4 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                                            {item.label}
+                                        </div>
                                     )}
                                 </NavLink>
                             </li>
@@ -133,10 +146,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                 </nav>
 
                 {/* Logout Button */}
-                <div className="sidebar-footer">
+                <div className="p-4 border-t border-green-800">
                     <button
                         onClick={handleLogout}
-                        className="sidebar-logout-btn"
+                        className={`flex items-center gap-3 w-full px-3 py-3 text-red-300 hover:bg-red-900/20 hover:text-red-200 rounded-xl transition-all duration-200 font-medium
+                            ${!isDesktopOpen && !isMobileOpen ? 'justify-center' : ''}
+                        `}
                     >
                         <LogOut size={20} className="flex-shrink-0" />
                         {(isDesktopOpen || isMobileOpen) && <span>Logout</span>}

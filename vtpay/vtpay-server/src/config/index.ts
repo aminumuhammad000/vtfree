@@ -25,11 +25,11 @@ export const config = {
     },
 
     // Webhook
-    webhookBaseUrl: process.env.WEBHOOK_BASE_URL || '',
+    webhookBaseUrl: process.env.WEBHOOK_BASE_URL || 'https://vtpayapi.vtfree.com.ng',
 
     // App
     app: {
-        url: process.env.APP_URL || 'http://localhost:5173',
+        url: process.env.APP_URL || 'https://vtpay.vtfree.com.ng',
     },
 };
 

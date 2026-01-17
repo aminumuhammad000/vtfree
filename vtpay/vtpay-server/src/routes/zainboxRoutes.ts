@@ -35,6 +35,17 @@ router.post('/', requireAdmin, async (req: AuthenticatedRequest, res: Response):
             return;
         }
 
+        // Check if user already has a Zainbox
+        const existingZainbox = await Zainbox.findOne({ userId });
+        if (existingZainbox) {
+            res.status(400).json({
+                success: false,
+                message: 'User already has a Zainbox assigned.',
+                data: existingZainbox
+            });
+            return;
+        }
+
         if (!name || !emailNotification || !tags || !callbackUrl) {
             res.status(400).json({
                 success: false,

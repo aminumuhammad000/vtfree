@@ -414,15 +414,17 @@ const ZainboxPage: React.FC = () => {
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-slate-200">
-                                                        {balances.balances.map((acc: any, i: number) => (
-                                                            <tr key={i} className="hover:bg-slate-50">
-                                                                <td className="px-4 py-2 text-slate-900 font-medium">{acc.accountName}</td>
-                                                                <td className="px-4 py-2 text-slate-500 font-mono">{acc.accountNumber}</td>
-                                                                <td className="px-4 py-2 text-slate-900 text-right font-semibold">
-                                                                    ₦{acc.balanceAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                                                </td>
-                                                            </tr>
-                                                        ))}
+                                                        {balances.balances
+                                                            .filter((acc: any) => acc.accountName !== 'Internal Settlement Account')
+                                                            .map((acc: any, i: number) => (
+                                                                <tr key={i} className="hover:bg-slate-50">
+                                                                    <td className="px-4 py-2 text-slate-900 font-medium">{acc.accountName}</td>
+                                                                    <td className="px-4 py-2 text-slate-500 font-mono">{acc.accountNumber}</td>
+                                                                    <td className="px-4 py-2 text-slate-900 text-right font-semibold">
+                                                                        ₦{acc.balanceAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
                                                     </tbody>
                                                 </table>
                                             </div>
@@ -459,13 +461,15 @@ const ZainboxPage: React.FC = () => {
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-slate-200">
-                                                    {virtualAccounts.map((acc: any, i: number) => (
-                                                        <tr key={i} className="hover:bg-slate-50">
-                                                            <td className="px-4 py-2 text-slate-900 font-medium">{acc.name}</td>
-                                                            <td className="px-4 py-2 text-slate-500 font-mono">{acc.bankAccount}</td>
-                                                            <td className="px-4 py-2 text-slate-600">{acc.bankName}</td>
-                                                        </tr>
-                                                    ))}
+                                                    {virtualAccounts
+                                                        .filter((acc: any) => acc.name !== 'Internal Settlement Account')
+                                                        .map((acc: any, i: number) => (
+                                                            <tr key={i} className="hover:bg-slate-50">
+                                                                <td className="px-4 py-2 text-slate-900 font-medium">{acc.name}</td>
+                                                                <td className="px-4 py-2 text-slate-500 font-mono">{acc.bankAccount}</td>
+                                                                <td className="px-4 py-2 text-slate-600">{acc.bankName}</td>
+                                                            </tr>
+                                                        ))}
                                                 </tbody>
                                             </table>
                                         </div>

@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { emailService } from '../services/EmailService';
 import { zainpayService } from '../services/ZainpayService';
+import config from '../config';
 
 const router = Router();
 
@@ -111,6 +112,10 @@ const activateUserAccount = async (user: any) => {
     let zainbox = await Zainbox.findOne({ userId: user._id });
     let zainboxCreated = !!zainbox;
 
+    if (zainbox) {
+        console.log(`User ${user.email} already has Zainbox: ${zainbox.zainboxCode}. Reusing existing.`);
+    }
+
     if (!zainbox) {
         console.log(`Auto-creating Zainbox for user: ${user.email}`);
         try {
@@ -118,7 +123,9 @@ const activateUserAccount = async (user: any) => {
                 ? `${user.businessName} Workspace`
                 : `${user.firstName} ${user.lastName} Workspace`;
 
-            const callbackUrl = process.env.WEBHOOK_BASE_URL || 'https://vtpay-server.onrender.com/api/webhooks/zainpay';
+            const callbackUrl = config.webhookBaseUrl
+                ? `${config.webhookBaseUrl}/api/webhooks/zainpay`
+                : 'https://vtpayapi.vtfree.com.ng/api/webhooks/zainpay';
 
             const zResponse = await zainpayService.createZainbox({
                 name: zainboxName,
@@ -165,17 +172,30 @@ const activateUserAccount = async (user: any) => {
         }
     }
 
-    // 2. Auto-generate API Key if it doesn't exist
-    if (!user.apiKey) {
-        try {
-            const randomPart = crypto.randomBytes(24).toString('hex');
-            const newApiKey = `sk_live_${randomPart}`;
+    // 2. Ensure user is fully verified and has API key
+    try {
+        const updateData: any = {
+            kycLevel: 3,
+            kyc_status: 'verified',
+            status: 'active'
+        };
 
-            await User.findByIdAndUpdate(user._id, { apiKey: newApiKey });
-            console.log(`Auto-generated Live API Key for ${user.email}`);
-        } catch (apiKeyError) {
-            console.error(`Error auto-generating API key for ${user.email}:`, apiKeyError);
+        if (!user.apiKey) {
+            const randomPart = crypto.randomBytes(24).toString('hex');
+            updateData.apiKey = `sk_live_${randomPart}`;
+            console.log(`Auto-generating Live API Key for ${user.email}`);
         }
+
+        console.log(`Updating user ${user.email} with data:`, updateData);
+        const result = await User.findByIdAndUpdate(user._id, updateData, { new: true });
+        console.log(`User ${user.email} update result:`, {
+            id: result?._id,
+            status: result?.status,
+            kycLevel: result?.kycLevel,
+            kyc_status: result?.kyc_status
+        });
+    } catch (updateError) {
+        console.error(`Error updating user verification status for ${user.email}:`, updateError);
     }
 
     // 3. Send approval email
@@ -470,8 +490,13 @@ router.get('/tenants/:id', async (req: AuthenticatedRequest, res: Response): Pro
         for (const zBox of zainboxes) {
             try {
                 const zainpayAccounts = await zainpayService.getZainboxAccounts(zBox.zainboxCode);
-                if (Array.isArray(zainpayAccounts)) {
-                    for (const zAccount of zainpayAccounts) {
+                if (zainpayAccounts.code === '00' && Array.isArray(zainpayAccounts.data)) {
+                    for (const zAccount of zainpayAccounts.data) {
+                        // Do not include the Internal Settlement Account
+                        if (zAccount.name === 'Internal Settlement Account') {
+                            continue;
+                        }
+
                         const exists = await VirtualAccount.findOne({ accountNumber: zAccount.bankAccount });
                         if (!exists) {
                             await VirtualAccount.create({
@@ -548,10 +573,13 @@ router.patch('/tenants/:id/status', async (req: AuthenticatedRequest, res: Respo
             await activateUserAccount(user);
         }
 
+        // Fetch the latest user data to ensure kycLevel and other updates are included
+        const updatedUser = await User.findById(id).select('-passwordHash');
+
         res.json({
             success: true,
             message: `Tenant status updated to ${status}`,
-            data: user,
+            data: updatedUser,
         });
     } catch (error) {
         console.error('Update tenant status error:', error);
@@ -604,10 +632,13 @@ router.patch('/tenants/:id/kyc', async (req: AuthenticatedRequest, res: Response
             await activateUserAccount(user);
         }
 
+        // Fetch the latest user data
+        const updatedUser = await User.findById(id).select('-passwordHash');
+
         res.json({
             success: true,
             message: `Tenant KYC status updated to ${status}`,
-            data: user,
+            data: updatedUser,
         });
     } catch (error) {
         console.error('Update tenant KYC status error:', error);
@@ -802,7 +833,10 @@ router.get('/zainboxes/:zainboxCode/accounts', async (req: AuthenticatedRequest,
         }
 
         // Fetch virtual accounts from local DB
-        const accounts = await VirtualAccount.find({ zainboxCode });
+        const accounts = await VirtualAccount.find({
+            zainboxCode,
+            accountName: { $ne: 'Internal Settlement Account' }
+        });
 
         res.json({
             success: true,
@@ -847,8 +881,13 @@ router.get('/zainboxes/:zainboxCode', async (req: AuthenticatedRequest, res: Res
         // Sync virtual accounts from Zainpay
         try {
             const zainpayAccounts = await zainpayService.getZainboxAccounts(zainboxCode);
-            if (Array.isArray(zainpayAccounts)) {
-                for (const zAccount of zainpayAccounts) {
+            if (zainpayAccounts.code === '00' && Array.isArray(zainpayAccounts.data)) {
+                for (const zAccount of zainpayAccounts.data) {
+                    // Do not include the Internal Settlement Account
+                    if (zAccount.name === 'Internal Settlement Account') {
+                        continue;
+                    }
+
                     const exists = await VirtualAccount.findOne({ accountNumber: zAccount.bankAccount });
                     if (!exists) {
                         await VirtualAccount.create({
@@ -870,7 +909,10 @@ router.get('/zainboxes/:zainboxCode', async (req: AuthenticatedRequest, res: Res
         }
 
         // Get associated virtual accounts (now including synced ones)
-        const virtualAccounts = await VirtualAccount.find({ zainboxCode });
+        const virtualAccounts = await VirtualAccount.find({
+            zainboxCode,
+            accountName: { $ne: 'Internal Settlement Account' }
+        });
 
         res.json({
             success: true,
@@ -899,10 +941,12 @@ router.get('/zainboxes/:zainboxCode/balances', async (req: AuthenticatedRequest,
 
         if (response.code === '00') {
             const rawBalances = response.data || [];
-            const balances = rawBalances.map((acc: any) => ({
-                ...acc,
-                balanceAmount: (acc.balanceAmount || 0) / 100
-            }));
+            const balances = rawBalances
+                .filter((acc: any) => acc.accountName !== 'Internal Settlement Account')
+                .map((acc: any) => ({
+                    ...acc,
+                    balanceAmount: (acc.balanceAmount || 0) / 100
+                }));
             const totalBalance = balances.reduce((sum, acc) => sum + (acc.balanceAmount || 0), 0);
 
             res.json({

@@ -70,13 +70,10 @@ export const Overview: React.FC = () => {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center min-h-[600px]">
+            <div className="flex items-center justify-center min-h-screen">
                 <div className="flex flex-col items-center gap-4">
-                    <div className="loading-spinner">
-                        <div className="loading-spinner-track"></div>
-                        <div className="loading-spinner-spin"></div>
-                    </div>
-                    <p className="text-body font-medium">Loading...</p>
+                    <div className="w-12 h-12 border-4 border-green-200 border-t-green-600 rounded-full animate-spin"></div>
+                    <p className="text-gray-600 font-medium">Loading...</p>
                 </div>
             </div>
         );
@@ -118,128 +115,144 @@ export const Overview: React.FC = () => {
     ];
 
     return (
-        <div className="space-y-6 max-w-[1400px]">
+        <div className="space-y-6 max-w-[1400px] p-6">
             {/* Header */}
-            <div className="flex items-center justify-between mb-8">
-                <div>
+            <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-green-50 rounded-full -mr-32 -mt-32 opacity-50 blur-3xl"></div>
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-50 rounded-full -ml-24 -mb-24 opacity-50 blur-3xl"></div>
+
+                <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">Dashboard</h1>
+                            <button
+                                onClick={() => setShowBalance(!showBalance)}
+                                className="p-2 hover:bg-gray-100 rounded-xl transition-all duration-200 group"
+                                title={showBalance ? "Hide Balance" : "Show Balance"}
+                            >
+                                {showBalance ?
+                                    <Eye className="w-5 h-5 text-gray-400 group-hover:text-green-600" /> :
+                                    <EyeOff className="w-5 h-5 text-gray-400 group-hover:text-green-600" />
+                                }
+                            </button>
+                        </div>
+                        <p className="text-gray-500 font-medium mt-1 flex items-center gap-2">
+                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                        </p>
+                    </div>
                     <div className="flex items-center gap-3">
-                        <h1 className="text-heading">Dashboard</h1>
-                        <button
-                            onClick={() => setShowBalance(!showBalance)}
-                            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                        >
-                            {showBalance ? <Eye className="w-5 h-5 text-gray-500" /> : <EyeOff className="w-5 h-5 text-gray-500" />}
+                        <button className="px-6 py-2.5 rounded-xl border border-gray-200 hover:border-green-200 hover:bg-green-50 transition-all duration-200 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                            <Download className="w-4 h-4" />
+                            Export
+                        </button>
+                        <button className="px-6 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white transition-all duration-200 flex items-center gap-2 text-sm font-semibold shadow-lg shadow-green-200 hover:shadow-green-300">
+                            <Plus className="w-4 h-4" />
+                            Fund Wallet
                         </button>
                     </div>
-                    <p className="text-body mt-1">
-                        {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                    </p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <button className="btn btn-secondary">
-                        <Download className="w-4 h-4" />
-                        Export
-                    </button>
-                    <button className="btn btn-primary">
-                        <Plus className="w-4 h-4" />
-                        Fund Wallet
-                    </button>
                 </div>
             </div>
 
             {/* Metrics Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {metrics.map((metric, index) => (
                     <div
                         key={index}
-                        className="metric-card hover-lift"
+                        className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 group"
                     >
                         <div className="flex items-start justify-between mb-4">
-                            <div className="metric-icon">
-                                <div className="text-gray-700">
-                                    {metric.icon}
-                                </div>
+                            <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-gray-600 group-hover:bg-green-50 group-hover:text-green-600 transition-colors duration-300">
+                                {metric.icon}
                             </div>
-                            <span className={`metric-change ${metric.trend === 'up' ? 'positive' : 'negative'}`}>
+                            <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${metric.trend === 'up' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                                }`}>
                                 {metric.change}
                             </span>
                         </div>
                         <div>
-                            <p className="metric-label mb-1">{metric.label}</p>
-                            <p className="metric-value">{metric.value}</p>
-                            <p className="text-caption mt-1">{metric.description}</p>
+                            <p className="text-sm font-semibold text-gray-500 mb-1">{metric.label}</p>
+                            <p className="text-2xl font-bold text-gray-900 tracking-tight">{metric.value}</p>
+                            <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                                <Activity className="w-3 h-3" />
+                                {metric.description}
+                            </p>
                         </div>
                     </div>
                 ))}
             </div>
 
             {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Chart Section - 2 columns */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className="lg:col-span-2 space-y-8">
                     {/* Balance Overview */}
-                    <div className="balance-chart">
-                        <div className="chart-header">
+                    <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
                             <div>
-                                <h2 className="chart-title">Balance Overview</h2>
-                                <p className="chart-subtitle">Your wallet performance</p>
+                                <h2 className="text-xl font-bold text-gray-900">Balance Overview</h2>
+                                <p className="text-sm text-gray-500 mt-1">Your wallet performance and distribution</p>
                             </div>
-                            <div className="timeframe-toggle">
+                            <div className="bg-gray-50 p-1 rounded-xl flex gap-1">
                                 {(['7d', '30d', '90d'] as const).map((period) => (
                                     <button
                                         key={period}
                                         onClick={() => setTimeframe(period)}
-                                        className={`timeframe-button ${timeframe === period ? 'active' : ''}`}
+                                        className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 ${timeframe === period
+                                            ? 'bg-white text-green-600 shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-700'
+                                            }`}
                                     >
-                                        {period === '7d' ? '7 days' : period === '30d' ? '30 days' : '90 days'}
+                                        {period === '7d' ? '7D' : period === '30d' ? '30D' : '90D'}
                                     </button>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Simple Chart Representation */}
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-6 pb-6 border-b border-light">
-                                <div>
-                                    <p className="text-body mb-2">Available Balance</p>
-                                    <p className="text-heading">
+                        <div className="space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="relative pl-6">
+                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-green-500 rounded-full"></div>
+                                    <p className="text-sm font-semibold text-gray-500 mb-2">Available Balance</p>
+                                    <p className="text-3xl font-extrabold text-gray-900 tracking-tight">
                                         {showBalance ? formatCompactCurrency(wallet?.availableBalanceNaira || 0) : '••••'}
                                     </p>
                                 </div>
-                                <div>
-                                    <p className="text-body mb-2">Locked Balance</p>
-                                    <p className="text-heading">
+                                <div className="relative pl-6">
+                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500 rounded-full"></div>
+                                    <p className="text-sm font-semibold text-gray-500 mb-2">Locked Balance</p>
+                                    <p className="text-3xl font-extrabold text-gray-900 tracking-tight">
                                         {showBalance ? formatCompactCurrency(wallet?.lockedBalanceNaira || 0) : '••••'}
                                     </p>
                                 </div>
                             </div>
 
                             {/* Visual Chart Bars */}
-                            <div className="space-y-3 pt-4">
+                            <div className="space-y-4">
                                 <div>
                                     <div className="flex items-center justify-between text-xs mb-2">
-                                        <span className="text-muted">Available</span>
+                                        <span className="text-gray-500">Available</span>
                                         <span className="font-medium text-gray-900">
                                             {showBalance ? Math.round((wallet?.availableBalanceNaira / wallet?.balanceNaira) * 100 || 0) : '••'}%
                                         </span>
                                     </div>
-                                    <div className="progress-bar-container">
+                                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                                         <div
-                                            className="progress-bar green"
+                                            className="h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full transition-all duration-500"
                                             style={{ width: `${(wallet?.availableBalanceNaira / wallet?.balanceNaira) * 100 || 0}%` }}
                                         ></div>
                                     </div>
                                 </div>
                                 <div>
                                     <div className="flex items-center justify-between text-xs mb-2">
-                                        <span className="text-muted">Locked</span>
+                                        <span className="text-gray-500">Locked</span>
                                         <span className="font-medium text-gray-900">
                                             {showBalance ? Math.round((wallet?.lockedBalanceNaira / wallet?.balanceNaira) * 100 || 0) : '••'}%
                                         </span>
                                     </div>
-                                    <div className="progress-bar-container">
+                                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                                         <div
-                                            className="progress-bar amber"
+                                            className="h-full bg-gradient-to-r from-amber-400 to-amber-600 rounded-full transition-all duration-500"
                                             style={{ width: `${(wallet?.lockedBalanceNaira / wallet?.balanceNaira) * 100 || 0}%` }}
                                         ></div>
                                     </div>
@@ -249,37 +262,40 @@ export const Overview: React.FC = () => {
                     </div>
 
                     {/* Recent Transactions */}
-                    <div className="transaction-list">
-                        <div className="transaction-header flex items-center justify-between">
+                    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="p-6 border-b border-gray-50 flex items-center justify-between">
                             <div>
-                                <h2 className="text-subheading">Recent Transactions</h2>
-                                <p className="text-caption mt-0.5">Latest activity on your account</p>
+                                <h2 className="text-lg font-bold text-gray-900">Recent Transactions</h2>
+                                <p className="text-sm text-gray-500 mt-0.5">Latest activity on your account</p>
                             </div>
                             <Link
                                 to="/dashboard/transactions"
-                                className="text-sm font-medium text-green-600 hover:text-green-700 flex items-center gap-1"
+                                className="px-4 py-2 text-sm font-bold text-green-600 hover:bg-green-50 rounded-xl transition-all duration-200 flex items-center gap-2 group"
                             >
                                 View all
-                                <ArrowRight className="w-4 h-4" />
+                                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                             </Link>
                         </div>
-                        <div className="divide-y divide-gray-100">
+                        <div className="divide-y divide-gray-50">
                             {transactions.length === 0 ? (
-                                <div className="empty-state">
-                                    <div className="empty-state-icon">
-                                        <Activity className="w-6 h-6 text-gray-400" />
+                                <div className="p-12 text-center">
+                                    <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                        <Activity className="w-8 h-8 text-gray-300" />
                                     </div>
-                                    <p className="empty-state-title">No transactions yet</p>
-                                    <p className="empty-state-description">Your transactions will appear here</p>
+                                    <p className="text-gray-900 font-bold">No transactions yet</p>
+                                    <p className="text-sm text-gray-500 mt-1">Your transactions will appear here</p>
                                 </div>
                             ) : (
                                 transactions.slice(0, 8).map((txn) => (
                                     <div
                                         key={txn.id}
-                                        className="transaction-item flex items-center justify-between"
+                                        className="p-4 hover:bg-gray-50 transition-colors duration-200 flex items-center justify-between group"
                                     >
                                         <div className="flex items-center gap-4">
-                                            <div className={`transaction-icon ${txn.type === 'credit' ? 'credit' : 'debit'}`}>
+                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 duration-300 ${txn.type === 'credit'
+                                                ? 'bg-green-50 text-green-600'
+                                                : 'bg-gray-50 text-gray-600'
+                                                }`}>
                                                 {txn.type === 'credit' ? (
                                                     <ArrowDownLeft className="w-5 h-5" />
                                                 ) : (
@@ -287,15 +303,16 @@ export const Overview: React.FC = () => {
                                                 )}
                                             </div>
                                             <div>
-                                                <p className="text-sm font-medium text-gray-900 capitalize">{txn.type}</p>
-                                                <p className="text-xs text-gray-500 font-mono">{txn.reference}</p>
+                                                <p className="text-sm font-bold text-gray-900 capitalize">{txn.type}</p>
+                                                <p className="text-xs text-gray-400 font-mono mt-0.5">{txn.reference}</p>
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className={`transaction-amount ${txn.type === 'credit' ? 'credit' : 'debit'}`}>
+                                            <p className={`text-sm font-bold ${txn.type === 'credit' ? 'text-green-600' : 'text-gray-900'
+                                                }`}>
                                                 {txn.type === 'credit' ? '+' : '-'}{formatCurrency(txn.amountNaira)}
                                             </p>
-                                            <p className="text-xs text-gray-500">
+                                            <p className="text-[10px] text-gray-400 mt-1 font-medium uppercase tracking-wider">
                                                 {new Date(txn.createdAt).toLocaleDateString('en-US', {
                                                     month: 'short',
                                                     day: 'numeric',
@@ -312,95 +329,86 @@ export const Overview: React.FC = () => {
                 </div>
 
                 {/* Sidebar - 1 column */}
-                <div className="space-y-6">
+                <div className="space-y-8">
                     {/* Quick Actions */}
-                    <div className="overview-card p-6">
-                        <h3 className="text-subheading mb-4">Quick Actions</h3>
-                        <div className="space-y-3">
-                            <Link
-                                to="/dashboard/virtual-accounts"
-                                className="quick-action group"
-                            >
-                                <div className="quick-action-icon blue">
-                                    <CreditCard className="w-5 h-5" />
-                                </div>
-                                <div className="flex-1">
-                                    <p className="text-sm font-medium text-gray-900">Virtual Accounts</p>
-                                    <p className="text-xs text-gray-500">Create & manage</p>
-                                </div>
-                                <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
-                            </Link>
-                            <Link
-                                to="/dashboard/developer"
-                                className="quick-action group"
-                            >
-                                <div className="quick-action-icon purple">
-                                    <Zap className="w-5 h-5" />
-                                </div>
-                                <div className="flex-1">
-                                    <p className="text-sm font-medium text-gray-900">API Keys</p>
-                                    <p className="text-xs text-gray-500">Developer tools</p>
-                                </div>
-                                <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
-                            </Link>
-                            <Link
-                                to="/dashboard/verification"
-                                className="quick-action group"
-                            >
-                                <div className="quick-action-icon amber">
-                                    <CheckCircle2 className="w-5 h-5" />
-                                </div>
-                                <div className="flex-1">
-                                    <p className="text-sm font-medium text-gray-900">Verification</p>
-                                    <p className="text-xs text-gray-500">KYC status</p>
-                                </div>
-                                <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
-                            </Link>
+                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                        <h3 className="text-lg font-bold text-gray-900 mb-6">Quick Actions</h3>
+                        <div className="space-y-4">
+                            {[
+                                { to: "/dashboard/virtual-accounts", icon: <CreditCard />, label: "Virtual Accounts", sub: "Create & manage", color: "blue" },
+                                { to: "/dashboard/developer", icon: <Zap />, label: "API Keys", sub: "Developer tools", color: "purple" },
+                                { to: "/dashboard/verification", icon: <CheckCircle2 />, label: "Verification", sub: "KYC status", color: "amber" }
+                            ].map((action, i) => (
+                                <Link
+                                    key={i}
+                                    to={action.to}
+                                    className="flex items-center gap-4 p-3 rounded-2xl hover:bg-gray-50 transition-all duration-200 group"
+                                >
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors duration-200 ${action.color === 'blue' ? 'bg-blue-50 text-blue-600 group-hover:bg-blue-100' :
+                                        action.color === 'purple' ? 'bg-purple-50 text-purple-600 group-hover:bg-purple-100' :
+                                            'bg-amber-50 text-amber-600 group-hover:bg-amber-100'
+                                        }`}>
+                                        {React.cloneElement(action.icon as React.ReactElement<any>, { className: "w-5 h-5" })}
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-sm font-bold text-gray-900">{action.label}</p>
+                                        <p className="text-xs text-gray-500 mt-0.5">{action.sub}</p>
+                                    </div>
+                                    <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-gray-600 group-hover:translate-x-1 transition-all" />
+                                </Link>
+                            ))}
                         </div>
                     </div>
 
                     {/* Account Status */}
-                    <div className="status-card">
-                        <div className="flex items-start gap-3 mb-4">
-                            <div className="status-icon">
-                                <CheckCircle2 className="w-5 h-5" />
+                    <div className="bg-gradient-to-br from-green-600 to-green-700 p-8 rounded-3xl shadow-lg shadow-green-100 text-white relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                        <div className="relative">
+                            <div className="flex items-start gap-4 mb-6">
+                                <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
+                                    <CheckCircle2 className="w-6 h-6 text-white" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold">Account Status</h3>
+                                    <p className="text-green-100 text-sm mt-0.5">Verification Level {user?.kycLevel || 0}</p>
+                                </div>
                             </div>
-                            <div>
-                                <h3 className="text-subheading">Account Status</h3>
-                                <p className="text-caption mt-0.5">Verification Level {user?.kycLevel || 0}</p>
+                            <div className="space-y-3 mb-6">
+                                <div className="flex items-center justify-between text-xs font-bold">
+                                    <span className="text-green-100">Completion Progress</span>
+                                    <span>{(user?.kycLevel || 0) * 33}%</span>
+                                </div>
+                                <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-white rounded-full transition-all duration-1000"
+                                        style={{ width: `${(user?.kycLevel || 0) * 33}%` }}
+                                    ></div>
+                                </div>
                             </div>
+                            {user?.kycLevel === 0 && (
+                                <Link
+                                    to="/dashboard/verification"
+                                    className="w-full py-3 bg-white text-green-600 font-bold rounded-xl flex items-center justify-center hover:bg-green-50 transition-colors shadow-lg"
+                                >
+                                    Complete Verification
+                                </Link>
+                            )}
                         </div>
-                        <div className="space-y-2 mb-4">
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="text-gray-600">Progress</span>
-                                <span className="font-medium text-gray-900">{(user?.kycLevel || 0) * 33}%</span>
-                            </div>
-                            <div className="status-progress">
-                                <div
-                                    className="status-progress-bar"
-                                    style={{ width: `${(user?.kycLevel || 0) * 33}%` }}
-                                ></div>
-                            </div>
-                        </div>
-                        {user?.kycLevel === 0 && (
-                            <Link
-                                to="/dashboard/verification"
-                                className="btn btn-primary w-full justify-center"
-                            >
-                                Complete Verification
-                            </Link>
-                        )}
                     </div>
 
                     {/* Support */}
-                    <div className="overview-card p-6">
-                        <h3 className="text-subheading mb-3">Need Help?</h3>
-                        <p className="text-body mb-4">
-                            Our support team is available 24/7 to assist you.
-                        </p>
-                        <button className="btn w-full justify-center bg-gray-900 text-white hover:bg-gray-800">
-                            Contact Support
-                        </button>
+                    <div className="bg-gray-900 p-8 rounded-3xl shadow-xl text-white relative overflow-hidden">
+                        <div className="absolute bottom-0 right-0 w-32 h-32 bg-green-500/20 rounded-full -mr-16 -mb-16 blur-2xl"></div>
+                        <div className="relative">
+                            <h3 className="text-lg font-bold mb-3">Need Help?</h3>
+                            <p className="text-gray-400 text-sm leading-relaxed mb-6">
+                                Our support team is available 24/7 to assist you with any issues.
+                            </p>
+                            <button className="w-full py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl transition-all border border-white/10 flex items-center justify-center gap-2">
+                                <Activity className="w-4 h-4" />
+                                Contact Support
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

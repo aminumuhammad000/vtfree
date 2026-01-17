@@ -8,16 +8,12 @@ import {
     EyeOff,
     Code,
     ExternalLink,
-    X,
     Check,
     Terminal,
     ShieldCheck,
     BookOpen,
     Zap,
-    ArrowRight,
     AlertTriangle,
-    Wallet,
-    Banknote,
     Webhook,
     Save,
     Loader2
@@ -28,19 +24,9 @@ export const Developer: React.FC = () => {
     const [apiKey, setApiKey] = useState<string | null>(null);
     const [showKey, setShowKey] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
-    const [accounts, setAccounts] = useState<any[]>([]);
     const [zainbox, setZainbox] = useState<any>(null);
-    const [isInitializing, setIsInitializing] = useState(false);
     const [userProfile, setUserProfile] = useState<any>(null);
 
-    const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
-    const [selectedAccount, setSelectedAccount] = useState<any>(null);
-    const [payoutAmount, setPayoutAmount] = useState('');
-    const [destinationBank, setDestinationBank] = useState('');
-    const [destinationAccount, setDestinationAccount] = useState('');
-    const [payoutNarration, setPayoutNarration] = useState('');
-    const [isProcessingPayout, setIsProcessingPayout] = useState(false);
-    const [availableBalance, setAvailableBalance] = useState<number | null>(null);
     const [copied, setCopied] = useState(false);
 
     // Webhook State
@@ -57,7 +43,7 @@ export const Developer: React.FC = () => {
                 fetchUserProfile(),
                 fetchZainbox(),
                 fetchApiKey(),
-                fetchAccounts(),
+                fetchApiKey(),
                 fetchWebhookUrl()
             ]);
             setIsLoading(false);
@@ -85,8 +71,6 @@ export const Developer: React.FC = () => {
         }
     };
 
-
-
     const fetchApiKey = async () => {
         try {
             const response = await api.get('/developer/apikey');
@@ -96,14 +80,7 @@ export const Developer: React.FC = () => {
         }
     };
 
-    const fetchAccounts = async () => {
-        try {
-            const response = await api.get('/virtual-accounts');
-            setAccounts(response.data.data || []);
-        } catch (error) {
-            console.error('Error fetching accounts:', error);
-        }
-    };
+
 
     const fetchWebhookUrl = async () => {
         try {
@@ -172,60 +149,14 @@ export const Developer: React.FC = () => {
         setTimeout(() => setCopied(false), 2000);
     };
 
-    const openPayoutModal = async (account: any) => {
-        setSelectedAccount(account);
-        setIsPayoutModalOpen(true);
-        setAvailableBalance(null);
 
-        if (account.reference) {
-            try {
-                const response = await api.get(`/payout/balance/${account.reference}`);
-                setAvailableBalance(response.data.data.balance);
-            } catch (error) {
-                console.error('Error fetching balance:', error);
-            }
-        }
-    };
-
-    const handlePayout = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!selectedAccount || !payoutAmount || !destinationBank || !destinationAccount) return;
-
-        setIsProcessingPayout(true);
-        try {
-            await api.post('/payout', {
-                amount: parseFloat(payoutAmount),
-                reference: selectedAccount.reference,
-                destinationBankCode: destinationBank,
-                destinationAccountNumber: destinationAccount,
-                narration: payoutNarration
-            });
-
-            alert('Payout initiated successfully!');
-            setIsPayoutModalOpen(false);
-            setPayoutAmount('');
-            setDestinationBank('');
-            setDestinationAccount('');
-            setPayoutNarration('');
-
-            if (selectedAccount.reference) {
-                const response = await api.get(`/payout/balance/${selectedAccount.reference}`);
-                setAvailableBalance(response.data.data.balance);
-            }
-        } catch (error: any) {
-            console.error('Payout error:', error);
-            alert(error.response?.data?.message || 'Failed to initiate payout');
-        } finally {
-            setIsProcessingPayout(false);
-        }
-    };
 
     if (isLoading) {
         return (
             <div className="flex items-center justify-center min-h-[600px]">
                 <div className="flex flex-col items-center gap-4">
-                    <div className="spinner"></div>
-                    <p className="text-body font-medium">Loading developer tools...</p>
+                    <Loader2 size={40} className="text-green-600 animate-spin" />
+                    <p className="text-gray-600 font-medium">Loading developer tools...</p>
                 </div>
             </div>
         );
@@ -235,25 +166,25 @@ export const Developer: React.FC = () => {
     if (!zainbox) {
         return (
             <div className="max-w-2xl mx-auto py-12 animate-fade-in">
-                <div className="dev-card overflow-hidden">
-                    <div className="h-2 bg-primary"></div>
+                <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+                    <div className="h-2 bg-green-600"></div>
                     <div className="p-8 text-center">
-                        <div className="w-20 h-20 bg-primary/10 text-primary rounded-3xl flex items-center justify-center mx-auto mb-6">
+                        <div className="w-20 h-20 bg-green-50 text-green-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
                             <Code size={40} />
                         </div>
-                        <h2 className="text-2xl font-bold text-heading mb-3">Initialize Developer Account</h2>
-                        <p className="text-body mb-8 max-w-md mx-auto">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-3">Initialize Developer Account</h2>
+                        <p className="text-gray-500 mb-8 max-w-md mx-auto">
                             To start using our API and creating virtual accounts, you need to initialize your developer workspace (Zainbox).
                         </p>
 
                         {userProfile?.kycLevel < 3 ? (
-                            <div className="alert alert-warning text-left mb-8">
-                                <div className="alert-icon">
+                            <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-left mb-8 flex items-start gap-3">
+                                <div className="p-2 bg-amber-100 rounded-full text-amber-600 flex-shrink-0">
                                     <AlertTriangle size={20} />
                                 </div>
-                                <div className="alert-content">
-                                    <h4 className="font-bold">KYC Approval Required</h4>
-                                    <p className="text-xs">
+                                <div>
+                                    <h4 className="font-bold text-amber-900">KYC Approval Required</h4>
+                                    <p className="text-xs text-amber-800 mt-1">
                                         You must have your KYC approved before your developer workspace can be activated.
                                         Please complete your verification in the <Link to="/dashboard/verification" className="font-bold underline">Verification</Link> section.
                                     </p>
@@ -261,33 +192,33 @@ export const Developer: React.FC = () => {
                             </div>
                         ) : (
                             <div className="space-y-6 mb-8">
-                                <div className="alert alert-success text-left">
-                                    <div className="alert-icon">
+                                <div className="bg-green-50 border border-green-100 rounded-xl p-4 text-left flex items-start gap-3">
+                                    <div className="p-2 bg-green-100 rounded-full text-green-600 flex-shrink-0">
                                         <ShieldCheck size={20} />
                                     </div>
-                                    <div className="alert-content">
-                                        <h4 className="font-bold">Account Approved</h4>
-                                        <p className="text-xs">
+                                    <div>
+                                        <h4 className="font-bold text-green-900">Account Approved</h4>
+                                        <p className="text-xs text-green-800 mt-1">
                                             Your account is verified. Our team is currently setting up your developer workspace. This usually happens automatically within a few minutes of approval.
                                         </p>
                                     </div>
                                 </div>
 
-                                <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 text-left">
-                                    <h3 className="text-sm font-bold text-slate-900 mb-4 uppercase tracking-wider">Developer Details</h3>
+                                <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 text-left">
+                                    <h3 className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider">Developer Details</h3>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <p className="text-[10px] text-slate-500 uppercase font-bold">Full Name</p>
-                                            <p className="text-sm font-medium text-slate-900">{userProfile?.firstName} {userProfile?.lastName}</p>
+                                            <p className="text-[10px] text-gray-500 uppercase font-bold">Full Name</p>
+                                            <p className="text-sm font-medium text-gray-900">{userProfile?.firstName} {userProfile?.lastName}</p>
                                         </div>
                                         <div>
-                                            <p className="text-[10px] text-slate-500 uppercase font-bold">Email Address</p>
-                                            <p className="text-sm font-medium text-slate-900">{userProfile?.email}</p>
+                                            <p className="text-[10px] text-gray-500 uppercase font-bold">Email Address</p>
+                                            <p className="text-sm font-medium text-gray-900">{userProfile?.email}</p>
                                         </div>
                                         {userProfile?.businessName && (
                                             <div className="col-span-2">
-                                                <p className="text-[10px] text-slate-500 uppercase font-bold">Business Name</p>
-                                                <p className="text-sm font-medium text-slate-900">{userProfile?.businessName}</p>
+                                                <p className="text-[10px] text-gray-500 uppercase font-bold">Business Name</p>
+                                                <p className="text-sm font-medium text-gray-900">{userProfile?.businessName}</p>
                                             </div>
                                         )}
                                     </div>
@@ -301,7 +232,7 @@ export const Developer: React.FC = () => {
                                     </p>
                                     <button
                                         onClick={() => window.location.reload()}
-                                        className="mt-4 btn btn-outline btn-sm border-blue-200 text-blue-700 hover:bg-blue-100"
+                                        className="mt-4 px-4 py-2 border border-blue-200 text-blue-700 hover:bg-blue-100 rounded-lg text-sm font-bold transition-all"
                                     >
                                         Refresh Status
                                     </button>
@@ -309,8 +240,8 @@ export const Developer: React.FC = () => {
                             </div>
                         )}
 
-                        <p className="text-caption mt-6">
-                            Developer access is subject to our <Link to="/terms" className="text-primary hover:underline">Terms of Service</Link>.
+                        <p className="text-xs text-gray-400 mt-6">
+                            Developer access is subject to our <Link to="/terms" className="text-green-600 hover:underline">Terms of Service</Link>.
                         </p>
                     </div>
                 </div>
@@ -319,17 +250,17 @@ export const Developer: React.FC = () => {
     }
 
     return (
-        <div className="space-y-6 max-w-[1400px] animate-fade-in">
+        <div className="space-y-6 max-w-[1400px] animate-fade-in p-6">
             {/* Header */}
-            <div className="dev-header">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-heading">Developer Tools</h1>
-                    <p className="text-body mt-1">Integrate VTPay into your applications with our robust API</p>
+                    <h1 className="text-2xl font-bold text-gray-900">Developer Tools</h1>
+                    <p className="text-sm text-gray-500 mt-1">Integrate VTPay into your applications with our robust API</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Link
                         to="/api-docs"
-                        className="btn btn-secondary"
+                        className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center gap-2 text-sm font-bold shadow-sm"
                     >
                         <BookOpen className="w-4 h-4" />
                         API Documentation
@@ -337,27 +268,27 @@ export const Developer: React.FC = () => {
                 </div>
             </div>
 
-            <div className="dev-grid">
-                <div className="dev-main-col">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-6">
                     {/* API Key Section */}
-                    <div className="dev-card">
-                        <div className="dev-card-header">
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="p-6 border-b border-gray-100 bg-gray-50/50">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-blue-100">
                                     <Terminal className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h3 className="text-subheading">API Keys</h3>
-                                    <p className="text-xs text-muted">Your secret keys for authenticating requests</p>
+                                    <h3 className="text-base font-bold text-gray-900">API Keys</h3>
+                                    <p className="text-xs text-gray-500">Your secret keys for authenticating requests</p>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="dev-card-body">
-                            <div className="space-y-3">
+                        <div className="p-6">
+                            <div className="space-y-4">
                                 <div className="flex items-center justify-between">
-                                    <label className="form-label text-xs uppercase tracking-wider text-muted">Secret Key</label>
-                                    <span className={`badge ${apiKey?.startsWith('sk_live_') ? 'badge-success' : 'badge-warning'}`}>
+                                    <label className="text-xs uppercase tracking-wider text-gray-500 font-bold">Secret Key</label>
+                                    <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${apiKey?.startsWith('sk_live_') ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
                                         {apiKey?.startsWith('sk_live_') ? 'Live Mode' : 'Test Mode'}
                                     </span>
                                 </div>
@@ -368,7 +299,7 @@ export const Developer: React.FC = () => {
                                             type={showKey ? "text" : "password"}
                                             value={apiKey || ''}
                                             readOnly
-                                            className="form-input pr-12 font-mono text-gray-600"
+                                            className="w-full pl-4 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl font-mono text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all"
                                             placeholder="No API key generated"
                                         />
                                         <button
@@ -382,15 +313,15 @@ export const Developer: React.FC = () => {
                                         <button
                                             onClick={() => apiKey && copyToClipboard(apiKey)}
                                             disabled={!apiKey}
-                                            className="btn btn-outline px-4"
+                                            className="px-4 py-3 border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl transition-all"
                                             title="Copy Key"
                                         >
-                                            {copied ? <Check size={18} className="text-success" /> : <Copy size={18} />}
+                                            {copied ? <Check size={18} className="text-green-600" /> : <Copy size={18} />}
                                         </button>
                                         <button
                                             onClick={handleGenerateKey}
                                             disabled={isGenerating}
-                                            className="btn btn-primary bg-gray-900 hover:bg-gray-800 shadow-gray-200"
+                                            className="px-4 py-3 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-bold transition-all shadow-lg shadow-gray-200 flex items-center gap-2"
                                         >
                                             <RefreshCw size={18} className={isGenerating ? "animate-spin" : ""} />
                                             {apiKey ? 'Regenerate' : 'Generate Key'}
@@ -399,13 +330,13 @@ export const Developer: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="alert alert-warning">
-                                <div className="alert-icon">
-                                    <AlertTriangle className="w-5 h-5" />
+                            <div className="mt-6 bg-amber-50 border border-amber-100 rounded-xl p-4 flex items-start gap-3">
+                                <div className="p-1.5 bg-amber-100 rounded-full text-amber-600 flex-shrink-0 mt-0.5">
+                                    <AlertTriangle size={16} />
                                 </div>
-                                <div className="alert-content">
-                                    <h4>Security Warning</h4>
-                                    <p>
+                                <div>
+                                    <h4 className="text-sm font-bold text-amber-900">Security Warning</h4>
+                                    <p className="text-xs text-amber-800 mt-1 leading-relaxed">
                                         Keep your secret keys safe. Do not share them in public repositories or client-side code. If you suspect a key has been compromised, regenerate it immediately.
                                     </p>
                                 </div>
@@ -414,45 +345,41 @@ export const Developer: React.FC = () => {
                     </div>
 
                     {/* Webhook Configuration Section */}
-                    <div className="dev-card">
-                        <div className="dev-card-header">
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="p-6 border-b border-gray-100 bg-gray-50/50">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-purple-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-purple-100">
                                     <Webhook className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h3 className="text-subheading">Webhook Configuration</h3>
-                                    <p className="text-xs text-muted">Receive real-time payment notifications</p>
+                                    <h3 className="text-base font-bold text-gray-900">Webhook Configuration</h3>
+                                    <p className="text-xs text-gray-500">Receive real-time payment notifications</p>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="dev-card-body">
+                        <div className="p-6">
                             {webhookSuccess && (
-                                <div className="alert alert-success animate-in fade-in slide-in-from-top-2 mb-4">
-                                    <div className="alert-icon">
-                                        <Check size={18} />
-                                    </div>
-                                    <p className="text-sm font-medium">{webhookSuccess}</p>
+                                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-start gap-3 animate-fade-in">
+                                    <Check size={20} className="text-green-600 flex-shrink-0 mt-0.5" />
+                                    <p className="text-sm text-green-800 font-medium">{webhookSuccess}</p>
                                 </div>
                             )}
 
                             {webhookError && (
-                                <div className="alert alert-error animate-in fade-in slide-in-from-top-2 mb-4">
-                                    <div className="alert-icon">
-                                        <AlertTriangle size={18} />
-                                    </div>
-                                    <p className="text-sm font-medium">{webhookError}</p>
+                                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 animate-fade-in">
+                                    <AlertTriangle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+                                    <p className="text-sm text-red-800 font-medium">{webhookError}</p>
                                 </div>
                             )}
 
-                            <div className="space-y-3">
+                            <div className="space-y-4">
                                 <div className="flex items-center justify-between">
-                                    <label className="form-label text-xs uppercase tracking-wider text-muted">Webhook URL</label>
+                                    <label className="text-xs uppercase tracking-wider text-gray-500 font-bold">Webhook URL</label>
                                     {!isEditingWebhook && webhookUrl && (
                                         <button
                                             onClick={() => setIsEditingWebhook(true)}
-                                            className="text-xs text-purple-600 hover:text-purple-700 font-medium transition-colors"
+                                            className="text-xs text-purple-600 hover:text-purple-700 font-bold transition-colors"
                                         >
                                             Edit
                                         </button>
@@ -465,7 +392,7 @@ export const Developer: React.FC = () => {
                                         value={webhookUrl}
                                         onChange={(e) => setWebhookUrl(e.target.value)}
                                         disabled={!isEditingWebhook && !!webhookUrl}
-                                        className="form-input font-mono text-sm"
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-mono text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-100 focus:border-purple-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
                                         placeholder="https://your-domain.com/webhooks/vtpay"
                                     />
 
@@ -474,7 +401,7 @@ export const Developer: React.FC = () => {
                                             <button
                                                 onClick={handleSaveWebhook}
                                                 disabled={isSavingWebhook}
-                                                className="btn btn-primary bg-purple-600 hover:bg-purple-700 shadow-purple-200 flex-1 justify-center"
+                                                className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-purple-200 flex items-center justify-center gap-2"
                                             >
                                                 {isSavingWebhook ? (
                                                     <>
@@ -495,7 +422,7 @@ export const Developer: React.FC = () => {
                                                         fetchWebhookUrl();
                                                         setWebhookError('');
                                                     }}
-                                                    className="btn btn-outline"
+                                                    className="px-6 py-3 border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl font-bold transition-all"
                                                 >
                                                     Cancel
                                                 </button>
@@ -505,46 +432,44 @@ export const Developer: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="mt-4 bg-purple-50 rounded-xl p-4 border border-purple-100">
+                            <div className="mt-6 bg-purple-50 rounded-xl p-4 border border-purple-100">
                                 <div className="flex items-start gap-3">
                                     <Code className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
                                     <div className="text-xs text-purple-900 space-y-2">
                                         <p className="font-bold">What are webhooks?</p>
-                                        <p className="leading-relaxed">
+                                        <p className="leading-relaxed text-purple-800">
                                             Webhooks allow VTPay to send real-time notifications to your server when events occur, such as successful payments or virtual account credits. Configure your endpoint URL above to start receiving these notifications.
                                         </p>
-                                        <p className="font-medium">
-                                            Events sent: <span className="font-normal">payment.successful, payment.failed, account.credited</span>
+                                        <p className="font-medium text-purple-800">
+                                            Events sent: <span className="font-mono bg-purple-100 px-1 rounded text-purple-700">payment.successful</span>, <span className="font-mono bg-purple-100 px-1 rounded text-purple-700">payment.failed</span>, <span className="font-mono bg-purple-100 px-1 rounded text-purple-700">account.credited</span>
                                         </p>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-
                 </div>
 
                 {/* Sidebar */}
-                <div className="dev-sidebar">
+                <div className="space-y-6">
                     {/* Quick Start Card */}
-                    <div className="quick-start-card">
-                        <div className="absolute top-0 right-0 p-4 opacity-10">
-                            <Zap size={80} />
+                    <div className="bg-gray-900 rounded-2xl p-6 text-white relative overflow-hidden shadow-xl shadow-gray-200">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                            <Zap size={120} />
                         </div>
                         <div className="relative z-10">
-                            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                            <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
                                 <Zap className="text-yellow-400" size={20} />
                                 Quick Start
                             </h3>
-                            <div className="space-y-4">
+                            <div className="space-y-5">
                                 <div className="flex gap-3">
                                     <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">1</div>
                                     <p className="text-xs text-gray-300 leading-relaxed">Generate your API keys from the configuration panel.</p>
                                 </div>
                                 <div className="flex gap-3">
                                     <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">2</div>
-                                    <p className="text-xs text-gray-300 leading-relaxed">Use the Secret Key in your Authorization header: <code className="bg-black/30 px-1 rounded">Bearer sk_...</code></p>
+                                    <p className="text-xs text-gray-300 leading-relaxed">Use the Secret Key in your Authorization header: <code className="bg-black/30 px-1.5 py-0.5 rounded font-mono text-yellow-400">Bearer sk_...</code></p>
                                 </div>
                                 <div className="flex gap-3">
                                     <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">3</div>
@@ -562,136 +487,22 @@ export const Developer: React.FC = () => {
                     </div>
 
                     {/* Security Badge */}
-                    <div className="security-badge">
-                        <ShieldCheck className="w-6 h-6 text-blue-600 mt-0.5" />
-                        <div>
-                            <h4 className="text-sm font-bold text-blue-900">Enterprise Security</h4>
-                            <p className="text-[11px] text-blue-800 mt-1 leading-relaxed">
-                                Our API uses industry-standard AES-256 encryption. All requests are monitored for suspicious activity.
-                            </p>
+                    <div className="bg-blue-50 rounded-2xl p-6 border border-blue-100">
+                        <div className="flex items-start gap-3">
+                            <ShieldCheck className="w-6 h-6 text-blue-600 mt-0.5" />
+                            <div>
+                                <h4 className="text-sm font-bold text-blue-900">Enterprise Security</h4>
+                                <p className="text-xs text-blue-800 mt-1 leading-relaxed">
+                                    Our API uses industry-standard AES-256 encryption. All requests are monitored for suspicious activity.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Payout Modal */}
-            {isPayoutModalOpen && (
-                <div className="dev-modal-overlay animate-fade-in">
-                    <div className="dev-modal-content animate-scale-up">
-                        <div className="dev-modal-header">
-                            <div>
-                                <h3 className="text-lg font-bold text-heading">Initiate Payout</h3>
-                                <p className="text-xs text-muted mt-0.5">Transfer funds from virtual account</p>
-                            </div>
-                            <button
-                                onClick={() => setIsPayoutModalOpen(false)}
-                                className="text-muted hover:text-heading transition-all p-2 hover:bg-gray-100 rounded-lg"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
 
-                        <div className="dev-modal-body">
-                            <div className="mb-6 bg-green-50 border border-green-100 rounded-2xl p-5 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-green-600 shadow-sm">
-                                        <Wallet size={20} />
-                                    </div>
-                                    <div>
-                                        <p className="text-[10px] text-green-700 font-bold uppercase tracking-wider">Available Balance</p>
-                                        <p className="text-2xl font-bold text-green-900">
-                                            {availableBalance !== null
-                                                ? `₦${(availableBalance / 100).toLocaleString()}`
-                                                : '---'}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <form onSubmit={handlePayout} className="space-y-5">
-                                <div className="form-group">
-                                    <label className="form-label text-xs uppercase tracking-wider text-muted">Amount (Kobo)</label>
-                                    <div className="relative">
-                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">K</span>
-                                        <input
-                                            type="number"
-                                            required
-                                            value={payoutAmount}
-                                            onChange={(e) => setPayoutAmount(e.target.value)}
-                                            className="form-input pl-9 font-bold"
-                                            placeholder="e.g. 500000"
-                                        />
-                                    </div>
-                                    <p className="text-caption mt-1.5">Note: 100 Kobo = 1 Naira</p>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="form-group">
-                                        <label className="form-label text-xs uppercase tracking-wider text-muted">Bank Code</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={destinationBank}
-                                            onChange={(e) => setDestinationBank(e.target.value)}
-                                            className="form-input"
-                                            placeholder="e.g. 058"
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label text-xs uppercase tracking-wider text-muted">Account Number</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={destinationAccount}
-                                            onChange={(e) => setDestinationAccount(e.target.value)}
-                                            className="form-input"
-                                            placeholder="0123456789"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="form-group">
-                                    <label className="form-label text-xs uppercase tracking-wider text-muted">Narration</label>
-                                    <input
-                                        type="text"
-                                        value={payoutNarration}
-                                        onChange={(e) => setPayoutNarration(e.target.value)}
-                                        className="form-input"
-                                        placeholder="Optional description"
-                                    />
-                                </div>
-
-                                <div className="pt-4 flex gap-3">
-                                    <button
-                                        type="button"
-                                        className="btn btn-outline flex-1"
-                                        onClick={() => setIsPayoutModalOpen(false)}
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={isProcessingPayout}
-                                        className="btn btn-primary flex-1 justify-center shadow-lg shadow-green-100"
-                                    >
-                                        {isProcessingPayout ? (
-                                            <>
-                                                <div className="spinner"></div>
-                                                Processing...
-                                            </>
-                                        ) : (
-                                            <>
-                                                Confirm Payout
-                                                <Banknote size={18} />
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

@@ -53,7 +53,7 @@ export const Transactions: React.FC = () => {
 
     const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
         setFilters({ ...filters, [e.target.name]: e.target.value });
-        setPage(1); // Reset to first page on filter change
+        setPage(1);
     };
 
     const formatCurrency = (amount: number) => {
@@ -69,44 +69,44 @@ export const Transactions: React.FC = () => {
         switch (status.toLowerCase()) {
             case 'success':
                 return {
-                    className: 'status-pill success',
+                    className: 'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700',
                     icon: <CheckCircle2 size={12} />
                 };
             case 'pending':
                 return {
-                    className: 'status-pill pending',
+                    className: 'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700',
                     icon: <Clock size={12} />
                 };
             case 'failed':
                 return {
-                    className: 'status-pill failed',
+                    className: 'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700',
                     icon: <XCircle size={12} />
                 };
             default:
                 return {
-                    className: 'status-pill',
+                    className: 'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700',
                     icon: <Clock size={12} />
                 };
         }
     };
 
     return (
-        <div className="space-y-6 max-w-[1400px] animate-fade-in">
+        <div className="p-6 max-w-[1400px] space-y-6">
             {/* Header */}
-            <div className="transactions-header">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                 <div>
-                    <h1 className="text-heading">Transactions</h1>
-                    <p className="text-body mt-1">Monitor and manage all your financial activities</p>
+                    <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
+                    <p className="text-sm text-gray-500 mt-1">Monitor and manage all your financial activities</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button
                         onClick={fetchTransactions}
-                        className="btn btn-secondary p-2"
+                        className="p-2.5 rounded-xl border border-gray-200 hover:border-green-200 hover:bg-green-50 transition-all duration-200 text-gray-700"
                         title="Refresh"
                     >
                         <RefreshCw size={18} />
                     </button>
-                    <button className="btn btn-secondary">
+                    <button className="px-4 py-2 rounded-xl border border-gray-200 hover:border-green-200 hover:bg-green-50 transition-all duration-200 flex items-center gap-2 text-sm font-semibold text-gray-700">
                         <Download size={18} />
                         Export CSV
                     </button>
@@ -114,67 +114,71 @@ export const Transactions: React.FC = () => {
             </div>
 
             {/* Filters Bar */}
-            <div className="filter-bar">
-                <div className="search-input-wrapper">
-                    <Search className="search-icon" size={18} />
-                    <input
-                        type="text"
-                        name="search"
-                        value={filters.search}
-                        onChange={handleFilterChange}
-                        placeholder="Search by reference or narration..."
-                        className="search-input"
-                    />
-                </div>
-
-                <div className="filter-group">
-                    <div className="select-wrapper">
-                        <select
-                            name="type"
-                            value={filters.type}
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="flex flex-col lg:flex-row gap-4">
+                    {/* Search */}
+                    <div className="flex-1 relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <input
+                            type="text"
+                            name="search"
+                            value={filters.search}
                             onChange={handleFilterChange}
-                            className="filter-select"
-                        >
-                            <option value="">All Types</option>
-                            <option value="credit">Credit</option>
-                            <option value="debit">Debit</option>
-                        </select>
-                        <Filter className="filter-icon" size={16} />
+                            placeholder="Search by reference or narration..."
+                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none transition-all"
+                        />
                     </div>
 
-                    <div className="date-range-picker">
-                        <Calendar size={16} className="text-muted" />
-                        <input
-                            type="date"
-                            name="startDate"
-                            value={filters.startDate}
-                            onChange={handleFilterChange}
-                            className="date-input"
-                        />
-                        <span className="text-muted text-xs">to</span>
-                        <input
-                            type="date"
-                            name="endDate"
-                            value={filters.endDate}
-                            onChange={handleFilterChange}
-                            className="date-input"
-                        />
+                    {/* Filter Controls */}
+                    <div className="flex gap-4">
+                        <div className="relative">
+                            <select
+                                name="type"
+                                value={filters.type}
+                                onChange={handleFilterChange}
+                                className="appearance-none pl-4 pr-10 py-2.5 rounded-xl border border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none transition-all bg-white text-sm font-medium cursor-pointer"
+                            >
+                                <option value="">All Types</option>
+                                <option value="credit">Credit</option>
+                                <option value="debit">Debit</option>
+                            </select>
+                            <Filter className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+                        </div>
+
+                        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 bg-white">
+                            <Calendar size={16} className="text-gray-400" />
+                            <input
+                                type="date"
+                                name="startDate"
+                                value={filters.startDate}
+                                onChange={handleFilterChange}
+                                className="text-sm outline-none border-none"
+                            />
+                            <span className="text-gray-400 text-xs">to</span>
+                            <input
+                                type="date"
+                                name="endDate"
+                                value={filters.endDate}
+                                onChange={handleFilterChange}
+                                className="text-sm outline-none border-none"
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Transactions Table */}
-            <div className="transactions-table-container">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="table-header">
-                                <th className="table-th">Transaction</th>
-                                <th className="table-th">Amount</th>
-                                <th className="table-th">Reference</th>
-                                <th className="table-th">Status</th>
-                                <th className="table-th">Date</th>
-                                <th className="table-th"></th>
+                            <tr className="bg-gray-50 border-b border-gray-100">
+                                <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">Transaction</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">Amount</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">Reference</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-4 text-xs font-bold text-gray-600 uppercase tracking-wider">Date</th>
+                                <th className="px-6 py-4"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
@@ -188,50 +192,55 @@ export const Transactions: React.FC = () => {
                                 ))
                             ) : transactions.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="empty-state">
-                                        <div className="empty-state-icon">
-                                            <Search size={32} className="text-gray-300" />
+                                    <td colSpan={6} className="p-12 text-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center">
+                                                <Search size={32} className="text-gray-300" />
+                                            </div>
+                                            <h3 className="text-gray-900 font-bold">No transactions found</h3>
+                                            <p className="text-sm text-gray-500">Try adjusting your filters or search terms</p>
                                         </div>
-                                        <h3 className="empty-state-title">No transactions found</h3>
-                                        <p className="empty-state-description">Try adjusting your filters or search terms</p>
                                     </td>
                                 </tr>
                             ) : (
                                 transactions.map((txn) => {
                                     const status = getStatusStyles(txn.status);
                                     return (
-                                        <tr key={txn.id} className="group transition-colors">
-                                            <td className="table-td">
+                                        <tr key={txn.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-6 py-4">
                                                 <div className="flex items-center gap-4">
-                                                    <div className={`transaction-type-icon ${txn.type === 'credit' ? 'credit' : 'debit'}`}>
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${txn.type === 'credit'
+                                                            ? 'bg-green-100 text-green-600'
+                                                            : 'bg-gray-100 text-gray-600'
+                                                        }`}>
                                                         {txn.type === 'credit' ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
                                                     </div>
                                                     <div>
-                                                        <p className="font-bold text-heading capitalize">{txn.type}</p>
-                                                        <p className="text-xs text-muted mt-0.5 max-w-[200px] truncate" title={txn.narration}>
+                                                        <p className="font-bold text-gray-900 capitalize">{txn.type}</p>
+                                                        <p className="text-xs text-gray-500 mt-0.5 max-w-[200px] truncate" title={txn.narration}>
                                                             {txn.narration || 'No description'}
                                                         </p>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="table-td">
-                                                <p className={`text-sm font-bold ${txn.type === 'credit' ? 'text-success' : 'text-heading'}`}>
+                                            <td className="px-6 py-4">
+                                                <p className={`text-sm font-bold ${txn.type === 'credit' ? 'text-green-600' : 'text-gray-900'}`}>
                                                     {txn.type === 'credit' ? '+' : '-'}{formatCurrency(txn.amountNaira)}
                                                 </p>
                                             </td>
-                                            <td className="table-td">
-                                                <span className="text-xs font-mono text-muted bg-gray-50 px-2 py-1 rounded border border-gray-100">
+                                            <td className="px-6 py-4">
+                                                <span className="text-xs font-mono text-gray-600 bg-gray-50 px-2.5 py-1 rounded border border-gray-100">
                                                     {txn.reference}
                                                 </span>
                                             </td>
-                                            <td className="table-td">
+                                            <td className="px-6 py-4">
                                                 <div className={status.className}>
                                                     {status.icon}
                                                     {txn.status}
                                                 </div>
                                             </td>
-                                            <td className="table-td">
-                                                <p className="text-xs text-muted">
+                                            <td className="px-6 py-4">
+                                                <p className="text-xs text-gray-600">
                                                     {new Date(txn.createdAt).toLocaleDateString('en-US', {
                                                         month: 'short',
                                                         day: 'numeric',
@@ -245,8 +254,8 @@ export const Transactions: React.FC = () => {
                                                     })}
                                                 </p>
                                             </td>
-                                            <td className="table-td text-right">
-                                                <button className="p-2 text-muted hover:text-heading hover:bg-gray-100 rounded-lg transition-all">
+                                            <td className="px-6 py-4 text-right">
+                                                <button className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all">
                                                     <MoreHorizontal size={18} />
                                                 </button>
                                             </td>
@@ -259,22 +268,22 @@ export const Transactions: React.FC = () => {
                 </div>
 
                 {/* Pagination */}
-                <div className="pagination-container">
-                    <p className="pagination-info">
+                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
+                    <p className="text-sm text-gray-600">
                         Showing page {page} of {totalPages}
                     </p>
-                    <div className="pagination-controls">
+                    <div className="flex items-center gap-2">
                         <button
                             onClick={() => setPage(Math.max(1, page - 1))}
                             disabled={page === 1 || isLoading}
-                            className="pagination-button"
+                            className="p-2 rounded-lg border border-gray-200 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         >
                             <ChevronLeft size={18} />
                         </button>
                         <button
                             onClick={() => setPage(Math.min(totalPages, page + 1))}
                             disabled={page === totalPages || isLoading}
-                            className="pagination-button"
+                            className="p-2 rounded-lg border border-gray-200 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         >
                             <ChevronRight size={18} />
                         </button>

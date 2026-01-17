@@ -10,6 +10,9 @@ export interface IZainboxDocument extends Document {
     zainboxCode: string; // The unique code returned by Zainpay
     isActive: boolean;
     isLive: boolean;
+    lastTransactionAt?: Date;
+    totalTransactions: number;
+    totalVolume: number; // in kobo
     createdAt: Date;
     updatedAt: Date;
 }
@@ -58,6 +61,17 @@ const ZainboxSchema = new Schema<IZainboxDocument>(
         isLive: {
             type: Boolean,
             default: false,
+        },
+        lastTransactionAt: {
+            type: Date,
+        },
+        totalTransactions: {
+            type: Number,
+            default: 0,
+        },
+        totalVolume: {
+            type: Number,
+            default: 0,
         },
     },
     {
