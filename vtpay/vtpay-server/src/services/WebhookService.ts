@@ -4,6 +4,7 @@ import config from '../config';
 import { logger } from '../utils/logger';
 import { VirtualAccount, Zainbox, WebhookLog, User } from '../models';
 import { walletService } from './WalletService';
+import { emailService } from './EmailService';
 import { WebhookEvent, WebhookDepositEvent, WebhookTransferSuccessEvent, WebhookTransferFailedEvent } from '../types/zainpay';
 
 export class WebhookService {
