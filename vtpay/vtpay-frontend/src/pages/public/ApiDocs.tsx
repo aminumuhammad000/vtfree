@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../components/Button';
 import { ArrowLeft, Code, Copy, Check, Shield, Globe, Zap, Bell } from 'lucide-react';
+import '../../styles/api-docs.css';
 
 export const ApiDocs: React.FC = () => {
     const [copied, setCopied] = React.useState('');
