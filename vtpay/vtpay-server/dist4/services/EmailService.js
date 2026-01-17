@@ -87,7 +87,23 @@ class EmailService {
         }
     }
     /**
-     * Send verification email
+     * Send verification OTP
+     */
+    async sendOtpEmail(email, otp) {
+        const html = `
+            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                <h2 style="color: #16a34a;">Verify your VTPay Account</h2>
+                <p>Welcome to VTPay! Please use the OTP below to verify your email address and activate your account.</p>
+                <div style="margin: 30px 0; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #16a34a; text-align: center;">
+                    ${otp}
+                </div>
+                <p style="color: #666; font-size: 12px;">This OTP is valid for 10 minutes. Do not share this code with anyone.</p>
+            </div>
+        `;
+        return this.sendEmail(email, 'Verify your VTPay Account', html);
+    }
+    /**
+     * Send verification email (Legacy)
      */
     async sendVerificationEmail(email, token) {
         const verificationLink = `${config_1.default.app.url || 'http://localhost:5173'}/verify-email?token=${token}`;

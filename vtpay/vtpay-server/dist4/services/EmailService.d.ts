@@ -9,7 +9,11 @@ declare class EmailService {
      */
     sendBulkEmail(emails: string[], subject: string, message: string): Promise<void>;
     /**
-     * Send verification email
+     * Send verification OTP
+     */
+    sendOtpEmail(email: string, otp: string): Promise<void>;
+    /**
+     * Send verification email (Legacy)
      */
     sendVerificationEmail(email: string, token: string): Promise<void>;
     /**
