@@ -1,21 +1,19 @@
-import { Router, Response } from 'express';
-import { authenticate, AuthenticatedRequest } from '../middleware';
-import { walletService } from '../services';
-
-const router = Router();
-
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const middleware_1 = require("../middleware");
+const services_1 = require("../services");
+const router = (0, express_1.Router)();
 // All routes require authentication
-router.use(authenticate);
-
+router.use(middleware_1.authenticate);
 /**
  * Get wallet details
  * GET /api/wallet
  */
-router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.get('/', async (req, res) => {
     try {
-        const userId = req.user!.id;
-
-        const wallet = await walletService.getWalletByUserId(userId);
+        const userId = req.user.id;
+        const wallet = await services_1.walletService.getWalletByUserId(userId);
         if (!wallet) {
             res.status(404).json({
                 success: false,
@@ -23,7 +21,6 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
             });
             return;
         }
-
         res.json({
             success: true,
             data: {
@@ -40,7 +37,8 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
                 availableBalanceNaira: (wallet.clearedBalance - wallet.lockedBalance) / 100,
             },
         });
-    } catch (error) {
+    }
+    catch (error) {
         console.error('Get wallet error:', error);
         res.status(500).json({
             success: false,
@@ -48,17 +46,14 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
         });
     }
 });
-
 /**
  * Get wallet balance
  * GET /api/wallet/balance
  */
-router.get('/balance', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.get('/balance', async (req, res) => {
     try {
-        const userId = req.user!.id;
-
-        const balance = await walletService.getBalance(userId);
-
+        const userId = req.user.id;
+        const balance = await services_1.walletService.getBalance(userId);
         res.json({
             success: true,
             data: {
@@ -70,7 +65,8 @@ router.get('/balance', async (req: AuthenticatedRequest, res: Response): Promise
                 availableBalanceNaira: balance.availableBalance / 100,
             },
         });
-    } catch (error) {
+    }
+    catch (error) {
         console.error('Get balance error:', error);
         res.status(500).json({
             success: false,
@@ -78,35 +74,27 @@ router.get('/balance', async (req: AuthenticatedRequest, res: Response): Promise
         });
     }
 });
-
 /**
  * Get transaction history
  * GET /api/wallet/transactions
  */
-router.get('/transactions', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.get('/transactions', async (req, res) => {
     try {
-        const userId = req.user!.id;
-        const {
-            limit = '20',
-            offset = '0',
-            type,
-            category,
-            startDate,
-            endDate,
-        } = req.query;
-
-        const options: any = {
-            limit: parseInt(limit as string, 10),
-            offset: parseInt(offset as string, 10),
+        const userId = req.user.id;
+        const { limit = '20', offset = '0', type, category, startDate, endDate, } = req.query;
+        const options = {
+            limit: parseInt(limit, 10),
+            offset: parseInt(offset, 10),
         };
-
-        if (type) options.type = type as string;
-        if (category) options.category = category as string;
-        if (startDate) options.startDate = new Date(startDate as string);
-        if (endDate) options.endDate = new Date(endDate as string);
-
-        const { transactions, total } = await walletService.getTransactionHistory(userId, options);
-
+        if (type)
+            options.type = type;
+        if (category)
+            options.category = category;
+        if (startDate)
+            options.startDate = new Date(startDate);
+        if (endDate)
+            options.endDate = new Date(endDate);
+        const { transactions, total } = await services_1.walletService.getTransactionHistory(userId, options);
         res.json({
             success: true,
             data: {
@@ -136,7 +124,8 @@ router.get('/transactions', async (req: AuthenticatedRequest, res: Response): Pr
                 },
             },
         });
-    } catch (error) {
+    }
+    catch (error) {
         console.error('Get transactions error:', error);
         res.status(500).json({
             success: false,
@@ -144,16 +133,14 @@ router.get('/transactions', async (req: AuthenticatedRequest, res: Response): Pr
         });
     }
 });
-
 /**
  * Get single transaction by reference
  * GET /api/wallet/transactions/:reference
  */
-router.get('/transactions/:reference', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.get('/transactions/:reference', async (req, res) => {
     try {
         const { reference } = req.params;
-
-        const transaction = await walletService.getTransactionByReference(reference);
+        const transaction = await services_1.walletService.getTransactionByReference(reference);
         if (!transaction) {
             res.status(404).json({
                 success: false,
@@ -161,16 +148,14 @@ router.get('/transactions/:reference', async (req: AuthenticatedRequest, res: Re
             });
             return;
         }
-
         // Verify transaction belongs to user
-        if (transaction.userId.toString() !== req.user!.id) {
+        if (transaction.userId.toString() !== req.user.id) {
             res.status(403).json({
                 success: false,
                 message: 'Access denied',
             });
             return;
         }
-
         res.json({
             success: true,
             data: {
@@ -193,7 +178,8 @@ router.get('/transactions/:reference', async (req: AuthenticatedRequest, res: Re
                 createdAt: transaction.createdAt,
             },
         });
-    } catch (error) {
+    }
+    catch (error) {
         console.error('Get transaction error:', error);
         res.status(500).json({
             success: false,
@@ -201,20 +187,17 @@ router.get('/transactions/:reference', async (req: AuthenticatedRequest, res: Re
         });
     }
 });
-
 /**
  * Get wallet statistics (total money generated)
  * GET /api/wallet/stats
  */
-router.get('/stats', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.get('/stats', async (req, res) => {
     try {
-        const userId = req.user!.id;
-
+        const userId = req.user.id;
         // Calculate total money generated (total credits)
         // We can filter by category if needed (e.g., 'deposit', 'transfer')
         // For now, let's sum up all successful credit transactions
-        const stats = await walletService.getTransactionStats(userId);
-
+        const stats = await services_1.walletService.getTransactionStats(userId);
         res.json({
             success: true,
             data: {
@@ -225,7 +208,8 @@ router.get('/stats', async (req: AuthenticatedRequest, res: Response): Promise<v
                 transactionCount: stats.count,
             },
         });
-    } catch (error) {
+    }
+    catch (error) {
         console.error('Get wallet stats error:', error);
         res.status(500).json({
             success: false,
@@ -233,5 +217,5 @@ router.get('/stats', async (req: AuthenticatedRequest, res: Response): Promise<v
         });
     }
 });
-
-export default router;
+exports.default = router;
+//# sourceMappingURL=walletRoutes.js.map

@@ -15,6 +15,8 @@ export interface ITransactionDocument extends Document {
     narration: string;
     status: 'pending' | 'success' | 'failed';
     metadata?: Record<string, any>;
+    isCleared: boolean;
+    clearedAt?: Date;
     createdAt: Date;
 }
 
@@ -81,6 +83,13 @@ const TransactionSchema = new Schema<ITransactionDocument>(
         },
         metadata: {
             type: Schema.Types.Mixed,
+        },
+        isCleared: {
+            type: Boolean,
+            default: true, // Default to true for non-deposit transactions or legacy data
+        },
+        clearedAt: {
+            type: Date,
         },
     },
     {

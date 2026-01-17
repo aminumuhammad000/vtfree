@@ -1,25 +1,29 @@
-import nodemailer from 'nodemailer';
-import { SystemSetting } from '../models/SystemSetting';
-import config from '../config';
-
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.emailService = void 0;
+const nodemailer_1 = __importDefault(require("nodemailer"));
+const SystemSetting_1 = require("../models/SystemSetting");
+const config_1 = __importDefault(require("../config"));
 class EmailService {
-    private async getTransporter() {
+    async getTransporter() {
         // Try to get settings from DB
-        const settings = await SystemSetting.findOne();
-
+        const settings = await SystemSetting_1.SystemSetting.findOne();
         if (settings && settings.emailConfig && settings.emailConfig.provider) {
             const { provider, gmail, smtp } = settings.emailConfig;
-
             if (provider === 'gmail') {
-                return nodemailer.createTransport({
+                return nodemailer_1.default.createTransport({
                     service: 'gmail',
                     auth: {
                         user: gmail.user,
                         pass: gmail.pass,
                     },
                 });
-            } else {
-                return nodemailer.createTransport({
+            }
+            else {
+                return nodemailer_1.default.createTransport({
                     host: smtp.host,
                     port: smtp.port,
                     secure: smtp.secure,
@@ -30,11 +34,10 @@ class EmailService {
                 });
             }
         }
-
         // Fallback to Environment Variables
         if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
             console.log('[EmailService] Using environment variables for email configuration');
-            return nodemailer.createTransport({
+            return nodemailer_1.default.createTransport({
                 host: process.env.SMTP_HOST,
                 port: parseInt(process.env.SMTP_PORT || '587'),
                 secure: process.env.SMTP_SECURE === 'true',
@@ -44,11 +47,10 @@ class EmailService {
                 },
             });
         }
-
         // Fallback for Gmail via Env
         if (process.env.GMAIL_USER && process.env.GMAIL_PASS) {
             console.log('[EmailService] Using GMAIL environment variables');
-            return nodemailer.createTransport({
+            return nodemailer_1.default.createTransport({
                 service: 'gmail',
                 auth: {
                     user: process.env.GMAIL_USER,
@@ -56,20 +58,17 @@ class EmailService {
                 },
             });
         }
-
         throw new Error('Email configuration not found in DB or Environment');
     }
-
     /**
      * Send a single email
      */
-    async sendEmail(to: string, subject: string, html: string): Promise<void> {
+    async sendEmail(to, subject, html) {
         try {
             const transporter = await this.getTransporter();
-            const settings = await SystemSetting.findOne();
+            const settings = await SystemSetting_1.SystemSetting.findOne();
             const from = settings?.general?.supportEmail || 'noreply@vtpay.com';
             const companyName = settings?.general?.companyName || 'VTPay';
-
             await transporter.sendMail({
                 from: `"${companyName}" <${from}>`,
                 to,
@@ -77,50 +76,45 @@ class EmailService {
                 html,
             });
             console.log(`[EmailService] Email sent to ${to}`);
-        } catch (error) {
+        }
+        catch (error) {
             console.error('[EmailService] Failed to send email:', error);
         }
     }
-
     /**
      * Send bulk emails
      */
-    async sendBulkEmail(emails: string[], subject: string, message: string): Promise<void> {
+    async sendBulkEmail(emails, subject, message) {
         try {
             const transporter = await this.getTransporter();
-            const settings = await SystemSetting.findOne();
+            const settings = await SystemSetting_1.SystemSetting.findOne();
             const from = settings?.general?.supportEmail || 'noreply@vtpay.com';
             const companyName = settings?.general?.companyName || 'VTPay';
-
             // Convert plain text message to simple HTML (replace newlines with <br>)
             const html = `
                 <div style="font-family: sans-serif; line-height: 1.6; color: #333;">
                     ${message.replace(/\n/g, '<br>')}
                 </div>
             `;
-
             // Send emails in parallel or chunks
             // For simplicity, we'll send them in parallel here, but for large lists, chunks are better
-            const sendPromises = emails.map(email =>
-                transporter.sendMail({
-                    from: `"${companyName}" <${from}>`,
-                    to: email,
-                    subject,
-                    html,
-                }).catch(err => console.error(`[EmailService] Failed to send to ${email}:`, err))
-            );
-
+            const sendPromises = emails.map(email => transporter.sendMail({
+                from: `"${companyName}" <${from}>`,
+                to: email,
+                subject,
+                html,
+            }).catch(err => console.error(`[EmailService] Failed to send to ${email}:`, err)));
             await Promise.all(sendPromises);
             console.log(`[EmailService] Bulk email process completed for ${emails.length} recipients`);
-        } catch (error) {
+        }
+        catch (error) {
             console.error('[EmailService] Bulk email failed:', error);
         }
     }
-
     /**
      * Send verification OTP
      */
-    async sendOtpEmail(email: string, otp: string): Promise<void> {
+    async sendOtpEmail(email, otp) {
         const html = `
             <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
                 <h2 style="color: #16a34a;">Verify your VTPay Account</h2>
@@ -133,12 +127,11 @@ class EmailService {
         `;
         return this.sendEmail(email, 'Verify your VTPay Account', html);
     }
-
     /**
      * Send verification email (Legacy)
      */
-    async sendVerificationEmail(email: string, token: string): Promise<void> {
-        const verificationLink = `${config.app.url || 'http://localhost:5173'}/verify-email?token=${token}`;
+    async sendVerificationEmail(email, token) {
+        const verificationLink = `${config_1.default.app.url || 'http://localhost:5173'}/verify-email?token=${token}`;
         const html = `
             <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
                 <h2 style="color: #16a34a;">Verify your VTPay Account</h2>
@@ -152,12 +145,11 @@ class EmailService {
         `;
         return this.sendEmail(email, 'Verify your VTPay Account', html);
     }
-
     /**
      * Send account approval email
      */
-    async sendApprovalEmail(email: string, name: string): Promise<void> {
-        const dashboardLink = `${config.app.url || 'http://localhost:5173'}/dashboard`;
+    async sendApprovalEmail(email, name) {
+        const dashboardLink = `${config_1.default.app.url || 'http://localhost:5173'}/dashboard`;
         const html = `
             <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #16a34a;">Account Approved!</h2>
@@ -183,11 +175,10 @@ class EmailService {
     /**
      * Send transaction notification email
      */
-    async sendTransactionNotification(email: string, name: string, transaction: any): Promise<void> {
+    async sendTransactionNotification(email, name, transaction) {
         const amount = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(transaction.amount / 100);
         const date = new Date(transaction.createdAt).toLocaleString();
-        const dashboardLink = `${config.app.url || 'http://localhost:5173'}/dashboard`;
-
+        const dashboardLink = `${config_1.default.app.url || 'http://localhost:5173'}/dashboard`;
         const html = `
             <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #16a34a;">Transaction Successful</h2>
@@ -211,15 +202,13 @@ class EmailService {
         `;
         return this.sendEmail(email, 'Transaction Notification - VTPay', html);
     }
-
     /**
      * Send payout success notification email
      */
-    async sendPayoutSuccessEmail(email: string, name: string, payout: any): Promise<void> {
+    async sendPayoutSuccessEmail(email, name, payout) {
         const amount = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(payout.amount / 100);
         const date = new Date(payout.completedAt || payout.updatedAt).toLocaleString();
-        const dashboardLink = `${config.app.url || 'http://localhost:5173'}/dashboard/payout`;
-
+        const dashboardLink = `${config_1.default.app.url || 'http://localhost:5173'}/dashboard/payout`;
         const html = `
             <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #16a34a;">Payout Successful</h2>
@@ -245,13 +234,11 @@ class EmailService {
         `;
         return this.sendEmail(email, 'Payout Successful - VTPay', html);
     }
-
     /**
      * Send webhook failure notification email
      */
-    async sendWebhookFailureNotification(email: string, name: string, webhookUrl: string, error: string): Promise<void> {
-        const settingsLink = `${config.app.url || 'http://localhost:5173'}/dashboard/settings`;
-
+    async sendWebhookFailureNotification(email, name, webhookUrl, error) {
+        const settingsLink = `${config_1.default.app.url || 'http://localhost:5173'}/dashboard/settings`;
         const html = `
             <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #dc2626;">Webhook Delivery Failed</h2>
@@ -274,6 +261,6 @@ class EmailService {
         return this.sendEmail(email, 'Action Required: Webhook Delivery Failed - VTPay', html);
     }
 }
-
-export const emailService = new EmailService();
-export default EmailService;
+exports.emailService = new EmailService();
+exports.default = EmailService;
+//# sourceMappingURL=EmailService.js.map

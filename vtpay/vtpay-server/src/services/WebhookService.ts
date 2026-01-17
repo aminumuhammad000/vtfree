@@ -2,9 +2,10 @@ import crypto from 'crypto';
 import axios from 'axios';
 import config from '../config';
 import { logger } from '../utils/logger';
-import { VirtualAccount, Zainbox, WebhookLog, User } from '../models';
+import { VirtualAccount, Zainbox, WebhookLog, User, Payout } from '../models';
 import { walletService } from './WalletService';
 import { emailService } from './EmailService';
+import { payoutService } from './PayoutService';
 import { WebhookEvent, WebhookDepositEvent, WebhookTransferSuccessEvent, WebhookTransferFailedEvent } from '../types/zainpay';
 
 export class WebhookService {
@@ -201,19 +202,20 @@ export class WebhookService {
             return { success: false, message: 'Virtual account not found' };
         }
 
-        // Check if this transaction has already been processed
+        // Check if this transaction has already been processed (Idempotency)
         const existingTransaction = await walletService.getTransactionByExternalRef(data.txnRef);
         if (existingTransaction) {
             logger.info(`Transaction already processed: ${data.txnRef}`);
             return { success: true, message: 'Transaction already processed' };
         }
 
-        // Credit the user's wallet
-        // VTPay charges 0.6% on the deposited amount
-        // We use depositedAmount (total amount sent) as the base
         const depositedAmount = parseInt(data.depositedAmount, 10);
-        const fee = Math.floor(depositedAmount * 0.006); // 0.6% fee
-        const amountToCredit = depositedAmount - fee;
+
+        // Calculate fees
+        const zainpayFee = Math.floor(depositedAmount * 0.014); // 1.4%
+        const vtpayFee = Math.floor(depositedAmount * 0.006); // 0.6%
+        const amountToCredit = depositedAmount - zainpayFee - vtpayFee;
+        const zainpaySettlement = depositedAmount - zainpayFee;
 
         const transaction = await walletService.creditWallet(
             virtualAccount.userId.toString(),
@@ -230,11 +232,23 @@ export class WebhookService {
                 txnChargesAmount: data.txnChargesAmount,
                 zainboxCode: data.zainboxCode,
                 paymentDate: data.paymentDate,
-                originalAmountAfterCharges: data.amountAfterCharges, // Log what Zainpay would have given us
-                vtpayFee: fee
+                originalAmountAfterCharges: data.amountAfterCharges,
+                vtpayFee: vtpayFee,
+                zainpayFee: zainpayFee,
+                zainpaySettlement: zainpaySettlement,
+                grossInflow: depositedAmount,
+                breakdown: {
+                    grossInflow: depositedAmount,
+                    zainpayFee: zainpayFee,
+                    vtpayFee: vtpayFee,
+                    userCredit: amountToCredit,
+                    zainpaySettlement: zainpaySettlement,
+                    vtpayRevenue: vtpayFee
+                }
             },
             virtualAccount.reference, // Pass the customer reference
-            fee // Pass the calculated fee
+            vtpayFee + zainpayFee, // Pass the total fee deducted
+            false // isCleared = false for deposits (settlement rule)
         );
 
         // Send email notification to user
@@ -247,7 +261,7 @@ export class WebhookService {
             );
         }
 
-        logger.info(`Successfully credited wallet for user ${virtualAccount.userId} with ${amountToCredit} kobo (Fee: ${fee})`);
+        logger.info(`Successfully credited wallet for user ${virtualAccount.userId} with ${amountToCredit} kobo (Fees: Zainpay=${zainpayFee}, VTpay=${vtpayFee})`);
         return { success: true, message: 'Deposit processed successfully' };
     }
 
@@ -257,7 +271,16 @@ export class WebhookService {
     private async handleTransferSuccess(event: WebhookTransferSuccessEvent): Promise<{ success: boolean; message: string }> {
         const { data } = event;
 
-        // Find the virtual account by account number
+        // 1. Check if it's a payout
+        const payout = await Payout.findOne({ reference: data.txnRef });
+        if (payout) {
+            // Defensive Check: Amount validation
+            const externalAmount = data.amount.amount;
+            await payoutService.handlePayoutSuccess(payout, externalAmount);
+            return { success: true, message: 'Payout success processed' };
+        }
+
+        // 2. Handle other transfers (if any)
         const virtualAccount = await VirtualAccount.findOne({
             accountNumber: data.accountNumber,
         });
@@ -288,7 +311,14 @@ export class WebhookService {
     private async handleTransferFailed(event: WebhookTransferFailedEvent): Promise<{ success: boolean; message: string }> {
         const { data } = event;
 
-        // Find the virtual account by account number
+        // 1. Check if it's a payout
+        const payout = await Payout.findOne({ reference: data.internalTxnRef });
+        if (payout) {
+            await payoutService.handlePayoutFailure(payout, 'Transfer failed via webhook');
+            return { success: true, message: 'Payout failure processed' };
+        }
+
+        // 2. Handle other transfers
         const virtualAccount = await VirtualAccount.findOne({
             accountNumber: data.accountNumber,
         });
