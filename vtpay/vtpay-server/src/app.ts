@@ -65,6 +65,14 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // Health check endpoint
+app.get('/', (req: Request, res: Response) => {
+    res.json({
+        success: true,
+        message: 'VTPay API Server is running',
+        version: '1.0.0'
+    });
+});
+
 app.get('/health', (req: Request, res: Response) => {
     res.json({
         success: true,
