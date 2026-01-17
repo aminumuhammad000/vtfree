@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { User } from './src/models';
-import config from './src/config';
-import { connectDatabase } from './src/config/database';
+import { User } from '../models';
+import config from '../config';
+import { connectDatabase } from '../config/database';
 
 const createAdmin = async () => {
     try {
