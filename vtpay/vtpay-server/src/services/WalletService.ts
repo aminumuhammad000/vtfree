@@ -42,6 +42,9 @@ export class WalletService {
     /**
      * Credit wallet (add funds)
      */
+    /**
+     * Credit wallet (add funds)
+     */
     async creditWallet(
         userId: string,
         amount: number,
@@ -51,11 +54,12 @@ export class WalletService {
         metadata?: Record<string, any>,
         customerReference?: string
     ): Promise<typeof Transaction.prototype> {
-        const session = await mongoose.startSession();
-        session.startTransaction();
+        // Removed transaction session for standalone MongoDB compatibility
+        // const session = await mongoose.startSession();
+        // session.startTransaction();
 
         try {
-            const wallet = await Wallet.findOne({ userId: new mongoose.Types.ObjectId(userId) }).session(session);
+            const wallet = await Wallet.findOne({ userId: new mongoose.Types.ObjectId(userId) }); // .session(session);
             if (!wallet) {
                 throw new Error('Wallet not found');
             }
@@ -65,7 +69,7 @@ export class WalletService {
 
             // Update wallet balance
             wallet.balance = balanceAfter;
-            await wallet.save({ session });
+            await wallet.save(); // { session }
 
             // Create transaction record
             const transaction = new Transaction({
@@ -84,15 +88,15 @@ export class WalletService {
                 metadata,
                 customerReference,
             });
-            await transaction.save({ session });
+            await transaction.save(); // { session }
 
-            await session.commitTransaction();
+            // await session.commitTransaction();
             return transaction;
         } catch (error) {
-            await session.abortTransaction();
+            // await session.abortTransaction();
             throw error;
         } finally {
-            session.endSession();
+            // session.endSession();
         }
     }
 
@@ -109,11 +113,12 @@ export class WalletService {
         metadata?: Record<string, any>,
         customerReference?: string
     ): Promise<typeof Transaction.prototype> {
-        const session = await mongoose.startSession();
-        session.startTransaction();
+        // Removed transaction session for standalone MongoDB compatibility
+        // const session = await mongoose.startSession();
+        // session.startTransaction();
 
         try {
-            const wallet = await Wallet.findOne({ userId: new mongoose.Types.ObjectId(userId) }).session(session);
+            const wallet = await Wallet.findOne({ userId: new mongoose.Types.ObjectId(userId) }); // .session(session);
             if (!wallet) {
                 throw new Error('Wallet not found');
             }
@@ -130,7 +135,7 @@ export class WalletService {
 
             // Update wallet balance
             wallet.balance = balanceAfter;
-            await wallet.save({ session });
+            await wallet.save(); // { session }
 
             // Create transaction record
             const transaction = new Transaction({
@@ -149,15 +154,15 @@ export class WalletService {
                 metadata,
                 customerReference,
             });
-            await transaction.save({ session });
+            await transaction.save(); // { session }
 
-            await session.commitTransaction();
+            // await session.commitTransaction();
             return transaction;
         } catch (error) {
-            await session.abortTransaction();
+            // await session.abortTransaction();
             throw error;
         } finally {
-            session.endSession();
+            // session.endSession();
         }
     }
 
