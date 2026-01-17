@@ -79,6 +79,17 @@ const ZainboxSchema = new mongoose_1.Schema({
         type: Boolean,
         default: false,
     },
+    lastTransactionAt: {
+        type: Date,
+    },
+    totalTransactions: {
+        type: Number,
+        default: 0,
+    },
+    totalVolume: {
+        type: Number,
+        default: 0,
+    },
 }, {
     timestamps: true,
 });

@@ -9,6 +9,9 @@ export interface IZainboxDocument extends Document {
     zainboxCode: string;
     isActive: boolean;
     isLive: boolean;
+    lastTransactionAt?: Date;
+    totalTransactions: number;
+    totalVolume: number;
     createdAt: Date;
     updatedAt: Date;
 }

@@ -69,7 +69,7 @@ router.post('/register', async (req, res) => {
             const zainboxName = user.businessName || `${user.fullName}'s Zainbox`;
             const callbackUrl = config_1.default.webhookBaseUrl
                 ? `${config_1.default.webhookBaseUrl}/api/webhooks/zainpay`
-                : 'https://vtpay-server.onrender.com/api/webhooks/zainpay';
+                : 'https://vtpayapi.vtfree.com.ng/api/webhooks/zainpay';
             const zainboxPayload = {
                 name: zainboxName,
                 emailNotification: user.email,

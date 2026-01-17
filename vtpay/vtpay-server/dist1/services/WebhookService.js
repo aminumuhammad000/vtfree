@@ -39,6 +39,15 @@ class WebhookService {
             // Log incoming Zainpay webhook
             const zainboxCode = event.data.zainboxCode;
             const zainbox = zainboxCode ? await models_1.Zainbox.findOne({ zainboxCode }) : null;
+            if (zainbox) {
+                zainbox.lastTransactionAt = new Date();
+                zainbox.totalTransactions = (zainbox.totalTransactions || 0) + 1;
+                if (event.event === 'deposit.success') {
+                    const amount = parseInt(event.data.amountAfterCharges, 10);
+                    zainbox.totalVolume = (zainbox.totalVolume || 0) + amount;
+                }
+                await zainbox.save();
+            }
             await models_1.WebhookLog.create({
                 source: 'zainpay',
                 eventType: event.event,

@@ -55,6 +55,13 @@ router.post('/', async (req, res) => {
             });
             return;
         }
+        if (!bvn || bvn.replace(/\D/g, '').length !== 11) {
+            res.status(400).json({
+                success: false,
+                message: 'A valid 11-digit BVN is required',
+            });
+            return;
+        }
         // Get user details for virtual account creation
         const user = await models_1.User.findById(userId);
         if (!user) {
@@ -204,6 +211,10 @@ router.get('/', async (req, res) => {
                 // 3. Sync with local DB
                 if (zainpayResponse.code === '00' && Array.isArray(zainpayResponse.data)) {
                     for (const zAccount of zainpayResponse.data) {
+                        // Do not include the Internal Settlement Account
+                        if (zAccount.name === 'Internal Settlement Account') {
+                            continue;
+                        }
                         let account = await models_1.VirtualAccount.findOne({ accountNumber: zAccount.bankAccount });
                         if (!account) {
                             // Create new local record
@@ -243,7 +254,10 @@ router.get('/', async (req, res) => {
                 { zainboxCode: { $in: zainboxCodes } }
             ];
         }
-        const accounts = await models_1.VirtualAccount.find(query).sort({ createdAt: -1 });
+        const accounts = await models_1.VirtualAccount.find({
+            ...query,
+            accountName: { $ne: 'Internal Settlement Account' }
+        }).sort({ createdAt: -1 });
         res.json({
             success: true,
             data: accounts.map((account) => ({
@@ -416,35 +430,10 @@ router.get('/:accountNumber/transactions', async (req, res) => {
  * DELETE /api/virtual-accounts/:id
  */
 router.delete('/:id', async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const { id } = req.params;
-        // Verify account belongs to user
-        const account = await models_1.VirtualAccount.findOne({
-            _id: id,
-            userId: new mongoose_1.default.Types.ObjectId(userId),
-        });
-        if (!account) {
-            res.status(404).json({
-                success: false,
-                message: 'Virtual account not found',
-            });
-            return;
-        }
-        // Delete from local database
-        await models_1.VirtualAccount.deleteOne({ _id: id });
-        res.json({
-            success: true,
-            message: 'Virtual account deleted successfully',
-        });
-    }
-    catch (error) {
-        console.error('Delete virtual account error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to delete virtual account',
-        });
-    }
+    res.status(403).json({
+        success: false,
+        message: 'Virtual account deletion is not allowed',
+    });
 });
 exports.default = router;
 //# sourceMappingURL=virtualAccountRoutes.js.map
