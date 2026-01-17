@@ -2,11 +2,15 @@ import mongoose, { Document } from 'mongoose';
 export interface IPayoutDocument extends Document {
     userId: mongoose.Types.ObjectId;
     amount: number;
-    fee: number;
+    vtpayFee: number;
+    zainpayPercentFee: number;
+    zainpayFixedFee: number;
+    netAmount: number;
     totalDeducted: number;
     bankCode: string;
     accountNumber: string;
     accountName: string;
+    payoutType: 'internal' | 'external';
     reference: string;
     externalRef?: string;
     idempotencyKey?: string;

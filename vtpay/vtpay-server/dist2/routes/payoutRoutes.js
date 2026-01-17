@@ -56,6 +56,38 @@ router.post('/', async (req, res) => {
     }
 });
 /**
+ * Calculate Payout Fees
+ * POST /api/payout/calculate-fees
+ */
+router.post('/calculate-fees', async (req, res) => {
+    try {
+        const { amount, accountNumber } = req.body;
+        if (!amount) {
+            res.status(400).json({
+                success: false,
+                message: 'Amount is required',
+            });
+            return;
+        }
+        const isInternal = await models_1.VirtualAccount.exists({ accountNumber });
+        const fees = PayoutService_1.payoutService.calculateFees(amount, !!isInternal);
+        res.json({
+            success: true,
+            data: {
+                ...fees,
+                isInternal: !!isInternal
+            }
+        });
+    }
+    catch (error) {
+        logger_1.logger.error('Calculate fees error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to calculate fees',
+        });
+    }
+});
+/**
  * Get Payout History
  * GET /api/payout/history
  */

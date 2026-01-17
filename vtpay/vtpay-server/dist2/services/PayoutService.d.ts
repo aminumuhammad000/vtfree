@@ -1,6 +1,16 @@
 import { Payout } from '../models';
 export declare class PayoutService {
     /**
+     * Calculate payout fees
+     */
+    calculateFees(amount: number, isInternal: boolean): {
+        vtpayFee: number;
+        zainpayPercentFee: number;
+        zainpayFixedFee: number;
+        netAmount: number;
+        totalDeducted: number;
+    };
+    /**
      * Initiate a payout request
      */
     initiatePayout(userId: string, amount: number, bankDetails: {

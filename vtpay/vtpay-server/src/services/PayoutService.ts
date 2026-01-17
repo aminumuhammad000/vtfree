@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
-import { Wallet, Payout, Transaction, Zainbox, User } from '../models';
+import { Wallet, Payout, Transaction, Zainbox, User, VirtualAccount } from '../models';
 import { zainpayService } from './ZainpayService';
 import { emailService } from './EmailService';
 import { logger } from '../utils/logger';
@@ -10,6 +10,30 @@ const MAX_RECONCILE_RETRIES = 5;
 const RECONCILE_INTERVAL_MINUTES = 15;
 
 export class PayoutService {
+    /**
+     * Calculate payout fees
+     */
+    calculateFees(amount: number, isInternal: boolean) {
+        const vtpayFee = Math.ceil(amount * 0.006); // 0.6%
+        let zainpayPercentFee = 0;
+        let zainpayFixedFee = 0;
+
+        if (!isInternal) {
+            zainpayPercentFee = Math.ceil(amount * 0.016); // 1.6%
+            zainpayFixedFee = 2500; // NGN 25 in kobo
+        }
+
+        const netAmount = amount - vtpayFee - zainpayPercentFee - zainpayFixedFee;
+
+        return {
+            vtpayFee,
+            zainpayPercentFee,
+            zainpayFixedFee,
+            netAmount,
+            totalDeducted: amount
+        };
+    }
+
     /**
      * Initiate a payout request
      */
@@ -26,7 +50,15 @@ export class PayoutService {
         session.startTransaction();
 
         try {
-            // 1. Validate & Lock Funds
+            // 1. Determine if Internal or External
+            const isInternal = await VirtualAccount.exists({ accountNumber: bankDetails.accountNumber });
+            const fees = this.calculateFees(amount, !!isInternal);
+
+            if (fees.netAmount <= 0) {
+                throw new Error('Payout amount too small to cover fees');
+            }
+
+            // 2. Validate & Lock Funds
             const wallet = await Wallet.findOne({ userId: new mongoose.Types.ObjectId(userId) }).session(session);
             if (!wallet) {
                 throw new Error('Wallet not found');
@@ -41,33 +73,40 @@ export class PayoutService {
             wallet.lockedBalance += amount;
             await wallet.save({ session });
 
-            // 2. Create Payout Record
+            // 3. Create Payout Record
             const payout = new Payout({
                 userId: new mongoose.Types.ObjectId(userId),
                 amount,
-                totalDeducted: amount,
+                ...fees,
                 ...bankDetails,
+                payoutType: isInternal ? 'internal' : 'external',
                 status: 'INITIATED',
                 reference: `PAY-${uuidv4()}`,
                 retryCount: 0
             });
             await payout.save({ session });
 
-            // 3. Create PENDING Ledger Entry (The "Lock" record)
+            // 4. Create PENDING Ledger Entry (The "Lock" record)
             await Transaction.create([{
                 walletId: wallet._id,
                 userId: new mongoose.Types.ObjectId(userId),
                 type: 'debit',
                 category: 'withdrawal',
                 amount: amount,
-                fee: 0,
+                fee: fees.vtpayFee + fees.zainpayPercentFee + fees.zainpayFixedFee,
                 balanceBefore: wallet.balance,
                 balanceAfter: wallet.balance, // Balance doesn't change yet, only lockedBalance
                 reference: payout.reference,
                 narration: `Payout Lock: ${bankDetails.accountNumber} (${bankDetails.bankCode})`,
                 status: 'pending',
                 isCleared: true,
-                metadata: { payoutId: payout._id }
+                metadata: {
+                    payoutId: payout._id,
+                    vtpayFee: fees.vtpayFee,
+                    zainpayPercentFee: fees.zainpayPercentFee,
+                    zainpayFixedFee: fees.zainpayFixedFee,
+                    netAmount: fees.netAmount
+                }
             }], { session });
 
             await session.commitTransaction();
@@ -107,7 +146,7 @@ export class PayoutService {
             }
 
             const response = await zainpayService.fundTransfer({
-                amount: payout.amount.toString(),
+                amount: payout.netAmount.toString(),
                 destinationAccountNumber: payout.accountNumber,
                 destinationBankCode: payout.bankCode,
                 sourceAccountNumber: sourceAccount.bankAccount,

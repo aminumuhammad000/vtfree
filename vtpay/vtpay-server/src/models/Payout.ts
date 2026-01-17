@@ -2,12 +2,16 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IPayoutDocument extends Document {
     userId: mongoose.Types.ObjectId;
-    amount: number;
-    fee: number;
-    totalDeducted: number;
+    amount: number; // Gross amount to be deducted from wallet
+    vtpayFee: number;
+    zainpayPercentFee: number;
+    zainpayFixedFee: number;
+    netAmount: number; // Amount user actually receives
+    totalDeducted: number; // Should be equal to amount
     bankCode: string;
     accountNumber: string;
     accountName: string;
+    payoutType: 'internal' | 'external';
     reference: string;
     externalRef?: string;
     idempotencyKey?: string;
@@ -32,9 +36,21 @@ const PayoutSchema = new Schema<IPayoutDocument>(
             required: true,
             min: 0,
         },
-        fee: {
+        vtpayFee: {
             type: Number,
             default: 0,
+        },
+        zainpayPercentFee: {
+            type: Number,
+            default: 0,
+        },
+        zainpayFixedFee: {
+            type: Number,
+            default: 0,
+        },
+        netAmount: {
+            type: Number,
+            required: true,
             min: 0,
         },
         totalDeducted: {
@@ -52,6 +68,11 @@ const PayoutSchema = new Schema<IPayoutDocument>(
         },
         accountName: {
             type: String,
+            required: true,
+        },
+        payoutType: {
+            type: String,
+            enum: ['internal', 'external'],
             required: true,
         },
         reference: {

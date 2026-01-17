@@ -2,7 +2,7 @@ import { Router, Response } from 'express';
 import { authenticate, AuthenticatedRequest } from '../middleware';
 import { payoutService } from '../services/PayoutService';
 import { walletService } from '../services/WalletService';
-import { User, Payout } from '../models';
+import { User, Payout, VirtualAccount } from '../models';
 import { logger } from '../utils/logger';
 
 const router = Router();
@@ -63,6 +63,41 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
         res.status(400).json({
             success: false,
             message: error.message || 'Failed to initiate payout',
+        });
+    }
+});
+
+/**
+ * Calculate Payout Fees
+ * POST /api/payout/calculate-fees
+ */
+router.post('/calculate-fees', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { amount, accountNumber } = req.body;
+
+        if (!amount) {
+            res.status(400).json({
+                success: false,
+                message: 'Amount is required',
+            });
+            return;
+        }
+
+        const isInternal = await VirtualAccount.exists({ accountNumber });
+        const fees = payoutService.calculateFees(amount, !!isInternal);
+
+        res.json({
+            success: true,
+            data: {
+                ...fees,
+                isInternal: !!isInternal
+            }
+        });
+    } catch (error: any) {
+        logger.error('Calculate fees error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to calculate fees',
         });
     }
 });

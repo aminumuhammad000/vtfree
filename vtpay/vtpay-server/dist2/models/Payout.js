@@ -46,9 +46,21 @@ const PayoutSchema = new mongoose_1.Schema({
         required: true,
         min: 0,
     },
-    fee: {
+    vtpayFee: {
         type: Number,
         default: 0,
+    },
+    zainpayPercentFee: {
+        type: Number,
+        default: 0,
+    },
+    zainpayFixedFee: {
+        type: Number,
+        default: 0,
+    },
+    netAmount: {
+        type: Number,
+        required: true,
         min: 0,
     },
     totalDeducted: {
@@ -66,6 +78,11 @@ const PayoutSchema = new mongoose_1.Schema({
     },
     accountName: {
         type: String,
+        required: true,
+    },
+    payoutType: {
+        type: String,
+        enum: ['internal', 'external'],
         required: true,
     },
     reference: {
