@@ -170,6 +170,14 @@ export class WebhookService {
                 await log.save();
 
                 logger.error(`Failed to dispatch webhook to ${user.webhookUrl}`, error.message);
+
+                // Send failure notification email
+                await emailService.sendWebhookFailureNotification(
+                    user.email,
+                    user.firstName || 'User',
+                    user.webhookUrl,
+                    error.message
+                );
             }
         } catch (error: any) {
             logger.error('Error in dispatchWebhookToTenant', error.message);
@@ -203,7 +211,7 @@ export class WebhookService {
         // Amount is in kobo in the new webhook format
         const amountInKobo = parseInt(data.amountAfterCharges, 10);
 
-        await walletService.creditWallet(
+        const transaction = await walletService.creditWallet(
             virtualAccount.userId.toString(),
             amountInKobo,
             'deposit',
@@ -221,6 +229,16 @@ export class WebhookService {
             },
             virtualAccount.reference // Pass the customer reference
         );
+
+        // Send email notification to user
+        const user = await User.findById(virtualAccount.userId);
+        if (user) {
+            await emailService.sendTransactionNotification(
+                user.email,
+                user.firstName || 'User',
+                transaction
+            );
+        }
 
         logger.info(`Successfully credited wallet for user ${virtualAccount.userId} with ${amountInKobo} kobo`);
         return { success: true, message: 'Deposit processed successfully' };

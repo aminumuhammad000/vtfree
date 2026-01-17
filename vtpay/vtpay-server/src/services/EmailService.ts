@@ -180,6 +180,65 @@ class EmailService {
         `;
         return this.sendEmail(email, 'Your VTPay Account has been Approved!', html);
     }
+    /**
+     * Send transaction notification email
+     */
+    async sendTransactionNotification(email: string, name: string, transaction: any): Promise<void> {
+        const amount = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(transaction.amount / 100);
+        const date = new Date(transaction.createdAt).toLocaleString();
+        const dashboardLink = `${config.app.url || 'http://localhost:5173'}/dashboard`;
+
+        const html = `
+            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #16a34a;">Transaction Successful</h2>
+                <p>Hello ${name},</p>
+                <p>You have received a new deposit of <strong>${amount}</strong>.</p>
+                
+                <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                    <p style="margin: 5px 0;"><strong>Reference:</strong> ${transaction.reference}</p>
+                    <p style="margin: 5px 0;"><strong>Amount:</strong> ${amount}</p>
+                    <p style="margin: 5px 0;"><strong>Date:</strong> ${date}</p>
+                    <p style="margin: 5px 0;"><strong>Narration:</strong> ${transaction.narration}</p>
+                </div>
+
+                <p>You can view the details in your dashboard.</p>
+                <div style="margin: 30px 0; text-align: center;">
+                    <a href="${dashboardLink}" style="background-color: #16a34a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">View Dashboard</a>
+                </div>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="color: #999; font-size: 12px; text-align: center;">&copy; ${new Date().getFullYear()} VTPay. All rights reserved.</p>
+            </div>
+        `;
+        return this.sendEmail(email, 'Transaction Notification - VTPay', html);
+    }
+
+    /**
+     * Send webhook failure notification email
+     */
+    async sendWebhookFailureNotification(email: string, name: string, webhookUrl: string, error: string): Promise<void> {
+        const settingsLink = `${config.app.url || 'http://localhost:5173'}/dashboard/settings`;
+
+        const html = `
+            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #dc2626;">Webhook Delivery Failed</h2>
+                <p>Hello ${name},</p>
+                <p>We attempted to send a webhook notification to your configured URL but it failed.</p>
+                
+                <div style="background-color: #fef2f2; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #fecaca;">
+                    <p style="margin: 5px 0; color: #991b1b;"><strong>URL:</strong> ${webhookUrl}</p>
+                    <p style="margin: 5px 0; color: #991b1b;"><strong>Error:</strong> ${error}</p>
+                </div>
+
+                <p>Please check your server logs and ensure your webhook endpoint is accessible.</p>
+                <div style="margin: 30px 0; text-align: center;">
+                    <a href="${settingsLink}" style="background-color: #4b5563; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Check Settings</a>
+                </div>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="color: #999; font-size: 12px; text-align: center;">&copy; ${new Date().getFullYear()} VTPay. All rights reserved.</p>
+            </div>
+        `;
+        return this.sendEmail(email, 'Action Required: Webhook Delivery Failed - VTPay', html);
+    }
 }
 
 export const emailService = new EmailService();
