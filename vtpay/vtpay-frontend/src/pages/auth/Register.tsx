@@ -73,10 +73,10 @@ export const Register: React.FC = () => {
         try {
             const { confirmPassword, ...registerData } = formData;
             const response = await api.post('/auth/register', registerData);
-            setSuccessMessage(response.data.message || 'Registration successful. Please check your email to verify your account.');
+            setSuccessMessage(response.data.message || 'Registration successful. Please check your email for the verification OTP.');
             setTimeout(() => {
-                navigate('/login');
-            }, 5000);
+                navigate('/verify-otp', { state: { email: formData.email } });
+            }, 2000);
         } catch (err: any) {
             console.error('Registration error:', err);
             setError(err.response?.data?.message || 'Failed to register. Please try again.');
@@ -98,10 +98,10 @@ export const Register: React.FC = () => {
                     <h2 className="text-2xl font-bold text-gray-900 mb-4">Check Your Email</h2>
                     <p className="text-gray-600 mb-8">{successMessage}</p>
                     <button
-                        onClick={() => navigate('/login')}
+                        onClick={() => navigate('/verify-otp', { state: { email: formData.email } })}
                         className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-green-200"
                     >
-                        Go to Login
+                        Enter OTP
                     </button>
                 </div>
             </div>
@@ -131,8 +131,8 @@ export const Register: React.FC = () => {
                                 <div
                                     key={step}
                                     className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${step < currentStep ? 'bg-green-600 text-white' :
-                                            step === currentStep ? 'bg-green-100 text-green-700 ring-4 ring-green-50' :
-                                                'bg-gray-100 text-gray-400'
+                                        step === currentStep ? 'bg-green-100 text-green-700 ring-4 ring-green-50' :
+                                            'bg-gray-100 text-gray-400'
                                         }`}
                                 >
                                     {step < currentStep ? '✓' : step}

@@ -49,8 +49,8 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
 
-        // Generate verification token
-        const verificationToken = crypto.randomBytes(32).toString('hex');
+        // Generate verification OTP (6 digits)
+        const verificationToken = Math.floor(100000 + Math.random() * 900000).toString();
 
         // Create user
         const user = new User({
@@ -131,15 +131,15 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
             // Continue registration even if Zainbox creation fails
         }
 
-        // Send verification email
-        await emailService.sendVerificationEmail(user.email, verificationToken);
+        // Send verification OTP
+        await emailService.sendOtpEmail(user.email, verificationToken);
 
         // Generate token (can login immediately but with limited access)
         const token = generateToken(user._id.toString(), user.email);
 
         res.status(201).json({
             success: true,
-            message: 'User registered successfully. Please check your email to verify your account.',
+            message: 'User registered successfully. Please check your email for the verification OTP.',
             data: {
                 user: {
                     id: user._id,
@@ -164,7 +164,122 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
- * Verify email
+ * Verify OTP
+ * POST /api/auth/verify-otp
+ */
+router.post('/verify-otp', async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { email, otp } = req.body;
+
+        if (!email || !otp) {
+            res.status(400).json({
+                success: false,
+                message: 'Email and OTP are required',
+            });
+            return;
+        }
+
+        const user = await User.findOne({ email: email.toLowerCase() });
+
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+            return;
+        }
+
+        if (user.kycLevel >= 1) {
+            res.status(400).json({
+                success: false,
+                message: 'Email already verified',
+            });
+            return;
+        }
+
+        if (user.verificationToken !== otp) {
+            res.status(400).json({
+                success: false,
+                message: 'Invalid OTP',
+            });
+            return;
+        }
+
+        // Update user status
+        user.kycLevel = 1; // 1: Email Verified
+        user.verificationToken = undefined;
+        await user.save();
+
+        res.json({
+            success: true,
+            message: 'Email verified successfully',
+        });
+    } catch (error) {
+        console.error('OTP verification error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Verification failed',
+        });
+    }
+});
+
+/**
+ * Resend OTP
+ * POST /api/auth/resend-otp
+ */
+router.post('/resend-otp', async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            res.status(400).json({
+                success: false,
+                message: 'Email is required',
+            });
+            return;
+        }
+
+        const user = await User.findOne({ email: email.toLowerCase() });
+
+        if (!user) {
+            res.status(404).json({
+                success: false,
+                message: 'User not found',
+            });
+            return;
+        }
+
+        if (user.kycLevel >= 1) {
+            res.status(400).json({
+                success: false,
+                message: 'Email already verified',
+            });
+            return;
+        }
+
+        // Generate new OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        user.verificationToken = otp;
+        await user.save();
+
+        // Send OTP
+        await emailService.sendOtpEmail(user.email, otp);
+
+        res.json({
+            success: true,
+            message: 'OTP resent successfully',
+        });
+    } catch (error) {
+        console.error('Resend OTP error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to resend OTP',
+        });
+    }
+});
+
+/**
+ * Verify email (Legacy - kept for backward compatibility if needed, but redirects to OTP flow logically)
  * GET /api/auth/verify-email
  */
 router.get('/verify-email', async (req: Request, res: Response): Promise<void> => {
@@ -248,6 +363,15 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
             res.status(403).json({
                 success: false,
                 message: 'Account is not active',
+            });
+            return;
+        }
+
+        // Check if email is verified
+        if (user.kycLevel < 1) {
+            res.status(403).json({
+                success: false,
+                message: 'Please verify your email address before logging in.',
             });
             return;
         }

@@ -31,7 +31,16 @@ export const Login: React.FC = () => {
             navigate('/dashboard');
         } catch (err: any) {
             console.error('Login error:', err);
-            setError(err.response?.data?.message || 'Failed to login. Please try again.');
+            const errorMessage = err.response?.data?.message || 'Failed to login. Please try again.';
+            setError(errorMessage);
+
+            // If error is related to unverified email, offer to verify
+            if (errorMessage.includes('verify your email')) {
+                // Optional: Automatically redirect or show a button
+                setTimeout(() => {
+                    navigate('/verify-otp', { state: { email: formData.email } });
+                }, 2000);
+            }
         } finally {
             setIsLoading(false);
         }

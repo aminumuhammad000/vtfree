@@ -6,6 +6,7 @@ import { DashboardLayout } from './layouts/DashboardLayout';
 import { Login } from './pages/auth/Login';
 import { Register } from './pages/auth/Register';
 import { VerifyEmail } from './pages/auth/VerifyEmail';
+import { VerifyOtp } from './pages/auth/VerifyOtp';
 import { Overview } from './pages/dashboard/Overview';
 import { Wallet } from './pages/dashboard/Wallet';
 import { VirtualAccounts } from './pages/dashboard/VirtualAccounts';
@@ -55,6 +56,7 @@ const AppRoutes = () => {
       <Route path="/" element={<LandingPage />} />
       <Route path="/api-docs" element={<ApiDocs />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/verify-otp" element={<VerifyOtp />} />
 
       {/* Auth Routes */}
       <Route element={<AuthLayout />}>
