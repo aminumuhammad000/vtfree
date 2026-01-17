@@ -4,32 +4,60 @@ import config from '../config';
 
 class EmailService {
     private async getTransporter() {
+        // Try to get settings from DB
         const settings = await SystemSetting.findOne();
-        if (!settings || !settings.emailConfig) {
-            throw new Error('Email configuration not found');
+
+        if (settings && settings.emailConfig && settings.emailConfig.provider) {
+            const { provider, gmail, smtp } = settings.emailConfig;
+
+            if (provider === 'gmail') {
+                return nodemailer.createTransport({
+                    service: 'gmail',
+                    auth: {
+                        user: gmail.user,
+                        pass: gmail.pass,
+                    },
+                });
+            } else {
+                return nodemailer.createTransport({
+                    host: smtp.host,
+                    port: smtp.port,
+                    secure: smtp.secure,
+                    auth: {
+                        user: smtp.user,
+                        pass: smtp.pass,
+                    },
+                });
+            }
         }
 
-        const { provider, gmail, smtp } = settings.emailConfig;
+        // Fallback to Environment Variables
+        if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+            console.log('[EmailService] Using environment variables for email configuration');
+            return nodemailer.createTransport({
+                host: process.env.SMTP_HOST,
+                port: parseInt(process.env.SMTP_PORT || '587'),
+                secure: process.env.SMTP_SECURE === 'true',
+                auth: {
+                    user: process.env.SMTP_USER,
+                    pass: process.env.SMTP_PASS,
+                },
+            });
+        }
 
-        if (provider === 'gmail') {
+        // Fallback for Gmail via Env
+        if (process.env.GMAIL_USER && process.env.GMAIL_PASS) {
+            console.log('[EmailService] Using GMAIL environment variables');
             return nodemailer.createTransport({
                 service: 'gmail',
                 auth: {
-                    user: gmail.user,
-                    pass: gmail.pass,
-                },
-            });
-        } else {
-            return nodemailer.createTransport({
-                host: smtp.host,
-                port: smtp.port,
-                secure: smtp.secure,
-                auth: {
-                    user: smtp.user,
-                    pass: smtp.pass,
+                    user: process.env.GMAIL_USER,
+                    pass: process.env.GMAIL_PASS,
                 },
             });
         }
+
+        throw new Error('Email configuration not found in DB or Environment');
     }
 
     /**

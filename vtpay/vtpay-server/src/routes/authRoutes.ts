@@ -70,7 +70,9 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
         // Create wallet for user
         await walletService.createWallet(user._id.toString());
 
-        // Create Zainbox for user
+        // Create Zainbox for user - REMOVED per user request. 
+        // Zainbox will be created upon admin approval.
+        /*
         try {
             const zainboxName = user.businessName || `${user.fullName}'s Zainbox`;
             const callbackUrl = config.webhookBaseUrl
@@ -130,6 +132,7 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
             console.error('Failed to create Zainbox:', error);
             // Continue registration even if Zainbox creation fails
         }
+        */
 
         // Send verification OTP
         await emailService.sendOtpEmail(user.email, verificationToken);
