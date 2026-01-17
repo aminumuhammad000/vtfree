@@ -3,11 +3,10 @@ export declare class ZainpayService {
     private client;
     private baseUrl;
     private publicKey;
-    private secretKey;
     constructor();
     private initializeClient;
     /**
-     * Refresh configuration from SystemSetting
+     * Refresh configuration from database
      */
     refreshConfig(): Promise<void>;
     /**

@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
-const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
+// import rateLimit from 'express-rate-limit';
 const routes_1 = require("./routes");
 const config_1 = __importDefault(require("./config"));
 const logger_1 = require("./utils/logger");
@@ -19,22 +19,22 @@ app.use((0, cors_1.default)({
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Zainpay-Signature'],
 }));
-// Rate limiting
-const limiter = (0, express_rate_limit_1.default)({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
-    message: {
-        success: false,
-        message: 'Too many requests, please try again later',
-    },
-});
+// Rate limiting removed as per user request
+// const limiter = rateLimit({
+//     windowMs: 15 * 60 * 1000, // 15 minutes
+//     max: 100, // Limit each IP to 100 requests per windowMs
+//     message: {
+//         success: false,
+//         message: 'Too many requests, please try again later',
+//     },
+// });
 // Apply rate limiting to all requests except webhooks
-app.use('/api', (req, res, next) => {
-    if (req.path.startsWith('/webhooks')) {
-        return next();
-    }
-    return limiter(req, res, next);
-});
+// app.use('/api', (req: Request, res: Response, next: NextFunction) => {
+//     if (req.path.startsWith('/webhooks')) {
+//         return next();
+//     }
+//     return limiter(req, res, next);
+// });
 // Body parsing middleware
 app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true }));

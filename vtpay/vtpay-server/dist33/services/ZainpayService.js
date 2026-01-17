@@ -44,7 +44,6 @@ class ZainpayService {
     constructor() {
         this.baseUrl = config_1.default.zainpay.baseUrl;
         this.publicKey = config_1.default.zainpay.publicKey;
-        this.secretKey = config_1.default.zainpay.secretKey;
         this.initializeClient();
     }
     initializeClient() {
@@ -68,30 +67,18 @@ class ZainpayService {
         });
     }
     /**
-     * Refresh configuration from SystemSetting
+     * Refresh configuration from database
      */
     async refreshConfig() {
         try {
-            logger_1.logger.info('Refreshing Zainpay configuration from database...');
-            const SystemSetting = (await Promise.resolve().then(() => __importStar(require('../models')))).SystemSetting;
+            const { SystemSetting } = await Promise.resolve().then(() => __importStar(require('../models/SystemSetting')));
             const settings = await SystemSetting.findOne();
-            if (settings && settings.integrations.zainpay) {
-                const zainpayConfig = settings.integrations.zainpay;
-                // Only update if keys are present
-                if (zainpayConfig.apiKey && zainpayConfig.baseUrl) {
-                    logger_1.logger.info(`Found Zainpay settings in DB. Mode: ${zainpayConfig.isLive ? 'LIVE' : 'SANDBOX'}`);
-                    logger_1.logger.info(`DB BaseURL: ${zainpayConfig.baseUrl}`);
-                    this.publicKey = zainpayConfig.apiKey;
-                    this.baseUrl = zainpayConfig.baseUrl;
-                    this.secretKey = zainpayConfig.secretKey;
-                    this.initializeClient();
-                }
-                else {
-                    logger_1.logger.warn('Zainpay settings in DB are incomplete (missing apiKey or baseUrl). Using defaults/env.');
-                }
-            }
-            else {
-                logger_1.logger.info('No Zainpay settings found in DB. Using defaults/env.');
+            if (settings && settings.integrations?.zainpay) {
+                const zp = settings.integrations.zainpay;
+                this.baseUrl = zp.baseUrl || config_1.default.zainpay.baseUrl;
+                this.publicKey = zp.apiKey || config_1.default.zainpay.publicKey;
+                this.initializeClient();
+                logger_1.logger.info('Zainpay config refreshed from database');
             }
         }
         catch (error) {

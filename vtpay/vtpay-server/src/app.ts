@@ -1,7 +1,7 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
+// import rateLimit from 'express-rate-limit';
 import {
     authRoutes,
     virtualAccountRoutes,
@@ -32,23 +32,23 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'Zainpay-Signature'],
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
-    message: {
-        success: false,
-        message: 'Too many requests, please try again later',
-    },
-});
+// Rate limiting removed as per user request
+// const limiter = rateLimit({
+//     windowMs: 15 * 60 * 1000, // 15 minutes
+//     max: 100, // Limit each IP to 100 requests per windowMs
+//     message: {
+//         success: false,
+//         message: 'Too many requests, please try again later',
+//     },
+// });
 
 // Apply rate limiting to all requests except webhooks
-app.use('/api', (req: Request, res: Response, next: NextFunction) => {
-    if (req.path.startsWith('/webhooks')) {
-        return next();
-    }
-    return limiter(req, res, next);
-});
+// app.use('/api', (req: Request, res: Response, next: NextFunction) => {
+//     if (req.path.startsWith('/webhooks')) {
+//         return next();
+//     }
+//     return limiter(req, res, next);
+// });
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));

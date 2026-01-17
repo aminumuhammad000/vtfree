@@ -1,4 +1,5 @@
 import { Router, Response } from 'express';
+import mongoose from 'mongoose';
 import { User, Zainbox } from '../models';
 import { authenticate, AuthenticatedRequest, requireAdmin } from '../middleware';
 import { zainpayService } from '../services/ZainpayService';
@@ -69,7 +70,7 @@ router.post('/', requireAdmin, async (req: AuthenticatedRequest, res: Response):
             createdZainboxData = zainpayResponse.data;
         }
 
-        if (!createdZainboxData || !createdZainboxData.zainboxCode || !createdZainboxData.codeName) {
+        if (!createdZainboxData || !createdZainboxData.codeName) {
             console.error('Invalid Zainbox data received:', createdZainboxData);
             res.status(500).json({
                 success: false,
@@ -79,18 +80,35 @@ router.post('/', requireAdmin, async (req: AuthenticatedRequest, res: Response):
         }
 
         // Save to local DB
-        const zainbox = new Zainbox({
-            userId,
-            name: createdZainboxData.name || name,
-            emailNotification: createdZainboxData.emailNotification || emailNotification,
-            tags: createdZainboxData.tags || tags,
-            callbackUrl: createdZainboxData.callbackUrl || callbackUrl,
-            codeName: createdZainboxData.codeName,
-            zainboxCode: createdZainboxData.zainboxCode,
-            isLive: createdZainboxData.isLive || false,
-        });
+        const zainboxCode = createdZainboxData.zainboxCode || createdZainboxData.codeName;
+        let zainbox = await Zainbox.findOne({ zainboxCode });
 
-        await zainbox.save();
+        if (zainbox) {
+            // Update existing
+            zainbox.userId = new mongoose.Types.ObjectId(userId);
+            zainbox.name = createdZainboxData.name || name;
+            zainbox.emailNotification = createdZainboxData.emailNotification || emailNotification;
+            zainbox.tags = createdZainboxData.tags || tags;
+            zainbox.callbackUrl = createdZainboxData.callbackUrl || callbackUrl;
+            zainbox.codeName = createdZainboxData.codeName;
+            zainbox.isLive = createdZainboxData.isLive || false;
+            await zainbox.save();
+            console.log('Existing Zainbox updated:', zainbox._id);
+        } else {
+            // Create new
+            zainbox = new Zainbox({
+                userId,
+                name: createdZainboxData.name || name,
+                emailNotification: createdZainboxData.emailNotification || emailNotification,
+                tags: createdZainboxData.tags || tags,
+                callbackUrl: createdZainboxData.callbackUrl || callbackUrl,
+                codeName: createdZainboxData.codeName,
+                zainboxCode: zainboxCode,
+                isLive: createdZainboxData.isLive || false,
+            });
+            await zainbox.save();
+            console.log('New Zainbox created:', zainbox._id);
+        }
 
         res.status(201).json({
             success: true,

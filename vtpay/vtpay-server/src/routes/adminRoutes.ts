@@ -108,10 +108,10 @@ const activateUserAccount = async (user: any) => {
     console.log(`Activating account for user: ${user.email}`);
 
     // 1. Ensure Zainbox exists
-    const existingZainbox = await Zainbox.findOne({ userId: user._id });
-    let zainboxCreated = !!existingZainbox;
+    let zainbox = await Zainbox.findOne({ userId: user._id });
+    let zainboxCreated = !!zainbox;
 
-    if (!existingZainbox) {
+    if (!zainbox) {
         console.log(`Auto-creating Zainbox for user: ${user.email}`);
         try {
             const zainboxName = user.businessName
@@ -129,18 +129,34 @@ const activateUserAccount = async (user: any) => {
 
             if (zResponse.code === '00' && zResponse.data) {
                 const zData = zResponse.data;
-                await Zainbox.create({
-                    userId: user._id,
-                    name: zData.name || zainboxName,
-                    emailNotification: zData.emailNotification || user.email,
-                    tags: zData.tags || 'vtpay_user_auto_assign',
-                    callbackUrl: zData.callbackUrl || callbackUrl,
-                    codeName: zData.codeName,
-                    zainboxCode: zData.zainboxCode || zData.codeName,
-                    isLive: zData.isLive || false,
-                });
+                const zainboxCode = zData.zainboxCode || zData.codeName;
+
+                // Check if this zainboxCode already exists in DB (maybe assigned to another user or orphan)
+                zainbox = await Zainbox.findOne({ zainboxCode });
+
+                if (zainbox) {
+                    // Update existing zainbox to belong to this user
+                    zainbox.userId = user._id;
+                    zainbox.name = zData.name || zainboxName;
+                    zainbox.emailNotification = zData.emailNotification || user.email;
+                    zainbox.callbackUrl = zData.callbackUrl || callbackUrl;
+                    await zainbox.save();
+                    console.log(`Re-assigned existing Zainbox ${zainboxCode} to ${user.email}`);
+                } else {
+                    // Create new
+                    zainbox = await Zainbox.create({
+                        userId: user._id,
+                        name: zData.name || zainboxName,
+                        emailNotification: zData.emailNotification || user.email,
+                        tags: zData.tags || 'vtpay_user_auto_assign',
+                        callbackUrl: zData.callbackUrl || callbackUrl,
+                        codeName: zData.codeName,
+                        zainboxCode: zainboxCode,
+                        isLive: zData.isLive || false,
+                    });
+                    console.log(`Successfully auto-created and assigned Zainbox ${zData.codeName} to ${user.email}`);
+                }
                 zainboxCreated = true;
-                console.log(`Successfully auto-assigned Zainbox ${zData.codeName} to ${user.email}`);
             } else {
                 console.error(`Zainpay error creating Zainbox for ${user.email}:`, zResponse.description);
             }
@@ -785,20 +801,19 @@ router.get('/zainboxes/:zainboxCode/accounts', async (req: AuthenticatedRequest,
             return;
         }
 
-        // Fetch virtual accounts from Zainpay
-        const response = await zainpayService.getZainboxAccounts(zainboxCode);
+        // Fetch virtual accounts from local DB
+        const accounts = await VirtualAccount.find({ zainboxCode });
 
-        if (response.code === '00') {
-            res.json({
-                success: true,
-                data: response.data || []
-            });
-        } else {
-            res.status(400).json({
-                success: false,
-                message: response.description || 'Failed to fetch accounts from Zainpay'
-            });
-        }
+        res.json({
+            success: true,
+            data: accounts.map(acc => ({
+                name: acc.accountName,
+                bankAccount: acc.accountNumber,
+                bankName: acc.bankName,
+                status: acc.status,
+                createdAt: acc.createdAt
+            }))
+        });
     } catch (error) {
         console.error('Get zainbox accounts error:', error);
         res.status(500).json({
@@ -883,7 +898,11 @@ router.get('/zainboxes/:zainboxCode/balances', async (req: AuthenticatedRequest,
         const response = await zainpayService.getZainboxAccountBalances(zainboxCode);
 
         if (response.code === '00') {
-            const balances = response.data || [];
+            const rawBalances = response.data || [];
+            const balances = rawBalances.map((acc: any) => ({
+                ...acc,
+                balanceAmount: (acc.balanceAmount || 0) / 100
+            }));
             const totalBalance = balances.reduce((sum, acc) => sum + (acc.balanceAmount || 0), 0);
 
             res.json({
@@ -1409,7 +1428,7 @@ router.post('/zainboxes', async (req: AuthenticatedRequest, res: Response): Prom
             tags: createdZainboxData.tags,
             callbackUrl: createdZainboxData.callbackUrl,
             codeName: createdZainboxData.codeName,
-            zainboxCode: createdZainboxData.zainboxCode,
+            zainboxCode: createdZainboxData.zainboxCode || createdZainboxData.codeName,
             isLive: createdZainboxData.isLive,
         });
 

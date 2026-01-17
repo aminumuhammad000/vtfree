@@ -83,18 +83,36 @@ router.post('/register', async (req, res) => {
                 // The response data might be an array or object depending on the API
                 const zainboxData = Array.isArray(zainboxResponse.data) ? zainboxResponse.data[0] : zainboxResponse.data;
                 if (zainboxData) {
-                    const newZainbox = new models_1.Zainbox({
-                        userId: user._id,
-                        name: zainboxData.name,
-                        emailNotification: zainboxData.emailNotification,
-                        tags: zainboxData.tags,
-                        callbackUrl: zainboxData.callbackUrl,
-                        codeName: zainboxData.codeName,
-                        zainboxCode: zainboxData.zainboxCode,
-                        isLive: zainboxData.isLive,
-                    });
-                    await newZainbox.save();
-                    console.log('Zainbox saved to DB:', newZainbox._id);
+                    const zainboxCode = zainboxData.zainboxCode;
+                    // Check if this zainboxCode already exists in DB
+                    let existingZainbox = await models_1.Zainbox.findOne({ zainboxCode });
+                    if (existingZainbox) {
+                        // Update existing
+                        existingZainbox.userId = user._id;
+                        existingZainbox.name = zainboxData.name;
+                        existingZainbox.emailNotification = zainboxData.emailNotification;
+                        existingZainbox.tags = zainboxData.tags;
+                        existingZainbox.callbackUrl = zainboxData.callbackUrl;
+                        existingZainbox.codeName = zainboxData.codeName;
+                        existingZainbox.isLive = zainboxData.isLive;
+                        await existingZainbox.save();
+                        console.log('Existing Zainbox updated and assigned to user:', existingZainbox._id);
+                    }
+                    else {
+                        // Create new
+                        const newZainbox = new models_1.Zainbox({
+                            userId: user._id,
+                            name: zainboxData.name,
+                            emailNotification: zainboxData.emailNotification,
+                            tags: zainboxData.tags,
+                            callbackUrl: zainboxData.callbackUrl,
+                            codeName: zainboxData.codeName,
+                            zainboxCode: zainboxCode,
+                            isLive: zainboxData.isLive,
+                        });
+                        await newZainbox.save();
+                        console.log('New Zainbox created and saved to DB:', newZainbox._id);
+                    }
                 }
             }
         }

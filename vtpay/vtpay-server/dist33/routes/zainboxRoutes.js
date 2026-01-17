@@ -1,6 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const mongoose_1 = __importDefault(require("mongoose"));
 const models_1 = require("../models");
 const middleware_1 = require("../middleware");
 const ZainpayService_1 = require("../services/ZainpayService");
@@ -61,7 +65,7 @@ router.post('/', middleware_1.requireAdmin, async (req, res) => {
         else {
             createdZainboxData = zainpayResponse.data;
         }
-        if (!createdZainboxData || !createdZainboxData.zainboxCode || !createdZainboxData.codeName) {
+        if (!createdZainboxData || !createdZainboxData.codeName) {
             console.error('Invalid Zainbox data received:', createdZainboxData);
             res.status(500).json({
                 success: false,
@@ -70,17 +74,35 @@ router.post('/', middleware_1.requireAdmin, async (req, res) => {
             return;
         }
         // Save to local DB
-        const zainbox = new models_1.Zainbox({
-            userId,
-            name: createdZainboxData.name || name,
-            emailNotification: createdZainboxData.emailNotification || emailNotification,
-            tags: createdZainboxData.tags || tags,
-            callbackUrl: createdZainboxData.callbackUrl || callbackUrl,
-            codeName: createdZainboxData.codeName,
-            zainboxCode: createdZainboxData.zainboxCode,
-            isLive: createdZainboxData.isLive || false,
-        });
-        await zainbox.save();
+        const zainboxCode = createdZainboxData.zainboxCode || createdZainboxData.codeName;
+        let zainbox = await models_1.Zainbox.findOne({ zainboxCode });
+        if (zainbox) {
+            // Update existing
+            zainbox.userId = new mongoose_1.default.Types.ObjectId(userId);
+            zainbox.name = createdZainboxData.name || name;
+            zainbox.emailNotification = createdZainboxData.emailNotification || emailNotification;
+            zainbox.tags = createdZainboxData.tags || tags;
+            zainbox.callbackUrl = createdZainboxData.callbackUrl || callbackUrl;
+            zainbox.codeName = createdZainboxData.codeName;
+            zainbox.isLive = createdZainboxData.isLive || false;
+            await zainbox.save();
+            console.log('Existing Zainbox updated:', zainbox._id);
+        }
+        else {
+            // Create new
+            zainbox = new models_1.Zainbox({
+                userId,
+                name: createdZainboxData.name || name,
+                emailNotification: createdZainboxData.emailNotification || emailNotification,
+                tags: createdZainboxData.tags || tags,
+                callbackUrl: createdZainboxData.callbackUrl || callbackUrl,
+                codeName: createdZainboxData.codeName,
+                zainboxCode: zainboxCode,
+                isLive: createdZainboxData.isLive || false,
+            });
+            await zainbox.save();
+            console.log('New Zainbox created:', zainbox._id);
+        }
         res.status(201).json({
             success: true,
             message: 'Zainbox created successfully',

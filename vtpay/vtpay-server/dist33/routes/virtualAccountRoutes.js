@@ -17,17 +17,15 @@ router.use(middleware_1.authenticate);
  */
 router.get('/supported-banks', async (req, res) => {
     try {
-        const banksResponse = await services_1.zainpayService.getBankList();
-        if (banksResponse.code !== '00') {
-            res.status(400).json({
-                success: false,
-                message: banksResponse.description || 'Failed to fetch supported banks',
-            });
-            return;
-        }
+        // Zainpay supports specific banks for virtual accounts
+        const supportedBanks = [
+            { code: 'gtBank', name: 'GTBank' },
+            { code: 'fcmb', name: 'FCMB' },
+            { code: 'fidelity', name: 'Fidelity Bank' }
+        ];
         res.json({
             success: true,
-            data: banksResponse.data || [],
+            data: supportedBanks,
         });
     }
     catch (error) {
@@ -43,6 +41,7 @@ router.get('/supported-banks', async (req, res) => {
  * POST /api/virtual-accounts
  */
 router.post('/', async (req, res) => {
+    console.log('Incoming virtual account creation request:', req.body);
     try {
         const userId = req.user.id;
         const { bankType, accountName, reference, 
@@ -101,23 +100,36 @@ router.post('/', async (req, res) => {
             }
         }
         // Allow multiple accounts, so we removed the existingAccount check
+        // Ensure BVN is exactly 11 digits if provided, otherwise Zainpay might reject it
+        const validatedBvn = (bvn || user.bvn || '').replace(/\D/g, '');
+        // Ensure DOB is in DD-MM-YYYY format
+        let validatedDob = dob || '01-01-1990';
+        if (validatedDob.includes('-')) {
+            const parts = validatedDob.split('-');
+            if (parts[0].length === 4) { // YYYY-MM-DD
+                validatedDob = `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+        }
         // Create virtual account via Zainpay
         // Use provided customer details OR fallback to logged-in user details
-        const zainpayResponse = await services_1.zainpayService.createVirtualAccount({
+        const payload = {
             bankType,
             firstName: firstName || user.firstName,
             surname: lastName || user.lastName,
             email: email || user.email,
             mobileNumber: phone || user.phone,
-            dob: dob || '01-01-1990', // Default if not provided
+            dob: validatedDob,
             gender: gender || 'M',
             address: address || 'Nigeria',
             title: req.body.title || 'Mr',
             state: state || 'Lagos',
-            bvn: bvn || user.bvn || '',
+            bvn: validatedBvn.length === 11 ? validatedBvn : '',
             zainboxCode: targetZainboxCode,
-        });
+        };
+        console.log('Sending payload to Zainpay:', JSON.stringify(payload, null, 2));
+        const zainpayResponse = await services_1.zainpayService.createVirtualAccount(payload);
         if (zainpayResponse.code !== '00') {
+            console.error('Zainpay Error Response:', zainpayResponse);
             res.status(400).json({
                 success: false,
                 message: zainpayResponse.description || 'Failed to create virtual account',
@@ -125,11 +137,13 @@ router.post('/', async (req, res) => {
             return;
         }
         const accountData = zainpayResponse.data;
+        // Clean account name: remove "Zainpay" prefix if present
+        const cleanedAccountName = accountData.accountName.replace(/Zainpay/gi, '').trim();
         // Save virtual account to database
         const virtualAccount = new models_1.VirtualAccount({
             userId: new mongoose_1.default.Types.ObjectId(userId),
             accountNumber: accountData.accountNumber,
-            accountName: accountData.accountName,
+            accountName: cleanedAccountName,
             bankName: accountData.bankName,
             bankType,
             zainboxCode: targetZainboxCode,
@@ -156,9 +170,21 @@ router.post('/', async (req, res) => {
     }
     catch (error) {
         console.error('Create virtual account error:', error);
-        res.status(500).json({
+        const errorMessage = error.response?.data?.description ||
+            error.response?.data?.message ||
+            error.message ||
+            'Failed to create virtual account';
+        // Avoid returning 401/403 to frontend to prevent auto-logout
+        // unless it's truly an auth issue with the user (which is handled by middleware)
+        let status = error.response?.status || 500;
+        if (status === 401 || status === 403) {
+            status = 500; // Map upstream auth errors to server error
+        }
+        console.error('Zainpay Error Details:', JSON.stringify(error.response?.data, null, 2));
+        res.status(status).json({
             success: false,
-            message: 'Failed to create virtual account',
+            message: errorMessage,
+            details: error.response?.data
         });
     }
 });
@@ -174,17 +200,17 @@ router.get('/', async (req, res) => {
         if (userZainbox) {
             try {
                 // 2. Fetch accounts from Zainpay
-                const zainpayAccounts = await services_1.zainpayService.getZainboxAccounts(userZainbox.zainboxCode);
+                const zainpayResponse = await services_1.zainpayService.getZainboxAccounts(userZainbox.zainboxCode);
                 // 3. Sync with local DB
-                if (Array.isArray(zainpayAccounts)) {
-                    for (const zAccount of zainpayAccounts) {
-                        const exists = await models_1.VirtualAccount.findOne({ accountNumber: zAccount.bankAccount });
-                        if (!exists) {
+                if (zainpayResponse.code === '00' && Array.isArray(zainpayResponse.data)) {
+                    for (const zAccount of zainpayResponse.data) {
+                        let account = await models_1.VirtualAccount.findOne({ accountNumber: zAccount.bankAccount });
+                        if (!account) {
                             // Create new local record
                             await models_1.VirtualAccount.create({
                                 userId: new mongoose_1.default.Types.ObjectId(userId),
                                 accountNumber: zAccount.bankAccount,
-                                accountName: zAccount.name,
+                                accountName: zAccount.name.replace(/Zainpay/gi, '').trim(),
                                 bankName: zAccount.bankName,
                                 bankType: 'gtBank', // Default or infer from bankName if possible
                                 zainboxCode: userZainbox.zainboxCode,
@@ -192,6 +218,11 @@ router.get('/', async (req, res) => {
                                 status: 'active',
                                 reference: `imported_${Date.now()}_${Math.random().toString(36).substring(7)}`
                             });
+                        }
+                        else if (account.userId.toString() !== userId.toString()) {
+                            // Update existing record with correct userId if it belongs to this user's zainbox
+                            account.userId = new mongoose_1.default.Types.ObjectId(userId);
+                            await account.save();
                         }
                     }
                 }
@@ -202,9 +233,17 @@ router.get('/', async (req, res) => {
             }
         }
         // 4. Return all accounts from DB
-        const accounts = await models_1.VirtualAccount.find({
-            userId: new mongoose_1.default.Types.ObjectId(userId),
-        }).sort({ createdAt: -1 });
+        const query = {};
+        if (req.user.role !== 'admin') {
+            // Get user's Zainboxes to include accounts by zainboxCode as well
+            const userZainboxes = await models_1.Zainbox.find({ userId });
+            const zainboxCodes = userZainboxes.map(z => z.zainboxCode).filter(Boolean);
+            query.$or = [
+                { userId: new mongoose_1.default.Types.ObjectId(userId) },
+                { zainboxCode: { $in: zainboxCodes } }
+            ];
+        }
+        const accounts = await models_1.VirtualAccount.find(query).sort({ createdAt: -1 });
         res.json({
             success: true,
             data: accounts.map((account) => ({
@@ -236,11 +275,12 @@ router.get('/:accountNumber/balance', async (req, res) => {
     try {
         const userId = req.user.id;
         const { accountNumber } = req.params;
-        // Verify account belongs to user
-        const account = await models_1.VirtualAccount.findOne({
-            userId: new mongoose_1.default.Types.ObjectId(userId),
-            accountNumber,
-        });
+        // Verify account belongs to user (or user is admin)
+        const query = { accountNumber };
+        if (req.user.role !== 'admin') {
+            query.userId = new mongoose_1.default.Types.ObjectId(userId);
+        }
+        const account = await models_1.VirtualAccount.findOne(query);
         if (!account) {
             res.status(404).json({
                 success: false,
@@ -259,7 +299,10 @@ router.get('/:accountNumber/balance', async (req, res) => {
         }
         res.json({
             success: true,
-            data: balanceResponse.data,
+            data: {
+                ...balanceResponse.data,
+                balanceAmount: (balanceResponse.data?.balanceAmount || 0) / 100
+            },
         });
     }
     catch (error) {
@@ -279,11 +322,12 @@ router.patch('/:accountNumber/status', async (req, res) => {
         const userId = req.user.id;
         const { accountNumber } = req.params;
         const { status } = req.body; // true for active, false for inactive
-        // Verify account belongs to user
-        const account = await models_1.VirtualAccount.findOne({
-            userId: new mongoose_1.default.Types.ObjectId(userId),
-            accountNumber,
-        });
+        // Verify account belongs to user (or user is admin)
+        const query = { accountNumber };
+        if (req.user.role !== 'admin') {
+            query.userId = new mongoose_1.default.Types.ObjectId(userId);
+        }
+        const account = await models_1.VirtualAccount.findOne(query);
         if (!account) {
             res.status(404).json({
                 success: false,
@@ -328,11 +372,12 @@ router.get('/:accountNumber/transactions', async (req, res) => {
     try {
         const userId = req.user.id;
         const { accountNumber } = req.params;
-        // Verify account belongs to user
-        const account = await models_1.VirtualAccount.findOne({
-            userId: new mongoose_1.default.Types.ObjectId(userId),
-            accountNumber,
-        });
+        // Verify account belongs to user (or user is admin)
+        const query = { accountNumber };
+        if (req.user.role !== 'admin') {
+            query.userId = new mongoose_1.default.Types.ObjectId(userId);
+        }
+        const account = await models_1.VirtualAccount.findOne(query);
         if (!account) {
             res.status(404).json({
                 success: false,
@@ -349,9 +394,13 @@ router.get('/:accountNumber/transactions', async (req, res) => {
             });
             return;
         }
+        const transactions = (transactionsResponse.data || []).map((txn) => ({
+            ...txn,
+            amount: (txn.amount || 0) / 100
+        }));
         res.json({
             success: true,
-            data: transactionsResponse.data,
+            data: transactions,
         });
     }
     catch (error) {
