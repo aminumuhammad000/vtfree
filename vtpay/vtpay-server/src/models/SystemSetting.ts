@@ -66,6 +66,9 @@ export interface ISystemSettingDocument extends Document {
         bankSettlementFee: number;
         bankSettlementThreshold: number;
     };
+    deposit: {
+        vtpayFeePercent: number;
+    };
     updatedAt: Date;
 }
 
@@ -135,6 +138,9 @@ const SystemSettingSchema = new Schema<ISystemSettingDocument>(
             zainpayPercentFee: { type: Number, default: 1.6 },
             bankSettlementFee: { type: Number, default: 2500 }, // 25 Naira
             bankSettlementThreshold: { type: Number, default: 0 },
+        },
+        deposit: {
+            vtpayFeePercent: { type: Number, default: 2.0 }, // Default 2% total fee
         },
     },
     {
