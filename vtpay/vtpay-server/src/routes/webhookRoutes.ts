@@ -36,6 +36,66 @@ router.post('/zainpay', verifyWebhookSignature, async (req: Request, res: Respon
 });
 
 /**
+ * Payrant Webhook Handler
+ * POST /api/webhooks/payrant
+ */
+router.post('/payrant', async (req: Request, res: Response): Promise<void> => {
+    try {
+        console.log('Received Payrant webhook:', JSON.stringify(req.body, null, 2));
+
+        const { payoutService } = await import('../services/PayoutService');
+        const { status, data } = req.body;
+
+        if (status === 'success' && data?.transfer_id) {
+            const { Payout } = await import('../models/Payout');
+            const payout = await Payout.findOne({ externalRef: data.transfer_id });
+            if (payout) {
+                if (data.status === 'success') {
+                    await payoutService.handlePayoutSuccess(payout, data.amount);
+                } else if (data.status === 'failed') {
+                    await payoutService.handlePayoutFailure(payout, data.message || 'Payrant reported failure');
+                }
+            }
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Webhook processed',
+        });
+    } catch (error) {
+        console.error('Payrant Webhook error:', error);
+        res.status(200).json({
+            success: false,
+            message: 'Webhook received but processing failed',
+        });
+    }
+});
+
+/**
+ * Zainpay Settlement Webhook Handler
+ * POST /api/webhooks/zainpay/settlement
+ */
+router.post('/zainpay/settlement', verifyWebhookSignature, async (req: Request, res: Response): Promise<void> => {
+    try {
+        console.log('Received Zainpay settlement webhook:', JSON.stringify(req.body, null, 2));
+
+        const { settlementService } = await import('../services/SettlementService');
+        await settlementService.handleSettlementWebhook(req.body);
+
+        res.status(200).json({
+            success: true,
+            message: 'Settlement webhook processed',
+        });
+    } catch (error) {
+        console.error('Settlement Webhook error:', error);
+        res.status(200).json({
+            success: false,
+            message: 'Webhook received but processing failed',
+        });
+    }
+});
+
+/**
  * Webhook health check (for testing)
  * GET /api/webhooks/health
  */

@@ -24,6 +24,14 @@ export interface IUserDocument extends Document {
         accountNumber: string;
         accountName: string;
     };
+    payoutAccounts?: Array<{
+        id: string;
+        bankCode: string;
+        bankName: string;
+        accountNumber: string;
+        accountName: string;
+        isPrimary?: boolean;
+    }>;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -114,6 +122,15 @@ const UserSchema = new Schema<IUserDocument>(
             accountNumber: String,
             accountName: String,
         },
+        payoutAccounts: [
+            {
+                bankCode: String,
+                bankName: String,
+                accountNumber: String,
+                accountName: String,
+                isPrimary: { type: Boolean, default: false },
+            },
+        ],
     },
     {
         timestamps: true,

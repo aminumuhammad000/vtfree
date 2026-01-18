@@ -27,6 +27,23 @@ export interface ISystemSettingDocument extends Document {
             baseUrl: string;
             isLive: boolean;
         };
+        payrant: {
+            apiKey: string;
+            baseUrl: string;
+        };
+    };
+    parentAccount: {
+        accountName: string;
+        accountNumber: string;
+        bankCode: string;
+        type: 'PRIMARY' | 'SECONDARY';
+        status: 'ACTIVE' | 'INACTIVE';
+    };
+    zainpaySettlement: {
+        zainboxCode: string;
+        scheduleType: 'T1' | 'T0';
+        schedulePeriod: 'Daily' | 'Weekly' | 'Monthly';
+        status: boolean;
     };
     emailConfig: {
         provider: 'gmail' | 'other';
@@ -41,6 +58,13 @@ export interface ISystemSettingDocument extends Document {
             user: string;
             pass: string;
         };
+    };
+    payout: {
+        minAmount: number;
+        vtpayFeePercent: number;
+        zainpayPercentFee: number;
+        bankSettlementFee: number;
+        bankSettlementThreshold: number;
     };
     updatedAt: Date;
 }
@@ -73,6 +97,23 @@ const SystemSettingSchema = new Schema<ISystemSettingDocument>(
                 baseUrl: { type: String, default: 'https://api.zainpay.ng' },
                 isLive: { type: Boolean, default: false },
             },
+            payrant: {
+                apiKey: { type: String, default: '' },
+                baseUrl: { type: String, default: 'https://api-core.payrant.com/' },
+            },
+        },
+        parentAccount: {
+            accountName: { type: String, default: '' },
+            accountNumber: { type: String, default: '' },
+            bankCode: { type: String, default: '' },
+            type: { type: String, enum: ['PRIMARY', 'SECONDARY'], default: 'PRIMARY' },
+            status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' },
+        },
+        zainpaySettlement: {
+            zainboxCode: { type: String, default: '' },
+            scheduleType: { type: String, enum: ['T1', 'T0'], default: 'T1' },
+            schedulePeriod: { type: String, enum: ['Daily', 'Weekly', 'Monthly'], default: 'Daily' },
+            status: { type: Boolean, default: false },
         },
         emailConfig: {
             provider: { type: String, enum: ['gmail', 'other'], default: 'gmail' },
@@ -87,6 +128,13 @@ const SystemSettingSchema = new Schema<ISystemSettingDocument>(
                 user: { type: String, default: '' },
                 pass: { type: String, default: '' },
             },
+        },
+        payout: {
+            minAmount: { type: Number, default: 10000 }, // 100 Naira
+            vtpayFeePercent: { type: Number, default: 0.6 },
+            zainpayPercentFee: { type: Number, default: 1.6 },
+            bankSettlementFee: { type: Number, default: 2500 }, // 25 Naira
+            bankSettlementThreshold: { type: Number, default: 0 },
         },
     },
     {

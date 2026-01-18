@@ -2,12 +2,10 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IPayoutDocument extends Document {
     userId: mongoose.Types.ObjectId;
-    amount: number; // Gross amount to be deducted from wallet
-    vtpayFee: number;
-    zainpayPercentFee: number;
-    zainpayFixedFee: number;
-    netAmount: number; // Amount user actually receives
-    totalDeducted: number; // Should be equal to amount
+    amount: number; // Requested amount
+    fee: number; // VTPay fee
+    payrantFee: number; // Payrant fee
+    totalDebit: number; // amount + fee + payrantFee
     bankCode: string;
     accountNumber: string;
     accountName: string;
@@ -19,10 +17,12 @@ export interface IPayoutDocument extends Document {
     failureReason?: string;
     retryCount: number;
     lastReconciledAt?: Date;
+    notifyUrl?: string;
     createdAt: Date;
     updatedAt: Date;
     completedAt?: Date;
 }
+
 
 const PayoutSchema = new Schema<IPayoutDocument>(
     {
@@ -36,24 +36,15 @@ const PayoutSchema = new Schema<IPayoutDocument>(
             required: true,
             min: 0,
         },
-        vtpayFee: {
+        fee: {
             type: Number,
             default: 0,
         },
-        zainpayPercentFee: {
+        payrantFee: {
             type: Number,
             default: 0,
         },
-        zainpayFixedFee: {
-            type: Number,
-            default: 0,
-        },
-        netAmount: {
-            type: Number,
-            required: true,
-            min: 0,
-        },
-        totalDeducted: {
+        totalDebit: {
             type: Number,
             required: true,
             min: 0,
@@ -87,6 +78,9 @@ const PayoutSchema = new Schema<IPayoutDocument>(
         idempotencyKey: {
             type: String,
             index: true,
+        },
+        notifyUrl: {
+            type: String,
         },
         status: {
             type: String,
