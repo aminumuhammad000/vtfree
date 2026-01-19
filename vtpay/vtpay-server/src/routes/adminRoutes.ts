@@ -500,10 +500,13 @@ router.get('/tenants/:id', async (req: AuthenticatedRequest, res: Response): Pro
 
                         const exists = await VirtualAccount.findOne({ accountNumber: zAccount.bankAccount });
                         if (!exists) {
+                            const rawName = zAccount.name.replace(/Zainpay|znpay/gi, '').replace(/\s+/g, ' ').replace(/^[\s-]*|[\s-]*$/g, '');
+                            const finalName = `VTPay - ${rawName}`;
+
                             await VirtualAccount.create({
                                 userId: id,
                                 accountNumber: zAccount.bankAccount,
-                                accountName: zAccount.name,
+                                accountName: finalName,
                                 bankName: zAccount.bankName,
                                 bankType: 'gtBank',
                                 zainboxCode: zBox.zainboxCode,
@@ -925,10 +928,13 @@ router.get('/zainboxes/:zainboxCode', async (req: AuthenticatedRequest, res: Res
 
                     const exists = await VirtualAccount.findOne({ accountNumber: zAccount.bankAccount });
                     if (!exists) {
+                        const rawName = zAccount.name.replace(/Zainpay|znpay/gi, '').replace(/\s+/g, ' ').replace(/^[\s-]*|[\s-]*$/g, '');
+                        const finalName = `VTPay - ${rawName}`;
+
                         await VirtualAccount.create({
                             userId: zainbox.userId,
                             accountNumber: zAccount.bankAccount,
-                            accountName: zAccount.name,
+                            accountName: finalName,
                             bankName: zAccount.bankName,
                             bankType: 'gtBank', // Default
                             zainboxCode: zainboxCode,

@@ -199,10 +199,12 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
         // So we should prioritize the name they put in the form (req.body.accountName)
 
         if (accountName) {
-            finalAccountName = `VTPay - ${accountName}`;
+            // Clean user provided name to remove unwanted prefixes
+            const cleanedUserProvidedName = accountName.replace(/Zainpay|znpay/gi, '').replace(/\s+/g, ' ').replace(/^[\s-]*|[\s-]*$/g, '');
+            finalAccountName = `VTPay - ${cleanedUserProvidedName}`;
         } else {
             // Fallback to cleaning the returned name if no custom name provided
-            const cleanedName = accountData.accountName.replace(/Zainpay/gi, '').replace(/^[\s-]*|[\s-]*$/g, '');
+            const cleanedName = accountData.accountName.replace(/Zainpay|znpay/gi, '').replace(/\s+/g, ' ').replace(/^[\s-]*|[\s-]*$/g, '');
             finalAccountName = `VTPay - ${cleanedName}`;
         }
 
@@ -215,7 +217,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
             bankType,
             zainboxCode: targetZainboxCode,
             email: email || user.email, // Use customer email if provided
-            alias: accountName, // Save the custom name
+            alias: accountName ? accountName.replace(/Zainpay|znpay/gi, '').replace(/\s+/g, ' ').replace(/^[\s-]*|[\s-]*$/g, '') : accountName, // Save the cleaned custom name
             reference, // Save the reference ID
             status: 'active',
         });
@@ -288,7 +290,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
 
                         if (!account) {
                             // Create new local record
-                            const rawName = zAccount.name.replace(/Zainpay/gi, '').replace(/^[\s-]*|[\s-]*$/g, '');
+                            const rawName = zAccount.name.replace(/Zainpay|znpay/gi, '').replace(/\s+/g, ' ').replace(/^[\s-]*|[\s-]*$/g, '');
                             const finalName = `VTPay - ${rawName}`;
 
                             await VirtualAccount.create({
@@ -307,9 +309,9 @@ router.get('/', async (req: AuthenticatedRequest, res: Response): Promise<void> 
                             account.userId = new mongoose.Types.ObjectId(userId);
                             await account.save();
                         }
-                        // Force update name for existing accounts too if they contain Zainpay
-                        else if (account.accountName.includes('Zainpay')) {
-                            const rawName = account.accountName.replace(/Zainpay/gi, '').replace(/^[\s-]*|[\s-]*$/g, '');
+                        // Force update name for existing accounts too if they contain Zainpay or znpay
+                        else if (account.accountName.match(/Zainpay|znpay/i)) {
+                            const rawName = account.accountName.replace(/Zainpay|znpay/gi, '').replace(/\s+/g, ' ').replace(/^[\s-]*|[\s-]*$/g, '');
                             account.accountName = `VTPay - ${rawName}`;
                             await account.save();
                         }
