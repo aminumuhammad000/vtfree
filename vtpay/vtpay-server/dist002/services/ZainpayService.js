@@ -47,8 +47,10 @@ class ZainpayService {
         this.initializeClient();
     }
     initializeClient() {
+        // Ensure no trailing slash
+        const baseURL = this.baseUrl.endsWith('/') ? this.baseUrl.slice(0, -1) : this.baseUrl;
         this.client = axios_1.default.create({
-            baseURL: this.baseUrl,
+            baseURL,
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${this.publicKey}`,

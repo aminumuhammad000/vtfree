@@ -28,6 +28,10 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
         });
     } catch (error: any) {
         console.error('Get bank list error:', error.message);
+        if (error.response) {
+            console.error('Zainpay API Status:', error.response.status);
+            console.error('Zainpay API Data:', error.response.data);
+        }
         res.status(500).json({
             success: false,
             message: 'Failed to get bank list',
@@ -69,8 +73,12 @@ router.get('/verify', async (req: Request, res: Response): Promise<void> => {
             success: true,
             data: response.data,
         });
-    } catch (error) {
-        console.error('Name enquiry error:', error);
+    } catch (error: any) {
+        console.error('Name enquiry error:', error.message);
+        if (error.response) {
+            console.error('Zainpay API Status:', error.response.status);
+            console.error('Zainpay API Data:', error.response.data);
+        }
         res.status(500).json({
             success: false,
             message: 'Failed to verify account',
