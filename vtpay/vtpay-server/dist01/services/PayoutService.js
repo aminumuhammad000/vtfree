@@ -18,6 +18,20 @@ class PayoutService {
      * Calculate payout fees
      */
     async calculateFees(amount, isInternal) {
+        // Ensure amount is a number
+        const safeAmount = Number(amount);
+        if (isNaN(safeAmount)) {
+            return {
+                fee: 0,
+                payrantFee: 0,
+                totalDebit: 0,
+                vtpayFee: 0,
+                zainpayPercentFee: 0,
+                zainpayFixedFee: 0,
+                totalDeducted: 0,
+                netAmount: 0
+            };
+        }
         const settings = await models_1.SystemSetting.findOne();
         const payoutSettings = settings?.payout || {
             vtpayFeePercent: 0.6,
@@ -26,26 +40,44 @@ class PayoutService {
         };
         let fee = 0; // VTPay fee
         let payrantFee = 0;
+        let netAmount = 0;
         if (isInternal) {
             fee = 0;
             payrantFee = 0;
+            netAmount = safeAmount;
         }
         else {
-            // VTPay fee (Percentage)
-            const vtpayFeePercent = payoutSettings.vtpayFeePercent ?? 0.6;
-            fee = Math.ceil(amount * (vtpayFeePercent / 100));
             // Bank Settlement Fee (Fixed)
-            // Apply only if amount is greater than or equal to threshold
-            // If threshold is 0, it applies to all amounts (or we can interpret 0 as 'always apply')
-            const threshold = payoutSettings.bankSettlementThreshold ?? 0;
-            if (amount >= threshold) {
-                payrantFee = payoutSettings.bankSettlementFee ?? 2500;
+            let bankSettlementFee = Number(payoutSettings.bankSettlementFee);
+            if (isNaN(bankSettlementFee))
+                bankSettlementFee = 2500;
+            let threshold = Number(payoutSettings.bankSettlementThreshold);
+            if (isNaN(threshold))
+                threshold = 0;
+            if (safeAmount >= threshold) {
+                payrantFee = bankSettlementFee;
             }
             else {
                 payrantFee = 0;
             }
+            // VTPay fee (Percentage)
+            let vtpayFeePercent = Number(payoutSettings.vtpayFeePercent);
+            if (isNaN(vtpayFeePercent))
+                vtpayFeePercent = 0.6;
+            // Calculate Net Amount: Net = (Total - Fixed) / (1 + Rate)
+            const remaining = safeAmount - payrantFee;
+            if (remaining > 0) {
+                netAmount = Math.floor(remaining / (1 + vtpayFeePercent / 100));
+                // Fee is the difference to ensure Total = Input
+                fee = safeAmount - netAmount - payrantFee;
+            }
+            else {
+                netAmount = 0;
+                fee = 0;
+                payrantFee = 0; // Cannot afford fixed fee
+            }
         }
-        const totalDebit = amount + fee + payrantFee;
+        const totalDebit = safeAmount;
         return {
             // Backend fields
             fee,
@@ -56,7 +88,7 @@ class PayoutService {
             zainpayPercentFee: 0,
             zainpayFixedFee: payrantFee,
             totalDeducted: totalDebit,
-            netAmount: amount
+            netAmount: netAmount
         };
     }
     /**
@@ -87,7 +119,7 @@ class PayoutService {
             // 3. Create Payout Record
             const payout = new models_1.Payout({
                 userId: new mongoose_1.default.Types.ObjectId(userId),
-                amount,
+                amount: fees.netAmount, // Use the Net Amount (what user receives)
                 fee: fees.fee,
                 payrantFee: fees.payrantFee,
                 totalDebit: fees.totalDebit,

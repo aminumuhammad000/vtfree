@@ -73,18 +73,19 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
  */
 router.post('/calculate-fees', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
-        const { amount, accountNumber } = req.body;
+        const { accountNumber } = req.body;
+        const amount = Number(req.body.amount);
 
-        if (!amount) {
+        if (isNaN(amount) || amount <= 0) {
             res.status(400).json({
                 success: false,
-                message: 'Amount is required',
+                message: 'Amount is required and must be greater than 0',
             });
             return;
         }
 
         const isInternal = await VirtualAccount.exists({ accountNumber });
-        const fees = payoutService.calculateFees(amount, !!isInternal);
+        const fees = await payoutService.calculateFees(amount, !!isInternal);
 
         res.json({
             success: true,

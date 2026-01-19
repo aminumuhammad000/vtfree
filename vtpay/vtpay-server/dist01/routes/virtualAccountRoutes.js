@@ -19,16 +19,10 @@ router.get('/supported-banks', async (req, res) => {
     try {
         // Zainpay supports specific banks for virtual accounts
         const supportedBanks = [
-            { code: 'zenithBank', name: 'Zenith Bank Plc' },
-            { code: 'firstBank', name: 'First Bank of Nigeria Plc' },
-            { code: 'accessBank', name: 'Access Bank Plc' },
+            { code: 'moniepoint', name: 'Moniepoint Microfinance Bank' },
             { code: 'fcmb', name: 'FCMB' },
-            { code: 'fidelity', name: 'Fidelity Bank Plc' },
             { code: 'sterlingBank', name: 'Sterling Bank Plc' },
-            { code: 'polarisBank', name: 'Polaris Bank' },
-            { code: 'kudaBank', name: 'Kuda Microfinance Bank' },
-            { code: 'jaizBank', name: 'Jaiz Bank' },
-            { code: 'tajBank', name: 'Taj Bank' }
+            { code: 'fidelity', name: 'Fidelity Bank Plc' }
         ];
         res.json({
             success: true,
@@ -124,12 +118,29 @@ router.post('/', async (req, res) => {
                 validatedDob = `${parts[2]}-${parts[1]}-${parts[0]}`;
             }
         }
+        // Parse account name into first and last name if provided
+        let payloadFirstName = firstName || user.firstName;
+        let payloadSurname = lastName || user.lastName;
+        if (accountName) {
+            const nameParts = accountName.trim().split(' ');
+            if (nameParts.length > 0) {
+                payloadFirstName = nameParts[0];
+                if (nameParts.length > 1) {
+                    payloadSurname = nameParts.slice(1).join(' ');
+                }
+                else {
+                    // If only one name provided, use it as surname too or keep user's surname?
+                    // Better to use it as surname to avoid empty surname if required
+                    payloadSurname = nameParts[0];
+                }
+            }
+        }
         // Create virtual account via Zainpay
-        // Use provided customer details OR fallback to logged-in user details
+        // PRIORITIZE provided customer details over logged-in user details
         const payload = {
             bankType,
-            firstName: firstName || user.firstName,
-            surname: lastName || user.lastName,
+            firstName: payloadFirstName,
+            surname: payloadSurname,
             email: email || user.email,
             mobileNumber: phone || user.phone,
             dob: validatedDob,
@@ -151,13 +162,28 @@ router.post('/', async (req, res) => {
             return;
         }
         const accountData = zainpayResponse.data;
-        // Clean account name: remove "Zainpay" prefix if present
-        const cleanedAccountName = accountData.accountName.replace(/Zainpay/gi, '').trim();
+        // Force VTPay branding
+        // Use the user-provided account name (alias) if available, otherwise clean up the returned name
+        let finalAccountName = `VTPay - ${accountName || firstName || user.firstName}`;
+        // If the returned name from Zainpay is significantly different and we want to keep it but rebrand
+        // const cleanedReturnedName = accountData.accountName.replace(/Zainpay/gi, '').replace(/[^a-zA-Z0-9\s]/g, '').trim();
+        // finalAccountName = `VTPay - ${cleanedReturnedName}`;
+        // However, user specifically asked for "VTPay" in account name and "not the name i put" implies they want control
+        // But also said "it show zainpay-Aminu Muhammad and is not the name i put"
+        // So we should prioritize the name they put in the form (req.body.accountName)
+        if (accountName) {
+            finalAccountName = `VTPay - ${accountName}`;
+        }
+        else {
+            // Fallback to cleaning the returned name if no custom name provided
+            const cleanedName = accountData.accountName.replace(/Zainpay/gi, '').replace(/^[\s-]*|[\s-]*$/g, '');
+            finalAccountName = `VTPay - ${cleanedName}`;
+        }
         // Save virtual account to database
         const virtualAccount = new models_1.VirtualAccount({
             userId: new mongoose_1.default.Types.ObjectId(userId),
             accountNumber: accountData.accountNumber,
-            accountName: cleanedAccountName,
+            accountName: finalAccountName,
             bankName: accountData.bankName,
             bankType,
             zainboxCode: targetZainboxCode,
@@ -225,10 +251,12 @@ router.get('/', async (req, res) => {
                         let account = await models_1.VirtualAccount.findOne({ accountNumber: zAccount.bankAccount });
                         if (!account) {
                             // Create new local record
+                            const rawName = zAccount.name.replace(/Zainpay/gi, '').replace(/^[\s-]*|[\s-]*$/g, '');
+                            const finalName = `VTPay - ${rawName}`;
                             await models_1.VirtualAccount.create({
                                 userId: new mongoose_1.default.Types.ObjectId(userId),
                                 accountNumber: zAccount.bankAccount,
-                                accountName: zAccount.name.replace(/Zainpay/gi, '').trim(),
+                                accountName: finalName,
                                 bankName: zAccount.bankName,
                                 bankType: 'zenithBank', // Default or infer from bankName if possible
                                 zainboxCode: userZainbox.zainboxCode,
@@ -240,6 +268,12 @@ router.get('/', async (req, res) => {
                         else if (account.userId.toString() !== userId.toString()) {
                             // Update existing record with correct userId if it belongs to this user's zainbox
                             account.userId = new mongoose_1.default.Types.ObjectId(userId);
+                            await account.save();
+                        }
+                        // Force update name for existing accounts too if they contain Zainpay
+                        else if (account.accountName.includes('Zainpay')) {
+                            const rawName = account.accountName.replace(/Zainpay/gi, '').replace(/^[\s-]*|[\s-]*$/g, '');
+                            account.accountName = `VTPay - ${rawName}`;
                             await account.save();
                         }
                     }

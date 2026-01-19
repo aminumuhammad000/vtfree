@@ -200,8 +200,14 @@ class ZainpayService {
      * Get virtual account transactions
      */
     async getVirtualAccountTransactions(accountNumber) {
-        const response = await this.client.get(`/virtual-account/wallet/transactions/${accountNumber}`);
-        return response.data;
+        try {
+            const response = await this.client.get(`/virtual-account/wallet/transactions/${accountNumber}`);
+            return response.data;
+        }
+        catch (error) {
+            logger_1.logger.error(`Failed to fetch transactions for ${accountNumber}`, error.response?.data || error.message);
+            throw error;
+        }
     }
     /**
      * Get DVA deposit status
