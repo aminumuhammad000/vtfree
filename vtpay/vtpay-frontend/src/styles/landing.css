@@ -3,6 +3,10 @@
    Professional & Modern Design
    ============================ */
 
+body {
+    overflow-x: hidden;
+}
+
 .landing-page {
     min-height: 100vh;
     background: #ffffff;
@@ -29,6 +33,11 @@
     background: rgba(255, 255, 255, 0.95);
     border-bottom-color: rgba(22, 163, 74, 0.1);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.landing-nav.menu-open {
+    background: #ffffff !important;
+    backdrop-filter: none !important;
 }
 
 .landing-nav-container {
@@ -107,6 +116,70 @@
 
 .landing-nav-link:hover {
     color: #16A34A;
+}
+
+.landing-menu-btn {
+    display: none;
+    background: none;
+    border: none;
+    color: #1F2937;
+    cursor: pointer;
+    padding: 0.5rem;
+    z-index: 101;
+}
+
+/* Mobile Menu Overlay */
+.landing-mobile-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: white;
+    z-index: 99;
+    display: flex;
+    flex-direction: column;
+    padding: 100px 2rem 2rem;
+    transform: translateY(-100%);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0;
+    visibility: hidden;
+}
+
+.landing-mobile-menu.active {
+    transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+}
+
+.landing-mobile-menu-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.landing-mobile-link {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1F2937;
+    text-decoration: none;
+    padding: 1rem 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.landing-mobile-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, #16A34A 0%, #22C55E 100%);
+    color: white;
+    font-size: 1.125rem;
+    font-weight: 700;
+    border-radius: 16px;
+    text-decoration: none;
+    margin-top: 1rem;
 }
 
 /* ============================
@@ -979,6 +1052,10 @@
    RESPONSIVE
    ============================ */
 @media (max-width: 1024px) {
+    .landing-nav-container {
+        padding: 0 1.5rem;
+    }
+
     .landing-hero-title {
         font-size: 3.5rem;
     }
@@ -995,16 +1072,33 @@
     .landing-step-connector {
         display: none;
     }
-
 }
 
 @media (max-width: 768px) {
-    .landing-nav-links {
-        gap: 1rem;
+    .landing-nav-content {
+        height: 70px;
     }
 
-    .landing-nav-link:first-child {
-        display: none;
+    .landing-logo-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+    }
+
+    .landing-logo-inner {
+        font-size: 1.25rem;
+    }
+
+    .landing-logo-text {
+        font-size: 1.25rem;
+    }
+
+    .desktop-only {
+        display: none !important;
+    }
+
+    .landing-menu-btn {
+        display: block;
     }
 
     .landing-hero {
@@ -1074,6 +1168,10 @@
 @media (max-width: 480px) {
     .landing-container {
         padding: 0 1rem;
+    }
+
+    .landing-logo-text {
+        display: none;
     }
 
     .landing-hero-title {

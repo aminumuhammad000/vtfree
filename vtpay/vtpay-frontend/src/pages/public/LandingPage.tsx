@@ -16,12 +16,15 @@ import {
     Smartphone,
     BarChart3,
     Clock,
-    Layers
+    Layers,
+    Menu,
+    X
 } from 'lucide-react';
 import '../../styles/landing.css';
 
 export const LandingPage: React.FC = () => {
     const [isScrolled, setIsScrolled] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -31,10 +34,20 @@ export const LandingPage: React.FC = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
+    useEffect(() => {
+        if (isMenuOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+    }, [isMenuOpen]);
+
+    const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+
     return (
         <div className="landing-page">
             {/* Navigation */}
-            <nav className={`landing-nav ${isScrolled ? 'scrolled' : ''}`}>
+            <nav className={`landing-nav ${isScrolled ? 'scrolled' : ''} ${isMenuOpen ? 'menu-open' : ''}`}>
                 <div className="landing-nav-container">
                     <div className="landing-nav-content">
                         <Link to="/" className="landing-logo">
@@ -43,7 +56,9 @@ export const LandingPage: React.FC = () => {
                             </div>
                             <span className="landing-logo-text">VTPay</span>
                         </Link>
-                        <div className="landing-nav-links">
+
+                        {/* Desktop Links */}
+                        <div className="landing-nav-links desktop-only">
                             <Link to="/api-docs" className="landing-nav-link">Documentation</Link>
                             <Link to="/login" className="landing-nav-link">Log in</Link>
                             <Link to="/register" className="landing-btn-primary">
@@ -51,6 +66,23 @@ export const LandingPage: React.FC = () => {
                                 <ArrowRight className="landing-icon-sm" />
                             </Link>
                         </div>
+
+                        {/* Mobile Menu Button */}
+                        <button className="landing-menu-btn" onClick={toggleMenu} aria-label="Toggle menu">
+                            {isMenuOpen ? <X /> : <Menu />}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Mobile Menu Overlay */}
+                <div className={`landing-mobile-menu ${isMenuOpen ? 'active' : ''}`}>
+                    <div className="landing-mobile-menu-content">
+                        <Link to="/api-docs" className="landing-mobile-link" onClick={() => setIsMenuOpen(false)}>Documentation</Link>
+                        <Link to="/login" className="landing-mobile-link" onClick={() => setIsMenuOpen(false)}>Log in</Link>
+                        <Link to="/register" className="landing-mobile-btn" onClick={() => setIsMenuOpen(false)}>
+                            Get Started
+                            <ArrowRight className="landing-icon-sm" />
+                        </Link>
                     </div>
                 </div>
             </nav>

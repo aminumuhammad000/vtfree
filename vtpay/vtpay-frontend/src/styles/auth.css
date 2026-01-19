@@ -414,3 +414,96 @@
         transform: rotate(360deg);
     }
 }
+
+/* Mobile App-like Responsiveness */
+@media (max-width: 640px) {
+    .auth-container {
+        padding: 0;
+        background: white;
+        align-items: flex-start;
+    }
+
+    .auth-wrapper {
+        max-width: 100%;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .auth-card {
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
+        padding: 1.5rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .auth-brand {
+        padding-top: 2rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .auth-brand-icon {
+        width: 3.5rem;
+        height: 3.5rem;
+    }
+
+    .auth-brand h1 {
+        font-size: 1.5rem;
+    }
+
+    .auth-form {
+        gap: 1.25rem;
+    }
+
+    .auth-submit-btn {
+        padding: 1rem;
+        font-size: 1.125rem;
+        margin-top: 1rem;
+    }
+
+    .auth-footer {
+        margin-top: auto;
+        padding: 2rem 1.5rem;
+        background: #f8fafc;
+        border-top: 1px solid #f1f5f9;
+    }
+}
+
+/* Tailwind-specific overrides for mobile app feel */
+@media (max-width: 640px) {
+    .bg-green-50 {
+        background-color: white !important;
+    }
+
+    .rounded-3xl {
+        border-radius: 0 !important;
+    }
+
+    .shadow-xl {
+        box-shadow: none !important;
+    }
+
+    .border-gray-100 {
+        border: none !important;
+    }
+
+    .p-8 {
+        padding: 1.5rem !important;
+    }
+
+    .p-4 {
+        padding: 0 !important;
+    }
+
+    .min-h-screen.flex.items-center.justify-center {
+        align-items: flex-start !important;
+    }
+
+    input {
+        font-size: 16px !important;
+        /* Prevent iOS zoom on focus */
+    }
+}

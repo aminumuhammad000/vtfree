@@ -1,4 +1,4 @@
-import api, { generalApi } from './axios';
+import api from './axios';
 
 // Auth
 export const login = (data: { email: string; password: string; app_id: string }) =>
@@ -74,8 +74,8 @@ export const getVTPayAccounts = () => api.get('/funding/vtpay-accounts');
 
 // Transactions
 export const getTransactions = (params?: { page?: number; limit?: number; status?: string; type?: string }) =>
-  generalApi.get('/transactions/all', { params });
-export const getTransactionById = (id: string) => generalApi.get(`/transactions/${id}`);
+  api.get('/transactions/all', { params });
+export const getTransactionById = (id: string) => api.get(`/transactions/${id}`);
 
 // Admin Profile
 export const updateAdminProfile = (data: { first_name?: string; last_name?: string; email?: string }) =>

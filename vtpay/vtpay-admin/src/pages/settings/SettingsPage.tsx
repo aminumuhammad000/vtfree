@@ -3,12 +3,14 @@ import { adminApi } from '../../api/client';
 import toast from 'react-hot-toast';
 
 const SettingsPage: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'general' | 'notifications' | 'security' | 'integrations' | 'email'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'notifications' | 'security' | 'integrations' | 'payouts' | 'email'>('general');
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
     const [showApiKey, setShowApiKey] = useState(false);
     const [showSecretKey, setShowSecretKey] = useState(false);
     const [showEmailPass, setShowEmailPass] = useState(false);
+    const [banks, setBanks] = useState<any[]>([]);
+    const [isVerifying, setIsVerifying] = useState(false);
 
     // Settings state
     const [settings, setSettings] = useState({
@@ -37,7 +39,34 @@ const SettingsPage: React.FC = () => {
                 secretKey: '',
                 baseUrl: 'https://api.zainpay.ng',
                 isLive: false,
+            },
+            payrant: {
+                apiKey: '',
+                baseUrl: 'https://api-core.payrant.com/',
             }
+        },
+        parentAccount: {
+            accountName: '',
+            accountNumber: '',
+            bankCode: '',
+            type: 'PRIMARY' as 'PRIMARY' | 'SECONDARY',
+            status: 'ACTIVE' as 'ACTIVE' | 'INACTIVE',
+        },
+        zainpaySettlement: {
+            zainboxCode: '',
+            scheduleType: 'T1' as 'T1' | 'T0',
+            schedulePeriod: 'Daily' as 'Daily' | 'Weekly' | 'Monthly',
+            status: false,
+        },
+        payout: {
+            minAmount: 10000,
+            vtpayFeePercent: 0.6,
+            zainpayPercentFee: 1.6,
+            bankSettlementFee: 2500,
+            bankSettlementThreshold: 0,
+        },
+        deposit: {
+            vtpayFeePercent: 2.0,
         },
         emailConfig: {
             provider: 'gmail' as 'gmail' | 'other',
@@ -57,7 +86,44 @@ const SettingsPage: React.FC = () => {
 
     useEffect(() => {
         fetchSettings();
+        fetchBanks();
     }, []);
+
+    const fetchBanks = async () => {
+        try {
+            const data = await adminApi.getBanks();
+            setBanks(data);
+        } catch (error) {
+            console.error('Failed to fetch banks:', error);
+        }
+    };
+
+    const handleVerifyAccount = async () => {
+        const { bankCode, accountNumber } = settings.parentAccount;
+        if (!bankCode || !accountNumber) {
+            toast.error('Please select a bank and enter account number');
+            return;
+        }
+
+        try {
+            setIsVerifying(true);
+            const data = await adminApi.verifyAccount(bankCode, accountNumber);
+            if (data && data.accountName) {
+                setSettings({
+                    ...settings,
+                    parentAccount: {
+                        ...settings.parentAccount,
+                        accountName: data.accountName
+                    }
+                });
+                toast.success('Account verified successfully');
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Failed to verify account');
+        } finally {
+            setIsVerifying(false);
+        }
+    };
 
     const fetchSettings = async () => {
         try {
@@ -78,6 +144,7 @@ const SettingsPage: React.FC = () => {
         try {
             await adminApi.updateSystemSettings(settings);
             toast.success('Settings saved successfully!');
+            await fetchBanks();
         } catch (error) {
             console.error('Failed to save settings:', error);
             toast.error('Failed to save settings');
@@ -164,12 +231,12 @@ const SettingsPage: React.FC = () => {
     const renderNotificationSettings = () => (
         <div className="space-y-6">
             <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200">
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200 gap-4">
                     <div>
                         <p className="text-sm font-medium text-slate-900">Email Alerts</p>
                         <p className="text-xs text-slate-500">Receive critical system alerts via email</p>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
+                    <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
                         <input
                             type="checkbox"
                             checked={settings.notifications.emailAlerts}
@@ -183,12 +250,12 @@ const SettingsPage: React.FC = () => {
                     </label>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200">
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200 gap-4">
                     <div>
                         <p className="text-sm font-medium text-slate-900">Slack Integration</p>
                         <p className="text-xs text-slate-500">Send notifications to Slack channel</p>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
+                    <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
                         <input
                             type="checkbox"
                             checked={settings.notifications.slackIntegration}
@@ -202,12 +269,12 @@ const SettingsPage: React.FC = () => {
                     </label>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200">
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200 gap-4">
                     <div>
                         <p className="text-sm font-medium text-slate-900">Daily Reports</p>
                         <p className="text-xs text-slate-500">Generate and send daily transaction summaries</p>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
+                    <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
                         <input
                             type="checkbox"
                             checked={settings.notifications.dailyReports}
@@ -239,12 +306,12 @@ const SettingsPage: React.FC = () => {
 
     const renderSecuritySettings = () => (
         <div className="space-y-6">
-            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200 gap-4">
                 <div>
                     <p className="text-sm font-medium text-slate-900">Enforce 2FA</p>
                     <p className="text-xs text-slate-500">Require Two-Factor Authentication for all admin users</p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
                     <input
                         type="checkbox"
                         checked={settings.security.twoFactorAuth}
@@ -303,17 +370,17 @@ const SettingsPage: React.FC = () => {
     const renderIntegrationsSettings = () => (
         <div className="space-y-6">
             <div className="bg-white p-6 rounded-lg border border-slate-200">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 font-bold">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex-shrink-0 flex items-center justify-center text-blue-600 font-bold">
                             ZP
                         </div>
                         <div>
-                            <h3 className="text-lg font-medium text-slate-900">Zainpay Integration</h3>
-                            <p className="text-sm text-slate-500">Configure your Zainpay payment gateway credentials</p>
+                            <h3 className="text-base md:text-lg font-medium text-slate-900">Zainpay Integration</h3>
+                            <p className="text-xs md:text-sm text-slate-500">Configure your Zainpay payment gateway credentials</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 w-full sm:w-auto justify-between sm:justify-start">
                         <span className={`text-sm font-medium ${settings.integrations.zainpay.isLive ? 'text-green-600' : 'text-yellow-600'}`}>
                             {settings.integrations.zainpay.isLive ? 'Live Mode' : 'Test Mode'}
                         </span>
@@ -432,6 +499,294 @@ const SettingsPage: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Payrant Configuration */}
+            <div className="bg-white p-6 rounded-lg border border-slate-200">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex-shrink-0 flex items-center justify-center text-green-600 font-bold">
+                        PR
+                    </div>
+                    <div>
+                        <h3 className="text-base md:text-lg font-medium text-slate-900">Payrant Configuration</h3>
+                        <p className="text-xs md:text-sm text-slate-500">Configure Payrant API credentials for payouts</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-6">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Payrant API Key</label>
+                        <input
+                            type="password"
+                            value={settings.integrations.payrant?.apiKey || ''}
+                            onChange={(e) => setSettings({
+                                ...settings,
+                                integrations: {
+                                    ...settings.integrations,
+                                    payrant: { ...settings.integrations.payrant, apiKey: e.target.value }
+                                }
+                            })}
+                            className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 font-mono text-sm"
+                            placeholder="Enter Payrant API Key"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Payrant Base URL</label>
+                        <input
+                            type="text"
+                            value={settings.integrations.payrant?.baseUrl || ''}
+                            onChange={(e) => setSettings({
+                                ...settings,
+                                integrations: {
+                                    ...settings.integrations,
+                                    payrant: { ...settings.integrations.payrant, baseUrl: e.target.value }
+                                }
+                            })}
+                            className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                            placeholder="https://api-core.payrant.com/"
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderPayoutSettings = () => (
+        <div className="space-y-6">
+            {/* Parent Account Configuration */}
+            <div className="bg-white p-6 rounded-lg border border-slate-200">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex-shrink-0 flex items-center justify-center text-purple-600 font-bold">
+                        PA
+                    </div>
+                    <div>
+                        <h3 className="text-base md:text-lg font-medium text-slate-900">Payrant Parent Account</h3>
+                        <p className="text-xs md:text-sm text-slate-500">Configure the source account for Payrant transfers</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Select Bank</label>
+                        <select
+                            value={settings.parentAccount?.bankCode || ''}
+                            onChange={(e) => setSettings({
+                                ...settings,
+                                parentAccount: { ...settings.parentAccount, bankCode: e.target.value }
+                            })}
+                            className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        >
+                            <option value="">Select a bank</option>
+                            {banks.map((bank) => (
+                                <option key={bank.bankCode} value={bank.bankCode}>
+                                    {bank.bankName}
+                                </option>
+                            ))}
+                        </select>
+                        {banks.length === 0 && (
+                            <p className="text-xs text-red-500 mt-1">
+                                No banks found. Please ensure <strong>Zainpay Integration</strong> is configured correctly in the Integrations tab.
+                            </p>
+                        )}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Account Number</label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={settings.parentAccount?.accountNumber || ''}
+                                onChange={(e) => setSettings({
+                                    ...settings,
+                                    parentAccount: { ...settings.parentAccount, accountNumber: e.target.value }
+                                })}
+                                className="flex-1 px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                placeholder="10-digit account number"
+                                maxLength={10}
+                            />
+                            <button
+                                onClick={handleVerifyAccount}
+                                disabled={isVerifying || !settings.parentAccount.bankCode || settings.parentAccount.accountNumber.length !== 10}
+                                className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium flex items-center gap-2"
+                            >
+                                {isVerifying ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Verifying...
+                                    </>
+                                ) : 'Verify'}
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Account Name (Verified)</label>
+                        <input
+                            type="text"
+                            value={settings.parentAccount?.accountName || ''}
+                            readOnly
+                            className="w-full px-4 py-2 border border-slate-300 bg-slate-50 text-slate-600 rounded-lg focus:outline-none cursor-not-allowed"
+                            placeholder="Verified account name will appear here"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+                        <select
+                            value={settings.parentAccount?.status || 'ACTIVE'}
+                            onChange={(e) => setSettings({
+                                ...settings,
+                                parentAccount: { ...settings.parentAccount, status: e.target.value as 'ACTIVE' | 'INACTIVE' }
+                            })}
+                            className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        >
+                            <option value="ACTIVE">Active</option>
+                            <option value="INACTIVE">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            {/* Zainpay Settlement Configuration */}
+            <div className="bg-white p-6 rounded-lg border border-slate-200">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-amber-100 rounded-lg flex-shrink-0 flex items-center justify-center text-amber-600 font-bold">
+                        ZS
+                    </div>
+                    <div>
+                        <h3 className="text-base md:text-lg font-medium text-slate-900">Global Settlement Configuration</h3>
+                        <p className="text-xs md:text-sm text-slate-500">Configure automatic T1 settlement for <strong>ALL</strong> Zainboxes to the Parent Account</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Schedule Type</label>
+                        <select
+                            value={settings.zainpaySettlement?.scheduleType || 'T1'}
+                            onChange={(e) => setSettings({
+                                ...settings,
+                                zainpaySettlement: { ...settings.zainpaySettlement, scheduleType: e.target.value as 'T1' | 'T0' }
+                            })}
+                            className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        >
+                            <option value="T1">T+1 (Next Day)</option>
+                            <option value="T0">T+0 (Same Day)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Settlement Status</label>
+                        <div className="flex items-center gap-3 p-2">
+                            <input
+                                type="checkbox"
+                                checked={settings.zainpaySettlement?.status || false}
+                                onChange={(e) => setSettings({
+                                    ...settings,
+                                    zainpaySettlement: { ...settings.zainpaySettlement, status: e.target.checked }
+                                })}
+                                className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
+                            />
+                            <span className="text-sm text-slate-600">Enable Automatic Settlement</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Deposit Fee Configuration */}
+            <div className="bg-white p-6 rounded-lg border border-slate-200">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex-shrink-0 flex items-center justify-center text-green-600 font-bold">
+                        DF
+                    </div>
+                    <div>
+                        <h3 className="text-base md:text-lg font-medium text-slate-900">Deposit Fee Configuration</h3>
+                        <p className="text-xs md:text-sm text-slate-500">Configure fees for incoming transfers (Deposits)</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">VTPay Deposit Fee (%)</label>
+                        <input
+                            type="number"
+                            step="0.1"
+                            value={settings.deposit?.vtpayFeePercent || 0}
+                            onChange={(e) => setSettings({
+                                ...settings,
+                                deposit: { ...settings.deposit, vtpayFeePercent: parseFloat(e.target.value) }
+                            })}
+                            className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                        <p className="text-xs text-slate-500 mt-1">
+                            This is the total fee percentage deducted from the user's deposit.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Payout Fee Configuration */}
+            <div className="bg-white p-6 rounded-lg border border-slate-200">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex-shrink-0 flex items-center justify-center text-blue-600 font-bold">
+                        PF
+                    </div>
+                    <div>
+                        <h3 className="text-base md:text-lg font-medium text-slate-900">Payout Configuration</h3>
+                        <p className="text-xs md:text-sm text-slate-500">Configure fees and limits for payouts</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Min Payout Amount (Kobo)</label>
+                        <input
+                            type="number"
+                            value={settings.payout?.minAmount || 0}
+                            onChange={(e) => setSettings({
+                                ...settings,
+                                payout: { ...settings.payout, minAmount: parseInt(e.target.value) }
+                            })}
+                            className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">VTPay Payout Fee (%)</label>
+                        <input
+                            type="number"
+                            step="0.1"
+                            value={settings.payout?.vtpayFeePercent || 0}
+                            onChange={(e) => setSettings({
+                                ...settings,
+                                payout: { ...settings.payout, vtpayFeePercent: parseFloat(e.target.value) }
+                            })}
+                            className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Bank Settlement Fee (Kobo)</label>
+                        <input
+                            type="number"
+                            value={settings.payout?.bankSettlementFee || 0}
+                            onChange={(e) => setSettings({
+                                ...settings,
+                                payout: { ...settings.payout, bankSettlementFee: parseInt(e.target.value) }
+                            })}
+                            className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Bank Settlement Threshold (Kobo)</label>
+                        <input
+                            type="number"
+                            value={settings.payout?.bankSettlementThreshold || 0}
+                            onChange={(e) => setSettings({
+                                ...settings,
+                                payout: { ...settings.payout, bankSettlementThreshold: parseInt(e.target.value) }
+                            })}
+                            className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                        <p className="text-xs text-slate-500 mt-1">
+                            Fee applies only if amount is greater than or equal to this threshold. Set to 0 to apply to all.
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 
@@ -439,8 +794,8 @@ const SettingsPage: React.FC = () => {
         <div className="space-y-6">
             <div className="bg-white p-6 rounded-lg border border-slate-200">
                 <div className="mb-6">
-                    <h3 className="text-lg font-medium text-slate-900">Email Service Configuration</h3>
-                    <p className="text-sm text-slate-500">Set the email account responsible for sending messages to users</p>
+                    <h3 className="text-base md:text-lg font-medium text-slate-900">Email Service Configuration</h3>
+                    <p className="text-xs md:text-sm text-slate-500">Set the email account responsible for sending messages to users</p>
                 </div>
 
                 <div className="space-y-6">
@@ -661,17 +1016,17 @@ const SettingsPage: React.FC = () => {
     }
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-4 md:p-6 space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-start">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">System Settings</h1>
-                    <p className="text-sm text-slate-500 mt-1">Manage global configuration and security</p>
+                    <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900">System Settings</h1>
+                    <p className="text-xs md:text-sm text-slate-500 mt-1">Manage global configuration and security</p>
                 </div>
                 <button
                     onClick={handleSave}
                     disabled={loading}
-                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50 flex items-center gap-2"
+                    className="w-full sm:w-auto px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm active:scale-95"
                 >
                     {loading ? (
                         <>
@@ -679,18 +1034,23 @@ const SettingsPage: React.FC = () => {
                             Saving...
                         </>
                     ) : (
-                        'Save Changes'
+                        <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            Save Changes
+                        </>
                     )}
                 </button>
             </div>
 
             {/* Tabs */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="border-b border-slate-200">
-                    <nav className="flex">
+                <div className="border-b border-slate-200 overflow-x-auto scrollbar-hide">
+                    <nav className="flex whitespace-nowrap min-w-max sm:min-w-0">
                         <button
                             onClick={() => setActiveTab('general')}
-                            className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'general'
+                            className={`px-4 md:px-6 py-4 text-xs md:text-sm font-medium border-b-2 transition-colors ${activeTab === 'general'
                                 ? 'border-green-600 text-green-600'
                                 : 'border-transparent text-slate-500 hover:text-slate-700'
                                 }`}
@@ -699,7 +1059,7 @@ const SettingsPage: React.FC = () => {
                         </button>
                         <button
                             onClick={() => setActiveTab('notifications')}
-                            className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'notifications'
+                            className={`px-4 md:px-6 py-4 text-xs md:text-sm font-medium border-b-2 transition-colors ${activeTab === 'notifications'
                                 ? 'border-green-600 text-green-600'
                                 : 'border-transparent text-slate-500 hover:text-slate-700'
                                 }`}
@@ -708,7 +1068,7 @@ const SettingsPage: React.FC = () => {
                         </button>
                         <button
                             onClick={() => setActiveTab('security')}
-                            className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'security'
+                            className={`px-4 md:px-6 py-4 text-xs md:text-sm font-medium border-b-2 transition-colors ${activeTab === 'security'
                                 ? 'border-green-600 text-green-600'
                                 : 'border-transparent text-slate-500 hover:text-slate-700'
                                 }`}
@@ -717,7 +1077,7 @@ const SettingsPage: React.FC = () => {
                         </button>
                         <button
                             onClick={() => setActiveTab('integrations')}
-                            className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'integrations'
+                            className={`px-4 md:px-6 py-4 text-xs md:text-sm font-medium border-b-2 transition-colors ${activeTab === 'integrations'
                                 ? 'border-green-600 text-green-600'
                                 : 'border-transparent text-slate-500 hover:text-slate-700'
                                 }`}
@@ -725,8 +1085,17 @@ const SettingsPage: React.FC = () => {
                             Integrations
                         </button>
                         <button
+                            onClick={() => setActiveTab('payouts')}
+                            className={`px-4 md:px-6 py-4 text-xs md:text-sm font-medium border-b-2 transition-colors ${activeTab === 'payouts'
+                                ? 'border-green-600 text-green-600'
+                                : 'border-transparent text-slate-500 hover:text-slate-700'
+                                }`}
+                        >
+                            Payouts
+                        </button>
+                        <button
                             onClick={() => setActiveTab('email')}
-                            className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'email'
+                            className={`px-4 md:px-6 py-4 text-xs md:text-sm font-medium border-b-2 transition-colors ${activeTab === 'email'
                                 ? 'border-green-600 text-green-600'
                                 : 'border-transparent text-slate-500 hover:text-slate-700'
                                 }`}
@@ -735,11 +1104,12 @@ const SettingsPage: React.FC = () => {
                         </button>
                     </nav>
                 </div>
-                <div className="p-6">
+                <div className="p-4 md:p-6">
                     {activeTab === 'general' && renderGeneralSettings()}
                     {activeTab === 'notifications' && renderNotificationSettings()}
                     {activeTab === 'security' && renderSecuritySettings()}
                     {activeTab === 'integrations' && renderIntegrationsSettings()}
+                    {activeTab === 'payouts' && renderPayoutSettings()}
                     {activeTab === 'email' && renderEmailSettings()}
                 </div>
             </div>

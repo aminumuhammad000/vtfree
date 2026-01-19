@@ -6,18 +6,13 @@ import { AuthRequest } from '../types/index.js';
 
 export class AppAdminPricingController {
     /**
-<<<<<<< HEAD
      * Get all airtime/data plans for the current app (including global plans)
-=======
-     * Get all airtime/data plans for the current app
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
      */
     static async getAllPlans(req: AuthRequest, res: Response): Promise<void> {
         try {
             const app_id = req.user?.app_id;
             const { providerId, type, active } = req.query;
 
-<<<<<<< HEAD
             const filter: any = {
                 $or: [
                     { app_id: app_id },
@@ -26,9 +21,6 @@ export class AppAdminPricingController {
                 ]
             };
 
-=======
-            const filter: any = { app_id };
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
             if (providerId) filter.providerId = parseInt(providerId as string);
             if (type) filter.type = type;
             if (active !== undefined) filter.active = active === 'true';
@@ -49,7 +41,6 @@ export class AppAdminPricingController {
         try {
             const app_id = req.user?.app_id;
             const { id } = req.params;
-<<<<<<< HEAD
             const plan = await AirtimePlan.findOne({
                 _id: id,
                 $or: [
@@ -58,9 +49,6 @@ export class AppAdminPricingController {
                     { app_id: { $exists: false } }
                 ]
             });
-=======
-            const plan = await AirtimePlan.findOne({ _id: id, app_id });
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 
             if (!plan) {
                 ApiResponse.error(res, 'Plan not found', 404);
@@ -118,16 +106,10 @@ export class AppAdminPricingController {
             const { id } = req.params;
             const { providerId, providerName, externalPlanId, code, name, price, type, discount, meta, active } = req.body;
 
-<<<<<<< HEAD
             // Only allow updating plans that belong to this app
             const plan = await AirtimePlan.findOne({ _id: id, app_id });
             if (!plan) {
                 ApiResponse.error(res, 'Plan not found or you do not have permission to edit it', 404);
-=======
-            const plan = await AirtimePlan.findOne({ _id: id, app_id });
-            if (!plan) {
-                ApiResponse.error(res, 'Plan not found', 404);
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
                 return;
             }
 
@@ -158,16 +140,10 @@ export class AppAdminPricingController {
             const app_id = req.user?.app_id;
             const { id } = req.params;
 
-<<<<<<< HEAD
             // Only allow deleting plans that belong to this app
             const plan = await AirtimePlan.findOneAndDelete({ _id: id, app_id });
             if (!plan) {
                 ApiResponse.error(res, 'Plan not found or you do not have permission to delete it', 404);
-=======
-            const plan = await AirtimePlan.findOneAndDelete({ _id: id, app_id });
-            if (!plan) {
-                ApiResponse.error(res, 'Plan not found', 404);
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
                 return;
             }
 
@@ -210,11 +186,7 @@ export class AppAdminPricingController {
     }
 
     /**
-<<<<<<< HEAD
      * Get plans by provider for the current app (including global plans)
-=======
-     * Get plans by provider for the current app
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
      */
     static async getPlansByProvider(req: AuthRequest, res: Response): Promise<void> {
         try {
@@ -222,7 +194,6 @@ export class AppAdminPricingController {
             const { providerId } = req.params;
             const { type } = req.query;
 
-<<<<<<< HEAD
             const filter: any = {
                 $or: [
                     { app_id: app_id },
@@ -232,9 +203,6 @@ export class AppAdminPricingController {
                 providerId: parseInt(providerId),
                 active: true
             };
-=======
-            const filter: any = { app_id, providerId: parseInt(providerId), active: true };
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
             if (type) filter.type = type;
 
             const plans = await AirtimePlan.find(filter).sort({ price: 1 });

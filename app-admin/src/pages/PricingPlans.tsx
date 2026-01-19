@@ -2,24 +2,35 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useState, useMemo, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import {
+  FiPlus,
+  FiUpload,
+  FiRefreshCw,
+  FiFilter,
+  FiX,
+  FiEye,
+  FiEdit2,
+  FiTrash2,
+  FiCheckCircle,
+  FiSearch,
+  FiSettings,
+  FiArrowRight
+} from 'react-icons/fi';
+import {
   bulkImportPricingPlans,
   createPricingPlan,
   deletePricingPlan,
   getPricingPlans,
   updatePricingPlan,
   getProviderData,
-<<<<<<< HEAD
   getProviders,
-=======
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 } from '../api/adminApi';
+import Layout from '../components/Layout';
 import PricingBulkImportModal from '../components/PricingBulkImportModal';
 import PricingDeleteModal from '../components/PricingDeleteModal';
 import PricingEditModal from '../components/PricingEditModal';
 import PricingViewModal from '../components/PricingViewModal';
 import IBDataSyncModal from '../components/IBDataSyncModal';
-import Sidebar from '../components/Sidebar';
-import Topbar from '../components/Topbar';
+import { useToast } from '../hooks/ToastContext';
 
 const PROVIDERS = [
   { id: 1, name: 'MTN' },
@@ -31,9 +42,11 @@ const PROVIDERS = [
 const TYPES = ['AIRTIME', 'DATA'];
 
 const PricingPlans: React.FC = () => {
+  const { showSuccess, showError } = useToast();
   const [page, setPage] = useState(1);
   const [providerId, setProviderId] = useState<string>('');
   const [type, setType] = useState<string>('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const limit = 10;
 
   const queryClient = useQueryClient();
@@ -44,8 +57,6 @@ const PricingPlans: React.FC = () => {
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [showIBDataSync, setShowIBDataSync] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
-<<<<<<< HEAD
   const [activeTab, setActiveTab] = useState<string>('my-plans');
 
   // Fetch active providers for dynamic tabs
@@ -56,20 +67,12 @@ const PricingPlans: React.FC = () => {
 
   const activeProviders = useMemo(() => {
     const providers = providersData || [];
-    // Filter out IBData if it's in the list because we'll handle it explicitly as default if needed,
-    // or just let it be in the list. The user said "ibdata is default".
-    // Let's just use the list, but ensure IBData is always an option if it's the fallback.
-    // For now, we'll trust the active list, but if IBData isn't there, we might want to add it?
-    // User: "ibdata is defoult". We'll assume it should always be available.
     const hasIbdata = providers.find((p: any) => p.code.toLowerCase() === 'ibdata');
     if (!hasIbdata) {
       return [{ code: 'ibdata', name: 'IBData' }, ...providers];
     }
     return providers;
   }, [providersData]);
-=======
-  const [activeTab, setActiveTab] = useState<'my-plans' | 'ibdata-plans'>('my-plans');
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 
   const params = {
     page,
@@ -78,7 +81,7 @@ const PricingPlans: React.FC = () => {
     ...(type && { type }),
   };
 
-  const { data, status } = useQuery({
+  const { data, status, refetch } = useQuery({
     queryKey: ['pricing-plans', page, providerId, type],
     queryFn: () => getPricingPlans(params).then((res: any) => res.data?.data),
     enabled: activeTab === 'my-plans',
@@ -87,13 +90,27 @@ const PricingPlans: React.FC = () => {
   const plans = data?.plans || [];
   const total = data?.total || 0;
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+      showSuccess('Pricing plans updated');
+    } catch (err) {
+      showError('Failed to refresh plans');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const editMutation = useMutation({
     mutationFn: (formData: any) =>
       updatePricingPlan(editPlan.id || editPlan._id, formData).then((res: any) => res.data),
     onSuccess: () => {
       setEditPlan(null);
       queryClient.invalidateQueries({ queryKey: ['pricing-plans'] });
+      showSuccess('Plan updated successfully');
     },
+    onError: (err: any) => showError(err.response?.data?.message || 'Failed to update plan'),
   });
 
   const deleteMutation = useMutation({
@@ -102,7 +119,9 @@ const PricingPlans: React.FC = () => {
     onSuccess: () => {
       setDeletePlan(null);
       queryClient.invalidateQueries({ queryKey: ['pricing-plans'] });
+      showSuccess('Plan deleted successfully');
     },
+    onError: (err: any) => showError(err.response?.data?.message || 'Failed to delete plan'),
   });
 
   const createMutation = useMutation({
@@ -110,7 +129,9 @@ const PricingPlans: React.FC = () => {
     onSuccess: () => {
       setShowCreateModal(false);
       queryClient.invalidateQueries({ queryKey: ['pricing-plans'] });
+      showSuccess('Plan created successfully');
     },
+    onError: (err: any) => showError(err.response?.data?.message || 'Failed to create plan'),
   });
 
   const bulkImportMutation = useMutation({
@@ -119,231 +140,236 @@ const PricingPlans: React.FC = () => {
     onSuccess: () => {
       setShowBulkImport(false);
       queryClient.invalidateQueries({ queryKey: ['pricing-plans'] });
+      showSuccess('Plans imported successfully');
     },
+    onError: (err: any) => showError(err.response?.data?.message || 'Failed to import plans'),
   });
 
   return (
-    <div className="flex h-screen bg-slate-50">
-      <Sidebar isMobileOpen={isMobileOpen} setIsMobileOpen={setIsMobileOpen} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar onMenuClick={() => setIsMobileOpen(true)} />
-        <main className="flex-1 overflow-auto p-8">
-          <div className="max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="mb-8">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h1 className="text-4xl font-bold text-slate-900 mb-2">Pricing Plans</h1>
-                  <p className="text-slate-600">Manage pricing for all providers and service types</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-3xl font-bold text-purple-600">{activeTab === 'my-plans' ? total : 'API'}</p>
-                  <p className="text-sm text-slate-600">{activeTab === 'my-plans' ? 'Total Plans' : 'Direct Feed'}</p>
-                </div>
-              </div>
-
-              {/* Navigation Tabs */}
-<<<<<<< HEAD
-              <div className="flex border-b border-slate-200 mb-8 overflow-x-auto">
-                <button
-                  onClick={() => setActiveTab('my-plans')}
-                  className={`px-6 py-3 text-sm font-bold transition-all border-b-2 whitespace-nowrap ${activeTab === 'my-plans' ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                >
-                  My Pricing Plans
-=======
-              <div className="flex border-b border-slate-200 mb-8">
-                <button
-                  onClick={() => setActiveTab('my-plans')}
-                  className={`px-6 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'my-plans' ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                >
-                  My Pricing Plans
-                </button>
-                <button
-                  onClick={() => setActiveTab('ibdata-plans')}
-                  className={`px-6 py-3 text-sm font-bold transition-all border-b-2 ${activeTab === 'ibdata-plans' ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                >
-                  IBData Direct Plans
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
-                </button>
-                {activeProviders.map((p: any) => (
-                  <button
-                    key={p.code}
-                    onClick={() => setActiveTab(p.code)}
-                    className={`px-6 py-3 text-sm font-bold transition-all border-b-2 whitespace-nowrap uppercase ${activeTab === p.code ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-                  >
-                    {p.name} Direct Plans
-                  </button>
-                ))}
-              </div>
-
-              {activeTab === 'my-plans' && (
-                <div className="mb-8">
-                  {/* Action Buttons */}
-                  <div className="flex gap-3 mb-6">
-                    <button
-                      onClick={() => setShowCreateModal(true)}
-                      className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg font-medium"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      Add Plan
-                    </button>
-                    <button
-                      onClick={() => setShowBulkImport(true)}
-                      className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg font-medium"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
-                        />
-                      </svg>
-                      Bulk Import
-                    </button>
-                  </div>
-
-                  {/* Filters */}
-                  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Provider</label>
-                        <select
-                          value={providerId}
-                          onChange={(e) => {
-                            setProviderId(e.target.value);
-                            setPage(1);
-                          }}
-                          className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-slate-900 font-medium"
-                        >
-                          <option value="">All Providers</option>
-                          {PROVIDERS.map((p) => (
-                            <option key={p.id} value={p.id.toString()}>
-                              {p.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Type</label>
-                        <select
-                          value={type}
-                          onChange={(e) => {
-                            setType(e.target.value);
-                            setPage(1);
-                          }}
-                          className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-slate-900 font-medium"
-                        >
-                          <option value="">All Types</option>
-                          {TYPES.map((t) => (
-                            <option key={t} value={t}>
-                              {t}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="flex items-end">
-                        <button
-                          onClick={() => {
-                            setProviderId('');
-                            setType('');
-                            setPage(1);
-                          }}
-                          className="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 px-4 py-2.5 rounded-lg transition font-medium"
-                        >
-                          Clear Filters
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+    <Layout>
+      <div className="p-3 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
+          {/* Header Section */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 mb-2 tracking-tight">Pricing Plans</h1>
+              <p className="text-sm sm:text-lg text-slate-600 font-medium">Manage service pricing across all providers</p>
             </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-700 font-bold hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm disabled:opacity-50 group"
+              >
+                <FiRefreshCw className={`w-4 h-4 text-green-600 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+                <span className="hidden sm:inline">Refresh</span>
+              </button>
+              <div className="flex-1 sm:flex-none relative bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl shadow-md px-4 py-2 text-white overflow-hidden">
+                <div className="absolute top-0 right-0 w-12 h-12 bg-white/10 rounded-full blur-xl"></div>
+                <div className="relative">
+                  <p className="text-xs font-bold uppercase tracking-wider text-purple-100 opacity-80">{activeTab === 'my-plans' ? 'Total Plans' : 'API Feed'}</p>
+                  <p className="text-xl font-black">{activeTab === 'my-plans' ? total.toLocaleString() : 'LIVE'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
 
-            {/* Plans Table */}
-            {activeTab === 'my-plans' ? (
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          {/* Navigation Tabs */}
+          <div className="flex border-b border-slate-200 overflow-x-auto no-scrollbar scroll-smooth">
+            <button
+              onClick={() => setActiveTab('my-plans')}
+              className={`px-6 py-4 text-sm font-bold transition-all border-b-2 whitespace-nowrap flex items-center gap-2 ${activeTab === 'my-plans' ? 'border-green-600 text-green-600 bg-green-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+            >
+              My Pricing Plans
+            </button>
+            {activeProviders.map((p: any) => (
+              <button
+                key={p.code}
+                onClick={() => setActiveTab(p.code)}
+                className={`px-6 py-4 text-sm font-bold transition-all border-b-2 whitespace-nowrap uppercase flex items-center gap-2 ${activeTab === p.code ? 'border-green-600 text-green-600 bg-green-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
+              >
+                {p.name} Direct
+              </button>
+            ))}
+          </div>
+
+          {activeTab === 'my-plans' && (
+            <div className="space-y-6">
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md font-bold active:scale-95"
+                >
+                  <FiPlus className="w-5 h-5" />
+                  <span>Add New Plan</span>
+                </button>
+                <button
+                  onClick={() => setShowBulkImport(true)}
+                  className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-xl hover:bg-slate-50 transition-all shadow-sm font-bold active:scale-95"
+                >
+                  <FiUpload className="w-5 h-5 text-blue-600" />
+                  <span>Bulk Import</span>
+                </button>
+              </div>
+
+              {/* Filters */}
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <FiFilter className="text-slate-400" />
+                  <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Filter Plans</h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Provider</label>
+                    <select
+                      value={providerId}
+                      onChange={(e) => {
+                        setProviderId(e.target.value);
+                        setPage(1);
+                      }}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all font-bold text-slate-700"
+                    >
+                      <option value="">All Providers</option>
+                      {PROVIDERS.map((p) => (
+                        <option key={p.id} value={p.id.toString()}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Service Type</label>
+                    <select
+                      value={type}
+                      onChange={(e) => {
+                        setType(e.target.value);
+                        setPage(1);
+                      }}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all font-bold text-slate-700"
+                    >
+                      <option value="">All Types</option>
+                      {TYPES.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      onClick={() => {
+                        setProviderId('');
+                        setType('');
+                        setPage(1);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-3 rounded-xl transition-all font-bold"
+                    >
+                      <FiX />
+                      Clear Filters
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Plans Table */}
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-4 sm:p-6 border-b border-slate-100 flex items-center justify-between">
+                  <h2 className="text-lg sm:text-xl font-bold text-slate-900">Configured Plans</h2>
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                    <span className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider">Active Database</span>
+                  </div>
+                </div>
+
                 {status === 'pending' && (
-                  <div className="p-6 text-center text-gray-500">Loading plans...</div>
+                  <div className="p-12 text-center">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-green-500 border-t-transparent mb-4"></div>
+                    <p className="text-slate-500 font-medium">Loading plans...</p>
+                  </div>
                 )}
+
                 {status === 'error' && (
-                  <div className="p-6 text-center text-red-500">Failed to load plans.</div>
+                  <div className="p-12 text-center">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-100 text-red-600 mb-4">
+                      <FiTrash2 className="w-6 h-6" />
+                    </div>
+                    <p className="text-red-500 font-medium">Failed to load plans.</p>
+                  </div>
                 )}
+
                 {status === 'success' && (
                   <>
                     <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead className="bg-gray-50 border-b border-gray-200">
-                          <tr>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Plan Name</th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Provider</th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Type</th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Price (₦)</th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Discount (%)</th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
-                            <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-slate-50/50 border-b border-slate-100">
+                            <th className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Plan Name</th>
+                            <th className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Provider</th>
+                            <th className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider hidden md:table-cell">Type</th>
+                            <th className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Price</th>
+                            <th className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider hidden lg:table-cell">Discount</th>
+                            <th className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                            <th className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200">
+                        <tbody className="divide-y divide-slate-100">
                           {plans.length === 0 && (
                             <tr>
-                              <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
-                                No plans found.
-                              </td>
+                              <td colSpan={7} className="px-6 py-12 text-center text-slate-500 italic">No pricing plans found.</td>
                             </tr>
                           )}
                           {plans.map((plan: any) => (
-                            <tr key={plan._id || plan.id} className="hover:bg-gray-50 transition">
-                              <td className="px-6 py-4 text-sm text-gray-900">{plan.name}</td>
-                              <td className="px-6 py-4 text-sm text-gray-900">{plan.providerName}</td>
-                              <td className="px-6 py-4 text-sm">
-                                <span
-                                  className={`px-2 py-1 rounded text-xs font-semibold ${plan.type === 'AIRTIME'
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-purple-100 text-purple-800'
-                                    }`}
-                                >
+                            <tr key={plan._id || plan.id} className="hover:bg-slate-50/50 transition-colors group">
+                              <td className="px-4 sm:px-6 py-4">
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-bold text-slate-900">{plan.name}</span>
+                                  <span className="sm:hidden text-[10px] font-medium text-slate-500 uppercase">{plan.providerName} • {plan.type}</span>
+                                </div>
+                              </td>
+                              <td className="px-4 sm:px-6 py-4 hidden sm:table-cell">
+                                <span className="text-xs font-bold text-slate-600 uppercase bg-slate-100 px-2 py-1 rounded">{plan.providerName}</span>
+                              </td>
+                              <td className="px-4 sm:px-6 py-4 hidden md:table-cell">
+                                <span className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${plan.type === 'AIRTIME' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'}`}>
                                   {plan.type}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 text-sm text-gray-900">
-                                ₦{plan.price?.toLocaleString()}
+                              <td className="px-4 sm:px-6 py-4">
+                                <span className="text-sm sm:text-base font-black text-slate-900">₦{plan.price?.toLocaleString()}</span>
                               </td>
-                              <td className="px-6 py-4 text-sm text-gray-900">{plan.discount || 0}%</td>
-                              <td className="px-6 py-4 text-sm">
-                                <span
-                                  className={`px-2 py-1 rounded text-xs font-semibold ${plan.active
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-red-100 text-red-800'
-                                    }`}
-                                >
+                              <td className="px-4 sm:px-6 py-4 hidden lg:table-cell">
+                                <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">{plan.discount || 0}% Off</span>
+                              </td>
+                              <td className="px-4 sm:px-6 py-4">
+                                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${plan.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                   {plan.active ? 'Active' : 'Inactive'}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 text-sm space-x-3">
-                                <button
-                                  onClick={() => setViewPlan(plan)}
-                                  className="inline-flex items-center gap-1.5 text-green-600 hover:text-green-900 font-medium"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                                  View
-                                </button>
-                                <button
-                                  onClick={() => setEditPlan(plan)}
-                                  className="inline-flex items-center gap-1.5 text-green-600 hover:text-green-900 font-medium"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => setDeletePlan(plan)}
-                                  className="inline-flex items-center gap-1.5 text-red-600 hover:text-red-900 font-medium"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0l1-3h6l1 3" /></svg>
-                                  Delete
-                                </button>
+                              <td className="px-4 sm:px-6 py-4 text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                  <button
+                                    onClick={() => setViewPlan(plan)}
+                                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                                    title="View Details"
+                                  >
+                                    <FiEye className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => setEditPlan(plan)}
+                                    className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-all"
+                                    title="Edit Plan"
+                                  >
+                                    <FiEdit2 className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => setDeletePlan(plan)}
+                                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                                    title="Delete Plan"
+                                  >
+                                    <FiTrash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -351,22 +377,28 @@ const PricingPlans: React.FC = () => {
                       </table>
                     </div>
 
-                    {/* Pagination */}
-                    <div className="bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-between items-center text-sm text-gray-600">
-                      <span>Showing {plans.length} of {total} plans</span>
-                      <div className="flex gap-2">
+                    {/* Pagination Section */}
+                    <div className="p-4 sm:p-6 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <p className="text-xs sm:text-sm font-bold text-slate-500">
+                        Showing <span className="text-slate-900">{plans.length}</span> of <span className="text-slate-900">{total}</span> plans
+                      </p>
+                      <div className="flex items-center gap-2">
                         <button
                           onClick={() => setPage((p) => Math.max(1, p - 1))}
                           disabled={page === 1}
-                          className="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
+                          className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-all shadow-sm"
                         >
                           Previous
                         </button>
-                        <span className="px-3 py-1">Page {page}</span>
+                        <div className="flex items-center gap-1 px-2">
+                          <span className="text-xs font-bold text-slate-900">{page}</span>
+                          <span className="text-xs font-bold text-slate-400">/</span>
+                          <span className="text-xs font-bold text-slate-400">{Math.ceil(total / limit) || 1}</span>
+                        </div>
                         <button
                           onClick={() => setPage((p) => p + 1)}
                           disabled={plans.length < limit}
-                          className="px-3 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
+                          className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-all shadow-sm"
                         >
                           Next
                         </button>
@@ -375,59 +407,56 @@ const PricingPlans: React.FC = () => {
                   </>
                 )}
               </div>
-            ) : (
-<<<<<<< HEAD
-              <DirectPlansView providerCode={activeTab} />
-=======
-              <IBDataPlansView />
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Modals */}
-          {viewPlan && <PricingViewModal plan={viewPlan} onClose={() => setViewPlan(null)} />}
-          {editPlan && (
-            <PricingEditModal
-              plan={editPlan}
-              onClose={() => setEditPlan(null)}
-              onSave={editMutation.mutate}
-              isSaving={editMutation.status === 'pending'}
-            />
+          {activeTab !== 'my-plans' && (
+            <DirectPlansView providerCode={activeTab} />
           )}
-          {deletePlan && (
-            <PricingDeleteModal
-              plan={deletePlan}
-              onClose={() => setDeletePlan(null)}
-              onDelete={deleteMutation.mutate}
-              isDeleting={deleteMutation.status === 'pending'}
-            />
-          )}
-          {showCreateModal && (
-            <PricingEditModal
-              plan={null}
-              onClose={() => setShowCreateModal(false)}
-              onSave={createMutation.mutate}
-              isSaving={createMutation.status === 'pending'}
-              isCreate
-            />
-          )}
-          {showBulkImport && (
-            <PricingBulkImportModal
-              onClose={() => setShowBulkImport(false)}
-              onImport={bulkImportMutation.mutate}
-              isImporting={bulkImportMutation.status === 'pending'}
-            />
-          )}
-          {showIBDataSync && (
-            <IBDataSyncModal onClose={() => setShowIBDataSync(false)} />
-          )}
-        </main>
+        </div>
+
+        {/* Modals */}
+        {viewPlan && <PricingViewModal plan={viewPlan} onClose={() => setViewPlan(null)} />}
+        {editPlan && (
+          <PricingEditModal
+            plan={editPlan}
+            onClose={() => setEditPlan(null)}
+            onSave={editMutation.mutate}
+            isSaving={editMutation.status === 'pending'}
+          />
+        )}
+        {deletePlan && (
+          <PricingDeleteModal
+            plan={deletePlan}
+            onClose={() => setDeletePlan(null)}
+            onDelete={deleteMutation.mutate}
+            isDeleting={deleteMutation.status === 'pending'}
+          />
+        )}
+        {showCreateModal && (
+          <PricingEditModal
+            plan={null}
+            onClose={() => setShowCreateModal(false)}
+            onSave={createMutation.mutate}
+            isSaving={createMutation.status === 'pending'}
+            isCreate
+          />
+        )}
+        {showBulkImport && (
+          <PricingBulkImportModal
+            onClose={() => setShowBulkImport(false)}
+            onImport={bulkImportMutation.mutate}
+            isImporting={bulkImportMutation.status === 'pending'}
+          />
+        )}
+        {showIBDataSync && (
+          <IBDataSyncModal onClose={() => setShowIBDataSync(false)} />
+        )}
       </div>
-    </div>
+    </Layout>
   );
 };
 
-<<<<<<< HEAD
 interface DirectPlansViewProps {
   providerCode: string;
 }
@@ -444,14 +473,6 @@ const DirectPlansView: React.FC<DirectPlansViewProps> = ({ providerCode }) => {
   // Individual Profit Overrides
   const [customProfits, setCustomProfits] = useState<Record<string, number>>({});
 
-=======
-const IBDataPlansView: React.FC = () => {
-  const [plans, setPlans] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [profit, setProfit] = useState<number>(10);
-  const [profitType, setProfitType] = useState<'percent' | 'flat'>('percent');
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
   const [searchTerm, setSearchTerm] = useState('');
   const [networkFilter, setNetworkFilter] = useState('');
   const queryClient = useQueryClient();
@@ -460,11 +481,7 @@ const IBDataPlansView: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-<<<<<<< HEAD
       const res: any = await getProviderData(providerCode, 'plans');
-=======
-      const res: any = await getProviderData('ibdata', 'plans');
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
       let plansData = res.data?.data?.data || res.data?.data || [];
       if (plansData && typeof plansData === 'object' && !Array.isArray(plansData)) {
         if (Array.isArray(plansData.data)) plansData = plansData.data;
@@ -472,17 +489,12 @@ const IBDataPlansView: React.FC = () => {
       }
       setPlans(Array.isArray(plansData) ? plansData : []);
     } catch (err: any) {
-<<<<<<< HEAD
       setError(err.response?.data?.message || err.message || `Failed to fetch ${providerCode} plans`);
-=======
-      setError(err.response?.data?.message || err.message || 'Failed to fetch IBData plans');
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
     } finally {
       setLoading(false);
     }
   };
 
-<<<<<<< HEAD
   useEffect(() => {
     fetchPlans();
     setCustomProfits({}); // Reset custom profits when provider changes
@@ -490,16 +502,7 @@ const IBDataPlansView: React.FC = () => {
 
   const filteredPlans = useMemo(() => {
     return plans.filter(p => {
-      const matchesSearch = (p.plan_name || p.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-=======
-  React.useEffect(() => {
-    fetchPlans();
-  }, []);
-
-  const filteredPlans = React.useMemo(() => {
-    return plans.filter(p => {
-      const matchesSearch = p.plan_name.toLowerCase().includes(searchTerm.toLowerCase());
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
+      const matchesSearch = (p.plan_name || p.name || p.plan_name || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesNetwork = networkFilter === '' || String(p.network) === networkFilter;
       return matchesSearch && matchesNetwork;
     });
@@ -509,7 +512,6 @@ const IBDataPlansView: React.FC = () => {
     mutationFn: (plansData: any[]) => bulkImportPricingPlans(plansData).then((res: any) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pricing-plans'] });
-<<<<<<< HEAD
       toast.success('Plans synced successfully!');
     },
     onError: (err: any) => {
@@ -561,109 +563,84 @@ const IBDataPlansView: React.FC = () => {
     importMutation.mutate([formatPlanForSync(p)]);
   };
 
-=======
-      alert('Plans synced successfully!');
-    },
-  });
-
-  const handleSync = () => {
-    const formattedPlans = filteredPlans.map((p: any) => {
-      let finalPrice = Number(p.price);
-      if (profitType === 'percent') {
-        finalPrice = finalPrice + (finalPrice * (profit / 100));
-      } else {
-        finalPrice = finalPrice + profit;
-      }
-
-      return {
-        providerId: Number(p.network),
-        providerName: getNetworkName(p.network),
-        externalPlanId: p.plan_id,
-        code: `IBDATA_${p.plan_id}`,
-        name: p.plan_name,
-        price: Math.ceil(finalPrice),
-        type: p.plan_type === 'DATA' ? 'DATA' : 'AIRTIME',
-        discount: 0,
-        active: true,
-        metadata: {
-          validity: p.validity,
-          data_value: p.data_value,
-          original_price: p.price
-        }
-      };
-    });
-
-    importMutation.mutate(formattedPlans);
-  };
-
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
   const getNetworkName = (id: string) => {
     const map: Record<string, string> = { '1': 'MTN', '2': 'AIRTEL', '3': 'GLO', '4': '9MOBILE' };
     return map[id] || 'UNKNOWN';
   };
 
-<<<<<<< HEAD
-  if (loading) return <div className="p-12 text-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div><p className="mt-4 text-slate-500">Fetching plans...</p></div>;
-=======
-  if (loading) return <div className="p-12 text-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div><p className="mt-4 text-slate-500">Fetching IBData plans...</p></div>;
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
-  if (error) return <div className="p-12 text-center text-red-500"><p>{error}</p><button onClick={fetchPlans} className="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg">Retry</button></div>;
+  if (loading) return (
+    <div className="p-12 text-center bg-white rounded-2xl border border-slate-200">
+      <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-green-500 border-t-transparent mb-4"></div>
+      <p className="text-slate-500 font-bold">Fetching live plans from {providerCode.toUpperCase()}...</p>
+    </div>
+  );
+
+  if (error) return (
+    <div className="p-12 text-center bg-red-50 rounded-2xl border border-red-100">
+      <FiTrash2 className="w-12 h-12 text-red-500 mx-auto mb-4" />
+      <p className="text-red-700 font-bold mb-4">{error}</p>
+      <button onClick={fetchPlans} className="bg-red-600 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-red-700 transition-all shadow-sm">Retry Connection</button>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6">
-        <div className="flex flex-wrap gap-6 items-end">
-          <div className="flex-1 min-w-[200px]">
-<<<<<<< HEAD
-            <label className="block text-sm font-bold text-slate-700 mb-2">Global Profit Type</label>
-=======
-            <label className="block text-sm font-bold text-slate-700 mb-2">Profit Type</label>
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
-            <select value={profitType} onChange={(e) => setProfitType(e.target.value as any)} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white">
-              <option value="percent">Percentage Profit (%)</option>
-              <option value="flat">Flat Profit (₦)</option>
+      {/* Profit Settings Card */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+        <div className="flex items-center gap-2 mb-2">
+          <FiSettings className="text-green-600 w-5 h-5" />
+          <h2 className="text-lg font-bold text-slate-900">Profit Configuration</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Profit Type</label>
+            <select
+              value={profitType}
+              onChange={(e) => setProfitType(e.target.value as any)}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none font-bold text-slate-700"
+            >
+              <option value="percent">Percentage (%)</option>
+              <option value="flat">Flat Fee (₦)</option>
             </select>
           </div>
-          <div className="flex-1 min-w-[200px]">
-<<<<<<< HEAD
-            <label className="block text-sm font-bold text-slate-700 mb-2">Global Profit Value</label>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Global Profit Value</label>
             <input
               type="number"
               value={globalProfit}
               onChange={(e) => {
                 setGlobalProfit(Number(e.target.value));
-                setCustomProfits({}); // Reset custom profits when global changes to apply to all
+                setCustomProfits({});
               }}
-              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none font-bold text-slate-700"
             />
           </div>
-          <button onClick={handleBulkSync} disabled={importMutation.status === 'pending' || filteredPlans.length === 0} className="bg-green-600 hover:bg-green-700 text-white px-8 py-2.5 rounded-lg font-bold transition shadow-lg shadow-green-100 disabled:opacity-50">
-            {importMutation.status === 'pending' ? 'Syncing...' : `Sync ${filteredPlans.length} Plans`}
-=======
-            <label className="block text-sm font-bold text-slate-700 mb-2">Profit Value</label>
-            <input type="number" value={profit} onChange={(e) => setProfit(Number(e.target.value))} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" />
-          </div>
-          <button onClick={handleSync} disabled={importMutation.status === 'pending' || filteredPlans.length === 0} className="bg-green-600 hover:bg-green-700 text-white px-8 py-2.5 rounded-lg font-bold transition shadow-lg shadow-green-100 disabled:opacity-50">
-            {importMutation.status === 'pending' ? 'Syncing...' : `Sync ${filteredPlans.length} Plans to My Store`}
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
+          <button
+            onClick={handleBulkSync}
+            disabled={importMutation.status === 'pending' || filteredPlans.length === 0}
+            className="bg-green-600 hover:bg-green-700 text-white px-8 py-3.5 rounded-xl font-bold transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {importMutation.status === 'pending' ? <FiRefreshCw className="animate-spin" /> : <FiCheckCircle />}
+            <span>{importMutation.status === 'pending' ? 'Syncing...' : `Sync ${filteredPlans.length} Plans`}</span>
           </button>
         </div>
 
-        <div className="flex flex-wrap gap-4 pt-4 border-t border-slate-100">
-          <div className="flex-1 min-w-[250px]">
+        <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-slate-100">
+          <div className="flex-1 relative">
+            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Search plans..."
+              placeholder="Search live plans..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+              className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none font-medium"
             />
           </div>
-          <div className="w-48">
+          <div className="sm:w-64">
             <select
               value={networkFilter}
               onChange={(e) => setNetworkFilter(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none font-bold text-slate-700"
             >
               <option value="">All Networks</option>
               <option value="1">MTN</option>
@@ -675,29 +652,24 @@ const IBDataPlansView: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      {/* Live Table */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="px-6 py-4 text-sm font-bold text-slate-700">Network</th>
-                <th className="px-6 py-4 text-sm font-bold text-slate-700">Plan Name</th>
-<<<<<<< HEAD
-                <th className="px-6 py-4 text-sm font-bold text-slate-700">Cost Price</th>
-                <th className="px-6 py-4 text-sm font-bold text-slate-700 w-32">Profit ({profitType === 'percent' ? '%' : '₦'})</th>
-                <th className="px-6 py-4 text-sm font-bold text-slate-700">Selling Price</th>
-                <th className="px-6 py-4 text-sm font-bold text-slate-700">Actions</th>
-=======
-                <th className="px-6 py-4 text-sm font-bold text-slate-700">Cost Price (API)</th>
-                <th className="px-6 py-4 text-sm font-bold text-slate-700">Selling Price (With Profit)</th>
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/50 border-b border-slate-100">
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Network</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Plan Details</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cost</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-32">Profit</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Selling</th>
+                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredPlans.length === 0 ? (
                 <tr>
-<<<<<<< HEAD
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">No plans match your filters.</td>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500 italic">No plans match your filters.</td>
                 </tr>
               ) : (
                 filteredPlans.map((p: any) => {
@@ -707,40 +679,40 @@ const IBDataPlansView: React.FC = () => {
                   const sellingPrice = calculateSellingPrice(costPrice, profit);
 
                   return (
-                    <tr key={planId} className="hover:bg-slate-50 transition">
-                      <td className="px-6 py-4 text-sm text-slate-600 font-medium">{getNetworkName(p.network)}</td>
-                      <td className="px-6 py-4 text-sm text-slate-900 font-bold">{p.plan_name || p.name}</td>
-                      <td className="px-6 py-4 text-sm text-slate-500">₦{costPrice}</td>
+                    <tr key={planId} className="hover:bg-slate-50/50 transition-colors group">
                       <td className="px-6 py-4">
-                        <input
-                          type="number"
-                          value={profit}
-                          onChange={(e) => setCustomProfits(prev => ({ ...prev, [planId]: Number(e.target.value) }))}
-                          className="w-24 px-2 py-1 border border-slate-300 rounded focus:ring-2 focus:ring-green-500 outline-none text-sm"
-                        />
+                        <span className="text-xs font-bold text-slate-600 uppercase bg-slate-100 px-2 py-1 rounded">{getNetworkName(p.network)}</span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-green-600 font-black">₦{Math.ceil(sellingPrice)}</td>
                       <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-slate-900">{p.plan_name || p.name}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">ID: {planId}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm font-medium text-slate-500">₦{costPrice}</td>
+                      <td className="px-6 py-4">
+                        <div className="relative">
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">{profitType === 'percent' ? '%' : '₦'}</span>
+                          <input
+                            type="number"
+                            value={profit}
+                            onChange={(e) => setCustomProfits(prev => ({ ...prev, [planId]: Number(e.target.value) }))}
+                            className="w-20 pl-6 pr-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none text-xs font-bold"
+                          />
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm font-black text-green-600">₦{Math.ceil(sellingPrice).toLocaleString()}</span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
                         <button
                           onClick={() => handleSingleSync(p)}
-                          className="text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded text-xs font-bold transition"
+                          className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95"
                         >
+                          <FiArrowRight />
                           Sync
                         </button>
                       </td>
-=======
-                  <td colSpan={4} className="px-6 py-12 text-center text-slate-500">No plans match your filters.</td>
-                </tr>
-              ) : (
-                filteredPlans.map((p: any) => {
-                  const sellingPrice = profitType === 'percent' ? p.price + (p.price * profit / 100) : p.price + profit;
-                  return (
-                    <tr key={p.plan_id} className="hover:bg-slate-50 transition">
-                      <td className="px-6 py-4 text-sm text-slate-600 font-medium">{getNetworkName(p.network)}</td>
-                      <td className="px-6 py-4 text-sm text-slate-900 font-bold">{p.plan_name}</td>
-                      <td className="px-6 py-4 text-sm text-slate-500">₦{p.price}</td>
-                      <td className="px-6 py-4 text-sm text-green-600 font-black">₦{Math.ceil(sellingPrice)}</td>
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
                     </tr>
                   );
                 })

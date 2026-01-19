@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { adminApi } from '../../api/client';
+import toast from 'react-hot-toast';
 
 interface Webhook {
     _id: string;
@@ -28,6 +29,7 @@ const WebhooksPage: React.FC = () => {
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [activeTab, setActiveTab] = useState<'logs' | 'configs'>('logs');
     const [tenants, setTenants] = useState<any[]>([]);
+    const [isRetrying, setIsRetrying] = useState(false);
 
     useEffect(() => {
         if (activeTab === 'logs') {
@@ -95,27 +97,68 @@ const WebhooksPage: React.FC = () => {
 
     const tenantsWithWebhooks = tenants.filter(t => t.webhookUrl);
 
+    const handleCopyPayload = async () => {
+        if (!selectedWebhook) return;
+
+        try {
+            const jsonString = JSON.stringify(selectedWebhook.payload, null, 2);
+            await navigator.clipboard.writeText(jsonString);
+            toast.success('Payload copied to clipboard!');
+        } catch (error) {
+            console.error('Failed to copy payload:', error);
+            toast.error('Failed to copy payload to clipboard');
+        }
+    };
+
+    const handleDownloadJson = () => {
+        if (!selectedWebhook) return;
+        const blob = new Blob([JSON.stringify(selectedWebhook.payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `webhook-${selectedWebhook._id}.json`;
+        a.click();
+    };
+
+    const handleRetry = async (id: string) => {
+        try {
+            setIsRetrying(true);
+            const result = await adminApi.retryWebhook(id);
+            if (result.success) {
+                toast.success('Webhook retried successfully');
+                fetchWebhooks();
+                setShowDetails(false);
+            } else {
+                toast.error(result.message || 'Failed to retry webhook');
+            }
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Failed to retry webhook');
+        } finally {
+            setIsRetrying(false);
+        }
+    };
+
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-4 md:p-6 space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-start">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Webhooks & Events</h1>
-                    <p className="text-sm text-slate-500 mt-1">Monitor delivery logs and manage tenant configurations</p>
+                    <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900">Webhooks & Events</h1>
+                    <p className="text-xs md:text-sm text-slate-500 mt-1">Monitor delivery logs and manage tenant configurations</p>
                 </div>
                 <button
                     onClick={() => activeTab === 'logs' ? fetchWebhooks() : fetchTenants()}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                    className="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium shadow-sm active:scale-95"
                 >
                     Refresh
                 </button>
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-slate-200">
+            <div className="flex border-b border-slate-200 overflow-x-auto">
                 <button
                     onClick={() => setActiveTab('logs')}
-                    className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${activeTab === 'logs'
+                    className={`px-4 md:px-6 py-3 text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'logs'
                         ? 'border-green-600 text-green-600'
                         : 'border-transparent text-slate-500 hover:text-slate-700'
                         }`}
@@ -124,7 +167,7 @@ const WebhooksPage: React.FC = () => {
                 </button>
                 <button
                     onClick={() => setActiveTab('configs')}
-                    className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${activeTab === 'configs'
+                    className={`px-4 md:px-6 py-3 text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${activeTab === 'configs'
                         ? 'border-green-600 text-green-600'
                         : 'border-transparent text-slate-500 hover:text-slate-700'
                         }`}
@@ -136,29 +179,29 @@ const WebhooksPage: React.FC = () => {
             {activeTab === 'logs' ? (
                 <>
                     {/* Stats Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p className="text-sm font-medium text-slate-500">Total Webhooks (24h)</p>
-                            <h3 className="text-2xl font-bold text-slate-900 mt-1">{webhooks.length}</h3>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                            <p className="text-xs md:text-sm font-medium text-slate-500">Total Webhooks (24h)</p>
+                            <h3 className="text-lg md:text-2xl font-bold text-slate-900 mt-1">{webhooks.length}</h3>
                         </div>
-                        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p className="text-sm font-medium text-slate-500">Success Rate</p>
-                            <h3 className="text-2xl font-bold text-green-600 mt-1">
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                            <p className="text-xs md:text-sm font-medium text-slate-500">Success Rate</p>
+                            <h3 className="text-lg md:text-2xl font-bold text-green-600 mt-1">
                                 {webhooks.length > 0
                                     ? ((webhooks.filter((w) => w.dispatchStatus === 'success').length / webhooks.length) * 100).toFixed(1)
                                     : 0}
                                 %
                             </h3>
                         </div>
-                        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p className="text-sm font-medium text-slate-500">Failed</p>
-                            <h3 className="text-2xl font-bold text-red-600 mt-1">
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                            <p className="text-xs md:text-sm font-medium text-slate-500">Failed</p>
+                            <h3 className="text-lg md:text-2xl font-bold text-red-600 mt-1">
                                 {webhooks.filter((w) => w.dispatchStatus === 'failed').length}
                             </h3>
                         </div>
-                        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                            <p className="text-sm font-medium text-slate-500">Pending Retry</p>
-                            <h3 className="text-2xl font-bold text-yellow-600 mt-1">
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                            <p className="text-xs md:text-sm font-medium text-slate-500">Pending Retry</p>
+                            <h3 className="text-lg md:text-2xl font-bold text-yellow-600 mt-1">
                                 {webhooks.filter((w) => w.dispatchStatus === 'pending').length}
                             </h3>
                         </div>
@@ -166,11 +209,11 @@ const WebhooksPage: React.FC = () => {
 
                     {/* Filters */}
                     <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                        <div className="flex gap-4">
+                        <div className="flex flex-col sm:flex-row gap-4">
                             <select
                                 value={filterSource}
                                 onChange={(e) => setFilterSource(e.target.value)}
-                                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
                             >
                                 <option value="all">All Sources</option>
                                 <option value="zainpay">Zainpay → VTPay</option>
@@ -179,7 +222,7 @@ const WebhooksPage: React.FC = () => {
                             <select
                                 value={filterStatus}
                                 onChange={(e) => setFilterStatus(e.target.value)}
-                                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
                             >
                                 <option value="all">All Status</option>
                                 <option value="success">Success</option>
@@ -191,8 +234,8 @@ const WebhooksPage: React.FC = () => {
                 </>
             ) : (
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <div className="flex justify-between items-center">
-                        <h3 className="text-lg font-semibold text-slate-900">Configured Webhooks</h3>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <h3 className="text-base md:text-lg font-semibold text-slate-900">Configured Webhooks</h3>
                         <span className="px-3 py-1 bg-purple-100 text-purple-800 text-xs font-bold rounded-full">
                             {tenantsWithWebhooks.length} Active Endpoints
                         </span>
@@ -209,31 +252,31 @@ const WebhooksPage: React.FC = () => {
                     </div>
                 ) : activeTab === 'logs' ? (
                     <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="w-full min-w-[900px] md:min-w-full">
                             <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Source
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Event Type
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="hidden lg:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Tenant
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="hidden md:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Signature
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Dispatch Status
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="hidden sm:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Attempts
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="hidden sm:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Time
                                     </th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Actions
                                     </th>
                                 </tr>
@@ -242,15 +285,15 @@ const WebhooksPage: React.FC = () => {
                                 {filteredWebhooks.length > 0 ? (
                                     filteredWebhooks.map((webhook) => (
                                         <tr key={webhook._id} className="hover:bg-slate-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap">{getSourceBadge(webhook.source)}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-4 md:px-6 py-4 whitespace-nowrap">{getSourceBadge(webhook.source)}</td>
+                                            <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                                 <span className="text-sm font-mono text-slate-900">{webhook.eventType}</span>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="hidden lg:table-cell px-4 md:px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm text-slate-900">{webhook.userId?.businessName || 'N/A'}</div>
                                                 <div className="text-xs text-slate-500 font-mono">{webhook.zainboxCode}</div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="hidden md:table-cell px-4 md:px-6 py-4 whitespace-nowrap">
                                                 {webhook.signatureValid ? (
                                                     <span className="flex items-center gap-1 text-green-600 text-xs">
                                                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -275,26 +318,28 @@ const WebhooksPage: React.FC = () => {
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(webhook.dispatchStatus)}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                                            <td className="px-4 md:px-6 py-4 whitespace-nowrap">{getStatusBadge(webhook.dispatchStatus)}</td>
+                                            <td className="hidden sm:table-cell px-4 md:px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                                                 {webhook.dispatchAttempts ?? '-'}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                            <td className="hidden sm:table-cell px-4 md:px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                                 {new Date(webhook.createdAt).toLocaleTimeString()}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedWebhook(webhook);
-                                                        setShowDetails(true);
-                                                    }}
-                                                    className="text-green-600 hover:text-green-900 mr-3"
-                                                >
-                                                    View
-                                                </button>
-                                                {webhook.dispatchStatus === 'failed' && (
-                                                    <button className="text-yellow-600 hover:text-yellow-900">Retry</button>
-                                                )}
+                                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <div className="flex justify-end gap-3">
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedWebhook(webhook);
+                                                            setShowDetails(true);
+                                                        }}
+                                                        className="text-green-600 hover:text-green-900"
+                                                    >
+                                                        View
+                                                    </button>
+                                                    {webhook.dispatchStatus === 'failed' && (
+                                                        <button className="text-yellow-600 hover:text-yellow-900 hidden sm:inline">Retry</button>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -310,22 +355,22 @@ const WebhooksPage: React.FC = () => {
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="w-full min-w-[700px] md:min-w-full">
                             <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Tenant
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="hidden lg:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Business Name
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Webhook URL
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="hidden sm:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Status
                                     </th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Actions
                                     </th>
                                 </tr>
@@ -334,30 +379,31 @@ const WebhooksPage: React.FC = () => {
                                 {tenantsWithWebhooks.length > 0 ? (
                                     tenantsWithWebhooks.map((tenant) => (
                                         <tr key={tenant._id} className="hover:bg-slate-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm font-medium text-slate-900">{tenant.firstName} {tenant.lastName}</div>
                                                 <div className="text-xs text-slate-500">{tenant.email}</div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="hidden lg:table-cell px-4 md:px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm text-slate-900">{tenant.businessName || 'N/A'}</div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-mono text-purple-600 break-all max-w-md">
+                                            <td className="px-4 md:px-6 py-4">
+                                                <div className="text-sm font-mono text-purple-600 break-all max-w-xs md:max-w-md">
                                                     {tenant.webhookUrl}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="hidden sm:table-cell px-4 md:px-6 py-4 whitespace-nowrap">
                                                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${tenant.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                                                     }`}>
                                                     {tenant.status.toUpperCase()}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <button
                                                     onClick={() => window.location.href = `/tenants?id=${tenant._id}`}
                                                     className="text-green-600 hover:text-green-900"
                                                 >
-                                                    Manage Tenant
+                                                    <span className="hidden sm:inline">Manage Tenant</span>
+                                                    <span className="sm:hidden">Manage</span>
                                                 </button>
                                             </td>
                                         </tr>
@@ -395,7 +441,7 @@ const WebhooksPage: React.FC = () => {
 
                         <div className="p-6 space-y-6">
                             {/* Info Grid */}
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <p className="text-xs text-slate-500">Source</p>
                                     <div className="mt-1">{getSourceBadge(selectedWebhook.source)}</div>
@@ -412,11 +458,11 @@ const WebhooksPage: React.FC = () => {
                                     <p className="text-xs text-slate-500">Attempts</p>
                                     <p className="text-sm text-slate-900 mt-1">{selectedWebhook.dispatchAttempts ?? 0}</p>
                                 </div>
-                                <div className="col-span-2">
+                                <div className="sm:col-span-2">
                                     <p className="text-xs text-slate-500">Signature</p>
                                     <p className="text-sm font-mono text-slate-900 mt-1 break-all">{selectedWebhook.signature}</p>
                                 </div>
-                                <div className="col-span-2">
+                                <div className="sm:col-span-2">
                                     <p className="text-xs text-slate-500">Timestamp</p>
                                     <p className="text-sm text-slate-900 mt-1">{new Date(selectedWebhook.createdAt).toLocaleString()}</p>
                                 </div>
@@ -431,16 +477,26 @@ const WebhooksPage: React.FC = () => {
                             </div>
 
                             {/* Actions */}
-                            <div className="flex gap-3 pt-4 border-t border-slate-200">
-                                {selectedWebhook.dispatchStatus === 'failed' && (
-                                    <button className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors">
-                                        Retry Dispatch
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-slate-200">
+                                {selectedWebhook.source === 'vtpay' && selectedWebhook.dispatchStatus === 'failed' && (
+                                    <button
+                                        onClick={() => handleRetry(selectedWebhook._id)}
+                                        disabled={isRetrying}
+                                        className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium disabled:opacity-50"
+                                    >
+                                        {isRetrying ? 'Retrying...' : 'Retry Dispatch'}
                                     </button>
                                 )}
-                                <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                <button
+                                    onClick={handleCopyPayload}
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium active:scale-95"
+                                >
                                     Copy Payload
                                 </button>
-                                <button className="flex-1 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors">
+                                <button
+                                    onClick={handleDownloadJson}
+                                    className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors text-sm font-medium active:scale-95"
+                                >
                                     Download JSON
                                 </button>
                             </div>

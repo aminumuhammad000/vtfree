@@ -1,9 +1,35 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useMemo, useState, useEffect } from 'react';
-import { createProvider, deleteProvider, getProviders, testProviderConnection, updateProvider, testProviderPurchase, getProviderData } from '../api/adminApi';
-import Sidebar from '../components/Sidebar';
-import Topbar from '../components/Topbar';
+import {
+  FiPlus,
+  FiRefreshCw,
+  FiFilter,
+  FiX,
+  FiEdit2,
+  FiTrash2,
+  FiCheckCircle,
+  FiActivity,
+  FiSettings,
+  FiServer,
+  FiGlobe,
+  FiLock,
+  FiKey,
+  FiUser,
+  FiLayers,
+  FiZap
+} from 'react-icons/fi';
+import {
+  createProvider,
+  deleteProvider,
+  getProviders,
+  testProviderConnection,
+  updateProvider,
+  testProviderPurchase,
+  getProviderData
+} from '../api/adminApi';
+import Layout from '../components/Layout';
 import IBDataSyncModal from '../components/IBDataSyncModal';
+import { useToast } from '../hooks/ToastContext';
 
 const ALL_SERVICES = ['airtime', 'data', 'cable', 'electricity', 'exampin'];
 
@@ -28,10 +54,8 @@ const TestPurchaseForm: React.FC<{ providerCode: string }> = ({ providerCode }) 
     setPlansLoading(true);
     try {
       const res: any = await getProviderData(providerCode, 'plans');
-      // Handle nested data structures from different providers
       let plansData = res.data?.data?.data || res.data?.data || [];
       if (plansData && typeof plansData === 'object' && !Array.isArray(plansData)) {
-        // If it's an object with a data property (like Topupmate or SMEPlug sometimes)
         if (Array.isArray(plansData.data)) plansData = plansData.data;
         else if (Array.isArray(plansData.plans)) plansData = plansData.plans;
       }
@@ -64,43 +88,43 @@ const TestPurchaseForm: React.FC<{ providerCode: string }> = ({ providerCode }) 
   };
 
   return (
-    <div className="space-y-4">
-      <form onSubmit={handleTest} className="space-y-4">
-        <div className="flex p-1 bg-slate-100 rounded-lg">
+    <div className="space-y-5">
+      <form onSubmit={handleTest} className="space-y-5">
+        <div className="flex p-1.5 bg-slate-100 rounded-2xl">
           <button
             type="button"
             onClick={() => setType('airtime')}
-            className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${type === 'airtime' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all ${type === 'airtime' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
             Airtime
           </button>
           <button
             type="button"
             onClick={() => setType('data')}
-            className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${type === 'data' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all ${type === 'data' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
             Data
           </button>
         </div>
 
-        <div className="space-y-3">
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Phone Number</label>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Phone Number</label>
             <input
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="08012345678"
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all font-medium"
               required
             />
           </div>
 
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Network</label>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Network</label>
             <select
               value={network}
               onChange={(e) => setNetwork(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all font-bold text-slate-700"
               required
             >
               <option value="">Select Network</option>
@@ -112,31 +136,31 @@ const TestPurchaseForm: React.FC<{ providerCode: string }> = ({ providerCode }) 
           </div>
 
           {type === 'airtime' ? (
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Amount</label>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Amount</label>
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="100"
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all font-bold"
                 required
               />
             </div>
           ) : (
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Data Plan</label>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Data Plan</label>
               <select
                 value={plan}
                 onChange={(e) => setPlan(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all text-sm"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all font-bold text-slate-700"
                 required
                 disabled={plansLoading}
               >
                 <option value="">{plansLoading ? 'Loading plans...' : 'Select Plan'}</option>
                 {plans.map((p: any) => (
                   <option key={p.id || p._id || p.plan_id} value={p.id || p._id || p.plan_id}>
-                    {p.name || p.plan_name || p.allowance} - {p.price || p.amount}
+                    {p.name || p.plan_name || p.allowance} - ₦{p.price || p.amount}
                   </option>
                 ))}
               </select>
@@ -147,18 +171,18 @@ const TestPurchaseForm: React.FC<{ providerCode: string }> = ({ providerCode }) 
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-green-100 disabled:opacity-50"
+          className="w-full py-3.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg disabled:opacity-50 active:scale-95"
         >
           {loading ? 'Processing...' : `Test ${type === 'airtime' ? 'Airtime' : 'Data'} Purchase`}
         </button>
       </form>
 
       {result && (
-        <div className={`p-4 rounded-xl border-2 ${result.success ? 'border-green-100 bg-green-50/30' : 'border-red-100 bg-red-50/30'}`}>
-          <p className={`text-sm font-bold mb-2 ${result.success ? 'text-green-800' : 'text-red-800'}`}>
+        <div className={`p-4 rounded-2xl border ${result.success ? 'border-green-200 bg-green-50/50' : 'border-red-200 bg-red-50/50'}`}>
+          <p className={`text-xs font-bold mb-2 uppercase tracking-wider ${result.success ? 'text-green-700' : 'text-red-700'}`}>
             {result.success ? '✓ Purchase Successful' : '✗ Purchase Failed'}
           </p>
-          <pre className="text-[10px] bg-white p-3 rounded-lg border overflow-auto max-h-40">
+          <pre className="text-[10px] bg-white/80 backdrop-blur-sm p-3 rounded-xl border border-slate-100 overflow-auto max-h-40 font-mono">
             {JSON.stringify(result.data || result.error, null, 2)}
           </pre>
         </div>
@@ -168,21 +192,23 @@ const TestPurchaseForm: React.FC<{ providerCode: string }> = ({ providerCode }) 
 };
 
 const Providers: React.FC = () => {
+  const { showSuccess, showError } = useToast();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editItem, setEditItem] = useState<any | null>(null);
   const [filters, setFilters] = useState<{ active: string | '' }>({ active: '' });
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [testItem, setTestItem] = useState<any | null>(null);
   const [testResults, setTestResults] = useState<any>(null);
   const [testLoading, setTestLoading] = useState(false);
   const [isSyncOpen, setIsSyncOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const queryClient = useQueryClient();
 
-  const { data, status } = useQuery({
+  const { data, status, refetch } = useQuery({
     queryKey: ['providers', filters.active],
     queryFn: () => getProviders(filters.active === '' ? undefined : { active: filters.active === 'true' }).then((r: any) => r.data?.data),
   });
+
   const providers = useMemo(() => {
     const list = data?.providers || [];
     return [...list].sort((a, b) => {
@@ -191,14 +217,30 @@ const Providers: React.FC = () => {
       return (a.priority || 0) - (b.priority || 0);
     });
   }, [data]);
+
   const total = data?.total || 0;
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+      showSuccess('Providers list updated');
+    } catch (err) {
+      showError('Failed to refresh providers');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const createMutation = useMutation({
     mutationFn: (payload: any) => createProvider(payload).then((r: any) => r.data),
     onSuccess: () => {
       setIsCreateOpen(false);
       queryClient.invalidateQueries({ queryKey: ['providers'] });
-    }
+      showSuccess('Provider added successfully');
+      resetForm();
+    },
+    onError: (err: any) => showError(err.response?.data?.message || 'Failed to add provider'),
   });
 
   const updateMutation = useMutation({
@@ -206,16 +248,19 @@ const Providers: React.FC = () => {
     onSuccess: () => {
       setEditItem(null);
       queryClient.invalidateQueries({ queryKey: ['providers'] });
-    }
+      showSuccess('Provider updated successfully');
+    },
+    onError: (err: any) => showError(err.response?.data?.message || 'Failed to update provider'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteProvider(id).then((r: any) => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['providers'] });
-    }
+      showSuccess('Provider deleted successfully');
+    },
+    onError: (err: any) => showError(err.response?.data?.message || 'Failed to delete provider'),
   });
-
 
   const [form, setForm] = useState({
     name: '',
@@ -265,416 +310,569 @@ const Providers: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50">
-      <Sidebar isMobileOpen={isMobileOpen} setIsMobileOpen={setIsMobileOpen} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar onMenuClick={() => setIsMobileOpen(true)} />
-        <main className="flex-1 overflow-auto p-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="mb-8">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h1 className="text-4xl font-bold text-slate-900 mb-2">Bill Providers</h1>
-                  <p className="text-slate-600">Manage external bill payment APIs (Topupmate, VTpass, SME Plug, etc.)</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-3xl font-bold text-green-600">{total}</p>
-                  <p className="text-sm text-slate-600">Total Providers</p>
+    <Layout>
+      <div className="p-3 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
+          {/* Header Section */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 mb-2 tracking-tight">Bill Providers</h1>
+              <p className="text-sm sm:text-lg text-slate-600 font-medium">Manage external bill payment APIs and connections</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-700 font-bold hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm disabled:opacity-50 group"
+              >
+                <FiRefreshCw className={`w-4 h-4 text-green-600 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+                <span className="hidden sm:inline">Refresh</span>
+              </button>
+              <div className="flex-1 sm:flex-none relative bg-gradient-to-br from-green-600 to-green-700 rounded-xl shadow-md px-4 py-2 text-white overflow-hidden">
+                <div className="absolute top-0 right-0 w-12 h-12 bg-white/10 rounded-full blur-xl"></div>
+                <div className="relative">
+                  <p className="text-xs font-bold uppercase tracking-wider text-green-100 opacity-80">Total</p>
+                  <p className="text-xl font-black">{total}</p>
                 </div>
               </div>
+            </div>
+          </div>
 
-              <div className="flex flex-wrap gap-3 mb-6">
-                <button onClick={() => { resetForm(); setIsCreateOpen(true); }} className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-2.5 rounded-lg transition-all shadow-md hover:shadow-lg font-medium">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                  Add Provider
-                </button>
+          {/* Action & Filter Bar */}
+          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+            <div className="flex flex-wrap gap-3 w-full lg:w-auto">
+              <button
+                onClick={() => { resetForm(); setIsCreateOpen(true); }}
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md font-bold active:scale-95"
+              >
+                <FiPlus className="w-5 h-5" />
+                <span>Add Provider</span>
+              </button>
 
-                <button onClick={() => setIsSyncOpen(true)} className="flex items-center gap-2 bg-white border border-green-600 text-green-600 hover:bg-green-50 px-6 py-2.5 rounded-lg transition-all font-medium">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                  Sync IBData Plans
-                </button>
+              <button
+                onClick={() => setIsSyncOpen(true)}
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-xl hover:bg-slate-50 transition-all shadow-sm font-bold active:scale-95"
+              >
+                <FiRefreshCw className="w-5 h-5 text-blue-600" />
+                <span>Sync IBData Plans</span>
+              </button>
+            </div>
 
-                <select value={filters.active} onChange={(e) => setFilters({ active: e.target.value })} className="px-4 py-2.5 border border-slate-300 rounded-lg bg-white">
+            <div className="w-full lg:w-48">
+              <div className="relative">
+                <FiFilter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <select
+                  value={filters.active}
+                  onChange={(e) => setFilters({ active: e.target.value })}
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all font-bold text-slate-700 appearance-none"
+                >
                   <option value="">All Status</option>
-                  <option value="true">Active</option>
-                  <option value="false">Inactive</option>
+                  <option value="true">Active Only</option>
+                  <option value="false">Inactive Only</option>
                 </select>
               </div>
             </div>
+          </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              {status === 'pending' && <div className="p-6 text-center text-gray-500">Loading providers...</div>}
-              {status === 'error' && <div className="p-6 text-center text-red-500">Failed to load providers.</div>}
-              {status === 'success' && (
-                <>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Name</th>
-                          <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Code</th>
-                          <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Services</th>
-                          <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Priority</th>
-                          <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
-                          <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {providers.length === 0 && (
-                          <tr>
-                            <td colSpan={6} className="px-6 py-4 text-center text-gray-500">No providers found.</td>
-                          </tr>
-                        )}
-                        {providers.map((p: any) => (
-                          <tr key={p._id} className="hover:bg-gray-50 transition">
-                            <td className="px-6 py-4 text-sm text-gray-900">{p.name}</td>
-                            <td className="px-6 py-4 text-sm text-gray-900 uppercase">{p.code}</td>
-                            <td className="px-6 py-4 text-sm text-gray-900">{(p.supported_services || []).join(', ')}</td>
-                            <td className="px-6 py-4 text-sm text-gray-900">{p.priority}</td>
-                            <td className="px-6 py-4 text-sm">
-                              <span className={`px-2 py-1 rounded text-xs font-semibold ${p.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{p.active ? 'Active' : 'Inactive'}</span>
-                            </td>
-                            <td className="px-6 py-4 text-sm space-x-3">
-                              <button onClick={() => setEditItem(p)} className="inline-flex items-center gap-1.5 text-green-600 hover:text-green-900 font-medium">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                                Edit
-                              </button>
-                              <button onClick={() => toggleActive(p)} className="inline-flex items-center gap-1.5 text-amber-600 hover:text-amber-900 font-medium">
-                                {p.active ? (
-                                  <>
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                                    Disable
-                                  </>
-                                ) : (
-                                  <>
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                    Enable
-                                  </>
-                                )}
-                              </button>
-                              <button onClick={() => testConnection(p)} className="inline-flex items-center gap-1.5 text-green-600 hover:text-green-900 font-medium">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                Test
-                              </button>
-                              {p.code !== 'ibdata' && (
-                                <button onClick={() => deleteMutation.mutate(p._id)} className="inline-flex items-center gap-1.5 text-red-600 hover:text-red-900 font-medium">
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m-7 0l1-3h6l1 3" /></svg>
-                                  Delete
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              )}
+          {/* Providers Table */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="p-4 sm:p-6 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900">Connected Services</h2>
+              <div className="flex items-center gap-2">
+                <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+                <span className="text-[10px] sm:text-xs font-medium text-slate-500 uppercase tracking-wider">Live Monitoring</span>
+              </div>
             </div>
 
-            {isCreateOpen && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 max-h-[85vh] overflow-y-auto">
-                  <h2 className="text-2xl font-bold text-slate-900 mb-6">Add Provider</h2>
-                  <form onSubmit={onSubmit} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Name</label>
-                      <input value={form.name} onChange={(e) => { setForm({ ...form, name: e.target.value.toUpperCase() }); if (errors.name) setErrors({ ...errors, name: '' }); }} className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.name ? 'border-red-500 focus:ring-red-500' : 'border-slate-300 focus:ring-green-500'}`} placeholder="IBDATA" />
-                      {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Code</label>
-                      <select
-                        value={form.code}
-                        onChange={(e) => {
-                          const code = e.target.value;
-                          const nameMap: Record<string, string> = {
-                            ibdata: 'IBDATA',
-                            smeplug: 'SME PLUG',
-                            topupmate: 'TOPUPMATE'
-                          };
-                          setForm({
-                            ...form,
-                            code,
-                            name: nameMap[code] || form.name
-                          });
-                          if (errors.code) setErrors({ ...errors, code: '' });
-                        }}
-                        className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.code ? 'border-red-500 focus:ring-red-500' : 'border-slate-300 focus:ring-green-500'}`}
-                      >
-                        <option value="">Select Provider Code</option>
-                        <option value="ibdata">IBData</option>
-                        <option value="smeplug">SME Plug</option>
-                        <option value="topupmate">Topupmate</option>
-                      </select>
-                      {errors.code && <p className="text-red-500 text-sm mt-1">{errors.code}</p>}
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Base URL</label>
-                        <input value={form.base_url} onChange={(e) => setForm({ ...form, base_url: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" placeholder="https://api.example.com" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">API Key</label>
-                        <input value={form.api_key} onChange={(e) => setForm({ ...form, api_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" placeholder="sk_..." disabled={form.code === 'ibdata'} type={form.code === 'ibdata' ? 'password' : 'text'} />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Secret Key</label>
-                        <input value={form.secret_key} onChange={(e) => setForm({ ...form, secret_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" placeholder="secret..." disabled={form.code === 'ibdata'} type={form.code === 'ibdata' ? 'password' : 'text'} />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Priority</label>
-                        <select
-                          value={form.priority}
-                          onChange={(e) => setForm({ ...form, priority: Number(e.target.value) })}
-                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500"
-                        >
-                          <option value={1}>1 (High)</option>
-                          <option value={2}>2 (Medium)</option>
-                          <option value={3}>3 (Low)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Active</label>
-                        <select value={String(form.active)} onChange={(e) => setForm({ ...form, active: e.target.value === 'true' })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500">
-                          <option value="true">Yes</option>
-                          <option value="false">No</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Supported Services</label>
-                        <div className="flex flex-wrap gap-2">
-                          {ALL_SERVICES.map(s => (
-                            <label key={s} className={`px-3 py-1 rounded border cursor-pointer text-sm ${form.supported_services.includes(s) ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-700 border-slate-300'}`}>
-                              <input type="checkbox" className="hidden" checked={form.supported_services.includes(s)} onChange={() => {
-                                setForm(f => ({ ...f, supported_services: f.supported_services.includes(s) ? f.supported_services.filter(x => x !== s) : [...f.supported_services, s] }));
-                              }} />
-                              {s}
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3 pt-2">
-                      <button type="button" onClick={() => { setIsCreateOpen(false); resetForm(); }} className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition font-semibold">Cancel</button>
-                      <button type="submit" disabled={!canSubmit || createMutation.status === 'pending'} className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition disabled:opacity-50">{createMutation.status === 'pending' ? 'Saving...' : 'Save'}</button>
-                    </div>
-                  </form>
-                </div>
+            {status === 'pending' && (
+              <div className="p-12 text-center">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-green-500 border-t-transparent mb-4"></div>
+                <p className="text-slate-500 font-medium">Loading providers...</p>
               </div>
             )}
 
-
-            {editItem && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 max-h-[85vh] overflow-y-auto">
-                  <h2 className="text-2xl font-bold text-slate-900 mb-6">Edit Provider</h2>
-                  <form onSubmit={(e) => { e.preventDefault(); updateMutation.mutate({ id: editItem._id, payload: editItem }); }} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Name</label>
-                      <input value={editItem.name || ''} onChange={(e) => setEditItem({ ...editItem, name: e.target.value.toUpperCase() })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Code</label>
-                      <select
-                        value={editItem.code || ''}
-                        onChange={(e) => {
-                          const code = e.target.value;
-                          const nameMap: Record<string, string> = {
-                            ibdata: 'IBDATA',
-                            smeplug: 'SME PLUG',
-                            topupmate: 'TOPUPMATE'
-                          };
-                          setEditItem({
-                            ...editItem,
-                            code,
-                            name: nameMap[code] || editItem.name
-                          });
-                        }}
-                        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500"
-                      >
-                        <option value="">Select Provider Code</option>
-                        <option value="ibdata">IBData</option>
-                        <option value="smeplug">SME Plug</option>
-                        <option value="topupmate">Topupmate</option>
-                      </select>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Base URL</label>
-                        <input value={editItem.base_url || ''} onChange={(e) => setEditItem({ ...editItem, base_url: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">API Key</label>
-                        <input value={editItem.api_key || ''} onChange={(e) => setEditItem({ ...editItem, api_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" disabled={editItem.code === 'ibdata'} type={editItem.code === 'ibdata' ? 'password' : 'text'} />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Secret Key</label>
-                        <input value={editItem.secret_key || ''} onChange={(e) => setEditItem({ ...editItem, secret_key: e.target.value })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500" disabled={editItem.code === 'ibdata'} type={editItem.code === 'ibdata' ? 'password' : 'text'} />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Priority</label>
-                        <select
-                          value={editItem.priority || 1}
-                          onChange={(e) => setEditItem({ ...editItem, priority: Number(e.target.value) })}
-                          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500"
-                        >
-                          <option value={1}>1 (High)</option>
-                          <option value={2}>2 (Medium)</option>
-                          <option value={3}>3 (Low)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Active</label>
-                        <select value={String(editItem.active)} onChange={(e) => setEditItem({ ...editItem, active: e.target.value === 'true' })} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 border-slate-300 focus:ring-green-500">
-                          <option value="true">Yes</option>
-                          <option value="false">No</option>
-                        </select>
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Supported Services</label>
-                        <div className="flex flex-wrap gap-2">
-                          {ALL_SERVICES.map(s => (
-                            <label key={s} className={`px-3 py-1 rounded border cursor-pointer text-sm ${(editItem.supported_services || []).includes(s) ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-700 border-slate-300'}`}>
-                              <input type="checkbox" className="hidden" checked={(editItem.supported_services || []).includes(s)} onChange={() => {
-                                setEditItem((f: any) => ({ ...f, supported_services: (f.supported_services || []).includes(s) ? f.supported_services.filter((x: string) => x !== s) : [...(f.supported_services || []), s] }));
-                              }} />
-                              {s}
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3 pt-2">
-                      <button type="button" onClick={() => setEditItem(null)} className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition font-semibold">Cancel</button>
-                      <button type="submit" disabled={updateMutation.status === 'pending'} className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition disabled:opacity-50">{updateMutation.status === 'pending' ? 'Saving...' : 'Save'}</button>
-                    </div>
-                  </form>
+            {status === 'error' && (
+              <div className="p-12 text-center">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-100 text-red-600 mb-4">
+                  <FiTrash2 className="w-6 h-6" />
                 </div>
+                <p className="text-red-500 font-medium">Failed to load providers.</p>
               </div>
             )}
 
-            {testItem && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full p-8 max-h-[85vh] overflow-y-auto">
-                  <div className="flex justify-between items-start mb-6">
-                    <div>
-                      <h2 className="text-2xl font-bold text-slate-900 mb-1">Test Provider: {testItem.name}</h2>
-                      <p className="text-slate-600 text-sm uppercase tracking-wider font-semibold">{testItem.code}</p>
-                    </div>
-                    <button onClick={() => setTestItem(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                      <svg className="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* Left Column: Connection Status */}
-                    <div className="space-y-6">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-bold text-slate-900">Connection Status</h3>
-                        <button
-                          disabled={testLoading}
-                          onClick={() => testConnection(testItem)}
-                          className="text-sm text-green-600 hover:text-green-700 font-semibold flex items-center gap-1"
-                        >
-                          <svg className={`w-4 h-4 ${testLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                          Refresh
-                        </button>
-                      </div>
-
-                      {testLoading ? (
-                        <div className="flex flex-col items-center justify-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600 mb-4"></div>
-                          <p className="text-slate-500 font-medium">Testing connection...</p>
-                        </div>
-                      ) : testResults ? (
-                        <div className="space-y-4">
-                          {testResults.error ? (
-                            <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
-                              <div className="flex items-center gap-2 text-red-800 font-bold mb-1">
-                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
-                                Connection Failed
-                              </div>
-                              <p className="text-red-600 text-sm">{testResults.error}</p>
+            {status === 'success' && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50/50 border-b border-slate-100">
+                      <th className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Provider</th>
+                      <th className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Services</th>
+                      <th className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider hidden md:table-cell text-center">Priority</th>
+                      <th className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                      <th className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {providers.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-12 text-center text-slate-500 italic">No providers found matching your filters.</td>
+                      </tr>
+                    )}
+                    {providers.map((p: any) => (
+                      <tr key={p._id} className="hover:bg-slate-50/50 transition-colors group">
+                        <td className="px-4 sm:px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-slate-100 to-slate-200 rounded-xl flex items-center justify-center text-slate-600 font-bold text-xs shadow-sm group-hover:scale-110 transition-transform">
+                              {p.name.charAt(0)}
                             </div>
-                          ) : (
-                            <>
-                              {/* Balance Card */}
-                              <div className={`p-4 rounded-xl border-2 transition-all ${testResults.balanceStatus === 'success' ? 'border-green-100 bg-green-50/30' : 'border-red-100 bg-red-50/30'}`}>
-                                <div className="flex items-center justify-between mb-3">
-                                  <span className="text-sm font-bold text-slate-700 uppercase tracking-wider">Wallet Balance</span>
-                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${testResults.balanceStatus === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
-                                    {testResults.balanceStatus === 'success' ? 'Online' : 'Offline'}
-                                  </span>
-                                </div>
-                                {testResults.balanceStatus === 'success' ? (
-                                  <div className="flex items-baseline gap-1">
-                                    <span className="text-2xl font-black text-slate-900">
-<<<<<<< HEAD
-                                      {typeof testResults.balance === 'object' ? (testResults.balance.balance || testResults.balance.wallet_balance || '0') : testResults.balance}
-=======
-                                      {testItem.code === 'ibdata' ? '***.**' : (typeof testResults.balance === 'object' ? (testResults.balance.balance || testResults.balance.wallet_balance || '0') : testResults.balance)}
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
-                                    </span>
-                                    <span className="text-xs font-bold text-slate-500 uppercase">NGN</span>
-                                  </div>
-                                ) : (
-                                  <p className="text-red-600 text-xs font-medium">{testResults.balanceError}</p>
-                                )}
-                              </div>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-bold text-slate-900">{p.name}</span>
+                              <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest">{p.code}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 sm:px-6 py-4 hidden sm:table-cell">
+                          <div className="flex flex-wrap gap-1">
+                            {(p.supported_services || []).map((s: string) => (
+                              <span key={s} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[9px] font-bold uppercase border border-slate-200">
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-4 sm:px-6 py-4 hidden md:table-cell text-center">
+                          <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-black ${p.priority === 1 ? 'bg-green-100 text-green-700' : p.priority === 2 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'}`}>
+                            {p.priority}
+                          </span>
+                        </td>
+                        <td className="px-4 sm:px-6 py-4">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${p.active ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200'}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${p.active ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                            {p.active ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td className="px-4 sm:px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => setEditItem(p)}
+                              className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-all"
+                              title="Edit Provider"
+                            >
+                              <FiEdit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => toggleActive(p)}
+                              className={`p-2 rounded-xl transition-all ${p.active ? 'text-amber-400 hover:text-amber-600 hover:bg-amber-50' : 'text-green-400 hover:text-green-600 hover:bg-green-50'}`}
+                              title={p.active ? 'Disable' : 'Enable'}
+                            >
+                              {p.active ? <FiX className="w-4 h-4" /> : <FiCheckCircle className="w-4 h-4" />}
+                            </button>
+                            <button
+                              onClick={() => testConnection(p)}
+                              className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                              title="Test Connection"
+                            >
+                              <FiActivity className="w-4 h-4" />
+                            </button>
+                            {p.code !== 'ibdata' && (
+                              <button
+                                onClick={() => {
+                                  if (window.confirm('Are you sure you want to delete this provider?')) {
+                                    deleteMutation.mutate(p._id);
+                                  }
+                                }}
+                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                                title="Delete Provider"
+                              >
+                                <FiTrash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
 
-                              {/* Networks Card */}
-                              <div className={`p-4 rounded-xl border-2 transition-all ${testResults.networksStatus === 'success' ? 'border-blue-100 bg-blue-50/30' : 'border-red-100 bg-red-50/30'}`}>
-                                <div className="flex items-center justify-between mb-3">
-                                  <span className="text-sm font-bold text-slate-700 uppercase tracking-wider">Networks</span>
-                                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${testResults.networksStatus === 'success' ? 'bg-blue-600 text-white' : 'bg-red-600 text-white'}`}>
-                                    {testResults.networksStatus === 'success' ? 'Available' : 'Error'}
-                                  </span>
-                                </div>
-                                {testResults.networksStatus === 'success' ? (
-                                  <p className="text-slate-600 text-sm font-medium">
-                                    {Array.isArray(testResults.networks) ? `${testResults.networks.length} networks found` : 'Networks data retrieved'}
-                                  </p>
-                                ) : (
-                                  <p className="text-red-600 text-xs font-medium">{testResults.networksError}</p>
-                                )}
-                              </div>
-                            </>
-                          )}
+        {/* Create/Edit Modal */}
+        {(isCreateOpen || editItem) && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-green-100">
+                    <FiServer className="w-5 h-5" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900">{editItem ? 'Edit Provider' : 'Add New Provider'}</h3>
+                </div>
+                <button
+                  onClick={() => { setIsCreateOpen(false); setEditItem(null); resetForm(); }}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all"
+                >
+                  <FiX className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6 max-h-[75vh] overflow-y-auto">
+                <form onSubmit={editItem ? (e) => { e.preventDefault(); updateMutation.mutate({ id: editItem._id, payload: editItem }); } : onSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Basic Info */}
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <FiLayers className="w-3 h-3" />
+                        Basic Configuration
+                      </h4>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Provider Name</label>
+                        <input
+                          value={editItem ? editItem.name : form.name}
+                          onChange={(e) => {
+                            const val = e.target.value.toUpperCase();
+                            if (editItem) setEditItem({ ...editItem, name: val });
+                            else setForm({ ...form, name: val });
+                          }}
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none font-bold text-slate-700"
+                          placeholder="e.g. IBDATA"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Provider Code</label>
+                        <select
+                          value={editItem ? editItem.code : form.code}
+                          onChange={(e) => {
+                            const code = e.target.value;
+                            const nameMap: Record<string, string> = {
+                              ibdata: 'IBDATA',
+                              smeplug: 'SME PLUG',
+                              topupmate: 'TOPUPMATE'
+                            };
+                            if (editItem) setEditItem({ ...editItem, code, name: nameMap[code] || editItem.name });
+                            else setForm({ ...form, code, name: nameMap[code] || form.name });
+                          }}
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none font-bold text-slate-700"
+                        >
+                          <option value="">Select Code</option>
+                          <option value="ibdata">IBData</option>
+                          <option value="smeplug">SME Plug</option>
+                          <option value="topupmate">Topupmate</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Base URL</label>
+                        <div className="relative">
+                          <FiGlobe className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input
+                            value={editItem ? editItem.base_url : form.base_url}
+                            onChange={(e) => {
+                              if (editItem) setEditItem({ ...editItem, base_url: e.target.value });
+                              else setForm({ ...form, base_url: e.target.value });
+                            }}
+                            className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none font-medium text-slate-600"
+                            placeholder="https://api.provider.com"
+                          />
                         </div>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                          <p className="text-slate-500 font-medium">Click refresh to test connection</p>
-                        </div>
-                      )}
+                      </div>
                     </div>
 
-                    {/* Right Column: Test Purchase */}
-                    <div className="space-y-6 lg:border-l lg:pl-8 border-slate-200">
-                      <h3 className="text-lg font-bold text-slate-900">Test Purchase</h3>
-                      <TestPurchaseForm providerCode={testItem.code} />
+                    {/* Authentication */}
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <FiLock className="w-3 h-3" />
+                        Authentication
+                      </h4>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">API Key</label>
+                        <div className="relative">
+                          <FiKey className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input
+                            type="password"
+                            value={editItem ? editItem.api_key : form.api_key}
+                            onChange={(e) => {
+                              if (editItem) setEditItem({ ...editItem, api_key: e.target.value });
+                              else setForm({ ...form, api_key: e.target.value });
+                            }}
+                            className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none font-mono text-slate-600"
+                            placeholder="••••••••••••••••"
+                            disabled={(editItem?.code || form.code) === 'ibdata'}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Secret Key / Password</label>
+                        <div className="relative">
+                          <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input
+                            type="password"
+                            value={editItem ? editItem.secret_key : form.secret_key}
+                            onChange={(e) => {
+                              if (editItem) setEditItem({ ...editItem, secret_key: e.target.value });
+                              else setForm({ ...form, secret_key: e.target.value });
+                            }}
+                            className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none font-mono text-slate-600"
+                            placeholder="••••••••••••••••"
+                            disabled={(editItem?.code || form.code) === 'ibdata'}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Username (Optional)</label>
+                        <div className="relative">
+                          <FiUser className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input
+                            value={editItem ? editItem.username : form.username}
+                            onChange={(e) => {
+                              if (editItem) setEditItem({ ...editItem, username: e.target.value });
+                              else setForm({ ...form, username: e.target.value });
+                            }}
+                            className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none font-medium text-slate-600"
+                            placeholder="admin_user"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end">
+                  {/* Settings */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <FiSettings className="w-3 h-3" />
+                        Operational Settings
+                      </h4>
+                      <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                        <div>
+                          <p className="text-sm font-bold text-slate-700">Provider Priority</p>
+                          <p className="text-[10px] text-slate-500">Lower numbers have higher priority</p>
+                        </div>
+                        <select
+                          value={editItem ? editItem.priority : form.priority}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            if (editItem) setEditItem({ ...editItem, priority: val });
+                            else setForm({ ...form, priority: val });
+                          }}
+                          className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg font-black text-slate-700 outline-none focus:ring-2 focus:ring-green-500/20"
+                        >
+                          <option value={1}>1</option>
+                          <option value={2}>2</option>
+                          <option value={3}>3</option>
+                        </select>
+                      </div>
+                      <label className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200 cursor-pointer group">
+                        <div>
+                          <p className="text-sm font-bold text-slate-700 group-hover:text-green-600 transition-colors">Active Status</p>
+                          <p className="text-[10px] text-slate-500">Enable or disable this provider globally</p>
+                        </div>
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            checked={editItem ? editItem.active : form.active}
+                            onChange={(e) => {
+                              const val = e.target.checked;
+                              if (editItem) setEditItem({ ...editItem, active: val });
+                              else setForm({ ...form, active: val });
+                            }}
+                            className="sr-only"
+                          />
+                          <div className={`w-10 h-6 rounded-full transition-colors ${(editItem ? editItem.active : form.active) ? 'bg-green-500' : 'bg-slate-300'}`}></div>
+                          <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${(editItem ? editItem.active : form.active) ? 'translate-x-4' : ''}`}></div>
+                        </div>
+                      </label>
+                    </div>
+
+                    <div className="space-y-4">
+                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <FiZap className="w-3 h-3" />
+                        Supported Services
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {ALL_SERVICES.map(s => {
+                          const isSupported = (editItem ? (editItem.supported_services || []) : form.supported_services).includes(s);
+                          return (
+                            <button
+                              key={s}
+                              type="button"
+                              onClick={() => {
+                                if (editItem) {
+                                  const services = editItem.supported_services || [];
+                                  setEditItem({ ...editItem, supported_services: services.includes(s) ? services.filter((x: string) => x !== s) : [...services, s] });
+                                } else {
+                                  const services = form.supported_services;
+                                  setForm({ ...form, supported_services: services.includes(s) ? services.filter(x => x !== s) : [...services, s] });
+                                }
+                              }}
+                              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border ${isSupported ? 'bg-green-600 text-white border-green-600 shadow-md shadow-green-100' : 'bg-white text-slate-500 border-slate-200 hover:border-green-300 hover:text-green-600'}`}
+                            >
+                              {s}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
                     <button
-                      onClick={() => setTestItem(null)}
-                      className="px-8 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition-all shadow-lg shadow-slate-200"
+                      type="button"
+                      onClick={() => { setIsCreateOpen(false); setEditItem(null); resetForm(); }}
+                      className="flex-1 px-6 py-3 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition-all font-bold"
                     >
-                      Done
+                      Cancel
                     </button>
+                    <button
+                      type="submit"
+                      disabled={!canSubmit || createMutation.status === 'pending' || updateMutation.status === 'pending'}
+                      className="flex-[2] px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg disabled:opacity-50 active:scale-95"
+                    >
+                      {createMutation.status === 'pending' || updateMutation.status === 'pending' ? 'Saving...' : 'Save Provider'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Test Connection Modal */}
+        {testItem && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-100">
+                    <FiActivity className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900">Test Provider: {testItem.name}</h3>
+                    <p className="text-[10px] font-mono text-slate-400 uppercase tracking-widest">{testItem.code}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setTestItem(null)}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all"
+                >
+                  <FiX className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6 max-h-[80vh] overflow-y-auto">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Connection Status */}
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                        <FiServer className="text-blue-600" />
+                        Connection Status
+                      </h3>
+                      <button
+                        disabled={testLoading}
+                        onClick={() => testConnection(testItem)}
+                        className="text-xs text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 rounded-lg transition-all"
+                      >
+                        <FiRefreshCw className={`w-3.5 h-3.5 ${testLoading ? 'animate-spin' : ''}`} />
+                        Refresh
+                      </button>
+                    </div>
+
+                    {testLoading ? (
+                      <div className="flex flex-col items-center justify-center py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-500 border-t-transparent mb-4"></div>
+                        <p className="text-slate-500 font-bold">Pinging provider API...</p>
+                      </div>
+                    ) : testResults ? (
+                      <div className="space-y-4">
+                        {testResults.error ? (
+                          <div className="p-5 bg-red-50 border border-red-200 rounded-2xl">
+                            <div className="flex items-center gap-2 text-red-800 font-black mb-2">
+                              <FiX className="w-5 h-5" />
+                              Connection Failed
+                            </div>
+                            <p className="text-red-600 text-sm font-medium leading-relaxed">{testResults.error}</p>
+                          </div>
+                        ) : (
+                          <>
+                            {/* Balance Card */}
+                            <div className={`p-5 rounded-2xl border-2 transition-all ${testResults.balanceStatus === 'success' ? 'border-green-100 bg-green-50/30' : 'border-red-100 bg-red-50/30'}`}>
+                              <div className="flex items-center justify-between mb-4">
+                                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Wallet Balance</span>
+                                <span className={`text-[10px] px-2.5 py-1 rounded-full font-black uppercase tracking-wider ${testResults.balanceStatus === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+                                  {testResults.balanceStatus === 'success' ? 'Online' : 'Offline'}
+                                </span>
+                              </div>
+                              {testResults.balanceStatus === 'success' ? (
+                                <div className="flex items-baseline gap-2">
+                                  <span className="text-3xl font-black text-slate-900">
+                                    ₦{Number(typeof testResults.balance === 'object' ? (testResults.balance.balance || testResults.balance.wallet_balance || '0') : testResults.balance).toLocaleString()}
+                                  </span>
+                                  <span className="text-xs font-bold text-slate-400 uppercase">Available</span>
+                                </div>
+                              ) : (
+                                <p className="text-red-600 text-xs font-bold leading-relaxed">{testResults.balanceError}</p>
+                              )}
+                            </div>
+
+                            {/* Networks Card */}
+                            <div className={`p-5 rounded-2xl border-2 transition-all ${testResults.networksStatus === 'success' ? 'border-blue-100 bg-blue-50/30' : 'border-red-100 bg-red-50/30'}`}>
+                              <div className="flex items-center justify-between mb-4">
+                                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Network Services</span>
+                                <span className={`text-[10px] px-2.5 py-1 rounded-full font-black uppercase tracking-wider ${testResults.networksStatus === 'success' ? 'bg-blue-600 text-white' : 'bg-red-600 text-white'}`}>
+                                  {testResults.networksStatus === 'success' ? 'Available' : 'Error'}
+                                </span>
+                              </div>
+                              {testResults.networksStatus === 'success' ? (
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
+                                    <FiLayers className="w-5 h-5" />
+                                  </div>
+                                  <p className="text-slate-700 text-sm font-bold">
+                                    {Array.isArray(testResults.networks) ? `${testResults.networks.length} networks configured` : 'Network data retrieved successfully'}
+                                  </p>
+                                </div>
+                              ) : (
+                                <p className="text-red-600 text-xs font-bold leading-relaxed">{testResults.networksError}</p>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-16 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                        <FiActivity className="w-10 h-10 text-slate-300 mb-4" />
+                        <p className="text-slate-500 font-bold">Click refresh to start connection test</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Test Purchase */}
+                  <div className="space-y-6 lg:border-l lg:pl-8 border-slate-100">
+                    <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                      <FiZap className="text-green-600" />
+                      Live Purchase Test
+                    </h3>
+                    <TestPurchaseForm providerCode={testItem.code} />
                   </div>
                 </div>
               </div>
-            )}
-            {isSyncOpen && <IBDataSyncModal onClose={() => setIsSyncOpen(false)} />}
+
+              <div className="p-6 bg-slate-50/50 border-t border-slate-100 flex justify-end">
+                <button
+                  onClick={() => setTestItem(null)}
+                  className="px-10 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition-all shadow-lg active:scale-95"
+                >
+                  Close Test Panel
+                </button>
+              </div>
+            </div>
           </div>
-        </main>
+        )}
+
+        {isSyncOpen && <IBDataSyncModal onClose={() => setIsSyncOpen(false)} />}
       </div>
-    </div>
+    </Layout>
   );
 };
 

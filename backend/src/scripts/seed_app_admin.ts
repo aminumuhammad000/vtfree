@@ -3,10 +3,7 @@ import bcrypt from 'bcryptjs';
 import { config } from '../config/bootstrap.js';
 import AppAdmin from '../models/app_admin.model.js';
 import CreatedApp from '../models/created_app.model.js';
-<<<<<<< HEAD
 import VTfreeUser from '../models/vtfree_user.model.js';
-=======
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 
 async function seedAppAdmin() {
     try {
@@ -16,7 +13,6 @@ async function seedAppAdmin() {
         const app_id = 'vtu_app_001';
         const email = 'admin@testvtuapp.com';
         const password = 'Admin@123456';
-<<<<<<< HEAD
         const ownerEmail = 'owner@testvtuapp.com';
 
         // 1. Ensure VTfreeUser (Owner) exists
@@ -36,28 +32,19 @@ async function seedAppAdmin() {
         }
 
         // 2. Ensure the app exists and is linked to the owner
-=======
-
-        // Ensure the app exists
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
         let app = await CreatedApp.findOne({ app_id });
         if (!app) {
             console.log(`Creating app ${app_id}...`);
             app = await CreatedApp.create({
                 app_id,
                 app_name: 'Test VTU App',
-<<<<<<< HEAD
                 owner_id: owner._id,
-=======
-                owner_id: new mongoose.Types.ObjectId(), // Dummy owner
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
                 package_name: 'com.test.vtu',
                 branding: {
                     logo_url: '',
                     primary_color: '#000000',
                     secondary_color: '#ffffff'
                 },
-<<<<<<< HEAD
                 status: 'active',
                 admin_email: email,
                 admin_password_hash: await bcrypt.hash(password, 10)
@@ -80,19 +67,6 @@ async function seedAppAdmin() {
             existingAdmin.password = hashedPassword;
             existingAdmin.first_name = 'Test';
             existingAdmin.last_name = 'Admin';
-=======
-                status: 'active'
-            });
-        }
-
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Create or update AppAdmin
-        const existingAdmin = await AppAdmin.findOne({ app_id, email });
-        if (existingAdmin) {
-            existingAdmin.password = hashedPassword;
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
             await existingAdmin.save();
             console.log(`Updated existing AppAdmin: ${email}`);
         } else {
@@ -100,11 +74,8 @@ async function seedAppAdmin() {
                 app_id,
                 email,
                 password: hashedPassword,
-<<<<<<< HEAD
                 first_name: 'Test',
                 last_name: 'Admin',
-=======
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
                 role: 'owner',
                 status: 'active'
             });
@@ -113,14 +84,9 @@ async function seedAppAdmin() {
 
         console.log('\n--- Credentials ---');
         console.log(`App ID: ${app_id}`);
-<<<<<<< HEAD
         console.log(`Admin Email: ${email}`);
         console.log(`Admin Password: ${password}`);
         console.log(`Owner Email: ${ownerEmail}`);
-=======
-        console.log(`Email: ${email}`);
-        console.log(`Password: ${password}`);
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 
         await mongoose.disconnect();
     } catch (err) {

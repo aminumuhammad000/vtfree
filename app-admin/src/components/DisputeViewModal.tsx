@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiX, FiUser, FiFileText, FiAlertCircle, FiCheckCircle, FiXCircle } from 'react-icons/fi';
+import { FiX, FiUser, FiFileText, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 
 interface DisputeViewModalProps {
     dispute: any;
@@ -112,8 +112,8 @@ const DisputeViewModal: React.FC<DisputeViewModalProps> = ({ dispute, onClose, o
                                 <button
                                     onClick={() => setAction('resolved')}
                                     className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${action === 'resolved'
-                                            ? 'border-green-500 bg-green-50 text-green-700'
-                                            : 'border-slate-200 hover:border-green-200 hover:bg-green-50/50'
+                                        ? 'border-green-500 bg-green-50 text-green-700'
+                                        : 'border-slate-200 hover:border-green-200 hover:bg-green-50/50'
                                         }`}
                                 >
                                     <FiCheckCircle className={action === 'resolved' ? 'text-green-600' : 'text-slate-400'} />
@@ -122,8 +122,8 @@ const DisputeViewModal: React.FC<DisputeViewModalProps> = ({ dispute, onClose, o
                                 <button
                                     onClick={() => setAction('rejected')}
                                     className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${action === 'rejected'
-                                            ? 'border-red-500 bg-red-50 text-red-700'
-                                            : 'border-slate-200 hover:border-red-200 hover:bg-red-50/50'
+                                        ? 'border-red-500 bg-red-50 text-red-700'
+                                        : 'border-slate-200 hover:border-red-200 hover:bg-red-50/50'
                                         }`}
                                 >
                                     <FiXCircle className={action === 'rejected' ? 'text-red-600' : 'text-slate-400'} />

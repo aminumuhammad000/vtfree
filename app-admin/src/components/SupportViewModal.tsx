@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiX, FiUser, FiMail, FiMessageSquare, FiClock, FiAlertCircle, FiCheckCircle } from 'react-icons/fi';
+import { FiX, FiUser, FiMail, FiClock } from 'react-icons/fi';
 
 interface SupportViewModalProps {
     ticket: any;

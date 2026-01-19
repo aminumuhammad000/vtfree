@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -116,14 +116,41 @@ export const adminApi = {
         return response.data.data;
     },
 
+    flagTransaction: async (id: string, flagged: boolean): Promise<any> => {
+        const response = await api.patch<ApiResponse<any>>(`/admin/transactions/${id}/flag`, { flagged });
+        return response.data.data;
+    },
+
+    verifyTransaction: async (id: string): Promise<any> => {
+        const response = await api.post<ApiResponse<any>>(`/admin/transactions/${id}/verify`);
+        return response.data;
+    },
+
     getSettlements: async (): Promise<any[]> => {
         const response = await api.get<ApiResponse<any[]>>('/admin/settlements');
         return response.data.data || [];
+    },
+    processSettlement: async (id: string): Promise<any> => {
+        const response = await api.post<ApiResponse<any>>(`/admin/settlements/${id}/process`);
+        return response.data;
+    },
+    retrySettlement: async (id: string): Promise<any> => {
+        const response = await api.post<ApiResponse<any>>(`/admin/settlements/${id}/retry`);
+        return response.data;
+    },
+    manualTriggerSettlement: async (data: any): Promise<any> => {
+        const response = await api.post<ApiResponse<any>>('/admin/settlements/manual-trigger', data);
+        return response.data;
     },
 
     getWebhooks: async (params?: any): Promise<any> => {
         const response = await api.get<ApiResponse<any>>('/admin/webhooks', { params });
         return response.data.data;
+    },
+
+    retryWebhook: async (id: string): Promise<any> => {
+        const response = await api.post<ApiResponse<any>>(`/admin/webhooks/${id}/retry`);
+        return response.data;
     },
 
     getApiKeys: async (): Promise<any[]> => {
@@ -208,6 +235,11 @@ export const adminApi = {
         return response.data;
     },
 
+    getRecentCommunications: async (): Promise<any[]> => {
+        const response = await api.get<ApiResponse<any[]>>('/admin/communications/recent');
+        return response.data.data || [];
+    },
+
     // System Settings
     getSystemSettings: async (): Promise<any> => {
         const response = await api.get<ApiResponse<any>>('/admin/settings');
@@ -231,6 +263,17 @@ export const adminApi = {
 
     updateHelpMessageStatus: async (id: string, status: string): Promise<any> => {
         const response = await api.patch<ApiResponse<any>>(`/help/admin/messages/${id}/status`, { status });
+        return response.data.data;
+    },
+    // Bank APIs
+    getBanks: async (): Promise<any[]> => {
+        const response = await api.get<ApiResponse<any[]>>('/banks');
+        return response.data.data || [];
+    },
+    verifyAccount: async (bankCode: string, accountNumber: string): Promise<any> => {
+        const response = await api.get<ApiResponse<any>>('/banks/verify', {
+            params: { bankCode, accountNumber }
+        });
         return response.data.data;
     },
 };

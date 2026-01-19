@@ -167,17 +167,17 @@ const TenantsPage: React.FC = () => {
     });
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-4 md:p-6 space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-start">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Tenants Management</h1>
-                    <p className="text-sm text-slate-500 mt-1">Control tenant access, status, and limits</p>
+                    <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900">Tenants Management</h1>
+                    <p className="text-xs md:text-sm text-slate-500 mt-1">Control tenant access, status, and limits</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="w-full sm:w-auto">
                     <button
                         onClick={handleExport}
-                        className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium"
+                        className="w-full sm:w-auto px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium shadow-sm active:scale-95"
                     >
                         Export Data
                     </button>
@@ -185,26 +185,26 @@ const TenantsPage: React.FC = () => {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <p className="text-sm font-medium text-slate-500">Total Tenants</p>
-                    <h3 className="text-2xl font-bold text-slate-900 mt-1">{tenants.length}</h3>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <p className="text-xs md:text-sm font-medium text-slate-500">Total Tenants</p>
+                    <h3 className="text-lg md:text-2xl font-bold text-slate-900 mt-1">{tenants.length}</h3>
                 </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <p className="text-sm font-medium text-slate-500">Active</p>
-                    <h3 className="text-2xl font-bold text-green-600 mt-1">
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <p className="text-xs md:text-sm font-medium text-slate-500">Active</p>
+                    <h3 className="text-lg md:text-2xl font-bold text-green-600 mt-1">
                         {tenants.filter(t => t.status === 'active').length}
                     </h3>
                 </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <p className="text-sm font-medium text-slate-500">Suspended</p>
-                    <h3 className="text-2xl font-bold text-red-600 mt-1">
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <p className="text-xs md:text-sm font-medium text-slate-500">Suspended</p>
+                    <h3 className="text-lg md:text-2xl font-bold text-red-600 mt-1">
                         {tenants.filter(t => t.status === 'suspended').length}
                     </h3>
                 </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <p className="text-sm font-medium text-slate-500">KYC Verified</p>
-                    <h3 className="text-2xl font-bold text-slate-900 mt-1">
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <p className="text-xs md:text-sm font-medium text-slate-500">KYC Verified</p>
+                    <h3 className="text-lg md:text-2xl font-bold text-slate-900 mt-1">
                         {tenants.filter(t => t.kyc_status === 'verified').length}
                     </h3>
                 </div>
@@ -212,20 +212,20 @@ const TenantsPage: React.FC = () => {
 
             {/* Filters and Search */}
             <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex flex-col sm:flex-row gap-4">
                     <div className="flex-1">
                         <input
                             type="text"
                             placeholder="Search by email, name, or business..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                            className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
                         />
                     </div>
                     <select
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
-                        className="px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        className="w-full sm:w-auto px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
                     >
                         <option value="all">All Status</option>
                         <option value="active">Active</option>
@@ -244,25 +244,25 @@ const TenantsPage: React.FC = () => {
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="w-full min-w-[800px] md:min-w-full">
                             <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Tenant
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="hidden lg:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Business
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         KYC Level
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Status
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="hidden sm:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Created
                                     </th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Actions
                                     </th>
                                 </tr>
@@ -270,40 +270,42 @@ const TenantsPage: React.FC = () => {
                             <tbody className="bg-white divide-y divide-slate-200">
                                 {filteredTenants.map((tenant) => (
                                     <tr key={tenant._id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                             <div>
                                                 <div className="text-sm font-medium text-slate-900">{tenant.firstName} {tenant.lastName}</div>
-                                                <div className="text-sm text-slate-500">{tenant.email}</div>
+                                                <div className="text-xs text-slate-500">{tenant.email}</div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="hidden lg:table-cell px-4 md:px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm text-slate-900">{tenant.businessName || 'N/A'}</div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                             {getKycStatusBadge(tenant.kyc_status)}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                             {getStatusBadge(tenant.status)}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                        <td className="hidden sm:table-cell px-4 md:px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                             {new Date(tenant.createdAt).toLocaleDateString()}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedTenant(tenant);
-                                                    setShowDetails(true);
-                                                }}
-                                                className="text-green-600 hover:text-green-900 mr-4"
-                                            >
-                                                View
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteTenant(tenant._id)}
-                                                className="text-red-600 hover:text-red-900"
-                                            >
-                                                Delete
-                                            </button>
+                                        <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <div className="flex justify-end gap-3">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedTenant(tenant);
+                                                        setShowDetails(true);
+                                                    }}
+                                                    className="text-green-600 hover:text-green-900"
+                                                >
+                                                    View
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteTenant(tenant._id)}
+                                                    className="text-red-600 hover:text-red-900"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -336,7 +338,7 @@ const TenantsPage: React.FC = () => {
                         <div className="p-6 space-y-4">
                             <div>
                                 <h3 className="text-sm font-medium text-slate-500 mb-2">Business Information</h3>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <p className="text-xs text-slate-500">Business Name</p>
                                         <p className="text-sm font-medium text-slate-900">{selectedTenant.businessName || 'N/A'}</p>
@@ -350,7 +352,7 @@ const TenantsPage: React.FC = () => {
 
                             <div>
                                 <h3 className="text-sm font-medium text-slate-500 mb-2">Account Details</h3>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <p className="text-xs text-slate-500">KYC Status</p>
                                         {getKycStatusBadge(selectedTenant.kyc_status)}
@@ -364,7 +366,7 @@ const TenantsPage: React.FC = () => {
                                         <p className="text-sm text-slate-900">{new Date(selectedTenant.createdAt).toLocaleDateString()}</p>
                                     </div>
                                     {selectedTenant.webhookUrl && (
-                                        <div className="col-span-2">
+                                        <div className="sm:col-span-2">
                                             <p className="text-xs text-slate-500">Webhook URL</p>
                                             <p className="text-sm font-mono text-purple-600 break-all">{selectedTenant.webhookUrl}</p>
                                         </div>
@@ -375,7 +377,7 @@ const TenantsPage: React.FC = () => {
                             {selectedTenant.kycLevel >= 2 && (
                                 <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                                     <h3 className="text-sm font-bold text-slate-900 mb-3">KYC Verification Documents</h3>
-                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                                         <div>
                                             <p className="text-xs text-slate-500">NIN</p>
                                             <p className="text-sm font-mono font-medium text-slate-900">{selectedTenant.nin || 'Not provided'}</p>
@@ -388,8 +390,8 @@ const TenantsPage: React.FC = () => {
                                     <div>
                                         <p className="text-xs text-slate-500 mb-2">Identity Document</p>
                                         {selectedTenant.idCardPath ? (
-                                            <div className="flex items-center p-3 bg-white rounded-lg border border-slate-200 shadow-sm">
-                                                <div className="w-10 h-10 bg-blue-100 rounded flex items-center justify-center text-blue-600 mr-3">
+                                            <div className="flex flex-col sm:flex-row items-start sm:items-center p-3 bg-white rounded-lg border border-slate-200 shadow-sm gap-3">
+                                                <div className="w-10 h-10 bg-blue-100 rounded flex items-center justify-center text-blue-600 flex-shrink-0">
                                                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                     </svg>
@@ -399,13 +401,13 @@ const TenantsPage: React.FC = () => {
                                                     <p className="text-[10px] text-slate-500 uppercase">Uploaded Document</p>
                                                 </div>
                                                 <button
-                                                    className="ml-2 p-2 text-slate-400 hover:text-blue-600 transition-colors"
-                                                    title="Download Document"
+                                                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-700 rounded hover:bg-blue-50 hover:text-blue-600 transition-colors text-xs font-medium"
                                                     onClick={() => alert('Document download would happen here in production.')}
                                                 >
-                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                                     </svg>
+                                                    Download
                                                 </button>
                                             </div>
                                         ) : (
@@ -415,11 +417,11 @@ const TenantsPage: React.FC = () => {
                                 </div>
                             )}
 
-                            <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-200">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4 border-t border-slate-200">
                                 {selectedTenant.status !== 'active' && (
                                     <button
                                         onClick={() => handleStatusChange(selectedTenant._id, 'active')}
-                                        className="flex-1 min-w-[140px] px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
                                     >
                                         Approve / Activate
                                     </button>
@@ -427,7 +429,7 @@ const TenantsPage: React.FC = () => {
                                 {selectedTenant.status !== 'suspended' && (
                                     <button
                                         onClick={() => handleStatusChange(selectedTenant._id, 'suspended')}
-                                        className="flex-1 min-w-[140px] px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+                                        className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium"
                                     >
                                         Suspend
                                     </button>
@@ -436,7 +438,7 @@ const TenantsPage: React.FC = () => {
                                 {selectedTenant.kyc_status !== 'verified' && (
                                     <button
                                         onClick={() => handleKycStatusChange(selectedTenant._id, 'verified')}
-                                        className="flex-1 min-w-[140px] px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                                     >
                                         Approve KYC
                                     </button>
@@ -444,7 +446,7 @@ const TenantsPage: React.FC = () => {
                                 {selectedTenant.kyc_status !== 'rejected' && (
                                     <button
                                         onClick={() => handleKycStatusChange(selectedTenant._id, 'rejected')}
-                                        className="flex-1 min-w-[140px] px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                                        className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
                                     >
                                         Reject KYC
                                     </button>
@@ -452,14 +454,14 @@ const TenantsPage: React.FC = () => {
 
                                 <button
                                     onClick={() => setShowSendMessage(true)}
-                                    className="flex-1 min-w-[140px] px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
                                 >
                                     Send Message
                                 </button>
 
                                 <button
                                     onClick={() => handleDeleteTenant(selectedTenant._id)}
-                                    className="flex-1 min-w-[140px] px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
                                 >
                                     Delete User
                                 </button>

@@ -1,13 +1,23 @@
 import React, { useEffect, useState } from 'react';
+import {
+    FiMail,
+    FiShield,
+    FiServer,
+    FiUser,
+    FiKey,
+    FiSend,
+    FiCheck,
+    FiInfo,
+    FiLock,
+    FiSave
+} from 'react-icons/fi';
 import { getAllConfigs, updateConfig } from '../api/adminApi';
 import { useToast } from '../hooks/ToastContext';
-import { Mail, Shield, Server, User, Key, Send } from 'lucide-react';
 
 const EmailSettings = () => {
-    const { showToast } = useToast();
+    const { showSuccess, showError } = useToast();
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [configs, setConfigs] = useState<any[]>([]);
     const [formData, setFormData] = useState({
         MAIL_PROVIDER: 'other',
         MAIL_HOST: '',
@@ -28,8 +38,6 @@ const EmailSettings = () => {
             const response = await getAllConfigs();
             if (response.data.success) {
                 const emailConfigs = response.data.data.filter((c: any) => c.group === 'EMAIL');
-                setConfigs(emailConfigs);
-
                 const newFormData = { ...formData };
                 emailConfigs.forEach((c: any) => {
                     if (c.key in newFormData) {
@@ -39,7 +47,7 @@ const EmailSettings = () => {
                 setFormData(newFormData);
             }
         } catch (error) {
-            showToast('Failed to fetch email settings', 'error');
+            showError('Failed to fetch email settings');
         } finally {
             setLoading(false);
         }
@@ -57,9 +65,9 @@ const EmailSettings = () => {
                 updateConfig(key, { value })
             );
             await Promise.all(promises);
-            showToast('Email settings updated successfully', 'success');
+            showSuccess('Email settings updated successfully');
         } catch (error) {
-            showToast('Failed to update email settings', 'error');
+            showError('Failed to update email settings');
         } finally {
             setSaving(false);
         }
@@ -67,219 +75,253 @@ const EmailSettings = () => {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+            <div className="flex flex-col justify-center items-center h-96 space-y-6">
+                <div className="relative w-16 h-16">
+                    <div className="absolute inset-0 border-4 border-slate-100 rounded-full"></div>
+                    <div className="absolute inset-0 border-4 border-t-green-600 rounded-full animate-spin"></div>
+                </div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Synchronizing Configuration...</p>
             </div>
         );
     }
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="p-8 border-b border-slate-100 bg-slate-50/50">
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2 bg-green-100 rounded-lg">
-                        <Mail className="w-6 h-6 text-green-600" />
+        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-200 overflow-hidden">
+                <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center text-green-600 text-xl">
+                            <FiMail />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-black text-slate-900 tracking-tight">Email Gateway</h2>
+                            <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-0.5">SMTP & Notification Delivery Engine</p>
+                        </div>
                     </div>
-                    <h2 className="text-2xl font-bold text-slate-900">Email Configuration</h2>
                 </div>
-                <p className="text-slate-600">Configure how the system sends emails to users</p>
-            </div>
 
-            <form onSubmit={handleSubmit} className="p-8 space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <form onSubmit={handleSubmit} className="p-8 space-y-10">
                     {/* Provider Selection */}
-                    <div className="col-span-full">
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Email Provider</label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <label className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.MAIL_PROVIDER === 'gmail' ? 'border-green-500 bg-green-50' : 'border-slate-200 hover:border-slate-300'}`}>
-                                <input
-                                    type="radio"
-                                    name="MAIL_PROVIDER"
-                                    value="gmail"
-                                    checked={formData.MAIL_PROVIDER === 'gmail'}
-                                    onChange={handleChange}
-                                    className="hidden"
-                                />
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.MAIL_PROVIDER === 'gmail' ? 'border-green-500' : 'border-slate-300'}`}>
-                                        {formData.MAIL_PROVIDER === 'gmail' && <div className="w-2.5 h-2.5 bg-green-500 rounded-full" />}
+                    <div className="space-y-6">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select Delivery Provider</label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {[
+                                { id: 'gmail', label: 'Gmail / Workspace', desc: 'Secure App Password Required', icon: 'https://www.google.com/favicon.ico' },
+                                { id: 'other', label: 'Custom SMTP', desc: 'Enterprise SMTP Relay', icon: null }
+                            ].map((provider) => (
+                                <label
+                                    key={provider.id}
+                                    className={`relative flex items-center p-6 border-2 rounded-[2rem] cursor-pointer transition-all duration-300 group ${formData.MAIL_PROVIDER === provider.id
+                                        ? 'border-green-500 bg-green-50/30 shadow-lg shadow-green-100/50'
+                                        : 'border-slate-100 hover:border-slate-200 hover:bg-slate-50'
+                                        }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="MAIL_PROVIDER"
+                                        value={provider.id}
+                                        checked={formData.MAIL_PROVIDER === provider.id}
+                                        onChange={handleChange}
+                                        className="hidden"
+                                    />
+                                    <div className="flex items-center gap-5 w-full">
+                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 ${formData.MAIL_PROVIDER === provider.id ? 'bg-white shadow-md scale-110' : 'bg-slate-100'
+                                            }`}>
+                                            {provider.icon ? (
+                                                <img src={provider.icon} alt="" className="w-6 h-6" />
+                                            ) : (
+                                                <FiServer className={`w-6 h-6 ${formData.MAIL_PROVIDER === provider.id ? 'text-green-600' : 'text-slate-400'}`} />
+                                            )}
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="font-black text-slate-900 text-sm tracking-tight">{provider.label}</p>
+                                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">{provider.desc}</p>
+                                        </div>
+                                        <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${formData.MAIL_PROVIDER === provider.id ? 'border-green-500 bg-green-500 scale-110' : 'border-slate-200'
+                                            }`}>
+                                            {formData.MAIL_PROVIDER === provider.id && <FiCheck className="w-3.5 h-3.5 text-white" />}
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="font-bold text-slate-900">Gmail</p>
-                                        <p className="text-xs text-slate-500">Use Gmail with App Password</p>
-                                    </div>
-                                </div>
-                            </label>
-                            <label className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.MAIL_PROVIDER === 'other' ? 'border-green-500 bg-green-50' : 'border-slate-200 hover:border-slate-300'}`}>
-                                <input
-                                    type="radio"
-                                    name="MAIL_PROVIDER"
-                                    value="other"
-                                    checked={formData.MAIL_PROVIDER === 'other'}
-                                    onChange={handleChange}
-                                    className="hidden"
-                                />
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.MAIL_PROVIDER === 'other' ? 'border-green-500' : 'border-slate-300'}`}>
-                                        {formData.MAIL_PROVIDER === 'other' && <div className="w-2.5 h-2.5 bg-green-500 rounded-full" />}
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-slate-900">Other SMTP</p>
-                                        <p className="text-xs text-slate-500">Custom SMTP server settings</p>
-                                    </div>
-                                </div>
-                            </label>
+                                </label>
+                            ))}
                         </div>
                     </div>
 
                     {/* Conditional Fields */}
-                    {formData.MAIL_PROVIDER === 'gmail' ? (
-                        <>
-                            <div className="col-span-full bg-blue-50 border border-blue-100 p-4 rounded-lg flex gap-3">
-                                <Shield className="w-5 h-5 text-blue-600 shrink-0" />
-                                <p className="text-sm text-blue-700">
-                                    For Gmail, please use an <strong>App Password</strong>. Host and Port will be configured automatically.
-                                </p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                                    <User className="w-4 h-4" /> Gmail Address
-                                </label>
-                                <input
-                                    type="email"
-                                    name="MAIL_USER"
-                                    value={formData.MAIL_USER}
-                                    onChange={handleChange}
-                                    placeholder="your-email@gmail.com"
-                                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                                    <Key className="w-4 h-4" /> App Password
-                                </label>
-                                <input
-                                    type="password"
-                                    name="MAIL_PASSWORD"
-                                    value={formData.MAIL_PASSWORD}
-                                    onChange={handleChange}
-                                    placeholder="xxxx xxxx xxxx xxxx"
-                                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    required
-                                />
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                                        <Server className="w-4 h-4" /> SMTP Host
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="MAIL_HOST"
-                                        value={formData.MAIL_HOST}
-                                        onChange={handleChange}
-                                        placeholder="smtp.example.com"
-                                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                        required
-                                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {formData.MAIL_PROVIDER === 'gmail' ? (
+                            <>
+                                <div className="col-span-full p-6 bg-blue-50/50 border border-blue-100 rounded-[2rem] flex gap-4 animate-in zoom-in-95 duration-500">
+                                    <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-blue-600 shrink-0">
+                                        <FiInfo className="w-5 h-5" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <p className="text-xs text-blue-700 font-medium leading-relaxed">
+                                            Gmail requires an <strong>App Password</strong> for secure delivery. This is a 16-digit passcode that gives the app permission to access your Google Account. Standard account passwords will not work.
+                                        </p>
+                                        <a
+                                            href="https://myaccount.google.com/apppasswords"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-800 hover:underline transition-all"
+                                        >
+                                            Generate App Password
+                                            <FiSend className="w-3 h-3 -rotate-45" />
+                                        </a>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">SMTP Port</label>
-                                    <input
-                                        type="text"
-                                        name="MAIL_PORT"
-                                        value={formData.MAIL_PORT}
-                                        onChange={handleChange}
-                                        placeholder="587"
-                                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                        required
-                                    />
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Gmail Address</label>
+                                    <div className="relative group">
+                                        <FiUser className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-green-600 transition-colors" />
+                                        <input
+                                            type="email"
+                                            name="MAIL_USER"
+                                            value={formData.MAIL_USER}
+                                            onChange={handleChange}
+                                            placeholder="admin@gmail.com"
+                                            className="w-full pl-11 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 focus:bg-white outline-none font-bold text-slate-700 transition-all"
+                                            required
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                                    <User className="w-4 h-4" /> SMTP User
-                                </label>
-                                <input
-                                    type="text"
-                                    name="MAIL_USER"
-                                    value={formData.MAIL_USER}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                                    <Key className="w-4 h-4" /> SMTP Password
-                                </label>
-                                <input
-                                    type="password"
-                                    name="MAIL_PASSWORD"
-                                    value={formData.MAIL_PASSWORD}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    required
-                                />
-                            </div>
-                        </>
-                    )}
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">App Password</label>
+                                    <div className="relative group">
+                                        <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-green-600 transition-colors" />
+                                        <input
+                                            type="password"
+                                            name="MAIL_PASSWORD"
+                                            value={formData.MAIL_PASSWORD}
+                                            onChange={handleChange}
+                                            placeholder="•••• •••• •••• ••••"
+                                            className="w-full pl-11 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 focus:bg-white outline-none font-mono text-sm tracking-widest transition-all"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-8 animate-in slide-in-from-top-4 duration-500">
+                                    <div className="md:col-span-2 space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">SMTP Host</label>
+                                        <div className="relative group">
+                                            <FiServer className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-green-600 transition-colors" />
+                                            <input
+                                                type="text"
+                                                name="MAIL_HOST"
+                                                value={formData.MAIL_HOST}
+                                                onChange={handleChange}
+                                                placeholder="smtp.provider.com"
+                                                className="w-full pl-11 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 focus:bg-white outline-none font-bold text-slate-700 transition-all"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Port</label>
+                                        <input
+                                            type="text"
+                                            name="MAIL_PORT"
+                                            value={formData.MAIL_PORT}
+                                            onChange={handleChange}
+                                            placeholder="587"
+                                            className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 focus:bg-white outline-none font-black text-slate-700 transition-all"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">SMTP Username</label>
+                                    <div className="relative group">
+                                        <FiUser className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-green-600 transition-colors" />
+                                        <input
+                                            type="text"
+                                            name="MAIL_USER"
+                                            value={formData.MAIL_USER}
+                                            onChange={handleChange}
+                                            className="w-full pl-11 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 focus:bg-white outline-none font-bold text-slate-700 transition-all"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">SMTP Password</label>
+                                    <div className="relative group">
+                                        <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-green-600 transition-colors" />
+                                        <input
+                                            type="password"
+                                            name="MAIL_PASSWORD"
+                                            value={formData.MAIL_PASSWORD}
+                                            onChange={handleChange}
+                                            className="w-full pl-11 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 focus:bg-white outline-none font-mono text-sm tracking-widest transition-all"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                            </>
+                        )}
 
-                    {/* Common Fields */}
-                    <div className="col-span-full border-t border-slate-100 pt-8">
-                        <h3 className="text-lg font-bold text-slate-900 mb-4">Sender Information</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">Sender Name</label>
-                                <input
-                                    type="text"
-                                    name="MAIL_FROM_NAME"
-                                    value={formData.MAIL_FROM_NAME}
-                                    onChange={handleChange}
-                                    placeholder="My VTU App"
-                                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
-                                    <Send className="w-4 h-4" /> Sender Email Address
-                                </label>
-                                <input
-                                    type="email"
-                                    name="MAIL_FROM_ADDRESS"
-                                    value={formData.MAIL_FROM_ADDRESS}
-                                    onChange={handleChange}
-                                    placeholder="noreply@example.com"
-                                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    required
-                                />
+                        {/* Common Fields */}
+                        <div className="col-span-full pt-10 border-t border-slate-100">
+                            <h3 className="text-xs font-black text-slate-900 mb-8 uppercase tracking-[0.2em] flex items-center gap-3">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                Sender Identity Configuration
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Display Name</label>
+                                    <input
+                                        type="text"
+                                        name="MAIL_FROM_NAME"
+                                        value={formData.MAIL_FROM_NAME}
+                                        onChange={handleChange}
+                                        placeholder="Platform Notifications"
+                                        className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 focus:bg-white outline-none font-black text-slate-700 transition-all"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Reply-To Address</label>
+                                    <div className="relative group">
+                                        <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-green-600 transition-colors" />
+                                        <input
+                                            type="email"
+                                            name="MAIL_FROM_ADDRESS"
+                                            value={formData.MAIL_FROM_ADDRESS}
+                                            onChange={handleChange}
+                                            placeholder="noreply@platform.com"
+                                            className="w-full pl-11 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 focus:bg-white outline-none font-bold text-slate-700 transition-all"
+                                            required
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="flex justify-end pt-4">
-                    <button
-                        type="submit"
-                        disabled={saving}
-                        className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-lg shadow-green-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                        {saving ? (
-                            <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                Saving...
-                            </>
-                        ) : (
-                            'Save Email Settings'
-                        )}
-                    </button>
-                </div>
-            </form>
+                    <div className="flex justify-end pt-6">
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="flex items-center gap-3 bg-slate-900 hover:bg-slate-800 text-white font-black py-5 px-12 rounded-[2rem] transition-all shadow-2xl shadow-slate-200 disabled:opacity-50 active:scale-95 group"
+                        >
+                            {saving ? (
+                                <>
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    <span className="uppercase tracking-widest text-[10px]">Syncing...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <FiSave className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                    <span className="uppercase tracking-widest text-[10px]">Save Configuration</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 };

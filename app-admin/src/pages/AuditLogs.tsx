@@ -1,15 +1,30 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useState } from 'react';
+import {
+  FiActivity,
+  FiUser,
+  FiDatabase,
+  FiClock,
+  FiTrash2,
+  FiChevronLeft,
+  FiChevronRight,
+  FiAlertCircle,
+  FiTerminal,
+  FiSearch,
+  FiFilter,
+  FiRefreshCw
+} from 'react-icons/fi';
 import { deleteAuditLog, getAuditLogs } from '../api/adminApi';
-import Sidebar from '../components/Sidebar';
-import Topbar from '../components/Topbar';
+import Layout from '../components/Layout';
+import { useToast } from '../hooks/ToastContext';
 
 const AuditLogs: React.FC = () => {
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const { showSuccess, showError } = useToast();
   const [page, setPage] = useState(1);
   const limit = 15;
   const queryClient = useQueryClient();
-  const { data, status } = useQuery({
+
+  const { data, status, isFetching } = useQuery({
     queryKey: ['audit-logs', page],
     queryFn: () => getAuditLogs({ page, limit }).then((res) => res.data),
   });
@@ -21,204 +36,225 @@ const AuditLogs: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: () => deleteAuditLog(deleteId!).then((res) => res.data),
     onSuccess: () => {
+      showSuccess('Audit log entry deleted successfully');
       setDeleteId(null);
       queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
     },
+    onError: () => {
+      showError('Failed to delete audit log entry');
+    }
   });
 
-  const getActionColor = (action: string) => {
-    if (action?.includes('delete')) return 'bg-red-100 text-red-800';
-    if (action?.includes('create')) return 'bg-green-100 text-green-800';
-    if (action?.includes('update')) return 'bg-green-100 text-green-800';
-    if (action?.includes('credit')) return 'bg-purple-100 text-purple-800';
-    return 'bg-slate-100 text-slate-800';
+  const getActionStyles = (action: string) => {
+    const act = action?.toLowerCase() || '';
+    if (act.includes('delete')) return 'bg-red-50 text-red-600 border-red-100';
+    if (act.includes('create')) return 'bg-emerald-50 text-emerald-600 border-emerald-100';
+    if (act.includes('update')) return 'bg-blue-50 text-blue-600 border-blue-100';
+    if (act.includes('credit') || act.includes('wallet')) return 'bg-purple-50 text-purple-600 border-purple-100';
+    if (act.includes('login')) return 'bg-amber-50 text-amber-600 border-amber-100';
+    return 'bg-slate-50 text-slate-600 border-slate-100';
   };
 
   return (
-    <div className="flex h-screen bg-slate-50">
-      <Sidebar isMobileOpen={isMobileOpen} setIsMobileOpen={setIsMobileOpen} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Topbar onMenuClick={() => setIsMobileOpen(true)} />
-        <main className="flex-1 overflow-auto p-8">
-          <div className="max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="mb-8">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h1 className="text-4xl font-bold text-slate-900 mb-2">Audit Logs</h1>
-                  <p className="text-slate-600">Track all administrative actions and changes</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-3xl font-bold text-indigo-600">{pagination.total}</p>
-                  <p className="text-sm text-slate-600">Total Logs</p>
-                </div>
-              </div>
+    <Layout>
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto space-y-8">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+            <div className="space-y-1">
+              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight">Audit Registry</h1>
+              <p className="text-sm sm:text-lg text-slate-600 font-medium">Immutable record of all administrative operations</p>
             </div>
-
-            {/* Logs Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              {status === 'pending' && (
-                <div className="p-12 text-center">
-                  <div className="inline-block animate-spin">
-                    <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  </div>
-                  <p className="mt-4 text-slate-600">Loading audit logs...</p>
-                </div>
-              )}
-              {status === 'error' && (
-                <div className="p-12 text-center bg-red-50">
-                  <svg className="w-12 h-12 text-red-600 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                  <p className="text-red-700 font-medium">Failed to load audit logs</p>
-                </div>
-              )}
-              {status === 'success' && (
-                <>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200">
-                          <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">Action</th>
-                          <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">Admin</th>
-                          <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">Entity</th>
-                          <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">IP Address</th>
-                          <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">Timestamp</th>
-                          <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-200">
-                        {logs.length === 0 && (
-                          <tr>
-                            <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                              <svg className="w-12 h-12 mx-auto mb-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                              <p className="font-medium">No audit logs found</p>
-                            </td>
-                          </tr>
-                        )}
-                        {logs.map((log: any) => (
-                          <tr key={log._id || log.id} className="hover:bg-slate-50 transition-colors">
-                            <td className="px-6 py-4">
-                              <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${getActionColor(log.action)}`}>
-                                {log.action?.replace(/_/g, ' ').toUpperCase()}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div>
-                                <p className="font-medium text-slate-900">
-                                  {log.admin_id?.first_name} {log.admin_id?.last_name}
-                                </p>
-                                <p className="text-xs text-slate-500">{log.admin_id?.email}</p>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div>
-                                <p className="text-sm font-medium text-slate-900">{log.entity_type}</p>
-                                <p className="text-xs text-slate-500 font-mono">{log.entity_id?.slice(0, 8)}...</p>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 text-sm text-slate-700 font-mono">
-                              {log.ip_address || '—'}
-                            </td>
-                            <td className="px-6 py-4 text-sm text-slate-700">
-                              {log.timestamp ? new Date(log.timestamp).toLocaleString() : '—'}
-                            </td>
-                            <td className="px-6 py-4">
-                              <button
-                                onClick={() => setDeleteId(log._id || log.id)}
-                                className="p-2 hover:bg-red-100 text-red-600 rounded-lg transition"
-                                title="Delete"
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Pagination */}
-                  <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex justify-between items-center">
-                    <p className="text-sm text-slate-600">
-                      Showing page <span className="font-semibold">{pagination.page}</span> of <span className="font-semibold">{pagination.pages}</span>
-                      {' '}({pagination.total} total)
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm font-medium"
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        disabled={page === 1}
-                      >
-                        ← Previous
-                      </button>
-                      <button
-                        className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm font-medium"
-                        onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
-                        disabled={page === pagination.pages}
-                      >
-                        Next →
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
+            <div className="flex items-center gap-4">
+              <div className="bg-white px-6 py-3 rounded-2xl border border-slate-200 shadow-sm text-center min-w-[120px]">
+                <p className="text-2xl font-black text-green-600 leading-none">{pagination.total}</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Total Logs</p>
+              </div>
+              <button
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['audit-logs'] })}
+                className="p-4 bg-white border border-slate-200 rounded-2xl text-slate-600 hover:text-green-600 transition-all shadow-sm active:scale-95"
+              >
+                <FiRefreshCw className={`w-5 h-5 ${isFetching ? 'animate-spin' : ''}`} />
+              </button>
             </div>
           </div>
 
-          {/* Delete Modal */}
-          {deleteId && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md relative">
-                <button
-                  className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition"
-                  onClick={() => setDeleteId(null)}
-                  disabled={deleteMutation.status === 'pending'}
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                    <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-slate-900">Delete Audit Log</h2>
-                    <p className="text-sm text-slate-600">This action cannot be undone</p>
+          {/* Table Container */}
+          <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-200 overflow-hidden">
+            {status === 'pending' ? (
+              <div className="p-20 text-center space-y-4">
+                <div className="relative inline-block">
+                  <div className="w-16 h-16 border-4 border-slate-100 border-t-green-600 rounded-full animate-spin"></div>
+                  <FiActivity className="absolute top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2 text-green-600 w-6 h-6" />
+                </div>
+                <p className="text-sm font-black text-slate-400 uppercase tracking-[0.2em]">Synchronizing Registry...</p>
+              </div>
+            ) : status === 'error' ? (
+              <div className="p-20 text-center space-y-4">
+                <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto">
+                  <FiAlertCircle className="w-10 h-10 text-red-500" />
+                </div>
+                <h3 className="text-xl font-black text-slate-900">Registry Access Failed</h3>
+                <p className="text-slate-500 max-w-xs mx-auto">Unable to establish connection with the audit database.</p>
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50/50 border-b border-slate-100">
+                        <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Operation</th>
+                        <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Administrator</th>
+                        <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Target Entity</th>
+                        <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Network Origin</th>
+                        <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Timestamp</th>
+                        <th className="px-8 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {logs.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-8 py-20 text-center">
+                            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                              <FiTerminal className="w-8 h-8 text-slate-300" />
+                            </div>
+                            <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No activity recorded</p>
+                          </td>
+                        </tr>
+                      ) : (
+                        logs.map((log: any) => (
+                          <tr key={log._id || log.id} className="hover:bg-slate-50/80 transition-colors group">
+                            <td className="px-8 py-5">
+                              <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${getActionStyles(log.action)}`}>
+                                {log.action?.replace(/_/g, ' ')}
+                              </span>
+                            </td>
+                            <td className="px-8 py-5">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 font-black text-xs">
+                                  {log.admin_id?.first_name?.[0]}{log.admin_id?.last_name?.[0]}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-black text-slate-900 leading-tight">
+                                    {log.admin_id?.first_name} {log.admin_id?.last_name}
+                                  </p>
+                                  <p className="text-[10px] font-bold text-slate-400">{log.admin_id?.email}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-8 py-5">
+                              <div className="flex items-center gap-2">
+                                <FiDatabase className="w-3.5 h-3.5 text-slate-400" />
+                                <div>
+                                  <p className="text-xs font-black text-slate-700 uppercase tracking-tight">{log.entity_type}</p>
+                                  <p className="text-[10px] font-mono text-slate-400">ID: {log.entity_id?.slice(-8)}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-8 py-5">
+                              <div className="flex items-center gap-2 text-xs font-mono font-bold text-slate-500">
+                                <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
+                                {log.ip_address || '0.0.0.0'}
+                              </div>
+                            </td>
+                            <td className="px-8 py-5">
+                              <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
+                                <FiClock className="w-3.5 h-3.5 text-slate-400" />
+                                {log.timestamp ? new Date(log.timestamp).toLocaleString(undefined, {
+                                  dateStyle: 'medium',
+                                  timeStyle: 'short'
+                                }) : '—'}
+                              </div>
+                            </td>
+                            <td className="px-8 py-5 text-right">
+                              <button
+                                onClick={() => setDeleteId(log._id || log.id)}
+                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                                title="Purge Log Entry"
+                              >
+                                <FiTrash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                <div className="bg-slate-50/50 border-t border-slate-100 px-8 py-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                    Page <span className="text-slate-900">{pagination.page}</span> of <span className="text-slate-900">{pagination.pages}</span>
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-black uppercase tracking-widest text-slate-600 hover:text-green-600 hover:border-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                    >
+                      <FiChevronLeft className="w-4 h-4" />
+                      Prev
+                    </button>
+                    <button
+                      className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-black uppercase tracking-widest text-slate-600 hover:text-green-600 hover:border-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                      onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
+                      disabled={page === pagination.pages}
+                    >
+                      Next
+                      <FiChevronRight className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-                <p className="mb-6 text-slate-700">Are you sure you want to delete this audit log entry? This will permanently remove it from the system.</p>
-                <div className="flex gap-3">
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Delete Confirmation Modal */}
+        {deleteId && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+            <div className="bg-white rounded-[2.5rem] shadow-2xl p-8 w-full max-w-md relative animate-in zoom-in-95 duration-300">
+              <button
+                className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 transition-all p-2 hover:bg-slate-50 rounded-xl"
+                onClick={() => setDeleteId(null)}
+                disabled={deleteMutation.status === 'pending'}
+              >
+                <FiX className="w-6 h-6" />
+              </button>
+
+              <div className="space-y-6">
+                <div className="w-20 h-20 bg-red-50 rounded-[2rem] flex items-center justify-center mx-auto">
+                  <FiAlertCircle className="w-10 h-10 text-red-500" />
+                </div>
+
+                <div className="text-center space-y-2">
+                  <h2 className="text-2xl font-black text-slate-900">Purge Entry?</h2>
+                  <p className="text-sm text-slate-500 font-medium">This action will permanently remove this activity record from the audit registry.</p>
+                </div>
+
+                <div className="flex gap-3 pt-2">
                   <button
-                    className="flex-1 bg-slate-200 text-slate-700 py-2.5 rounded-lg hover:bg-slate-300 transition font-medium"
+                    className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all active:scale-95"
                     onClick={() => setDeleteId(null)}
                     disabled={deleteMutation.status === 'pending'}
                   >
                     Cancel
                   </button>
                   <button
-                    className="flex-1 bg-red-600 text-white py-2.5 rounded-lg hover:bg-red-700 transition font-medium disabled:opacity-50"
+                    className="flex-1 px-6 py-4 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-red-700 transition-all shadow-xl shadow-red-100 active:scale-95 disabled:opacity-50"
                     onClick={() => deleteMutation.mutate()}
                     disabled={deleteMutation.status === 'pending'}
                   >
-                    {deleteMutation.status === 'pending' ? 'Deleting...' : 'Delete'}
+                    {deleteMutation.status === 'pending' ? 'Purging...' : 'Confirm Purge'}
                   </button>
                 </div>
               </div>
             </div>
-          )}
-        </main>
+          </div>
+        )}
       </div>
-    </div>
+    </Layout>
   );
 };
 

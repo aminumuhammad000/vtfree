@@ -334,6 +334,49 @@
     color: #166534;
 }
 
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .wallet-premium-card {
+        padding: 1.5rem;
+    }
+
+    .wallet-balance-value {
+        font-size: 2.25rem;
+    }
+
+    .wallet-sub-balance-value {
+        font-size: 1.25rem;
+    }
+
+    .wallet-balance-footer {
+        gap: 1rem;
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .wallet-header {
+        padding: 1.25rem !important;
+    }
+
+    .wallet-premium-card {
+        border-radius: var(--radius-xl);
+    }
+
+    .funding-options-container {
+        padding: 1.5rem !important;
+    }
+
+    .stat-box {
+        padding: 1.25rem;
+    }
+
+    .stat-box-icon {
+        width: 3rem;
+        height: 3rem;
+    }
+}
+
 /* Animations */
 @keyframes fadeIn {
     0% {

@@ -71,10 +71,10 @@ export const Help: React.FC = () => {
     };
 
     return (
-        <div className="max-w-6xl mx-auto p-6 space-y-6">
+        <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6 md:space-y-8 pb-10 animate-fade-in">
             {/* Header */}
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                <h1 className="text-2xl font-bold text-gray-900">Need Help?</h1>
+            <div className="bg-white p-5 md:p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Need Help?</h1>
                 <p className="text-sm text-gray-500 mt-1">Have a question or run into an issue? Send us a message and we'll help you out.</p>
             </div>
 
@@ -82,31 +82,31 @@ export const Help: React.FC = () => {
                 <div className="lg:col-span-2 space-y-6">
                     {/* Form Card */}
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-gray-100">
-                            <h3 className="text-lg font-bold text-gray-900">Send a Message</h3>
-                            <p className="text-xs text-gray-500 mt-0.5">We typically respond within 24 hours</p>
+                        <div className="p-5 md:p-6 border-b border-gray-100 bg-gray-50/50">
+                            <h3 className="text-base md:text-lg font-black text-gray-900">Send a Message</h3>
+                            <p className="text-[10px] md:text-xs text-gray-500 mt-0.5">We typically respond within 24 hours</p>
                         </div>
-                        <div className="p-6">
+                        <div className="p-5 md:p-8">
                             {success && (
-                                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-start gap-3">
+                                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-start gap-3 animate-fade-in">
                                     <CheckCircle2 size={20} className="text-green-600 flex-shrink-0 mt-0.5" />
-                                    <p className="text-sm text-green-800 font-medium">{success}</p>
+                                    <p className="text-sm text-green-800 font-bold">{success}</p>
                                 </div>
                             )}
 
                             {error && (
-                                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+                                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 animate-fade-in">
                                     <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
-                                    <p className="text-sm text-red-800 font-medium">{error}</p>
+                                    <p className="text-sm text-red-800 font-bold">{error}</p>
                                 </div>
                             )}
 
-                            <form onSubmit={handleSubmit} className="space-y-5">
+                            <form onSubmit={handleSubmit} className="space-y-6">
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-900 mb-2">Subject</label>
+                                    <label className="block text-[10px] md:text-xs uppercase tracking-widest text-gray-500 font-black mb-2.5">Subject</label>
                                     <input
                                         type="text"
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none transition-all"
+                                        className="w-full px-4 py-3.5 rounded-xl md:rounded-2xl border-2 border-gray-100 focus:border-green-500 outline-none transition-all font-bold text-sm md:text-base bg-gray-50"
                                         placeholder="What is this about?"
                                         value={subject}
                                         onChange={(e) => setSubject(e.target.value)}
@@ -115,9 +115,9 @@ export const Help: React.FC = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-900 mb-2">Message</label>
+                                    <label className="block text-[10px] md:text-xs uppercase tracking-widest text-gray-500 font-black mb-2.5">Message</label>
                                     <textarea
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none transition-all resize-none"
+                                        className="w-full px-4 py-3.5 rounded-xl md:rounded-2xl border-2 border-gray-100 focus:border-green-500 outline-none transition-all font-bold text-sm md:text-base bg-gray-50 resize-none"
                                         placeholder="Describe your issue or question in detail..."
                                         value={message}
                                         onChange={(e) => setMessage(e.target.value)}
@@ -129,7 +129,7 @@ export const Help: React.FC = () => {
                                 <div className="flex justify-end">
                                     <button
                                         type="submit"
-                                        className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold transition-all flex items-center gap-2 shadow-lg shadow-green-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full sm:w-auto px-8 py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl md:rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-3 shadow-xl shadow-green-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-1 active:translate-y-0 uppercase tracking-widest"
                                         disabled={isLoading}
                                     >
                                         {isLoading ? (
@@ -148,39 +148,43 @@ export const Help: React.FC = () => {
 
                     {/* Message History */}
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                        <div className="p-5 md:p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                             <div>
-                                <h3 className="text-lg font-bold text-gray-900">Message History</h3>
-                                <p className="text-xs text-gray-500 mt-0.5">Track your support requests</p>
+                                <h3 className="text-base md:text-lg font-black text-gray-900">Message History</h3>
+                                <p className="text-[10px] md:text-xs text-gray-500 mt-0.5">Track your support requests</p>
                             </div>
-                            <button onClick={fetchMessages} className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all">
-                                <History size={18} />
+                            <button onClick={fetchMessages} className="p-2.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-all">
+                                <History size={20} />
                             </button>
                         </div>
-                        <div className="p-6">
+                        <div className="p-5 md:p-8">
                             {isLoadingMessages ? (
                                 <div className="flex justify-center py-12">
-                                    <div className="w-8 h-8 border-4 border-green-200 border-t-green-600 rounded-full animate-spin"></div>
+                                    <div className="w-10 h-10 border-4 border-green-100 border-t-green-600 rounded-full animate-spin"></div>
                                 </div>
                             ) : messages.length > 0 ? (
                                 <div className="space-y-4">
                                     {messages.map((msg) => (
-                                        <div key={msg._id} className="p-4 rounded-xl border border-gray-100 hover:border-gray-200 transition-all">
-                                            <div className="flex items-start justify-between mb-2">
-                                                <span className="font-bold text-gray-900 text-sm">{msg.subject}</span>
-                                                <span className="text-xs text-gray-500">
+                                        <div key={msg._id} className="p-5 rounded-2xl border-2 border-gray-50 hover:border-green-100 transition-all group">
+                                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-3">
+                                                <span className="font-black text-gray-900 text-sm md:text-base group-hover:text-green-700 transition-colors">{msg.subject}</span>
+                                                <span className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest">
                                                     {new Date(msg.createdAt).toLocaleDateString()}
                                                 </span>
                                             </div>
-                                            <p className="text-xs text-gray-600 mb-3 line-clamp-2">{msg.message}</p>
-                                            {getStatusBadge(msg.status)}
+                                            <p className="text-xs md:text-sm text-gray-600 mb-4 line-clamp-2 font-medium leading-relaxed">{msg.message}</p>
+                                            <div className="flex justify-start">
+                                                {getStatusBadge(msg.status)}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-center py-12">
-                                    <MessageSquare size={48} className="mx-auto mb-3 text-gray-300" />
-                                    <p className="text-gray-500">No messages yet.</p>
+                                <div className="text-center py-16">
+                                    <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                        <MessageSquare size={32} className="text-gray-300" />
+                                    </div>
+                                    <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No messages yet.</p>
                                 </div>
                             )}
                         </div>
@@ -189,26 +193,33 @@ export const Help: React.FC = () => {
 
                 {/* Sidebar Contact Info */}
                 <div className="space-y-6">
-                    <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-6 rounded-2xl shadow-lg text-white">
-                        <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mb-4">
-                            <MessageSquare size={24} />
+                    <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-6 md:p-8 rounded-3xl shadow-xl text-white relative overflow-hidden group">
+                        <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all"></div>
+                        <div className="relative z-10">
+                            <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+                                <MessageSquare size={28} />
+                            </div>
+                            <h3 className="text-xl font-black mb-2 tracking-tight">Live Chat</h3>
+                            <p className="text-blue-100 text-sm mb-6 font-medium leading-relaxed">Chat with our support team in real-time for instant assistance.</p>
+                            <button className="w-full py-4 bg-white text-blue-600 font-black rounded-2xl hover:bg-blue-50 transition-all shadow-lg transform hover:-translate-y-1 active:translate-y-0 uppercase tracking-widest text-xs">
+                                Start Chat
+                            </button>
                         </div>
-                        <h3 className="text-lg font-bold mb-2">Live Chat</h3>
-                        <p className="text-blue-100 text-sm mb-4">Chat with our support team in real-time.</p>
-                        <button className="w-full py-2.5 bg-white text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition-colors">
-                            Start Chat
-                        </button>
                     </div>
 
-                    <div className="bg-gradient-to-br from-green-600 to-green-700 p-6 rounded-2xl shadow-lg text-white">
-                        <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mb-4">
-                            <Send size={24} />
+                    <div className="bg-gradient-to-br from-green-600 to-green-700 p-6 md:p-8 rounded-3xl shadow-xl text-white relative overflow-hidden group">
+                        <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all"></div>
+                        <div className="relative z-10">
+                            <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-6 shadow-lg">
+                                <Send size={28} />
+                            </div>
+                            <h3 className="text-xl font-black mb-2 tracking-tight">Email Support</h3>
+                            <p className="text-green-100 text-sm mb-2 font-medium">support@vtpay.com</p>
+                            <a href="mailto:support@vtpay.com" className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest hover:underline mt-4">
+                                Send Email
+                                <Send size={14} />
+                            </a>
                         </div>
-                        <h3 className="text-lg font-bold mb-2">Email Support</h3>
-                        <p className="text-green-100 text-sm mb-2">support@vtpay.com</p>
-                        <a href="mailto:support@vtpay.com" className="text-sm font-bold hover:underline">
-                            Send Email →
-                        </a>
                     </div>
                 </div>
             </div>

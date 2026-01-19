@@ -6,7 +6,7 @@
 .api-docs-header {
     position: sticky;
     top: 0;
-    z-index: 50;
+    z-index: 200;
     background: white;
     border-bottom: 1px solid var(--border);
     box-shadow: var(--shadow-sm);
@@ -211,6 +211,8 @@
     font-size: 0.875rem;
     line-height: 1.6;
     color: #e2e8f0;
+    white-space: pre-wrap;
+    word-break: break-all;
 }
 
 /* API Endpoint Cards */
@@ -304,13 +306,109 @@
     margin-bottom: 0.5rem;
 }
 
+.api-docs-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.api-docs-menu-btn {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: var(--radius-md);
+    transition: var(--transition);
+}
+
+.api-docs-menu-btn:hover {
+    background: var(--bg-subtle);
+    color: var(--primary);
+}
+
+.api-docs-mobile-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 35;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
     .api-docs-sidebar {
-        display: none;
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        z-index: 150;
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        width: 100%;
+        padding-top: 80px;
+    }
+
+    .api-docs-sidebar.mobile-active {
+        transform: translateX(0);
     }
 
     .api-docs-content {
-        padding-left: 0;
+        padding: 2rem 1.5rem;
+    }
+
+    .api-docs-menu-btn {
+        display: block;
+    }
+
+    .desktop-actions {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .api-docs-header-content {
+        padding: 0.75rem 1rem;
+    }
+
+    .api-docs-title-text {
+        display: none;
+    }
+
+    .api-docs-logo h1 {
+        font-size: 1.125rem;
+    }
+
+    .api-docs-section h2 {
+        font-size: 1.5rem;
+    }
+
+    .api-endpoint-card {
+        padding: 1.25rem;
+    }
+
+    .api-endpoint-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .api-method-badge {
+        width: fit-content;
+    }
+}
+
+@media (max-width: 480px) {
+    .code-block-pre {
+        padding: 1rem;
+    }
+
+    .code-block-pre code {
+        font-size: 0.75rem;
+    }
+
+    .api-docs-section p {
+        font-size: 0.9375rem;
     }
 }

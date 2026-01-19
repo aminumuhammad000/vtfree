@@ -20,6 +20,7 @@ import {
 const TEST_CREDENTIALS = {
   email: 'admin@example.com',
   password: 'password',
+  app_id: 'test-app-id',
 };
 
 /**

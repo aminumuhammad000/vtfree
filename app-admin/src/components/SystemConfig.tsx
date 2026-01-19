@@ -1,5 +1,21 @@
-import React, { useEffect, useState } from 'react';
-import { FiEdit2, FiRefreshCw, FiSave, FiTrash2, FiX, FiSettings, FiMail, FiMessageSquare, FiCreditCard, FiGlobe, FiShield } from 'react-icons/fi';
+import { useEffect, useState } from 'react';
+import {
+    FiEdit2,
+    FiRefreshCw,
+    FiSave,
+    FiTrash2,
+    FiX,
+    FiSettings,
+    FiMail,
+    FiMessageSquare,
+    FiCreditCard,
+    FiGlobe,
+    FiShield,
+    FiLock,
+    FiEye,
+    FiEyeOff,
+    FiChevronRight
+} from 'react-icons/fi';
 import { deleteConfig, getAllConfigs, updateConfig } from '../api/adminApi';
 import { useToast } from '../hooks/ToastContext';
 
@@ -14,12 +30,13 @@ interface SystemConfig {
 }
 
 const SystemConfig = () => {
-    const { showToast } = useToast();
+    const { showSuccess, showError, showWarning } = useToast();
     const [configs, setConfigs] = useState<SystemConfig[]>([]);
     const [loading, setLoading] = useState(false);
     const [editingKey, setEditingKey] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
     const [activeGroup, setActiveGroup] = useState<string>('ALL');
+    const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
         fetchConfigs();
@@ -33,7 +50,7 @@ const SystemConfig = () => {
                 setConfigs(response.data.data);
             }
         } catch (error) {
-            showToast('Failed to fetch configurations', 'error');
+            showError('Failed to fetch configurations');
         } finally {
             setLoading(false);
         }
@@ -53,34 +70,36 @@ const SystemConfig = () => {
         try {
             const response = await updateConfig(key, { value: editValue });
             if (response.data.success) {
-                showToast('Configuration updated successfully', 'success');
+                showSuccess('Configuration updated successfully');
                 setEditingKey(null);
                 fetchConfigs();
             }
         } catch (error) {
-            showToast('Failed to update configuration', 'error');
+            showError('Failed to update configuration');
         }
     };
 
     const handleDelete = async (key: string) => {
         if (key.startsWith('VTPAY_')) {
-            showToast('Default gateway configuration cannot be cleared', 'warning');
+            showWarning('Default gateway configuration cannot be cleared');
             return;
         }
         if (!window.confirm(`Are you sure you want to clear the value for ${key}?`)) return;
         try {
             const response = await deleteConfig(key);
             if (response.data.success) {
-                showToast('Configuration cleared successfully', 'success');
+                showSuccess('Configuration cleared successfully');
                 fetchConfigs();
             }
         } catch (error) {
-            showToast('Failed to clear configuration', 'error');
+            showError('Failed to clear configuration');
         }
     };
 
+    const toggleSecret = (key: string) => {
+        setShowSecrets(prev => ({ ...prev, [key]: !prev[key] }));
+    };
 
-    // Group configs by group name and filter out specific groups
     const excludedGroups = ['EMAIL', 'PAYMENT', 'SMS', 'SYSTEM'];
     const groupedConfigs = configs.reduce((acc, config) => {
         const group = config.group || 'GENERAL';
@@ -95,12 +114,12 @@ const SystemConfig = () => {
 
     const getGroupIcon = (group: string) => {
         switch (group.toUpperCase()) {
-            case 'EMAIL': return <FiMail className="w-4 h-4" />;
-            case 'SMS': return <FiMessageSquare className="w-4 h-4" />;
-            case 'PAYMENT': return <FiCreditCard className="w-4 h-4" />;
-            case 'GENERAL': return <FiGlobe className="w-4 h-4" />;
-            case 'SECURITY': return <FiShield className="w-4 h-4" />;
-            default: return <FiSettings className="w-4 h-4" />;
+            case 'EMAIL': return <FiMail />;
+            case 'SMS': return <FiMessageSquare />;
+            case 'PAYMENT': return <FiCreditCard />;
+            case 'GENERAL': return <FiGlobe />;
+            case 'SECURITY': return <FiShield />;
+            default: return <FiSettings />;
         }
     };
 
@@ -108,46 +127,53 @@ const SystemConfig = () => {
         ? groupedConfigs
         : { [activeGroup]: groupedConfigs[activeGroup] || [] };
 
+    const isSecret = (key: string) => {
+        const secretKeywords = ['PASSWORD', 'SECRET', 'KEY', 'TOKEN', 'AUTH'];
+        return secretKeywords.some(keyword => key.toUpperCase().includes(keyword));
+    };
+
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-2xl font-bold text-slate-900 tracking-tight">System Configurations</h2>
-                    <p className="text-slate-500 mt-1">Manage global system settings and variables</p>
+        <div className="space-y-8 animate-in fade-in duration-500">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                <div className="space-y-2">
+                    <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">System Variables</h2>
+                    <p className="text-sm sm:text-lg text-slate-500 font-medium">Global environment and operational parameters for the platform core.</p>
                 </div>
-                <div className="flex gap-3">
-                    <button
-                        onClick={fetchConfigs}
-                        className="p-2.5 text-slate-600 hover:bg-white hover:shadow-md hover:text-green-600 rounded-xl transition-all duration-200 border border-transparent hover:border-slate-100"
-                        title="Refresh"
-                    >
-                        <FiRefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-                    </button>
-                </div>
+                <button
+                    onClick={fetchConfigs}
+                    disabled={loading}
+                    className="flex items-center gap-3 px-6 py-4 bg-white border border-slate-200 rounded-[2rem] text-slate-600 font-black uppercase tracking-widest text-[10px] hover:bg-slate-50 transition-all shadow-sm active:scale-95 disabled:opacity-50 group"
+                >
+                    <FiRefreshCw className={`w-4 h-4 text-green-600 ${loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+                    <span>Refresh Registry</span>
+                </button>
             </div>
 
-
-            <div className="flex flex-col lg:flex-row gap-8">
+            <div className="flex flex-col lg:flex-row gap-10">
                 {/* Sidebar Navigation */}
-                <div className="lg:w-64 flex-shrink-0">
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden sticky top-6">
-                        <div className="p-4 border-b border-slate-100 bg-slate-50/50">
-                            <h3 className="font-semibold text-slate-900">Settings Groups</h3>
+                <div className="lg:w-80 flex-shrink-0">
+                    <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-200 overflow-hidden sticky top-8">
+                        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Configuration Groups</h3>
                         </div>
-                        <nav className="p-2 space-y-1">
+                        <nav className="p-4 space-y-2">
                             {groups.map(group => (
                                 <button
                                     key={group}
                                     onClick={() => setActiveGroup(group)}
-                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${activeGroup === group
-                                        ? 'bg-green-50 text-green-700 shadow-sm'
-                                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                                    className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-sm font-black transition-all group ${activeGroup === group
+                                        ? 'bg-slate-900 text-white shadow-xl shadow-slate-200'
+                                        : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                                         }`}
                                 >
-                                    {getGroupIcon(group)}
-                                    <span className="capitalize">{group === 'ALL' ? 'All Settings' : group.toLowerCase()}</span>
+                                    <span className={`text-lg ${activeGroup === group ? 'text-green-400' : 'text-slate-400 group-hover:text-slate-600'}`}>
+                                        {getGroupIcon(group)}
+                                    </span>
+                                    <span className="capitalize tracking-tight">{group === 'ALL' ? 'All Parameters' : group.toLowerCase()}</span>
                                     {group !== 'ALL' && (
-                                        <span className="ml-auto text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">
+                                        <span className={`ml-auto text-[10px] px-3 py-1 rounded-full font-black ${activeGroup === group ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                                            }`}>
                                             {groupedConfigs[group]?.length || 0}
                                         </span>
                                     )}
@@ -158,94 +184,119 @@ const SystemConfig = () => {
                 </div>
 
                 {/* Content Area */}
-                <div className="flex-1 space-y-6">
+                <div className="flex-1 space-y-10">
                     {Object.entries(displayedConfigs).map(([group, groupConfigs]) => (
-                        <div key={group} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                            <div className="bg-slate-50/50 px-8 py-4 border-b border-slate-100 flex items-center gap-3">
-                                <div className="p-2 bg-white rounded-lg shadow-sm text-green-600">
-                                    {getGroupIcon(group)}
+                        <div key={group} className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-200 overflow-hidden animate-in slide-in-from-bottom-8 duration-700">
+                            <div className="bg-slate-50/50 px-8 py-6 border-b border-slate-100 flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center text-green-600 text-xl">
+                                        {getGroupIcon(group)}
+                                    </div>
+                                    <div>
+                                        <h3 className="font-black text-slate-900 uppercase tracking-[0.15em] text-xs">{group}</h3>
+                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-0.5">{groupConfigs.length} Active Parameters</p>
+                                    </div>
                                 </div>
-                                <h3 className="font-bold text-slate-800 text-lg tracking-tight">{group}</h3>
                             </div>
+
                             <div className="divide-y divide-slate-100">
                                 {groupConfigs.map(config => (
-                                    <div key={config._id} className="p-6 hover:bg-slate-50/80 transition-colors group">
-                                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
-                                            <div className="flex-1 min-w-0 space-y-3">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="font-mono font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-lg text-sm border border-slate-200">
-                                                        {config.key}
-                                                    </span>
-                                                    {config.key.startsWith('VTPAY_') && (
-                                                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full uppercase tracking-wider">
-                                                            Default Gateway
+                                    <div key={config._id} className="p-8 hover:bg-slate-50/30 transition-colors group/row">
+                                        <div className="flex flex-col gap-6">
+                                            <div className="flex items-start justify-between gap-6">
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center gap-3 flex-wrap">
+                                                        <span className="font-mono font-black text-slate-900 text-[11px] bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
+                                                            {config.key}
                                                         </span>
-                                                    )}
+                                                        {config.key.startsWith('VTPAY_') && (
+                                                            <span className="px-3 py-1 bg-green-100 text-green-700 text-[9px] font-black rounded-full uppercase tracking-[0.15em]">
+                                                                System Default
+                                                            </span>
+                                                        )}
+                                                        {isSecret(config.key) && (
+                                                            <span className="flex items-center gap-1.5 px-3 py-1 bg-amber-100 text-amber-700 text-[9px] font-black rounded-full uppercase tracking-[0.15em]">
+                                                                <FiLock className="w-3 h-3" /> Sensitive
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     {config.description && (
-                                                        <span className="text-sm text-slate-500 truncate border-l border-slate-200 pl-3">
+                                                        <p className="text-xs text-slate-500 font-medium leading-relaxed max-w-3xl">
                                                             {config.description}
-                                                        </span>
+                                                        </p>
                                                     )}
                                                 </div>
 
-                                                {editingKey === config.key ? (
-                                                    <div className="flex gap-3 animate-in fade-in duration-200">
-                                                        <input
-                                                            type="text"
-                                                            value={editValue}
-                                                            onChange={e => setEditValue(e.target.value)}
-                                                            className="flex-1 px-4 py-2.5 bg-white border border-green-500 rounded-xl focus:outline-none focus:ring-4 focus:ring-green-500/10 font-mono text-sm shadow-sm"
-                                                            autoFocus
-                                                        />
+                                                {config.is_editable && editingKey !== config.key && (
+                                                    <div className="flex items-center gap-2 opacity-0 group-hover/row:opacity-100 transition-opacity">
                                                         <button
-                                                            onClick={() => handleSaveEdit(config.key)}
-                                                            className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors shadow-sm font-medium flex items-center gap-2"
-                                                            title="Save"
+                                                            onClick={() => handleEdit(config)}
+                                                            className="p-3 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-2xl transition-all shadow-sm bg-white border border-slate-100"
+                                                            title="Edit Parameter"
                                                         >
-                                                            <FiSave className="w-4 h-4" /> Save
+                                                            <FiEdit2 className="w-4 h-4" />
                                                         </button>
                                                         <button
-                                                            onClick={handleCancelEdit}
-                                                            className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition-colors font-medium flex items-center gap-2"
-                                                            title="Cancel"
+                                                            onClick={() => handleDelete(config.key)}
+                                                            className="p-3 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all shadow-sm bg-white border border-slate-100"
+                                                            title="Clear Value"
                                                         >
-                                                            <FiX className="w-4 h-4" /> Cancel
+                                                            <FiTrash2 className="w-4 h-4" />
                                                         </button>
-                                                    </div>
-                                                ) : (
-                                                    <div className="font-mono text-sm text-slate-600 break-all bg-slate-50/50 p-4 rounded-xl border border-slate-100/50">
-                                                        {config.value ? (
-                                                            config.key.includes('PASSWORD') || config.key.includes('SECRET') || config.key.includes('KEY') ?
-                                                                <span className="text-slate-400 tracking-widest">••••••••••••••••</span> :
-                                                                <span className="text-slate-700">{config.value}</span>
-                                                        ) : (
-                                                            <span className="text-slate-400 italic flex items-center gap-2">
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
-                                                                Not set
-                                                            </span>
-                                                        )}
                                                     </div>
                                                 )}
                                             </div>
 
-                                            {config.is_editable && editingKey !== config.key && (
-                                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                    <button
-                                                        onClick={() => handleEdit(config)}
-                                                        className="p-2.5 text-slate-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-all"
-                                                        title="Edit"
-                                                    >
-                                                        <FiEdit2 className="w-5 h-5" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(config.key)}
-                                                        className="p-2.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                                                        title="Clear Value"
-                                                    >
-                                                        <FiTrash2 className="w-5 h-5" />
-                                                    </button>
-                                                </div>
-                                            )}
+                                            <div className="relative">
+                                                {editingKey === config.key ? (
+                                                    <div className="flex flex-col sm:flex-row gap-4 animate-in zoom-in-95 duration-300">
+                                                        <input
+                                                            type="text"
+                                                            value={editValue}
+                                                            onChange={e => setEditValue(e.target.value)}
+                                                            className="flex-1 px-5 py-4 bg-white border-2 border-green-500 rounded-2xl focus:outline-none focus:ring-4 focus:ring-green-500/10 font-mono text-sm shadow-xl shadow-green-100/20"
+                                                            autoFocus
+                                                        />
+                                                        <div className="flex gap-3">
+                                                            <button
+                                                                onClick={() => handleSaveEdit(config.key)}
+                                                                className="flex-1 sm:flex-none px-8 py-4 bg-green-600 text-white rounded-2xl hover:bg-green-700 transition-all shadow-lg shadow-green-100 font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
+                                                            >
+                                                                <FiSave className="w-4 h-4" /> Save Changes
+                                                            </button>
+                                                            <button
+                                                                onClick={handleCancelEdit}
+                                                                className="flex-1 sm:flex-none px-8 py-4 bg-slate-100 text-slate-600 rounded-2xl hover:bg-slate-200 transition-all font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2"
+                                                            >
+                                                                <FiX className="w-4 h-4" /> Cancel
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="relative group/value">
+                                                        <div className="font-mono text-sm text-slate-700 break-all bg-slate-50 border border-slate-100 p-5 rounded-[1.5rem] pr-14 shadow-inner">
+                                                            {config.value ? (
+                                                                isSecret(config.key) && !showSecrets[config.key] ?
+                                                                    <span className="text-slate-300 tracking-[0.4em] font-black">••••••••••••••••</span> :
+                                                                    <span className="text-slate-900 font-bold">{config.value}</span>
+                                                            ) : (
+                                                                <span className="text-slate-400 italic flex items-center gap-3 font-medium">
+                                                                    <span className="w-2 h-2 rounded-full bg-slate-300 animate-pulse"></span>
+                                                                    Parameter not initialized
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {config.value && isSecret(config.key) && (
+                                                            <button
+                                                                onClick={() => toggleSecret(config.key)}
+                                                                className="absolute right-5 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-slate-900 hover:bg-white rounded-xl transition-all shadow-sm"
+                                                            >
+                                                                {showSecrets[config.key] ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -254,12 +305,12 @@ const SystemConfig = () => {
                     ))}
 
                     {configs.length === 0 && !loading && (
-                        <div className="text-center py-16 text-slate-500 bg-white rounded-2xl border border-slate-200 border-dashed">
-                            <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <FiRefreshCw className="w-6 h-6 text-slate-400" />
+                        <div className="text-center py-32 bg-white rounded-[3rem] border-2 border-dashed border-slate-200 shadow-xl shadow-slate-200/50">
+                            <div className="w-24 h-24 bg-slate-50 rounded-[2rem] flex items-center justify-center mx-auto mb-8">
+                                <FiSettings className="w-12 h-12 text-slate-200" />
                             </div>
-                            <p className="text-lg font-medium text-slate-900">No configurations found</p>
-                            <p className="text-sm text-slate-500 mt-1">Get started by adding a new system variable</p>
+                            <h3 className="text-2xl font-black text-slate-900">No Parameters Found</h3>
+                            <p className="text-sm text-slate-500 mt-3 max-w-xs mx-auto font-medium">The system configuration registry is currently empty or unavailable.</p>
                         </div>
                     )}
                 </div>

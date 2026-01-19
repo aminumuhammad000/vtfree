@@ -80,29 +80,49 @@ const HelpMessages: React.FC = () => {
     });
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-4 md:p-6 space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-start">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Help Messages</h1>
-                    <p className="text-sm text-slate-500 mt-1">Manage user support requests</p>
+                    <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900">Help & Support</h1>
+                    <p className="text-xs md:text-sm text-slate-500 mt-1">Manage user support requests & tickets</p>
                 </div>
                 <button
                     onClick={fetchMessages}
-                    className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium"
+                    className="w-full sm:w-auto px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium shadow-sm active:scale-95"
                 >
-                    Refresh
+                    🔄 Refresh
                 </button>
+            </div>
+
+            {/* Stats & Filters */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <p className="text-xs md:text-sm font-medium text-slate-500">Total Messages</p>
+                    <h3 className="text-lg md:text-2xl font-bold text-slate-900 mt-1">{messages.length}</h3>
+                </div>
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <p className="text-xs md:text-sm font-medium text-slate-500">Pending</p>
+                    <h3 className="text-lg md:text-2xl font-bold text-yellow-600 mt-1">
+                        {messages.filter(m => m.status === 'pending').length}
+                    </h3>
+                </div>
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <p className="text-xs md:text-sm font-medium text-slate-500">Resolved</p>
+                    <h3 className="text-lg md:text-2xl font-bold text-green-600 mt-1">
+                        {messages.filter(m => m.status === 'resolved').length}
+                    </h3>
+                </div>
             </div>
 
             {/* Filters */}
             <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                     <span className="text-sm font-medium text-slate-700">Filter by Status:</span>
                     <select
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
-                        className="px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        className="w-full sm:w-auto px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
                     >
                         <option value="all">All Status</option>
                         <option value="pending">Pending</option>
@@ -121,22 +141,22 @@ const HelpMessages: React.FC = () => {
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="w-full min-w-[700px] md:min-w-full">
                             <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         User
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Subject
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Status
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="hidden sm:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Date
                                     </th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Actions
                                     </th>
                                 </tr>
@@ -144,26 +164,26 @@ const HelpMessages: React.FC = () => {
                             <tbody className="bg-white divide-y divide-slate-200">
                                 {filteredMessages.map((msg) => (
                                     <tr key={msg._id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                             <div>
                                                 <div className="text-sm font-medium text-slate-900">
                                                     {msg.userId ? `${msg.userId.firstName} ${msg.userId.lastName}` : 'Unknown User'}
                                                 </div>
-                                                <div className="text-sm text-slate-500">
+                                                <div className="text-xs text-slate-500">
                                                     {msg.userId ? msg.userId.email : ''}
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 md:px-6 py-4">
                                             <div className="text-sm text-slate-900 truncate max-w-xs">{msg.subject}</div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                             {getStatusBadge(msg.status)}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                        <td className="hidden sm:table-cell px-4 md:px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                             {new Date(msg.createdAt).toLocaleDateString()}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <button
                                                 onClick={() => {
                                                     setSelectedMessage(msg);
@@ -171,7 +191,8 @@ const HelpMessages: React.FC = () => {
                                                 }}
                                                 className="text-green-600 hover:text-green-900"
                                             >
-                                                View Details
+                                                <span className="hidden sm:inline">View Details</span>
+                                                <span className="sm:hidden">View</span>
                                             </button>
                                         </td>
                                     </tr>
@@ -221,13 +242,13 @@ const HelpMessages: React.FC = () => {
 
                             <div>
                                 <h3 className="text-sm font-medium text-slate-500 mb-2">Update Status</h3>
-                                <div className="flex gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                     <button
                                         onClick={() => handleStatusChange(selectedMessage._id, 'pending')}
                                         disabled={isUpdating || selectedMessage.status === 'pending'}
-                                        className={`flex-1 px-4 py-2 rounded-lg transition-colors ${selectedMessage.status === 'pending'
-                                                ? 'bg-yellow-100 text-yellow-800 border border-yellow-200 cursor-default'
-                                                : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+                                        className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${selectedMessage.status === 'pending'
+                                            ? 'bg-yellow-100 text-yellow-800 border border-yellow-200 cursor-default'
+                                            : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
                                             }`}
                                     >
                                         Pending
@@ -235,9 +256,9 @@ const HelpMessages: React.FC = () => {
                                     <button
                                         onClick={() => handleStatusChange(selectedMessage._id, 'in_progress')}
                                         disabled={isUpdating || selectedMessage.status === 'in_progress'}
-                                        className={`flex-1 px-4 py-2 rounded-lg transition-colors ${selectedMessage.status === 'in_progress'
-                                                ? 'bg-blue-100 text-blue-800 border border-blue-200 cursor-default'
-                                                : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+                                        className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${selectedMessage.status === 'in_progress'
+                                            ? 'bg-blue-100 text-blue-800 border border-blue-200 cursor-default'
+                                            : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
                                             }`}
                                     >
                                         In Progress
@@ -245,9 +266,9 @@ const HelpMessages: React.FC = () => {
                                     <button
                                         onClick={() => handleStatusChange(selectedMessage._id, 'resolved')}
                                         disabled={isUpdating || selectedMessage.status === 'resolved'}
-                                        className={`flex-1 px-4 py-2 rounded-lg transition-colors ${selectedMessage.status === 'resolved'
-                                                ? 'bg-green-100 text-green-800 border border-green-200 cursor-default'
-                                                : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+                                        className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${selectedMessage.status === 'resolved'
+                                            ? 'bg-green-100 text-green-800 border border-green-200 cursor-default'
+                                            : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
                                             }`}
                                     >
                                         Resolved

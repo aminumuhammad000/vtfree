@@ -33,11 +33,7 @@ class ConfigService {
         await SystemConfig.findOneAndUpdate(
             { key },
             { value },
-<<<<<<< HEAD
             { upsert: true, new: true, setDefaultsOnInsert: true }
-=======
-            { upsert: true, new: true }
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
         );
         this.cache.set(key, value);
     }
@@ -78,10 +74,7 @@ class ConfigService {
             { key: 'ZAINPAY_IS_LIVE', group: 'PAYMENT', description: 'Zainpay Live Mode' },
 
             { key: 'VTPAY_API_KEY', group: 'PAYMENT', description: 'VTPay API Key (Default Gateway)' },
-<<<<<<< HEAD
             { key: 'VTPAY_BASE_URL', group: 'PAYMENT', description: 'VTPay Base URL' },
-=======
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
             { key: 'VTPAY_SECRET_KEY', group: 'PAYMENT', description: 'VTPay Secret Key' },
             { key: 'VTPAY_PUBLIC_KEY', group: 'PAYMENT', description: 'VTPay Public Key' },
             { key: 'VTPAY_IS_ACTIVE', group: 'PAYMENT', description: 'VTPay Gateway Status (true/false)' },

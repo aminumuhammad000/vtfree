@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { FiSearch, FiFilter, FiMoreVertical, FiLock, FiUnlock, FiRefreshCw } from 'react-icons/fi';
-import { getVirtualAccounts, freezeAccount, unfreezeAccount, syncAccount } from '../../api/paymentApi';
+import { FiSearch, FiFilter, FiLock, FiUnlock, FiRefreshCw } from 'react-icons/fi';
+import { freezeAccount, unfreezeAccount } from '../../api/paymentApi';
 
 import Layout from '../../components/Layout';
 
 const VirtualAccounts: React.FC = () => {
     const [accounts, setAccounts] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    // const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
@@ -15,7 +15,7 @@ const VirtualAccounts: React.FC = () => {
 
     const fetchAccounts = async () => {
         try {
-            setLoading(true);
+            // setLoading(true);
             // Mock data for now
             // const response = await getVirtualAccounts();
             // setAccounts(response.data.data);
@@ -26,7 +26,7 @@ const VirtualAccounts: React.FC = () => {
         } catch (error) {
             console.error('Failed to fetch accounts', error);
         } finally {
-            setLoading(false);
+            // setLoading(false);
         }
     };
 

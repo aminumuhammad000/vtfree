@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiX, FiMail, FiPhone, FiCheckCircle, FiAlertCircle, FiUser, FiCalendar, FiShield, FiCreditCard } from 'react-icons/fi';
+import { FiX, FiMail, FiPhone, FiCheckCircle, FiCalendar, FiShield, FiCreditCard } from 'react-icons/fi';
 
 interface UserViewModalProps {
   user: any;

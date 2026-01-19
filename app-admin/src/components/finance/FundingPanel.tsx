@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useState } from 'react';
-import { createFundingAccount, deleteFundingAccount, getBanksList, getFundingAccounts, getFundingInfo, getProviderBalances, getVTPayBalance, updateFundingAccount, validateAccount, getAllConfigs } from '../../api/adminApi';
+import { createFundingAccount, deleteFundingAccount, getBanksList, getFundingAccounts, getProviderBalances, getVTPayBalance, updateFundingAccount, validateAccount, getAllConfigs } from '../../api/adminApi';
 
 const FundingPanel: React.FC = () => {
     // Default Gateway
@@ -12,7 +12,9 @@ const FundingPanel: React.FC = () => {
         },
     });
 
-    const defaultGateway = configRes?.find((c: any) => c.key === 'DEFAULT_PAYMENT_GATEWAY')?.value || 'vtpay';
+    const defaultGateway = Array.isArray(configRes)
+        ? configRes.find((c: any) => c.key === 'DEFAULT_PAYMENT_GATEWAY')?.value || 'vtpay'
+        : 'vtpay';
 
     // Gateway Balance
     const { data: gatewayBalanceRes } = useQuery({
@@ -38,21 +40,15 @@ const FundingPanel: React.FC = () => {
         queryKey: ['provider-balances'],
         queryFn: async () => {
             const res = await getProviderBalances();
-            return res.data?.data as { providers: Array<{ code: string; name: string; balance: number | null; currency: string | null; status: string }>; total: number };
+            return res.data?.data as { providers: Array<{ code: string; name: string; balance: number | string | null; currency: string | null; status: string }>; total: number };
         }
     });
 
-    const { data: fundingInfoRes, status: fundingStatus } = useQuery({
-        queryKey: ['funding-info'],
-        queryFn: async () => {
-            const res = await getFundingInfo();
-            return res.data?.data as { funding: { bankName: string; accountName: string; accountNumber: string; instructions?: string } };
-        }
-    });
+
 
     const providers = balancesRes?.providers || [];
     const total = balancesRes?.total || 0;
-    const funding = fundingInfoRes?.funding;
+    // const funding = fundingInfoRes?.funding;
 
     // Accounts list
     const queryClient = useQueryClient();
@@ -109,15 +105,15 @@ const FundingPanel: React.FC = () => {
 
     const createMut = useMutation({
         mutationFn: () => createFundingAccount(form).then(r => r.data),
-        onSuccess: () => { setShowForm(false); queryClient.invalidateQueries({ queryKey: ['funding-accounts'] }); queryClient.invalidateQueries({ queryKey: ['funding-info'] }); },
+        onSuccess: () => { setShowForm(false); queryClient.invalidateQueries({ queryKey: ['funding-accounts'] }); },
     });
     const updateMut = useMutation({
         mutationFn: () => updateFundingAccount(editing._id, form).then(r => r.data),
-        onSuccess: () => { setShowForm(false); setEditing(null); queryClient.invalidateQueries({ queryKey: ['funding-accounts'] }); queryClient.invalidateQueries({ queryKey: ['funding-info'] }); },
+        onSuccess: () => { setShowForm(false); setEditing(null); queryClient.invalidateQueries({ queryKey: ['funding-accounts'] }); },
     });
     const deleteMut = useMutation({
         mutationFn: (id: string) => deleteFundingAccount(id).then(r => r.data),
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['funding-accounts'] }); queryClient.invalidateQueries({ queryKey: ['funding-info'] }); },
+        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['funding-accounts'] }); },
     });
 
     return (

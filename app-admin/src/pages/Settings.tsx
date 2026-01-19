@@ -1,10 +1,23 @@
 import React, { useEffect, useState } from 'react';
+import {
+    FiSettings,
+    FiMail,
+    FiCreditCard,
+    FiCpu,
+    FiGlobe,
+    FiPhone,
+    FiMessageCircle,
+    FiFacebook,
+    FiTwitter,
+    FiInstagram,
+    FiSave,
+    FiInfo
+} from 'react-icons/fi';
 import { getSupportContent, updateSupportContent } from '../api/adminApi';
-import Sidebar from '../components/Sidebar';
+import Layout from '../components/Layout';
 import SystemConfig from '../components/SystemConfig';
 import EmailSettings from '../components/EmailSettings';
 import PaymentSettings from '../components/PaymentSettings';
-import Topbar from '../components/Topbar';
 import { useToast } from '../hooks/ToastContext';
 
 interface SupportContent {
@@ -18,13 +31,8 @@ interface SupportContent {
 }
 
 const Settings = () => {
-    const { showToast } = useToast();
-    const [isMobileOpen, setIsMobileOpen] = useState(false);
-<<<<<<< HEAD
-    const [activeTab, setActiveTab] = useState<'general' | 'email' | 'payment'>('general');
-=======
+    const { showSuccess, showError } = useToast();
     const [activeTab, setActiveTab] = useState<'general' | 'system' | 'email' | 'payment'>('general');
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<SupportContent>({
         email: '',
@@ -50,7 +58,7 @@ const Settings = () => {
                 setFormData(response.data.data);
             }
         } catch (error) {
-            showToast('Failed to fetch settings', 'error');
+            showError('Failed to fetch settings');
         } finally {
             setLoading(false);
         }
@@ -66,205 +74,205 @@ const Settings = () => {
             setLoading(true);
             const response = await updateSupportContent(formData);
             if (response.data.success) {
-                showToast('Settings updated successfully', 'success');
+                showSuccess('Settings updated successfully');
             }
         } catch (error) {
-            showToast('Failed to update settings', 'error');
+            showError('Failed to update settings');
         } finally {
             setLoading(false);
         }
     };
 
+    const tabs = [
+        { id: 'general', label: 'General', icon: FiSettings },
+        { id: 'email', label: 'Email', icon: FiMail },
+        { id: 'payment', label: 'Payment', icon: FiCreditCard },
+        { id: 'system', label: 'System', icon: FiCpu },
+    ];
+
     const renderTabContent = () => {
         switch (activeTab) {
             case 'general':
                 return (
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
-                        <h2 className="text-2xl font-bold text-slate-900 mb-6">Support Contact Information</h2>
-
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Email Address</label>
-                                    <input
-                                        type="email"
-                                        name="email"
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Phone Number</label>
-                                    <input
-                                        type="text"
-                                        name="phoneNumber"
-                                        value={formData.phoneNumber}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">WhatsApp Number</label>
-                                    <input
-                                        type="text"
-                                        name="whatsappNumber"
-                                        value={formData.whatsappNumber}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Website URL</label>
-                                    <input
-                                        type="url"
-                                        name="websiteUrl"
-                                        value={formData.websiteUrl || ''}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    />
-                                </div>
+                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                            <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                    <FiInfo className="text-green-600" />
+                                    Support Contact Information
+                                </h2>
                             </div>
 
-                            <div className="border-t border-slate-200 pt-6">
-                                <h3 className="text-lg font-bold text-slate-900 mb-4">Social Media Links</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Facebook URL</label>
-                                        <input
-                                            type="url"
-                                            name="facebookUrl"
-                                            value={formData.facebookUrl || ''}
-                                            onChange={handleChange}
-                                            className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                        />
+                            <form onSubmit={handleSubmit} className="p-6 space-y-8">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Email Address</label>
+                                        <div className="relative">
+                                            <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                            <input
+                                                type="email"
+                                                name="email"
+                                                value={formData.email}
+                                                onChange={handleChange}
+                                                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none font-medium text-slate-700 transition-all"
+                                                required
+                                            />
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Twitter URL</label>
-                                        <input
-                                            type="url"
-                                            name="twitterUrl"
-                                            value={formData.twitterUrl || ''}
-                                            onChange={handleChange}
-                                            className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                        />
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Phone Number</label>
+                                        <div className="relative">
+                                            <FiPhone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                            <input
+                                                type="text"
+                                                name="phoneNumber"
+                                                value={formData.phoneNumber}
+                                                onChange={handleChange}
+                                                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none font-medium text-slate-700 transition-all"
+                                                required
+                                            />
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Instagram URL</label>
-                                        <input
-                                            type="url"
-                                            name="instagramUrl"
-                                            value={formData.instagramUrl || ''}
-                                            onChange={handleChange}
-                                            className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                        />
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">WhatsApp Number</label>
+                                        <div className="relative">
+                                            <FiMessageCircle className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                            <input
+                                                type="text"
+                                                name="whatsappNumber"
+                                                value={formData.whatsappNumber}
+                                                onChange={handleChange}
+                                                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none font-medium text-slate-700 transition-all"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Website URL</label>
+                                        <div className="relative">
+                                            <FiGlobe className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                            <input
+                                                type="url"
+                                                name="websiteUrl"
+                                                value={formData.websiteUrl || ''}
+                                                onChange={handleChange}
+                                                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none font-medium text-slate-700 transition-all"
+                                                placeholder="https://example.com"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div className="flex justify-end pt-4">
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {loading ? 'Saving...' : 'Save Changes'}
-                                </button>
-                            </div>
-                        </form>
+                                <div className="pt-6 border-t border-slate-100">
+                                    <h3 className="text-sm font-bold text-slate-900 mb-6 uppercase tracking-widest flex items-center gap-2">
+                                        <FiGlobe className="text-blue-500" />
+                                        Social Media Presence
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Facebook URL</label>
+                                            <div className="relative">
+                                                <FiFacebook className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                                <input
+                                                    type="url"
+                                                    name="facebookUrl"
+                                                    value={formData.facebookUrl || ''}
+                                                    onChange={handleChange}
+                                                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none font-medium text-slate-700 transition-all"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Twitter URL</label>
+                                            <div className="relative">
+                                                <FiTwitter className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                                <input
+                                                    type="url"
+                                                    name="twitterUrl"
+                                                    value={formData.twitterUrl || ''}
+                                                    onChange={handleChange}
+                                                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none font-medium text-slate-700 transition-all"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Instagram URL</label>
+                                            <div className="relative">
+                                                <FiInstagram className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                                <input
+                                                    type="url"
+                                                    name="instagramUrl"
+                                                    value={formData.instagramUrl || ''}
+                                                    onChange={handleChange}
+                                                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none font-medium text-slate-700 transition-all"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end pt-4">
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-2xl transition-all shadow-lg shadow-green-100 disabled:opacity-50 active:scale-95"
+                                    >
+                                        <FiSave className="w-5 h-5" />
+                                        {loading ? 'Saving...' : 'Save Changes'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 );
-<<<<<<< HEAD
-=======
             case 'system':
-                return <SystemConfig />;
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
+                return <div className="animate-in fade-in slide-in-from-bottom-4 duration-500"><SystemConfig /></div>;
             case 'email':
-                return <EmailSettings />;
+                return <div className="animate-in fade-in slide-in-from-bottom-4 duration-500"><EmailSettings /></div>;
             case 'payment':
-                return <PaymentSettings />;
+                return <div className="animate-in fade-in slide-in-from-bottom-4 duration-500"><PaymentSettings /></div>;
             default:
                 return null;
         }
     };
 
     return (
-        <div className="flex h-screen bg-slate-50">
-            <Sidebar isMobileOpen={isMobileOpen} setIsMobileOpen={setIsMobileOpen} />
-            <div className="flex-1 flex flex-col overflow-hidden">
-                <Topbar onMenuClick={() => setIsMobileOpen(true)} />
-                <main className="flex-1 overflow-auto p-8">
-                    <div className="max-w-4xl mx-auto">
-                        <div className="mb-8">
-                            <h1 className="text-4xl font-bold text-slate-900 mb-2">Settings</h1>
-                            <p className="text-slate-600">Manage application settings and configurations</p>
+        <Layout>
+            <div className="p-4 sm:p-6 lg:p-8">
+                <div className="max-w-5xl mx-auto space-y-8">
+                    {/* Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 mb-2 tracking-tight">Settings</h1>
+                            <p className="text-sm sm:text-lg text-slate-600 font-medium">Configure your platform's core parameters and integrations</p>
                         </div>
+                    </div>
 
-                        {/* Tabs */}
-                        <div className="flex border-b border-slate-200 mb-8 overflow-x-auto">
+                    {/* Tabs */}
+                    <div className="flex flex-wrap gap-2 p-1.5 bg-slate-100 rounded-3xl w-fit">
+                        {tabs.map((tab) => (
                             <button
-                                onClick={() => setActiveTab('general')}
-                                className={`px-6 py-3 font-medium text-sm transition-colors relative whitespace-nowrap ${activeTab === 'general'
-                                    ? 'text-green-600'
-                                    : 'text-slate-500 hover:text-slate-700'
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === tab.id
+                                        ? 'bg-white text-green-600 shadow-sm'
+                                        : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
                                     }`}
                             >
-                                General Settings
-                                {activeTab === 'general' && (
-                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600" />
-                                )}
+                                <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? 'text-green-600' : 'text-slate-400'}`} />
+                                {tab.label}
                             </button>
-                            <button
-                                onClick={() => setActiveTab('email')}
-                                className={`px-6 py-3 font-medium text-sm transition-colors relative whitespace-nowrap ${activeTab === 'email'
-                                    ? 'text-green-600'
-                                    : 'text-slate-500 hover:text-slate-700'
-                                    }`}
-                            >
-                                Email Configuration
-                                {activeTab === 'email' && (
-                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600" />
-                                )}
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('payment')}
-                                className={`px-6 py-3 font-medium text-sm transition-colors relative whitespace-nowrap ${activeTab === 'payment'
-                                    ? 'text-green-600'
-                                    : 'text-slate-500 hover:text-slate-700'
-                                    }`}
-                            >
-                                Payment Settings
-                                {activeTab === 'payment' && (
-                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600" />
-                                )}
-                            </button>
-<<<<<<< HEAD
-=======
-                            <button
-                                onClick={() => setActiveTab('system')}
-                                className={`px-6 py-3 font-medium text-sm transition-colors relative whitespace-nowrap ${activeTab === 'system'
-                                    ? 'text-green-600'
-                                    : 'text-slate-500 hover:text-slate-700'
-                                    }`}
-                            >
-                                System Configuration
-                                {activeTab === 'system' && (
-                                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600" />
-                                )}
-                            </button>
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
-                        </div>
+                        ))}
+                    </div>
 
+                    {/* Content */}
+                    <div className="min-h-[400px]">
                         {renderTabContent()}
                     </div>
-                </main>
+                </div>
             </div>
-        </div>
+        </Layout>
     );
 };
 
 export default Settings;
-

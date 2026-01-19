@@ -1,13 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+    FiMessageSquare,
+    FiSearch,
+    FiFilter,
+    FiRefreshCw,
+    FiChevronLeft,
+    FiChevronRight,
+    FiEye,
+    FiAlertCircle,
+    FiClock,
+    FiFlag
+} from 'react-icons/fi';
 import { getSupportMessages } from '../api/adminApi';
-import Sidebar from '../components/Sidebar';
-import Topbar from '../components/Topbar';
+import Layout from '../components/Layout';
 import SupportViewModal from '../components/SupportViewModal';
 
 const Support: React.FC = () => {
+    const queryClient = useQueryClient();
     const [page, setPage] = useState(1);
-    const [isMobileOpen, setIsMobileOpen] = useState(false);
     const [statusFilter, setStatusFilter] = useState('');
     const [priorityFilter, setPriorityFilter] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
@@ -28,7 +39,7 @@ const Support: React.FC = () => {
         };
     }, [searchTerm]);
 
-    const { data, status, isError } = useQuery({
+    const { data, status, isError, isFetching } = useQuery({
         queryKey: ['support-messages', page, statusFilter, priorityFilter, debouncedSearch],
         queryFn: () => getSupportMessages({
             page,
@@ -42,262 +53,298 @@ const Support: React.FC = () => {
     const messages = data?.data || [];
     const pagination = data?.pagination || { page: 1, pages: 1, total: 0 };
 
-    const getStatusColor = (status: string) => {
+    const getStatusStyles = (status: string) => {
         switch (status?.toLowerCase()) {
             case 'new':
-                return 'bg-green-100 text-green-800';
+                return 'bg-blue-50 text-blue-600 border-blue-100';
             case 'replied':
-                return 'bg-blue-100 text-blue-800';
+                return 'bg-amber-50 text-amber-600 border-amber-100';
             case 'resolved':
-                return 'bg-emerald-100 text-emerald-800';
+                return 'bg-emerald-50 text-emerald-600 border-emerald-100';
             default:
-                return 'bg-slate-100 text-slate-800';
+                return 'bg-slate-50 text-slate-600 border-slate-100';
         }
     };
 
-    const getPriorityColor = (priority: string) => {
+    const getPriorityStyles = (priority: string) => {
         switch (priority?.toLowerCase()) {
             case 'high':
-                return 'bg-red-100 text-red-800';
+                return 'bg-red-50 text-red-600 border-red-100';
             case 'medium':
-                return 'bg-yellow-100 text-yellow-800';
+                return 'bg-orange-50 text-orange-600 border-orange-100';
             case 'low':
-                return 'bg-green-100 text-green-800';
+                return 'bg-slate-50 text-slate-500 border-slate-100';
             default:
-                return 'bg-slate-100 text-slate-800';
+                return 'bg-slate-50 text-slate-500 border-slate-100';
         }
     };
 
     return (
-        <div className="flex h-screen bg-slate-50">
-            <Sidebar isMobileOpen={isMobileOpen} setIsMobileOpen={setIsMobileOpen} />
-            <div className="flex-1 flex flex-col overflow-hidden">
-                <Topbar onMenuClick={() => setIsMobileOpen(true)} />
-                <main className="flex-1 overflow-auto p-8">
-                    <div className="max-w-7xl mx-auto">
-                        {/* Header */}
-                        <div className="mb-8">
-                            <div className="flex items-center justify-between mb-6">
-                                <div>
-                                    <h1 className="text-4xl font-extrabold text-slate-900 mb-2 tracking-tight">Support Messages</h1>
-                                    <p className="text-slate-600 text-lg">View and respond to user support requests</p>
-                                </div>
-
-                                {/* Modern stats card */}
-                                <div className="relative bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-lg p-6 text-white overflow-hidden group hover-lift">
-                                    <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
-                                    <div className="relative">
-                                        <p className="text-4xl font-extrabold mb-1">{pagination.total}</p>
-                                        <p className="text-green-100 text-sm font-semibold uppercase tracking-wide">Total Messages</p>
-                                    </div>
-                                    <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-white/5 rounded-full"></div>
-                                </div>
-                            </div>
-
-                            {/* Filters */}
-                            <div className="bg-gradient-to-br from-white to-slate-50/50 rounded-2xl border border-slate-200 p-6 shadow-md hover:shadow-lg transition-shadow">
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Search</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Search messages..."
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                            className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-slate-900"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Status</label>
-                                        <select
-                                            value={statusFilter}
-                                            onChange={(e) => {
-                                                setStatusFilter(e.target.value);
-                                                setPage(1);
-                                            }}
-                                            className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-slate-900 font-medium"
-                                        >
-                                            <option value="">All Status</option>
-                                            <option value="new">New</option>
-                                            <option value="replied">Replied</option>
-                                            <option value="resolved">Resolved</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Priority</label>
-                                        <select
-                                            value={priorityFilter}
-                                            onChange={(e) => {
-                                                setPriorityFilter(e.target.value);
-                                                setPage(1);
-                                            }}
-                                            className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-slate-900 font-medium"
-                                        >
-                                            <option value="">All Priority</option>
-                                            <option value="high">High</option>
-                                            <option value="medium">Medium</option>
-                                            <option value="low">Low</option>
-                                        </select>
-                                    </div>
-                                    <div className="flex items-end">
-                                        <button
-                                            onClick={() => {
-                                                setStatusFilter('');
-                                                setPriorityFilter('');
-                                                setSearchTerm('');
-                                                setPage(1);
-                                            }}
-                                            className="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 px-4 py-2.5 rounded-lg transition font-medium"
-                                        >
-                                            Clear Filters
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+        <Layout>
+            <div className="p-4 sm:p-6 lg:p-8">
+                <div className="max-w-7xl mx-auto space-y-8">
+                    {/* Header */}
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                        <div className="space-y-2">
+                            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-black text-slate-900 tracking-tight">Support Desk</h1>
+                            <p className="text-sm sm:text-lg text-slate-500 font-medium max-w-2xl">Manage user inquiries and technical assistance requests with our centralized support system.</p>
                         </div>
 
-                        {/* Messages Table */}
-                        <div className="bg-gradient-to-br from-white to-slate-50/30 rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
-                            {/* Gradient accent line */}
-                            <div className="h-1 bg-gradient-to-r from-green-400 via-green-500 to-green-600"></div>
-
-                            {status === 'pending' && (
-                                <div className="p-12 text-center">
-                                    <div className="inline-block animate-spin">
-                                        <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                        </svg>
-                                    </div>
-                                    <p className="mt-4 text-slate-600">Loading messages...</p>
+                        <div className="flex items-center gap-3 sm:gap-4">
+                            <div className="bg-white px-6 py-4 rounded-[2rem] border border-slate-200 shadow-sm flex items-center gap-4 min-w-[160px]">
+                                <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600">
+                                    <FiMessageSquare className="w-6 h-6" />
                                 </div>
-                            )}
-
-                            {isError && (
-                                <div className="p-12 text-center bg-red-50">
-                                    <svg className="w-12 h-12 text-red-600 mx-auto mb-4" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                                    </svg>
-                                    <p className="text-red-700 font-medium">Failed to load messages</p>
+                                <div>
+                                    <p className="text-2xl font-black text-slate-900 leading-none">{pagination.total}</p>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Total Tickets</p>
                                 </div>
-                            )}
-
-                            {status === 'success' && (
-                                <>
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full">
-                                            <thead>
-                                                <tr className="bg-slate-50 border-b border-slate-200">
-                                                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">User</th>
-                                                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">Subject</th>
-                                                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">Message Preview</th>
-                                                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">Priority</th>
-                                                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">Status</th>
-                                                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">Date</th>
-                                                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-900">Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-200">
-                                                {messages.length === 0 && (
-                                                    <tr>
-                                                        <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
-                                                            <svg className="w-12 h-12 mx-auto mb-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                                                            </svg>
-                                                            <p className="font-medium">No messages found</p>
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                                {messages.map((msg: any, index: number) => (
-                                                    <tr key={msg._id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'} hover:bg-green-50/30 transition-colors duration-150`}>
-                                                        <td className="px-6 py-4">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                                                                    {`${msg.user_id?.first_name?.[0] || 'U'}${msg.user_id?.last_name?.[0] || 'U'}`.toUpperCase()}
-                                                                </div>
-                                                                <div>
-                                                                    <p className="font-medium text-slate-900">{msg.user_id?.first_name} {msg.user_id?.last_name}</p>
-                                                                    <p className="text-xs text-slate-500">{msg.user_id?.email}</p>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            <p className="font-semibold text-slate-900">{msg.subject}</p>
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            <p className="text-sm text-slate-700 truncate max-w-xs">
-                                                                {msg.description || msg.message}
-                                                            </p>
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${getPriorityColor(msg.priority)}`}>
-                                                                {msg.priority?.toUpperCase()}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(msg.status)}`}>
-                                                                <span className="w-2 h-2 rounded-full bg-current"></span>
-                                                                {msg.status?.toUpperCase()}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-6 py-4 text-sm text-slate-700">
-                                                            {new Date(msg.created_at).toLocaleString()}
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            <button
-                                                                onClick={() => setViewTicket(msg)}
-                                                                className="p-2 hover:bg-green-100 text-green-600 rounded-lg transition"
-                                                                title="View Message"
-                                                            >
-                                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                                </svg>
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-
-                                    {/* Pagination */}
-                                    <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex justify-between items-center">
-                                        <p className="text-sm text-slate-600">
-                                            Showing page <span className="font-semibold">{pagination.page}</span> of <span className="font-semibold">{pagination.pages}</span>
-                                            {' '}({pagination.total} total)
-                                        </p>
-                                        <div className="flex gap-2">
-                                            <button
-                                                className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm font-medium"
-                                                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                                disabled={page === 1}
-                                            >
-                                                ← Previous
-                                            </button>
-                                            <button
-                                                className="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm font-medium"
-                                                onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
-                                                disabled={page === pagination.pages}
-                                            >
-                                                Next →
-                                            </button>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
+                            </div>
+                            <button
+                                onClick={() => queryClient.invalidateQueries({ queryKey: ['support-messages'] })}
+                                className="p-5 bg-white border border-slate-200 rounded-[2rem] text-slate-600 hover:text-green-600 transition-all shadow-sm active:scale-95 group"
+                                title="Refresh Data"
+                            >
+                                <FiRefreshCw className={`w-6 h-6 ${isFetching ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+                            </button>
                         </div>
                     </div>
 
-                    {/* Modals */}
-                    {viewTicket && (
-                        <SupportViewModal
-                            ticket={viewTicket}
-                            onClose={() => setViewTicket(null)}
-                        />
-                    )}
-                </main>
+                    {/* Filters & Search */}
+                    <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-200 p-6 sm:p-8">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Search Tickets</label>
+                                <div className="relative group">
+                                    <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-green-600 transition-colors" />
+                                    <input
+                                        type="text"
+                                        placeholder="Subject, email, or ID..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 focus:bg-white outline-none font-bold text-slate-700 transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Status Filter</label>
+                                <div className="relative group">
+                                    <FiFilter className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-green-600 transition-colors" />
+                                    <select
+                                        value={statusFilter}
+                                        onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                                        className="w-full pl-11 pr-10 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 focus:bg-white outline-none font-bold text-slate-700 transition-all appearance-none cursor-pointer"
+                                    >
+                                        <option value="">All Statuses</option>
+                                        <option value="new">New / Unread</option>
+                                        <option value="replied">Replied</option>
+                                        <option value="resolved">Resolved</option>
+                                    </select>
+                                    <FiChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 rotate-90 pointer-events-none" />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Priority Level</label>
+                                <div className="relative group">
+                                    <FiFlag className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-green-600 transition-colors" />
+                                    <select
+                                        value={priorityFilter}
+                                        onChange={(e) => { setPriorityFilter(e.target.value); setPage(1); }}
+                                        className="w-full pl-11 pr-10 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 focus:bg-white outline-none font-bold text-slate-700 transition-all appearance-none cursor-pointer"
+                                    >
+                                        <option value="">All Priorities</option>
+                                        <option value="high">High Priority</option>
+                                        <option value="medium">Medium Priority</option>
+                                        <option value="low">Low Priority</option>
+                                    </select>
+                                    <FiChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 rotate-90 pointer-events-none" />
+                                </div>
+                            </div>
+
+                            <div className="flex items-end">
+                                <button
+                                    onClick={() => {
+                                        setStatusFilter('');
+                                        setPriorityFilter('');
+                                        setSearchTerm('');
+                                        setPage(1);
+                                    }}
+                                    className="w-full py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all active:scale-95"
+                                >
+                                    Reset Filters
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Table Container */}
+                    <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-200 overflow-hidden">
+                        {status === 'pending' ? (
+                            <div className="p-24 text-center space-y-6">
+                                <div className="relative w-16 h-16 mx-auto">
+                                    <div className="absolute inset-0 border-4 border-slate-100 rounded-full"></div>
+                                    <div className="absolute inset-0 border-4 border-t-green-600 rounded-full animate-spin"></div>
+                                </div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Synchronizing Inbox...</p>
+                            </div>
+                        ) : isError ? (
+                            <div className="p-24 text-center space-y-6">
+                                <div className="w-20 h-20 bg-red-50 rounded-3xl flex items-center justify-center mx-auto">
+                                    <FiAlertCircle className="w-10 h-10 text-red-500" />
+                                </div>
+                                <div>
+                                    <p className="text-lg font-black text-slate-900">Connection Error</p>
+                                    <p className="text-sm text-slate-500 font-medium mt-1">We couldn't retrieve the support tickets. Please try again.</p>
+                                </div>
+                                <button
+                                    onClick={() => queryClient.invalidateQueries({ queryKey: ['support-messages'] })}
+                                    className="px-8 py-3 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-800 transition-all"
+                                >
+                                    Retry Connection
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full border-collapse">
+                                        <thead>
+                                            <tr className="bg-slate-50/50 border-b border-slate-100">
+                                                <th className="px-8 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">User Identity</th>
+                                                <th className="px-8 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Ticket Details</th>
+                                                <th className="px-8 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Priority</th>
+                                                <th className="px-8 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Status</th>
+                                                <th className="px-8 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Timeline</th>
+                                                <th className="px-8 py-6 text-right text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                            {messages.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={6} className="px-8 py-32 text-center">
+                                                        <div className="w-24 h-24 bg-slate-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                                                            <FiMessageSquare className="w-10 h-10 text-slate-200" />
+                                                        </div>
+                                                        <h3 className="text-xl font-black text-slate-900">No Tickets Found</h3>
+                                                        <p className="text-sm text-slate-500 font-medium mt-2 max-w-xs mx-auto">There are no support tickets matching your current filter criteria.</p>
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                messages.map((msg: any) => (
+                                                    <tr key={msg._id} className="hover:bg-slate-50/80 transition-all group">
+                                                        <td className="px-8 py-6">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-600 font-black text-sm shadow-sm border border-white">
+                                                                    {msg.user_id?.first_name?.[0]}{msg.user_id?.last_name?.[0]}
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-sm font-black text-slate-900 leading-tight group-hover:text-green-600 transition-colors">
+                                                                        {msg.user_id?.first_name} {msg.user_id?.last_name}
+                                                                    </p>
+                                                                    <p className="text-[11px] font-bold text-slate-400 mt-0.5">{msg.user_id?.email}</p>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-8 py-6">
+                                                            <div className="max-w-xs">
+                                                                <p className="text-sm font-black text-slate-900 truncate">{msg.subject}</p>
+                                                                <p className="text-[11px] font-medium text-slate-400 truncate mt-1">
+                                                                    {msg.description || msg.message}
+                                                                </p>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-8 py-6">
+                                                            <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-sm ${getPriorityStyles(msg.priority)}`}>
+                                                                {msg.priority}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-8 py-6">
+                                                            <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${getStatusStyles(msg.status)}`}>
+                                                                <span className={`w-1.5 h-1.5 rounded-full ${msg.status === 'new' ? 'bg-blue-500 animate-pulse' :
+                                                                    msg.status === 'replied' ? 'bg-amber-500' :
+                                                                        'bg-emerald-500'
+                                                                    }`}></span>
+                                                                {msg.status}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-8 py-6">
+                                                            <div className="flex flex-col gap-1">
+                                                                <div className="flex items-center gap-2 text-[11px] font-black text-slate-700">
+                                                                    <FiClock className="w-3.5 h-3.5 text-slate-400" />
+                                                                    {new Date(msg.created_at).toLocaleDateString(undefined, {
+                                                                        month: 'short',
+                                                                        day: 'numeric'
+                                                                    })}
+                                                                </div>
+                                                                <p className="text-[10px] font-bold text-slate-400 ml-5">
+                                                                    {new Date(msg.created_at).toLocaleTimeString(undefined, {
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit'
+                                                                    })}
+                                                                </p>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-8 py-6 text-right">
+                                                            <button
+                                                                onClick={() => setViewTicket(msg)}
+                                                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-green-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-slate-200 hover:shadow-green-100"
+                                                            >
+                                                                <FiEye className="w-4 h-4" />
+                                                                View Ticket
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Pagination */}
+                                <div className="bg-slate-50/30 border-t border-slate-100 px-8 py-8 flex flex-col sm:flex-row justify-between items-center gap-6">
+                                    <div className="flex items-center gap-4">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                                            Showing <span className="text-slate-900">{messages.length}</span> of <span className="text-slate-900">{pagination.total}</span> Results
+                                        </p>
+                                        <div className="h-4 w-px bg-slate-200 hidden sm:block"></div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] hidden sm:block">
+                                            Page <span className="text-slate-900">{pagination.page}</span> / {pagination.pages}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-green-600 hover:border-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95"
+                                            onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                            disabled={page === 1}
+                                        >
+                                            <FiChevronLeft className="w-4 h-4" />
+                                            Previous
+                                        </button>
+                                        <button
+                                            className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:text-green-600 hover:border-green-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm active:scale-95"
+                                            onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
+                                            disabled={page === pagination.pages}
+                                        >
+                                            Next Page
+                                            <FiChevronRight className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                {/* Modals */}
+                {viewTicket && (
+                    <SupportViewModal
+                        ticket={viewTicket}
+                        onClose={() => setViewTicket(null)}
+                    />
+                )}
             </div>
-        </div>
+        </Layout>
     );
 };
 

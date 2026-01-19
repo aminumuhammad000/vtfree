@@ -91,22 +91,23 @@ export const Transactions: React.FC = () => {
     };
 
     return (
-        <div className="p-6 max-w-[1400px] space-y-6">
+        <div className="p-4 md:p-6 max-w-[1400px] space-y-6">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
+                    <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900">Transactions</h1>
                     <p className="text-sm text-gray-500 mt-1">Monitor and manage all your financial activities</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                     <button
                         onClick={fetchTransactions}
-                        className="p-2.5 rounded-xl border border-gray-200 hover:border-green-200 hover:bg-green-50 transition-all duration-200 text-gray-700"
+                        className="flex-1 sm:flex-none p-2.5 rounded-xl border border-gray-200 hover:border-green-200 hover:bg-green-50 transition-all duration-200 text-gray-700 flex items-center justify-center gap-2"
                         title="Refresh"
                     >
-                        <RefreshCw size={18} />
+                        <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
+                        <span className="sm:hidden font-semibold">Refresh</span>
                     </button>
-                    <button className="px-4 py-2 rounded-xl border border-gray-200 hover:border-green-200 hover:bg-green-50 transition-all duration-200 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                    <button className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl border border-gray-200 hover:border-green-200 hover:bg-green-50 transition-all duration-200 flex items-center justify-center gap-2 text-sm font-semibold text-gray-700">
                         <Download size={18} />
                         Export CSV
                     </button>
@@ -114,7 +115,7 @@ export const Transactions: React.FC = () => {
             </div>
 
             {/* Filters Bar */}
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="bg-white p-4 md:p-6 rounded-2xl border border-gray-100 shadow-sm">
                 <div className="flex flex-col lg:flex-row gap-4">
                     {/* Search */}
                     <div className="flex-1 relative">
@@ -125,18 +126,18 @@ export const Transactions: React.FC = () => {
                             value={filters.search}
                             onChange={handleFilterChange}
                             placeholder="Search by reference or narration..."
-                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none transition-all"
+                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none transition-all text-sm"
                         />
                     </div>
 
                     {/* Filter Controls */}
-                    <div className="flex gap-4">
-                        <div className="relative">
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="relative flex-1 sm:flex-none">
                             <select
                                 name="type"
                                 value={filters.type}
                                 onChange={handleFilterChange}
-                                className="appearance-none pl-4 pr-10 py-2.5 rounded-xl border border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none transition-all bg-white text-sm font-medium cursor-pointer"
+                                className="w-full sm:w-auto appearance-none pl-4 pr-10 py-2.5 rounded-xl border border-gray-200 focus:border-green-500 focus:ring-2 focus:ring-green-100 outline-none transition-all bg-white text-sm font-medium cursor-pointer"
                             >
                                 <option value="">All Types</option>
                                 <option value="credit">Credit</option>
@@ -145,31 +146,32 @@ export const Transactions: React.FC = () => {
                             <Filter className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
                         </div>
 
-                        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 bg-white">
-                            <Calendar size={16} className="text-gray-400" />
+                        <div className="flex flex-1 items-center gap-2 px-3 md:px-4 py-2.5 rounded-xl border border-gray-200 bg-white overflow-x-auto">
+                            <Calendar size={16} className="text-gray-400 flex-shrink-0" />
                             <input
                                 type="date"
                                 name="startDate"
                                 value={filters.startDate}
                                 onChange={handleFilterChange}
-                                className="text-sm outline-none border-none"
+                                className="text-xs md:text-sm outline-none border-none bg-transparent"
                             />
-                            <span className="text-gray-400 text-xs">to</span>
+                            <span className="text-gray-400 text-[10px] uppercase font-bold">to</span>
                             <input
                                 type="date"
                                 name="endDate"
                                 value={filters.endDate}
                                 onChange={handleFilterChange}
-                                className="text-sm outline-none border-none"
+                                className="text-xs md:text-sm outline-none border-none bg-transparent"
                             />
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Transactions Table */}
+            {/* Transactions Table/List */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-gray-50 border-b border-gray-100">
@@ -210,8 +212,8 @@ export const Transactions: React.FC = () => {
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-4">
                                                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${txn.type === 'credit'
-                                                            ? 'bg-green-100 text-green-600'
-                                                            : 'bg-gray-100 text-gray-600'
+                                                        ? 'bg-green-100 text-green-600'
+                                                        : 'bg-gray-100 text-gray-600'
                                                         }`}>
                                                         {txn.type === 'credit' ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
                                                     </div>
@@ -267,24 +269,94 @@ export const Transactions: React.FC = () => {
                     </table>
                 </div>
 
+                {/* Mobile Card View */}
+                <div className="md:hidden divide-y divide-gray-50">
+                    {isLoading ? (
+                        Array.from({ length: 5 }).map((_, i) => (
+                            <div key={i} className="p-4 animate-pulse space-y-3">
+                                <div className="flex justify-between">
+                                    <div className="h-4 bg-gray-100 rounded w-1/3"></div>
+                                    <div className="h-4 bg-gray-100 rounded w-1/4"></div>
+                                </div>
+                                <div className="h-3 bg-gray-100 rounded w-1/2"></div>
+                            </div>
+                        ))
+                    ) : transactions.length === 0 ? (
+                        <div className="p-12 text-center">
+                            <div className="flex flex-col items-center gap-3">
+                                <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center">
+                                    <Search size={32} className="text-gray-300" />
+                                </div>
+                                <h3 className="text-gray-900 font-bold">No transactions found</h3>
+                                <p className="text-sm text-gray-500">Try adjusting your filters</p>
+                            </div>
+                        </div>
+                    ) : (
+                        transactions.map((txn) => {
+                            const status = getStatusStyles(txn.status);
+                            return (
+                                <div key={txn.id} className="p-4 active:bg-gray-50 transition-colors">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${txn.type === 'credit'
+                                                ? 'bg-green-100 text-green-600'
+                                                : 'bg-gray-100 text-gray-600'
+                                                }`}>
+                                                {txn.type === 'credit' ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-gray-900 capitalize text-sm">{txn.type}</p>
+                                                <p className="text-[10px] text-gray-400 font-mono">{txn.reference}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className={`text-sm font-bold ${txn.type === 'credit' ? 'text-green-600' : 'text-gray-900'}`}>
+                                                {txn.type === 'credit' ? '+' : '-'}{formatCurrency(txn.amountNaira)}
+                                            </p>
+                                            <div className={`${status.className} mt-1 !py-0.5 !px-2 !text-[10px] inline-flex`}>
+                                                {txn.status}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-xs text-gray-500 truncate flex-1 mr-4">
+                                            {txn.narration || 'No description'}
+                                        </p>
+                                        <p className="text-[10px] text-gray-400 flex-shrink-0">
+                                            {new Date(txn.createdAt).toLocaleDateString('en-US', {
+                                                month: 'short',
+                                                day: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            })}
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+
                 {/* Pagination */}
-                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
-                    <p className="text-sm text-gray-600">
-                        Showing page {page} of {totalPages}
+                <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 gap-4 border-t border-gray-100 bg-gray-50">
+                    <p className="text-sm text-gray-600 font-medium">
+                        Showing page <span className="text-gray-900">{page}</span> of <span className="text-gray-900">{totalPages}</span>
                     </p>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
                         <button
                             onClick={() => setPage(Math.max(1, page - 1))}
                             disabled={page === 1 || isLoading}
-                            className="p-2 rounded-lg border border-gray-200 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-bold text-gray-700 shadow-sm"
                         >
                             <ChevronLeft size={18} />
+                            <span>Prev</span>
                         </button>
                         <button
                             onClick={() => setPage(Math.min(totalPages, page + 1))}
                             disabled={page === totalPages || isLoading}
-                            className="p-2 rounded-lg border border-gray-200 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-bold text-gray-700 shadow-sm"
                         >
+                            <span>Next</span>
                             <ChevronRight size={18} />
                         </button>
                     </div>

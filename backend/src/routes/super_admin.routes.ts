@@ -12,7 +12,6 @@ router.use(authenticateSuperAdmin);
 router.get('/apps', SuperAdminController.getAllApps);
 router.get('/users', SuperAdminController.getAllUsers);
 router.get('/owners', SuperAdminController.getAllOwners);
-<<<<<<< HEAD
 router.get('/owners/:id', SuperAdminController.getOwnerById);
 router.get('/admins', SuperAdminController.getAllAdmins);
 router.get('/admins/:id', SuperAdminController.getAdminById);
@@ -25,8 +24,7 @@ router.get('/pricing/ibdata-balance', SuperAdminController.getIBDataBalance);
 
 router.patch('/owners/:id/status', SuperAdminController.updateOwnerStatus);
 router.patch('/admins/:id/status', SuperAdminController.updateAdminStatus);
-=======
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
+
 router.get('/dashboard', SuperAdminController.getDashboardStats);
 router.get('/transactions', SuperAdminController.getAllTransactions);
 router.get('/payments', SuperAdminController.getAllPayments);
@@ -51,7 +49,6 @@ router.get('/settings', SuperAdminController.getSystemSettings);
 router.patch('/settings', SuperAdminController.updateSystemSettings);
 router.get('/logs', SuperAdminController.getLogs);
 
-<<<<<<< HEAD
 // VTPay Management
 router.get('/vtpay/settings', SuperAdminController.getVTPaySettings);
 router.post('/vtpay/settings', SuperAdminController.updateVTPaySettings);
@@ -61,8 +58,6 @@ router.post('/vtpay/accounts', SuperAdminController.createVTPayAccount);
 router.get('/vtpay/accounts/:accountNumber/balance', SuperAdminController.getVTPayAccountBalance);
 router.get('/vtpay/accounts/:accountNumber/transactions', SuperAdminController.getVTPayAccountTransactions);
 
-=======
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 // Tickets
 router.get('/tickets', SuperAdminController.getAllTickets);
 router.patch('/tickets/:id/status', SuperAdminController.updateTicketStatus);

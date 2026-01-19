@@ -37,6 +37,9 @@ export const VirtualAccounts: React.FC = () => {
         bankType: '',
         bvn: '',
         accountName: '',
+        email: '',
+        phone: '',
+        reference: ''
     });
 
     // Detail View State
@@ -99,11 +102,7 @@ export const VirtualAccounts: React.FC = () => {
         } catch (error) {
             console.error('Error fetching supported banks:', error);
             // Fallback to default banks if API fails
-            setSupportedBanks([
-                { code: 'gtBank', name: 'GTBank' },
-                { code: 'fidelity', name: 'Fidelity Bank' },
-                { code: 'fcmb', name: 'FCMB' }
-            ]);
+            setSupportedBanks([]);
         } finally {
             setIsBanksLoading(false);
         }
@@ -137,7 +136,7 @@ export const VirtualAccounts: React.FC = () => {
             await api.post('/virtual-accounts', newAccountData);
             await fetchAccounts();
             setShowCreateModal(false);
-            setNewAccountData({ bankType: supportedBanks[0]?.code || '', bvn: '', accountName: '' });
+            setNewAccountData({ bankType: supportedBanks[0]?.code || '', bvn: '', accountName: '', email: '', phone: '', reference: '' });
         } catch (err: any) {
             console.error('Create account error:', err);
             const errorMessage = err.response?.data?.message || err.message || 'Failed to create account';
@@ -180,25 +179,26 @@ export const VirtualAccounts: React.FC = () => {
     }
 
     return (
-        <div className="space-y-6 max-w-[1400px] animate-fade-in p-6">
+        <div className="space-y-6 max-w-[1400px] animate-fade-in p-4 md:p-6">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Virtual Accounts</h1>
+                    <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900">Virtual Accounts</h1>
                     <p className="text-sm text-gray-500 mt-1">Manage your dedicated bank accounts for receiving payments</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                     <button
                         onClick={fetchAccounts}
-                        className="p-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-all shadow-sm"
+                        className="flex-1 sm:flex-none p-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-all shadow-sm flex items-center justify-center gap-2"
                         title="Refresh"
                     >
-                        <RefreshCw size={18} />
+                        <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
+                        <span className="sm:hidden font-semibold">Refresh</span>
                     </button>
                     <button
                         onClick={() => setShowCreateModal(true)}
                         disabled={(user?.kycLevel ?? 0) < 3 || user?.status === 'suspended' || !zainbox}
-                        className="px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-green-200 flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                        className="flex-1 sm:flex-none px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-green-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                         <Plus size={18} />
                         Create Account
@@ -208,13 +208,13 @@ export const VirtualAccounts: React.FC = () => {
 
             {/* Suspension Alert */}
             {user?.status === 'suspended' && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
-                    <div className="text-red-600 flex-shrink-0 mt-0.5">
-                        <AlertCircle size={20} />
+                <div className="p-4 md:p-5 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-4 shadow-sm">
+                    <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center text-red-600 flex-shrink-0">
+                        <AlertCircle size={24} />
                     </div>
                     <div>
-                        <h4 className="text-sm font-bold text-red-900">Account Suspended</h4>
-                        <p className="text-xs text-red-800 mt-1">
+                        <h4 className="text-base font-bold text-red-900">Account Suspended</h4>
+                        <p className="text-sm text-red-800 mt-1 leading-relaxed">
                             Your account is currently suspended. You cannot create new virtual accounts or perform transactions. Please contact support for assistance.
                         </p>
                     </div>
@@ -223,17 +223,18 @@ export const VirtualAccounts: React.FC = () => {
 
             {/* KYC Alert */}
             {user?.status !== 'suspended' && (user?.kycLevel ?? 0) < 3 && (
-                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
-                    <div className="text-amber-600 flex-shrink-0 mt-0.5">
-                        <ShieldAlert size={20} />
+                <div className="p-4 md:p-5 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-4 shadow-sm">
+                    <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600 flex-shrink-0">
+                        <ShieldAlert size={24} />
                     </div>
                     <div>
-                        <h4 className="text-sm font-bold text-amber-900">Verification Required</h4>
-                        <p className="text-xs text-amber-800 mt-1">
+                        <h4 className="text-base font-bold text-amber-900">Verification Required</h4>
+                        <p className="text-sm text-amber-800 mt-1 leading-relaxed">
                             You need to complete Tier 3 verification to create virtual accounts. This helps us comply with financial regulations and keep your account secure.
                         </p>
-                        <Link to="/dashboard/verification" className="text-xs font-bold underline mt-2 inline-block text-amber-900 hover:text-amber-700">
+                        <Link to="/dashboard/verification" className="inline-flex items-center gap-2 text-sm font-bold text-amber-900 hover:text-amber-700 mt-3 px-4 py-2 bg-white rounded-lg border border-amber-200 transition-colors">
                             Complete Verification Now
+                            <CheckCircle2 size={16} />
                         </Link>
                     </div>
                 </div>
@@ -241,17 +242,18 @@ export const VirtualAccounts: React.FC = () => {
 
             {/* Missing Zainbox Alert */}
             {user?.status !== 'suspended' && (user?.kycLevel ?? 0) >= 3 && !zainbox && (
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-3">
-                    <div className="text-blue-600 flex-shrink-0 mt-0.5">
-                        <AlertCircle size={20} />
+                <div className="p-4 md:p-5 bg-blue-50 border border-blue-200 rounded-2xl flex items-start gap-4 shadow-sm">
+                    <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 flex-shrink-0">
+                        <AlertCircle size={24} />
                     </div>
                     <div>
-                        <h4 className="text-sm font-bold text-blue-900">Developer Account Required</h4>
-                        <p className="text-xs text-blue-800 mt-1">
+                        <h4 className="text-base font-bold text-blue-900">Developer Account Required</h4>
+                        <p className="text-sm text-blue-800 mt-1 leading-relaxed">
                             You need to initialize your developer account (Zainbox) before creating virtual accounts.
                         </p>
-                        <Link to="/dashboard/developer" className="text-xs font-bold underline mt-2 inline-block text-blue-900 hover:text-blue-700">
+                        <Link to="/dashboard/developer" className="inline-flex items-center gap-2 text-sm font-bold text-blue-900 hover:text-blue-700 mt-3 px-4 py-2 bg-white rounded-lg border border-blue-200 transition-colors">
                             Initialize Developer Account
+                            <RefreshCw size={16} />
                         </Link>
                     </div>
                 </div>
@@ -266,20 +268,21 @@ export const VirtualAccounts: React.FC = () => {
                         placeholder="Search accounts by name, number or bank..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-11 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 transition-all shadow-sm"
+                        className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 transition-all shadow-sm"
                     />
                 </div>
                 <div className="flex items-center gap-2">
-                    <button className="px-4 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-50 transition-all shadow-sm flex items-center gap-2">
+                    <button className="flex-1 sm:flex-none px-4 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-50 transition-all shadow-sm flex items-center justify-center gap-2">
                         <Filter size={16} />
                         Filter
                     </button>
                 </div>
             </div>
 
-            {/* Accounts Table */}
+            {/* Accounts Table/List */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-gray-50/50 border-b border-gray-100 text-xs uppercase text-gray-500 font-bold tracking-wider">
@@ -367,15 +370,71 @@ export const VirtualAccounts: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden divide-y divide-gray-50">
+                    {filteredAccounts.length === 0 ? (
+                        <div className="p-12 text-center">
+                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <CreditCard size={32} className="text-gray-300" />
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-900">No accounts found</h3>
+                            <p className="text-sm text-gray-500 mt-1">
+                                {searchTerm ? 'Try adjusting your search' : 'Create your first virtual account'}
+                            </p>
+                        </div>
+                    ) : (
+                        filteredAccounts.map((account) => (
+                            <div key={account.id} className="p-4 active:bg-gray-50 transition-colors" onClick={() => handleViewAccount(account)}>
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-green-100 text-green-700 rounded-xl flex items-center justify-center font-bold">
+                                            {account.bankName.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-gray-900">{account.alias || account.accountName}</p>
+                                            <p className="text-[10px] text-gray-500">{account.bankName}</p>
+                                        </div>
+                                    </div>
+                                    <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${account.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                        {account.status}
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-mono text-xs font-bold text-gray-900">
+                                            {account.accountNumber}
+                                        </span>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                copyToClipboard(account.accountNumber, account.id);
+                                            }}
+                                            className="p-1 text-gray-400 hover:text-green-600"
+                                        >
+                                            {copiedId === account.id ? <Check size={12} className="text-green-600" /> : <Copy size={12} />}
+                                        </button>
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 font-medium">
+                                        {new Date(account.createdAt).toLocaleDateString('en-US', {
+                                            month: 'short',
+                                            day: 'numeric'
+                                        })}
+                                    </p>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
             </div>
 
             {/* Create Modal */}
             {showCreateModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-up">
-                        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-up max-h-[90vh] flex flex-col">
+                        <div className="p-5 md:p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                             <div>
-                                <h2 className="text-lg font-bold text-gray-900">New Virtual Account</h2>
+                                <h2 className="text-lg md:text-xl font-extrabold text-gray-900">New Virtual Account</h2>
                                 <p className="text-xs text-gray-500 mt-0.5">Generate a dedicated bank account</p>
                             </div>
                             <button
@@ -386,7 +445,7 @@ export const VirtualAccounts: React.FC = () => {
                             </button>
                         </div>
 
-                        <div className="p-6">
+                        <div className="p-5 md:p-6 overflow-y-auto">
                             {createError && (
                                 <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
                                     <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
@@ -396,24 +455,12 @@ export const VirtualAccounts: React.FC = () => {
 
                             <form onSubmit={handleCreateAccount} className="space-y-5">
                                 <div>
-                                    <label className="text-xs uppercase tracking-wider text-gray-500 font-bold mb-2 block">Account Name (Alias)</label>
-                                    <input
-                                        type="text"
-                                        value={newAccountData.accountName}
-                                        onChange={(e) => setNewAccountData({ ...newAccountData, accountName: e.target.value })}
-                                        placeholder="e.g. Business Collections"
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 transition-all"
-                                        required
-                                    />
-                                </div>
-
-                                <div>
                                     <label className="text-xs uppercase tracking-wider text-gray-500 font-bold mb-2 block">Select Bank Provider</label>
                                     <div className="relative">
                                         <select
                                             value={newAccountData.bankType}
                                             onChange={(e) => setNewAccountData({ ...newAccountData, bankType: e.target.value })}
-                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 transition-all appearance-none cursor-pointer"
+                                            className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 transition-all appearance-none cursor-pointer"
                                             disabled={isBanksLoading}
                                             required
                                         >
@@ -434,11 +481,53 @@ export const VirtualAccounts: React.FC = () => {
                                         </select>
                                         <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
                                     </div>
-                                    {supportedBanks.length > 0 && (
-                                        <p className="text-[10px] text-gray-400 mt-1.5">
-                                            {supportedBanks.length} banks available for virtual account creation
-                                        </p>
-                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="text-xs uppercase tracking-wider text-gray-500 font-bold mb-2 block">Account Name</label>
+                                    <input
+                                        type="text"
+                                        value={newAccountData.accountName}
+                                        onChange={(e) => setNewAccountData({ ...newAccountData, accountName: e.target.value })}
+                                        placeholder="e.g. John Doe"
+                                        className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 transition-all"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-xs uppercase tracking-wider text-gray-500 font-bold mb-2 block">Email Address</label>
+                                    <input
+                                        type="email"
+                                        value={newAccountData.email}
+                                        onChange={(e) => setNewAccountData({ ...newAccountData, email: e.target.value })}
+                                        placeholder="e.g. john.doe@example.com"
+                                        className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 transition-all"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-xs uppercase tracking-wider text-gray-500 font-bold mb-2 block">Phone Number</label>
+                                    <input
+                                        type="tel"
+                                        value={newAccountData.phone}
+                                        onChange={(e) => setNewAccountData({ ...newAccountData, phone: e.target.value })}
+                                        placeholder="e.g. 08012345678"
+                                        className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 transition-all"
+                                        required
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-xs uppercase tracking-wider text-gray-500 font-bold mb-2 block">Reference (Optional)</label>
+                                    <input
+                                        type="text"
+                                        value={newAccountData.reference}
+                                        onChange={(e) => setNewAccountData({ ...newAccountData, reference: e.target.value })}
+                                        placeholder="e.g. cust_ref_12345"
+                                        className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 transition-all"
+                                    />
                                 </div>
 
                                 <div>
@@ -448,17 +537,17 @@ export const VirtualAccounts: React.FC = () => {
                                         value={newAccountData.bvn}
                                         onChange={(e) => setNewAccountData({ ...newAccountData, bvn: e.target.value })}
                                         placeholder="Enter your 11-digit BVN"
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 transition-all"
+                                        className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-100 focus:border-green-500 transition-all"
                                         required
                                         minLength={11}
                                         maxLength={11}
                                     />
                                 </div>
 
-                                <div className="pt-4 flex gap-3">
+                                <div className="pt-4 flex flex-col sm:flex-row gap-3">
                                     <button
                                         type="button"
-                                        className="flex-1 py-3 border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl font-bold transition-all"
+                                        className="flex-1 py-3.5 border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl font-bold transition-all order-2 sm:order-1"
                                         onClick={() => setShowCreateModal(false)}
                                     >
                                         Cancel
@@ -466,7 +555,7 @@ export const VirtualAccounts: React.FC = () => {
                                     <button
                                         type="submit"
                                         disabled={isCreating}
-                                        className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-green-200 flex items-center justify-center gap-2"
+                                        className="flex-1 py-3.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-green-200 flex items-center justify-center gap-2 order-1 sm:order-2"
                                     >
                                         {isCreating ? (
                                             <>
@@ -484,11 +573,11 @@ export const VirtualAccounts: React.FC = () => {
 
             {/* Detail Modal */}
             {showDetailModal && selectedAccount && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-scale-up">
-                        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-scale-up max-h-[95vh] flex flex-col">
+                        <div className="p-5 md:p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                             <div>
-                                <h2 className="text-lg font-bold text-gray-900">{selectedAccount.alias || selectedAccount.accountName}</h2>
+                                <h2 className="text-lg md:text-xl font-extrabold text-gray-900">{selectedAccount.alias || selectedAccount.accountName}</h2>
                                 <p className="text-xs text-gray-500 mt-0.5">{selectedAccount.bankName} • {selectedAccount.accountNumber}</p>
                             </div>
                             <button
@@ -499,76 +588,86 @@ export const VirtualAccounts: React.FC = () => {
                             </button>
                         </div>
 
-                        <div className="p-6">
-                            <div className="grid grid-cols-2 gap-4 mb-6">
-                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                    <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">Account Status</p>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <div className={`w-2 h-2 rounded-full ${selectedAccount.status === 'active' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                        <div className="p-5 md:p-6 overflow-y-auto">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                    <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-1">Account Status</p>
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-2.5 h-2.5 rounded-full ${selectedAccount.status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></div>
                                         <p className="font-bold text-gray-900 capitalize">{selectedAccount.status}</p>
                                     </div>
                                 </div>
-                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                    <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">Created On</p>
-                                    <div className="flex items-center gap-2 mt-1">
+                                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                    <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-1">Created On</p>
+                                    <div className="flex items-center gap-2">
                                         <Calendar size={14} className="text-gray-400" />
                                         <p className="font-bold text-gray-900">
-                                            {new Date(selectedAccount.createdAt).toLocaleDateString()}
+                                            {new Date(selectedAccount.createdAt).toLocaleDateString('en-US', {
+                                                month: 'long',
+                                                day: 'numeric',
+                                                year: 'numeric'
+                                            })}
                                         </p>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="mb-4">
-                                <h3 className="text-sm font-bold text-gray-900 mb-3">Recent Transactions</h3>
-                                <div className="border border-gray-100 rounded-xl overflow-hidden">
+                            <div>
+                                <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                    <RefreshCw size={16} className="text-green-600" />
+                                    Recent Transactions
+                                </h3>
+                                <div className="border border-gray-100 rounded-2xl overflow-hidden">
                                     {isTransactionsLoading ? (
-                                        <div className="p-8 flex justify-center">
-                                            <Loader2 size={24} className="text-green-600 animate-spin" />
+                                        <div className="p-12 flex flex-col items-center gap-3">
+                                            <Loader2 size={32} className="text-green-600 animate-spin" />
+                                            <p className="text-xs text-gray-500 font-medium">Fetching transactions...</p>
                                         </div>
                                     ) : accountTransactions.length === 0 ? (
-                                        <div className="p-8 text-center bg-gray-50">
+                                        <div className="p-12 text-center bg-gray-50/50">
                                             <p className="text-sm text-gray-500">No transactions found for this account.</p>
                                         </div>
                                     ) : (
-                                        <table className="w-full text-sm text-left">
-                                            <thead className="bg-gray-50 text-xs uppercase text-gray-500 font-bold">
-                                                <tr>
-                                                    <th className="p-3">Type</th>
-                                                    <th className="p-3">Amount</th>
-                                                    <th className="p-3">Date</th>
-                                                    <th className="p-3">Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-100">
-                                                {accountTransactions.map((txn: any) => (
-                                                    <tr key={txn.reference}>
-                                                        <td className="p-3">
-                                                            <div className="flex items-center gap-2">
-                                                                {txn.type === 'credit' ? (
-                                                                    <ArrowDownLeft size={14} className="text-green-500" />
-                                                                ) : (
-                                                                    <ArrowUpRight size={14} className="text-red-500" />
-                                                                )}
-                                                                <span className="capitalize font-medium text-gray-900">{txn.type}</span>
-                                                            </div>
-                                                        </td>
-                                                        <td className="p-3 font-mono font-bold text-gray-900">
-                                                            {formatCurrency(txn.amount)}
-                                                        </td>
-                                                        <td className="p-3 text-gray-500">
-                                                            {new Date(txn.date).toLocaleDateString()}
-                                                        </td>
-                                                        <td className="p-3">
-                                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${txn.status === 'success' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                                                                }`}>
-                                                                {txn.status}
-                                                            </span>
-                                                        </td>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-sm text-left">
+                                                <thead className="bg-gray-50 text-[10px] uppercase text-gray-500 font-bold tracking-wider">
+                                                    <tr>
+                                                        <th className="p-4">Type</th>
+                                                        <th className="p-4">Amount</th>
+                                                        <th className="p-4">Date</th>
+                                                        <th className="p-4">Status</th>
                                                     </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {accountTransactions.map((txn: any) => (
+                                                        <tr key={txn.reference} className="hover:bg-gray-50/50 transition-colors">
+                                                            <td className="p-4">
+                                                                <div className="flex items-center gap-2">
+                                                                    {txn.type === 'credit' ? (
+                                                                        <ArrowDownLeft size={14} className="text-green-500" />
+                                                                    ) : (
+                                                                        <ArrowUpRight size={14} className="text-red-500" />
+                                                                    )}
+                                                                    <span className="capitalize font-bold text-gray-900">{txn.type}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td className="p-4 font-mono font-bold text-gray-900">
+                                                                {formatCurrency(txn.amount)}
+                                                            </td>
+                                                            <td className="p-4 text-xs text-gray-500">
+                                                                {new Date(txn.date).toLocaleDateString()}
+                                                            </td>
+                                                            <td className="p-4">
+                                                                <span className={`px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider ${txn.status === 'success' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                                                                    }`}>
+                                                                    {txn.status}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     )}
                                 </div>
                             </div>

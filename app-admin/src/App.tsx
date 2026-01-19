@@ -1,4 +1,5 @@
 import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import PrivateRoute from './components/PrivateRoute';
 import AuditLogs from './pages/AuditLogs';
 import Dashboard from './pages/Dashboard';
@@ -14,11 +15,6 @@ import Transactions from './pages/Transactions';
 import Users from './pages/Users';
 import WalletCredit from './pages/WalletCredit';
 
-<<<<<<< HEAD
-import { Toaster } from 'react-hot-toast';
-
-=======
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 function App() {
   return (
     <Router>

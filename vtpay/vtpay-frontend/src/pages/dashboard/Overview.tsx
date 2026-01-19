@@ -115,16 +115,16 @@ export const Overview: React.FC = () => {
     ];
 
     return (
-        <div className="space-y-6 max-w-[1400px] p-6">
+        <div className="space-y-6 max-w-[1400px] p-4 md:p-6">
             {/* Header */}
-            <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden">
+            <div className="bg-white p-6 md:p-8 rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-green-50 rounded-full -mr-32 -mt-32 opacity-50 blur-3xl"></div>
                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-50 rounded-full -ml-24 -mb-24 opacity-50 blur-3xl"></div>
 
                 <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
                         <div className="flex items-center gap-3">
-                            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">Dashboard</h1>
+                            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900">Dashboard</h1>
                             <button
                                 onClick={() => setShowBalance(!showBalance)}
                                 className="p-2 hover:bg-gray-100 rounded-xl transition-all duration-200 group"
@@ -136,17 +136,17 @@ export const Overview: React.FC = () => {
                                 }
                             </button>
                         </div>
-                        <p className="text-gray-500 font-medium mt-1 flex items-center gap-2">
+                        <p className="text-sm text-gray-500 font-medium mt-1 flex items-center gap-2">
                             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                         </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <button className="px-6 py-2.5 rounded-xl border border-gray-200 hover:border-green-200 hover:bg-green-50 transition-all duration-200 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                    <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+                        <button className="w-full md:w-auto px-6 py-2.5 rounded-xl border border-gray-200 hover:border-green-200 hover:bg-green-50 transition-all duration-200 flex items-center justify-center gap-2 text-sm font-semibold text-gray-700">
                             <Download className="w-4 h-4" />
                             Export
                         </button>
-                        <button className="px-6 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white transition-all duration-200 flex items-center gap-2 text-sm font-semibold shadow-lg shadow-green-200 hover:shadow-green-300">
+                        <button className="w-full md:w-auto px-6 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white transition-all duration-200 flex items-center justify-center gap-2 text-sm font-semibold shadow-lg shadow-green-200 hover:shadow-green-300">
                             <Plus className="w-4 h-4" />
                             Fund Wallet
                         </button>
@@ -187,18 +187,18 @@ export const Overview: React.FC = () => {
                 {/* Chart Section - 2 columns */}
                 <div className="lg:col-span-2 space-y-8">
                     {/* Balance Overview */}
-                    <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                    <div className="bg-white p-6 md:p-8 rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm">
                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
                             <div>
-                                <h2 className="text-xl font-bold text-gray-900">Balance Overview</h2>
-                                <p className="text-sm text-gray-500 mt-1">Your wallet performance and distribution</p>
+                                <h2 className="text-lg md:text-xl font-bold text-gray-900">Balance Overview</h2>
+                                <p className="text-xs md:text-sm text-gray-500 mt-1">Your wallet performance and distribution</p>
                             </div>
-                            <div className="bg-gray-50 p-1 rounded-xl flex gap-1">
+                            <div className="bg-gray-50 p-1 rounded-xl flex gap-1 w-fit">
                                 {(['7d', '30d', '90d'] as const).map((period) => (
                                     <button
                                         key={period}
                                         onClick={() => setTimeframe(period)}
-                                        className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 ${timeframe === period
+                                        className={`px-3 md:px-4 py-1.5 text-[10px] md:text-xs font-bold rounded-lg transition-all duration-200 ${timeframe === period
                                             ? 'bg-white text-green-600 shadow-sm'
                                             : 'text-gray-500 hover:text-gray-700'
                                             }`}
@@ -209,19 +209,19 @@ export const Overview: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="space-y-8">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="relative pl-6">
+                        <div className="space-y-6 md:space-y-8">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
+                                <div className="relative pl-4 md:pl-6">
                                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-green-500 rounded-full"></div>
-                                    <p className="text-sm font-semibold text-gray-500 mb-2">Available Balance</p>
-                                    <p className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                                    <p className="text-xs md:text-sm font-semibold text-gray-500 mb-1 md:mb-2">Available Balance</p>
+                                    <p className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
                                         {showBalance ? formatCompactCurrency(wallet?.availableBalanceNaira || 0) : '••••'}
                                     </p>
                                 </div>
-                                <div className="relative pl-6">
+                                <div className="relative pl-4 md:pl-6">
                                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500 rounded-full"></div>
-                                    <p className="text-sm font-semibold text-gray-500 mb-2">Locked Balance</p>
-                                    <p className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                                    <p className="text-xs md:text-sm font-semibold text-gray-500 mb-1 md:mb-2">Locked Balance</p>
+                                    <p className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
                                         {showBalance ? formatCompactCurrency(wallet?.lockedBalanceNaira || 0) : '••••'}
                                     </p>
                                 </div>
@@ -230,7 +230,7 @@ export const Overview: React.FC = () => {
                             {/* Visual Chart Bars */}
                             <div className="space-y-4">
                                 <div>
-                                    <div className="flex items-center justify-between text-xs mb-2">
+                                    <div className="flex items-center justify-between text-[10px] md:text-xs mb-2">
                                         <span className="text-gray-500">Available</span>
                                         <span className="font-medium text-gray-900">
                                             {showBalance ? Math.round((wallet?.availableBalanceNaira / wallet?.balanceNaira) * 100 || 0) : '••'}%
@@ -244,7 +244,7 @@ export const Overview: React.FC = () => {
                                     </div>
                                 </div>
                                 <div>
-                                    <div className="flex items-center justify-between text-xs mb-2">
+                                    <div className="flex items-center justify-between text-[10px] md:text-xs mb-2">
                                         <span className="text-gray-500">Locked</span>
                                         <span className="font-medium text-gray-900">
                                             {showBalance ? Math.round((wallet?.lockedBalanceNaira / wallet?.balanceNaira) * 100 || 0) : '••'}%
@@ -262,57 +262,57 @@ export const Overview: React.FC = () => {
                     </div>
 
                     {/* Recent Transactions */}
-                    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+                    <div className="bg-white rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="p-4 md:p-6 border-b border-gray-50 flex items-center justify-between">
                             <div>
-                                <h2 className="text-lg font-bold text-gray-900">Recent Transactions</h2>
-                                <p className="text-sm text-gray-500 mt-0.5">Latest activity on your account</p>
+                                <h2 className="text-base md:text-lg font-bold text-gray-900">Recent Transactions</h2>
+                                <p className="text-xs md:text-sm text-gray-500 mt-0.5">Latest activity</p>
                             </div>
                             <Link
                                 to="/dashboard/transactions"
-                                className="px-4 py-2 text-sm font-bold text-green-600 hover:bg-green-50 rounded-xl transition-all duration-200 flex items-center gap-2 group"
+                                className="px-3 md:px-4 py-2 text-xs md:text-sm font-bold text-green-600 hover:bg-green-50 rounded-xl transition-all duration-200 flex items-center gap-2 group"
                             >
-                                View all
+                                <span className="hidden sm:inline">View all</span>
                                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                             </Link>
                         </div>
                         <div className="divide-y divide-gray-50">
                             {transactions.length === 0 ? (
-                                <div className="p-12 text-center">
-                                    <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                                        <Activity className="w-8 h-8 text-gray-300" />
+                                <div className="p-8 md:p-12 text-center">
+                                    <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                        <Activity className="w-6 h-6 md:w-8 md:h-8 text-gray-300" />
                                     </div>
-                                    <p className="text-gray-900 font-bold">No transactions yet</p>
-                                    <p className="text-sm text-gray-500 mt-1">Your transactions will appear here</p>
+                                    <p className="text-gray-900 font-bold text-sm md:text-base">No transactions yet</p>
+                                    <p className="text-xs md:text-sm text-gray-500 mt-1">Your transactions will appear here</p>
                                 </div>
                             ) : (
                                 transactions.slice(0, 8).map((txn) => (
                                     <div
                                         key={txn.id}
-                                        className="p-4 hover:bg-gray-50 transition-colors duration-200 flex items-center justify-between group"
+                                        className="p-3 md:p-4 hover:bg-gray-50 transition-colors duration-200 flex items-center justify-between group"
                                     >
-                                        <div className="flex items-center gap-4">
-                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 duration-300 ${txn.type === 'credit'
+                                        <div className="flex items-center gap-3 md:gap-4 overflow-hidden">
+                                            <div className={`flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 duration-300 ${txn.type === 'credit'
                                                 ? 'bg-green-50 text-green-600'
                                                 : 'bg-gray-50 text-gray-600'
                                                 }`}>
                                                 {txn.type === 'credit' ? (
-                                                    <ArrowDownLeft className="w-5 h-5" />
+                                                    <ArrowDownLeft className="w-4 h-4 md:w-5 md:h-5" />
                                                 ) : (
-                                                    <ArrowUpRight className="w-5 h-5" />
+                                                    <ArrowUpRight className="w-4 h-4 md:w-5 md:h-5" />
                                                 )}
                                             </div>
-                                            <div>
-                                                <p className="text-sm font-bold text-gray-900 capitalize">{txn.type}</p>
-                                                <p className="text-xs text-gray-400 font-mono mt-0.5">{txn.reference}</p>
+                                            <div className="overflow-hidden">
+                                                <p className="text-xs md:text-sm font-bold text-gray-900 capitalize">{txn.type}</p>
+                                                <p className="text-[10px] md:text-xs text-gray-400 font-mono mt-0.5 truncate max-w-[100px] sm:max-w-none">{txn.reference}</p>
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className={`text-sm font-bold ${txn.type === 'credit' ? 'text-green-600' : 'text-gray-900'
+                                        <div className="text-right flex-shrink-0">
+                                            <p className={`text-xs md:text-sm font-bold ${txn.type === 'credit' ? 'text-green-600' : 'text-gray-900'
                                                 }`}>
                                                 {txn.type === 'credit' ? '+' : '-'}{formatCurrency(txn.amountNaira)}
                                             </p>
-                                            <p className="text-[10px] text-gray-400 mt-1 font-medium uppercase tracking-wider">
+                                            <p className="text-[9px] md:text-[10px] text-gray-400 mt-1 font-medium uppercase tracking-wider">
                                                 {new Date(txn.createdAt).toLocaleDateString('en-US', {
                                                     month: 'short',
                                                     day: 'numeric',
@@ -329,11 +329,11 @@ export const Overview: React.FC = () => {
                 </div>
 
                 {/* Sidebar - 1 column */}
-                <div className="space-y-8">
+                <div className="space-y-6 md:space-y-8">
                     {/* Quick Actions */}
-                    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-                        <h3 className="text-lg font-bold text-gray-900 mb-6">Quick Actions</h3>
-                        <div className="space-y-4">
+                    <div className="bg-white p-5 md:p-6 rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm">
+                        <h3 className="text-base md:text-lg font-bold text-gray-900 mb-4 md:mb-6">Quick Actions</h3>
+                        <div className="space-y-3 md:space-y-4">
                             {[
                                 { to: "/dashboard/virtual-accounts", icon: <CreditCard />, label: "Virtual Accounts", sub: "Create & manage", color: "blue" },
                                 { to: "/dashboard/developer", icon: <Zap />, label: "API Keys", sub: "Developer tools", color: "purple" },
@@ -342,17 +342,17 @@ export const Overview: React.FC = () => {
                                 <Link
                                     key={i}
                                     to={action.to}
-                                    className="flex items-center gap-4 p-3 rounded-2xl hover:bg-gray-50 transition-all duration-200 group"
+                                    className="flex items-center gap-3 md:gap-4 p-2 md:p-3 rounded-2xl hover:bg-gray-50 transition-all duration-200 group"
                                 >
-                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors duration-200 ${action.color === 'blue' ? 'bg-blue-50 text-blue-600 group-hover:bg-blue-100' :
+                                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center transition-colors duration-200 ${action.color === 'blue' ? 'bg-blue-50 text-blue-600 group-hover:bg-blue-100' :
                                         action.color === 'purple' ? 'bg-purple-50 text-purple-600 group-hover:bg-purple-100' :
                                             'bg-amber-50 text-amber-600 group-hover:bg-amber-100'
                                         }`}>
-                                        {React.cloneElement(action.icon as React.ReactElement<any>, { className: "w-5 h-5" })}
+                                        {React.cloneElement(action.icon as React.ReactElement<any>, { className: "w-4 h-4 md:w-5 md:h-5" })}
                                     </div>
                                     <div className="flex-1">
-                                        <p className="text-sm font-bold text-gray-900">{action.label}</p>
-                                        <p className="text-xs text-gray-500 mt-0.5">{action.sub}</p>
+                                        <p className="text-xs md:text-sm font-bold text-gray-900">{action.label}</p>
+                                        <p className="text-[10px] md:text-xs text-gray-500 mt-0.5">{action.sub}</p>
                                     </div>
                                     <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-gray-600 group-hover:translate-x-1 transition-all" />
                                 </Link>
@@ -361,24 +361,24 @@ export const Overview: React.FC = () => {
                     </div>
 
                     {/* Account Status */}
-                    <div className="bg-gradient-to-br from-green-600 to-green-700 p-8 rounded-3xl shadow-lg shadow-green-100 text-white relative overflow-hidden">
+                    <div className="bg-gradient-to-br from-green-600 to-green-700 p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-lg shadow-green-100 text-white relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
                         <div className="relative">
-                            <div className="flex items-start gap-4 mb-6">
-                                <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
-                                    <CheckCircle2 className="w-6 h-6 text-white" />
+                            <div className="flex items-start gap-3 md:gap-4 mb-4 md:mb-6">
+                                <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center">
+                                    <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6 text-white" />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-bold">Account Status</h3>
-                                    <p className="text-green-100 text-sm mt-0.5">Verification Level {user?.kycLevel || 0}</p>
+                                    <h3 className="text-base md:text-lg font-bold">Account Status</h3>
+                                    <p className="text-green-100 text-xs md:text-sm mt-0.5">Verification Level {user?.kycLevel || 0}</p>
                                 </div>
                             </div>
-                            <div className="space-y-3 mb-6">
-                                <div className="flex items-center justify-between text-xs font-bold">
+                            <div className="space-y-2 md:space-y-3 mb-4 md:mb-6">
+                                <div className="flex items-center justify-between text-[10px] md:text-xs font-bold">
                                     <span className="text-green-100">Completion Progress</span>
                                     <span>{(user?.kycLevel || 0) * 33}%</span>
                                 </div>
-                                <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                                <div className="h-1.5 md:h-2 bg-white/20 rounded-full overflow-hidden">
                                     <div
                                         className="h-full bg-white rounded-full transition-all duration-1000"
                                         style={{ width: `${(user?.kycLevel || 0) * 33}%` }}
@@ -388,7 +388,7 @@ export const Overview: React.FC = () => {
                             {user?.kycLevel === 0 && (
                                 <Link
                                     to="/dashboard/verification"
-                                    className="w-full py-3 bg-white text-green-600 font-bold rounded-xl flex items-center justify-center hover:bg-green-50 transition-colors shadow-lg"
+                                    className="w-full py-2.5 md:py-3 bg-white text-green-600 text-sm md:text-base font-bold rounded-xl flex items-center justify-center hover:bg-green-50 transition-colors shadow-lg"
                                 >
                                     Complete Verification
                                 </Link>
@@ -397,14 +397,14 @@ export const Overview: React.FC = () => {
                     </div>
 
                     {/* Support */}
-                    <div className="bg-gray-900 p-8 rounded-3xl shadow-xl text-white relative overflow-hidden">
+                    <div className="bg-gray-900 p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-xl text-white relative overflow-hidden">
                         <div className="absolute bottom-0 right-0 w-32 h-32 bg-green-500/20 rounded-full -mr-16 -mb-16 blur-2xl"></div>
                         <div className="relative">
-                            <h3 className="text-lg font-bold mb-3">Need Help?</h3>
-                            <p className="text-gray-400 text-sm leading-relaxed mb-6">
-                                Our support team is available 24/7 to assist you with any issues.
+                            <h3 className="text-base md:text-lg font-bold mb-2 md:mb-3">Need Help?</h3>
+                            <p className="text-gray-400 text-xs md:text-sm leading-relaxed mb-4 md:mb-6">
+                                Our support team is available 24/7 to assist you.
                             </p>
-                            <button className="w-full py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl transition-all border border-white/10 flex items-center justify-center gap-2">
+                            <button className="w-full py-2.5 md:py-3 bg-white/10 hover:bg-white/20 text-white text-sm md:text-base font-bold rounded-xl transition-all border border-white/10 flex items-center justify-center gap-2">
                                 <Activity className="w-4 h-4" />
                                 Contact Support
                             </button>

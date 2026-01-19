@@ -1,8 +1,5 @@
 import { Request, Response } from 'express';
-<<<<<<< HEAD
 import mongoose from 'mongoose';
-=======
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 import ProviderConfig from '../models/provider.model.js';
 import providerRegistry from '../services/providerRegistry.service.js';
 import logger from '../utils/logger.js';
@@ -142,7 +139,6 @@ export class AppAdminProviderController {
 
             if (client.getWalletBalance) {
                 try {
-<<<<<<< HEAD
                     if (code.toLowerCase() === 'ibdata') {
                         // For IBData, show the App Owner's wallet balance
                         const CreatedApp = (await import('../models/created_app.model.js')).default;
@@ -158,11 +154,6 @@ export class AppAdminProviderController {
                         const balance = await (client as any).getWalletBalance(provider);
                         results.balance = balance;
                     }
-=======
-                    const balance = await (client as any).getWalletBalance(provider);
-                    // Mask balance for ibdata as requested
-                    results.balance = code.toLowerCase() === 'ibdata' ? '***.**' : balance;
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
                     results.balanceStatus = 'success';
                 } catch (error: any) {
                     results.balanceStatus = 'failed';
@@ -248,7 +239,6 @@ export class AppAdminProviderController {
             let data: any = null;
             switch (type) {
                 case 'balance':
-<<<<<<< HEAD
                     if (code.toLowerCase() === 'ibdata') {
                         // For IBData, show the App Owner's wallet balance
                         const CreatedApp = (await import('../models/created_app.model.js')).default;
@@ -262,15 +252,6 @@ export class AppAdminProviderController {
                         }
                     } else {
                         data = await client.getWalletBalance?.();
-=======
-                    data = await client.getWalletBalance?.();
-                    if (code.toLowerCase() === 'ibdata' && data) {
-                        if (typeof data === 'object') {
-                            data.balance = '***.**';
-                        } else {
-                            data = '***.**';
-                        }
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
                     }
                     break;
                 case 'networks':
@@ -278,7 +259,6 @@ export class AppAdminProviderController {
                     break;
                 case 'plans':
                     data = await client.getDataPlans?.();
-<<<<<<< HEAD
 
                     // Apply global profit if it's IBData
                     if (code.toLowerCase() === 'ibdata' && Array.isArray(data)) {
@@ -295,8 +275,6 @@ export class AppAdminProviderController {
                             return p;
                         });
                     }
-=======
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
                     break;
                 default:
                     return ApiResponse.error(res, 'Invalid type', 400);

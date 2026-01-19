@@ -21,12 +21,14 @@ interface ApiKey {
 
 const ApiKeysPage: React.FC = () => {
     const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+    const [tenants, setTenants] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedKey, setSelectedKey] = useState<ApiKey | null>(null);
     const [showDetails, setShowDetails] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [newKeyData, setNewKeyData] = useState({
+        userId: '',
         name: '',
         environment: 'test',
         scopes: [] as string[],
@@ -34,6 +36,7 @@ const ApiKeysPage: React.FC = () => {
 
     useEffect(() => {
         fetchApiKeys();
+        fetchTenants();
     }, []);
 
     const fetchApiKeys = async () => {
@@ -49,6 +52,15 @@ const ApiKeysPage: React.FC = () => {
         }
     };
 
+    const fetchTenants = async () => {
+        try {
+            const data = await adminApi.getAllTenants();
+            setTenants(data);
+        } catch (error) {
+            console.error('Failed to fetch tenants:', error);
+        }
+    };
+
     const availableScopes = [
         'read:transactions',
         'write:transfers',
@@ -60,12 +72,17 @@ const ApiKeysPage: React.FC = () => {
 
     const handleCreateKey = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!newKeyData.userId) {
+            toast.error('Please select a tenant');
+            return;
+        }
         try {
             setIsGenerating(true);
             await adminApi.generateApiKey(newKeyData);
             toast.success('API Key generated successfully');
             setShowCreateModal(false);
             setNewKeyData({
+                userId: '',
                 name: '',
                 environment: 'test',
                 scopes: [],
@@ -126,20 +143,20 @@ const ApiKeysPage: React.FC = () => {
     };
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-4 md:p-6 space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-start">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">API & Key Management</h1>
-                    <p className="text-sm text-slate-500 mt-1">Developer access control and monitoring</p>
+                    <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900">API & Key Management</h1>
+                    <p className="text-xs md:text-sm text-slate-500 mt-1">Developer access control and monitoring</p>
                 </div>
-                <div className="flex gap-3">
-                    <button className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium">
+                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                    <button className="w-full sm:w-auto px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium shadow-sm active:scale-95">
                         Webhook Secrets
                     </button>
                     <button
                         onClick={() => setShowCreateModal(true)}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                        className="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium shadow-sm active:scale-95"
                     >
                         + Generate New Key
                     </button>
@@ -147,26 +164,26 @@ const ApiKeysPage: React.FC = () => {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <p className="text-sm font-medium text-slate-500">Total API Keys</p>
-                    <h3 className="text-2xl font-bold text-slate-900 mt-1">{apiKeys.length}</h3>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <p className="text-xs md:text-sm font-medium text-slate-500">Total API Keys</p>
+                    <h3 className="text-lg md:text-2xl font-bold text-slate-900 mt-1">{apiKeys.length}</h3>
                 </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <p className="text-sm font-medium text-slate-500">Active Keys</p>
-                    <h3 className="text-2xl font-bold text-green-600 mt-1">
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <p className="text-xs md:text-sm font-medium text-slate-500">Active Keys</p>
+                    <h3 className="text-lg md:text-2xl font-bold text-green-600 mt-1">
                         {apiKeys.filter((k) => k.status === 'active').length}
                     </h3>
                 </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <p className="text-sm font-medium text-slate-500">Total Requests (24h)</p>
-                    <h3 className="text-2xl font-bold text-slate-900 mt-1">
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <p className="text-xs md:text-sm font-medium text-slate-500">Total Requests (24h)</p>
+                    <h3 className="text-lg md:text-2xl font-bold text-slate-900 mt-1">
                         {apiKeys.reduce((sum, k) => sum + k.currentUsage, 0).toLocaleString()}
                     </h3>
                 </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <p className="text-sm font-medium text-slate-500">Abuse Detected</p>
-                    <h3 className="text-2xl font-bold text-red-600 mt-1">
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <p className="text-xs md:text-sm font-medium text-slate-500">Abuse Detected</p>
+                    <h3 className="text-lg md:text-2xl font-bold text-red-600 mt-1">
                         {apiKeys.filter(k => k.status === 'revoked').length}
                     </h3>
                 </div>
@@ -181,28 +198,28 @@ const ApiKeysPage: React.FC = () => {
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="w-full min-w-[900px] md:min-w-full">
                             <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Key Name
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="hidden lg:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Tenant
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="hidden md:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         API Key
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Usage (24h)
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Status
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="hidden sm:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Last Used
                                     </th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                    <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Actions
                                     </th>
                                 </tr>
@@ -212,17 +229,17 @@ const ApiKeysPage: React.FC = () => {
                                     const usage = getUsagePercentage(key.currentUsage, key.rateLimit);
                                     return (
                                         <tr key={key._id} className="hover:bg-slate-50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm font-medium text-slate-900">{key.keyName}</div>
                                                 <div className="text-xs text-slate-500">{key.scopes.length} scopes</div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="hidden lg:table-cell px-4 md:px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm text-slate-900">{key.tenantName}</div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="hidden md:table-cell px-4 md:px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm font-mono text-slate-900">{key.fullKey}</div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm text-slate-900 mb-1">
                                                     {key.currentUsage.toLocaleString()} / {key.rateLimit.toLocaleString()}
                                                 </div>
@@ -233,28 +250,30 @@ const ApiKeysPage: React.FC = () => {
                                                     ></div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(key.status)}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                            <td className="px-4 md:px-6 py-4 whitespace-nowrap">{getStatusBadge(key.status)}</td>
+                                            <td className="hidden sm:table-cell px-4 md:px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                                 {key.lastUsed ? new Date(key.lastUsed).toLocaleString() : 'Never'}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedKey(key);
-                                                        setShowDetails(true);
-                                                    }}
-                                                    className="text-green-600 hover:text-green-900 mr-3"
-                                                >
-                                                    View
-                                                </button>
-                                                {key.status === 'active' && (
+                                            <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <div className="flex justify-end gap-3">
                                                     <button
-                                                        onClick={() => handleRevokeKey(key._id)}
-                                                        className="text-red-600 hover:text-red-900"
+                                                        onClick={() => {
+                                                            setSelectedKey(key);
+                                                            setShowDetails(true);
+                                                        }}
+                                                        className="text-green-600 hover:text-green-900"
                                                     >
-                                                        Revoke
+                                                        View
                                                     </button>
-                                                )}
+                                                    {key.status === 'active' && (
+                                                        <button
+                                                            onClick={() => handleRevokeKey(key._id)}
+                                                            className="text-red-600 hover:text-red-900 hidden sm:inline"
+                                                        >
+                                                            Revoke
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     );
@@ -283,6 +302,22 @@ const ApiKeysPage: React.FC = () => {
                             </div>
                         </div>
                         <form onSubmit={handleCreateKey} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Select Tenant</label>
+                                <select
+                                    required
+                                    value={newKeyData.userId}
+                                    onChange={(e) => setNewKeyData({ ...newKeyData, userId: e.target.value })}
+                                    className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                >
+                                    <option value="">Select a tenant...</option>
+                                    {tenants.map(tenant => (
+                                        <option key={tenant._id} value={tenant._id}>
+                                            {tenant.businessName || `${tenant.firstName} ${tenant.lastName}`} ({tenant.email})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Key Name</label>
                                 <input
@@ -362,8 +397,8 @@ const ApiKeysPage: React.FC = () => {
                         </div>
 
                         <div className="p-6 space-y-6">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="col-span-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="sm:col-span-2">
                                     <p className="text-xs text-slate-500">API Key</p>
                                     <p className="text-sm font-mono text-slate-900 mt-1 break-all">{selectedKey.fullKey}</p>
                                 </div>
@@ -383,7 +418,7 @@ const ApiKeysPage: React.FC = () => {
                                     <p className="text-xs text-slate-500">Current Usage</p>
                                     <p className="text-sm text-slate-900 mt-1">{selectedKey.currentUsage} requests</p>
                                 </div>
-                                <div className="col-span-2">
+                                <div className="sm:col-span-2">
                                     <p className="text-xs text-slate-500">Scopes</p>
                                     <div className="flex flex-wrap gap-2 mt-1">
                                         {selectedKey.scopes.map((scope, i) => (
@@ -394,7 +429,7 @@ const ApiKeysPage: React.FC = () => {
                                     </div>
                                 </div>
                                 {selectedKey.ipWhitelist && selectedKey.ipWhitelist.length > 0 && (
-                                    <div className="col-span-2">
+                                    <div className="sm:col-span-2">
                                         <p className="text-xs text-slate-500">IP Whitelist</p>
                                         <div className="flex flex-wrap gap-2 mt-1">
                                             {selectedKey.ipWhitelist.map((ip, i) => (
@@ -417,13 +452,13 @@ const ApiKeysPage: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="flex gap-3 pt-4 border-t border-slate-200">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-slate-200">
                                 <button
-                                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                                 >
                                     Manage Scopes
                                 </button>
-                                <button className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors">
+                                <button className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium">
                                     Update Rate Limit
                                 </button>
                                 {selectedKey.status === 'active' && (
@@ -431,7 +466,7 @@ const ApiKeysPage: React.FC = () => {
                                         onClick={() => {
                                             handleRevokeKey(selectedKey._id);
                                         }}
-                                        className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
                                     >
                                         Revoke Key
                                     </button>

@@ -1,17 +1,28 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../components/Button';
-import { ArrowLeft, Code, Copy, Check, Shield, Globe, Zap, Bell } from 'lucide-react';
+import { ArrowLeft, Code, Copy, Check, Shield, Globe, Zap, Bell, Menu, X } from 'lucide-react';
 import '../../styles/api-docs.css';
 
 export const ApiDocs: React.FC = () => {
     const [copied, setCopied] = React.useState('');
+    const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
     const copyToClipboard = (text: string, id: string) => {
         navigator.clipboard.writeText(text);
         setCopied(id);
         setTimeout(() => setCopied(''), 2000);
     };
+
+    const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+
+    React.useEffect(() => {
+        if (isMenuOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+    }, [isMenuOpen]);
 
     const CodeBlock = ({ code, id }: { code: string, id: string }) => (
         <div className="code-block-container">
@@ -39,38 +50,48 @@ export const ApiDocs: React.FC = () => {
                         </Link>
                         <h1>
                             <Code size={24} />
-                            VTPay API Documentation
+                            <span className="api-docs-title-text">VTPay API Documentation</span>
                         </h1>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <Link to="/login">
-                            <Button variant="outline" size="sm">Sign In</Button>
-                        </Link>
-                        <Link to="/register">
-                            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">Get API Keys</Button>
-                        </Link>
+                    <div className="api-docs-header-actions">
+                        <div className="desktop-actions">
+                            <Link to="/login">
+                                <Button variant="outline" size="sm">Sign In</Button>
+                            </Link>
+                            <Link to="/register">
+                                <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white">Get API Keys</Button>
+                            </Link>
+                        </div>
+                        <button className="api-docs-menu-btn" onClick={toggleMenu} aria-label="Toggle menu">
+                            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                        </button>
                     </div>
                 </div>
             </header>
 
             <div className="api-docs-container">
+                {/* Mobile Backdrop */}
+                {isMenuOpen && (
+                    <div className="api-docs-mobile-backdrop" onClick={() => setIsMenuOpen(false)}></div>
+                )}
+
                 {/* Sidebar */}
-                <aside className="api-docs-sidebar">
+                <aside className={`api-docs-sidebar ${isMenuOpen ? 'mobile-active' : ''}`}>
                     <nav>
                         <p className="text-xs font-bold text-green-200/60 uppercase tracking-widest mb-4 px-4">Getting Started</p>
                         <ul>
                             <li>
-                                <a href="#introduction">
+                                <a href="#introduction" onClick={() => setIsMenuOpen(false)}>
                                     <Globe size={18} /> Introduction
                                 </a>
                             </li>
                             <li>
-                                <a href="#authentication">
+                                <a href="#authentication" onClick={() => setIsMenuOpen(false)}>
                                     <Shield size={18} /> Authentication
                                 </a>
                             </li>
                             <li>
-                                <a href="#base-url">
+                                <a href="#base-url" onClick={() => setIsMenuOpen(false)}>
                                     <Zap size={18} /> Base URL
                                 </a>
                             </li>
@@ -78,16 +99,16 @@ export const ApiDocs: React.FC = () => {
 
                         <p className="text-xs font-bold text-green-200/60 uppercase tracking-widest mt-8 mb-4 px-4">Virtual Accounts</p>
                         <ul className="api-docs-subnav">
-                            <li><a href="#create-account">Create Account</a></li>
-                            <li><a href="#list-accounts">Fetch Accounts</a></li>
-                            <li><a href="#get-balance">Fetch Balance</a></li>
-                            <li><a href="#get-transactions">Fetch Transactions</a></li>
+                            <li><a href="#create-account" onClick={() => setIsMenuOpen(false)}>Create Account</a></li>
+                            <li><a href="#list-accounts" onClick={() => setIsMenuOpen(false)}>Fetch Accounts</a></li>
+                            <li><a href="#get-balance" onClick={() => setIsMenuOpen(false)}>Fetch Balance</a></li>
+                            <li><a href="#get-transactions" onClick={() => setIsMenuOpen(false)}>Fetch Transactions</a></li>
                         </ul>
 
                         <p className="text-xs font-bold text-green-200/60 uppercase tracking-widest mt-8 mb-4 px-4">Notifications</p>
                         <ul>
                             <li>
-                                <a href="#webhooks">
+                                <a href="#webhooks" onClick={() => setIsMenuOpen(false)}>
                                     <Bell size={18} /> Webhooks
                                 </a>
                             </li>
@@ -159,14 +180,38 @@ export const ApiDocs: React.FC = () => {
                                 </div>
                                 <p className="api-endpoint-description">
                                     Generate a new dedicated virtual account for a customer.
-                                    You must specify a <code>bankType</code> (e.g., "gtBank").
+                                    You must specify a <code>bankType</code> from our supported list.
                                 </p>
+
+                                <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 mb-6">
+                                    <h4 className="text-emerald-800 text-xs font-bold uppercase tracking-widest mb-3">Supported Bank Types</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-4">
+                                        {[
+                                            { code: 'zenithBank', name: 'Zenith Bank' },
+                                            { code: 'firstBank', name: 'First Bank' },
+                                            { code: 'accessBank', name: 'Access Bank' },
+                                            { code: 'fcmb', name: 'FCMB' },
+                                            { code: 'fidelity', name: 'Fidelity Bank' },
+                                            { code: 'sterlingBank', name: 'Sterling Bank' },
+                                            { code: 'polarisBank', name: 'Polaris Bank' },
+                                            { code: 'kudaBank', name: 'Kuda Bank' },
+                                            { code: 'jaizBank', name: 'Jaiz Bank' },
+                                            { code: 'tajBank', name: 'Taj Bank' }
+                                        ].map(bank => (
+                                            <div key={bank.code} className="flex items-center gap-2">
+                                                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                                                <span className="text-xs font-mono text-emerald-700 font-bold">{bank.code}</span>
+                                                <span className="text-[10px] text-emerald-600/70 font-medium">({bank.name})</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
 
                                 <h4>Request Body</h4>
                                 <CodeBlock
                                     id="req-create"
                                     code={`{
-  "bankType": "gtBank",
+  "bankType": "zenithBank",
   "accountName": "John Doe",
   "email": "john.doe@example.com",
   "reference": "cust_ref_12345",
@@ -186,8 +231,8 @@ export const ApiDocs: React.FC = () => {
     "accountName": "John Doe",
     "alias": "John Doe",
     "reference": "cust_ref_12345",
-    "bankName": "GTBank",
-    "bankType": "gtBank",
+    "bankName": "Zenith Bank",
+    "bankType": "zenithBank",
     "status": "active"
   }
 }`}
@@ -321,6 +366,6 @@ export const ApiDocs: React.FC = () => {
                     </section>
                 </main>
             </div>
-        </div>
+        </div >
     );
 };

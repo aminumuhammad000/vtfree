@@ -154,18 +154,18 @@ const ZainboxPage: React.FC = () => {
     );
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-4 md:p-6 space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-start">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Zainbox Management</h1>
-                    <p className="text-sm text-slate-500 mt-1">Internal Zainpay control and monitoring</p>
+                    <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900">Zainbox Management</h1>
+                    <p className="text-xs md:text-sm text-slate-500 mt-1">Internal Zainpay control and monitoring</p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                     <button
                         onClick={handleSync}
                         disabled={isSyncing}
-                        className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+                        className="w-full sm:w-auto px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm active:scale-95"
                     >
                         {isSyncing ? (
                             <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-slate-500 border-r-transparent"></div>
@@ -178,7 +178,7 @@ const ZainboxPage: React.FC = () => {
                     </button>
                     <button
                         onClick={() => setShowCreateModal(true)}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                        className="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium shadow-sm active:scale-95"
                     >
                         + Create Zainbox
                     </button>
@@ -186,26 +186,26 @@ const ZainboxPage: React.FC = () => {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <p className="text-sm font-medium text-slate-500">Total Zainboxes</p>
-                    <h3 className="text-2xl font-bold text-slate-900 mt-1">{zainboxes.length}</h3>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <p className="text-xs md:text-sm font-medium text-slate-500">Total Zainboxes</p>
+                    <h3 className="text-lg md:text-2xl font-bold text-slate-900 mt-1">{zainboxes.length}</h3>
                 </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <p className="text-sm font-medium text-slate-500">Live</p>
-                    <h3 className="text-2xl font-bold text-green-600 mt-1">
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <p className="text-xs md:text-sm font-medium text-slate-500">Live</p>
+                    <h3 className="text-lg md:text-2xl font-bold text-green-600 mt-1">
                         {zainboxes.filter(z => z.isLive).length}
                     </h3>
                 </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <p className="text-sm font-medium text-slate-500">Sandbox</p>
-                    <h3 className="text-2xl font-bold text-yellow-600 mt-1">
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <p className="text-xs md:text-sm font-medium text-slate-500">Sandbox</p>
+                    <h3 className="text-lg md:text-2xl font-bold text-yellow-600 mt-1">
                         {zainboxes.filter(z => !z.isLive).length}
                     </h3>
                 </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <p className="text-sm font-medium text-slate-500">Total Balance</p>
-                    <h3 className="text-2xl font-bold text-slate-900 mt-1">₦---</h3>
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <p className="text-xs md:text-sm font-medium text-slate-500">Total Balance</p>
+                    <h3 className="text-lg md:text-2xl font-bold text-slate-900 mt-1">₦---</h3>
                 </div>
             </div>
 
@@ -216,7 +216,7 @@ const ZainboxPage: React.FC = () => {
                     placeholder="Search by name, code, or email..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
                 />
             </div>
 
@@ -239,24 +239,24 @@ const ZainboxPage: React.FC = () => {
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="w-full min-w-[700px] md:min-w-full">
                             <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Name & Code</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Environment</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Notifications</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Created</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Name & Code</th>
+                                    <th className="hidden md:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Environment</th>
+                                    <th className="hidden lg:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Notifications</th>
+                                    <th className="hidden sm:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Created</th>
+                                    <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-slate-200">
                                 {filteredZainboxes.map((zainbox) => (
                                     <tr key={zainbox._id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm font-medium text-slate-900">{zainbox.name}</div>
                                             <div className="text-xs text-slate-500 font-mono">{zainbox.zainboxCode}</div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="hidden md:table-cell px-4 md:px-6 py-4 whitespace-nowrap">
                                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${zainbox.isLive
                                                 ? 'bg-green-100 text-green-800'
                                                 : 'bg-yellow-100 text-yellow-800'
@@ -264,47 +264,49 @@ const ZainboxPage: React.FC = () => {
                                                 {zainbox.isLive ? 'LIVE' : 'SANDBOX'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="hidden lg:table-cell px-4 md:px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm text-slate-900">{zainbox.emailNotification}</div>
                                             <div className="text-xs text-slate-500 truncate max-w-[200px]">{zainbox.callbackUrl}</div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                        <td className="hidden sm:table-cell px-4 md:px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                             {new Date(zainbox.createdAt).toLocaleDateString()}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedZainbox(zainbox);
-                                                    setShowDetails(true);
-                                                    fetchBalances(zainbox.zainboxCode);
-                                                    fetchVirtualAccounts(zainbox.zainboxCode);
-                                                }}
-                                                className="text-green-600 hover:text-green-900 mr-4"
-                                            >
-                                                View
-                                            </button>
-                                            <button
-                                                onClick={() => handleEditClick(zainbox)}
-                                                className="text-blue-600 hover:text-blue-900 mr-4"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                onClick={async () => {
-                                                    if (window.confirm('Are you sure you want to delete this Zainbox? This will remove it from the system.')) {
-                                                        try {
-                                                            await adminApi.deleteZainbox(zainbox._id);
-                                                            toast.success('Zainbox deleted successfully');
-                                                            fetchZainboxes();
-                                                        } catch (error) {
-                                                            toast.error('Failed to delete Zainbox');
+                                        <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <div className="flex justify-end gap-3">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedZainbox(zainbox);
+                                                        setShowDetails(true);
+                                                        fetchBalances(zainbox.zainboxCode);
+                                                        fetchVirtualAccounts(zainbox.zainboxCode);
+                                                    }}
+                                                    className="text-green-600 hover:text-green-900"
+                                                >
+                                                    View
+                                                </button>
+                                                <button
+                                                    onClick={() => handleEditClick(zainbox)}
+                                                    className="text-blue-600 hover:text-blue-900"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={async () => {
+                                                        if (window.confirm('Are you sure you want to delete this Zainbox? This will remove it from the system.')) {
+                                                            try {
+                                                                await adminApi.deleteZainbox(zainbox._id);
+                                                                toast.success('Zainbox deleted successfully');
+                                                                fetchZainboxes();
+                                                            } catch (error) {
+                                                                toast.error('Failed to delete Zainbox');
+                                                            }
                                                         }
-                                                    }
-                                                }}
-                                                className="text-red-600 hover:text-red-900"
-                                            >
-                                                Delete
-                                            </button>
+                                                    }}
+                                                    className="text-red-600 hover:text-red-900 hidden sm:inline"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -339,8 +341,8 @@ const ZainboxPage: React.FC = () => {
                             {/* Configuration */}
                             <div>
                                 <h3 className="text-sm font-medium text-slate-900 mb-3">Configuration</h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="col-span-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="sm:col-span-2">
                                         <p className="text-xs text-slate-500">Code Name</p>
                                         <p className="text-sm font-mono text-slate-900 mt-1">{selectedZainbox.codeName}</p>
                                     </div>
@@ -359,17 +361,17 @@ const ZainboxPage: React.FC = () => {
                                             {new Date(selectedZainbox.createdAt).toLocaleDateString()}
                                         </p>
                                     </div>
-                                    <div className="col-span-2">
+                                    <div className="sm:col-span-2">
                                         <p className="text-xs text-slate-500">Email Notification</p>
                                         <p className="text-sm text-slate-900 mt-1">{selectedZainbox.emailNotification}</p>
                                     </div>
-                                    <div className="col-span-2">
+                                    <div className="sm:col-span-2">
                                         <p className="text-xs text-slate-500">Callback URL</p>
                                         <p className="text-sm font-mono text-slate-900 mt-1 break-all">{selectedZainbox.callbackUrl}</p>
                                     </div>
-                                    <div className="col-span-2">
+                                    <div className="sm:col-span-2">
                                         <p className="text-xs text-slate-500">Tags</p>
-                                        <div className="flex gap-2 mt-1">
+                                        <div className="flex flex-wrap gap-2 mt-1">
                                             {selectedZainbox.tags.split(',').map((tag, i) => (
                                                 <span key={i} className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded">
                                                     {tag.trim()}
@@ -482,14 +484,14 @@ const ZainboxPage: React.FC = () => {
                             </div>
 
                             {/* Actions */}
-                            <div className="flex gap-3 pt-4 border-t border-slate-200">
-                                <button className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-slate-200">
+                                <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
                                     View Transactions
                                 </button>
-                                <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
                                     Settlement Settings
                                 </button>
-                                <button className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors">
+                                <button className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors text-sm font-medium">
                                     Sync
                                 </button>
                             </div>

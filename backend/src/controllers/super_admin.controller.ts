@@ -135,7 +135,6 @@ export const getAllOwners = async (req: Request, res: Response) => {
     try {
         const owners = await VTfreeUser.find().sort({ created_at: -1 }).select('-password');
         res.json({ success: true, data: { owners } });
-<<<<<<< HEAD
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error' });
     }
@@ -191,8 +190,6 @@ export const updateAdminStatus = async (req: Request, res: Response) => {
         const admin = await AppAdmin.findByIdAndUpdate(id, { status }, { new: true }).select('-password');
         if (!admin) return res.status(404).json({ success: false, message: 'Admin not found' });
         res.json({ success: true, data: { admin } });
-=======
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error' });
     }
@@ -636,7 +633,6 @@ export const updateTicketStatus = async (req: Request, res: Response) => {
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
-<<<<<<< HEAD
 
 export const getIBDataPlans = async (req: Request, res: Response) => {
     try {
@@ -892,5 +888,3 @@ export const getVTPayAccountTransactions = async (req: Request, res: Response) =
         res.status(500).json({ success: false, message: error.message });
     }
 };
-=======
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf

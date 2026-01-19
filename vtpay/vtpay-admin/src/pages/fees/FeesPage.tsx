@@ -97,55 +97,55 @@ const FeesPage: React.FC = () => {
     );
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-4 md:p-6 space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-start">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Fee Management</h1>
-                    <p className="text-sm text-slate-500 mt-1">Configure transaction fees and charges</p>
+                    <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900">Fee Management</h1>
+                    <p className="text-xs md:text-sm text-slate-500 mt-1">Configure transaction fees (Virtual Account) and payout charges</p>
                 </div>
                 <button
                     onClick={() => setShowCreateModal(true)}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                    className="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium shadow-sm active:scale-95"
                 >
                     + Add Fee Rule
                 </button>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <p className="text-sm font-medium text-slate-500">Active Rules</p>
-                    <h3 className="text-2xl font-bold text-slate-900 mt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <p className="text-xs md:text-sm font-medium text-slate-500">Active Rules</p>
+                    <h3 className="text-lg md:text-2xl font-bold text-slate-900 mt-1">
                         {fees.filter(f => f.status === 'active').length}
                     </h3>
                 </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <p className="text-sm font-medium text-slate-500">Deposit Rules</p>
-                    <h3 className="text-2xl font-bold text-green-600 mt-1">
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <p className="text-xs md:text-sm font-medium text-slate-500">VA Transaction Fees</p>
+                    <h3 className="text-lg md:text-2xl font-bold text-green-600 mt-1">
                         {fees.filter(f => f.category === 'deposit').length}
                     </h3>
                 </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <p className="text-sm font-medium text-slate-500">Transfer Rules</p>
-                    <h3 className="text-2xl font-bold text-blue-600 mt-1">
-                        {fees.filter(f => f.category === 'transfer').length}
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <p className="text-xs md:text-sm font-medium text-slate-500">Payout Fees</p>
+                    <h3 className="text-lg md:text-2xl font-bold text-orange-600 mt-1">
+                        {fees.filter(f => f.category === 'withdrawal').length}
                     </h3>
                 </div>
             </div>
 
             {/* Filters */}
             <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-4">
                     <select
                         value={filterCategory}
                         onChange={(e) => setFilterCategory(e.target.value)}
-                        className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
                     >
                         <option value="all">All Categories</option>
-                        <option value="deposit">Deposit</option>
+                        <option value="deposit">VA Transaction Fees</option>
+                        <option value="withdrawal">Payout Fees</option>
                         <option value="transfer">Transfer</option>
-                        <option value="withdrawal">Withdrawal</option>
                         <option value="utility">Utility</option>
                     </select>
                 </div>
@@ -160,34 +160,34 @@ const FeesPage: React.FC = () => {
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="w-full min-w-[900px] md:min-w-full">
                             <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Name</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Category</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Type</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Value</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Conditions</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Name</th>
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Category</th>
+                                    <th className="hidden md:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Type</th>
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Value</th>
+                                    <th className="hidden lg:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Conditions</th>
+                                    <th className="hidden sm:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-slate-200">
                                 {filteredFees.map((fee) => (
                                     <tr key={fee._id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm font-medium text-slate-900">{fee.name}</div>
                                             {fee.paymentMethod && (
                                                 <div className="text-xs text-slate-500">Method: {fee.paymentMethod}</div>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                             {getCategoryBadge(fee.category)}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 capitalize">
+                                        <td className="hidden md:table-cell px-4 md:px-6 py-4 whitespace-nowrap text-sm text-slate-600 capitalize">
                                             {fee.type}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                             <span className="text-sm font-bold text-slate-900">
                                                 {fee.type === 'percentage' ? `${fee.value}%` : `₦${fee.value}`}
                                             </span>
@@ -195,34 +195,36 @@ const FeesPage: React.FC = () => {
                                                 <div className="text-xs text-slate-500">Cap: ₦{fee.cap}</div>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                        <td className="hidden lg:table-cell px-4 md:px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                             {fee.minAmount ? `Min: ₦${fee.minAmount}` : 'No min'}
                                             <br />
                                             {fee.maxAmount ? `Max: ₦${fee.maxAmount}` : 'No max'}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="hidden sm:table-cell px-4 md:px-6 py-4 whitespace-nowrap">
                                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${fee.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                                                 }`}>
                                                 {fee.status.toUpperCase()}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedFee(fee);
-                                                    setFormData(fee);
-                                                    setShowCreateModal(true);
-                                                }}
-                                                className="text-green-600 hover:text-green-900 mr-3"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(fee._id)}
-                                                className="text-red-600 hover:text-red-900"
-                                            >
-                                                Delete
-                                            </button>
+                                        <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <div className="flex justify-end gap-3">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedFee(fee);
+                                                        setFormData(fee);
+                                                        setShowCreateModal(true);
+                                                    }}
+                                                    className="text-green-600 hover:text-green-900"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(fee._id)}
+                                                    className="text-red-600 hover:text-red-900 hidden sm:inline"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -266,7 +268,7 @@ const FeesPage: React.FC = () => {
                                     placeholder="e.g., Standard Transfer Fee"
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
                                     <select
@@ -274,9 +276,9 @@ const FeesPage: React.FC = () => {
                                         onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
                                         className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                                     >
-                                        <option value="deposit">Deposit</option>
+                                        <option value="deposit">VA Transaction Fee</option>
+                                        <option value="withdrawal">Payout Fee</option>
                                         <option value="transfer">Transfer</option>
-                                        <option value="withdrawal">Withdrawal</option>
                                         <option value="utility">Utility</option>
                                     </select>
                                 </div>

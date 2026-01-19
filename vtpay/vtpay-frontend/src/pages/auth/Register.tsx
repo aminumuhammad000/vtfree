@@ -109,11 +109,11 @@ export const Register: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-green-50 p-4">
-            <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
-                <div className="p-8">
+        <div className="min-h-screen flex items-center justify-center bg-green-50 p-4 auth-container">
+            <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden auth-wrapper">
+                <div className="p-8 auth-card">
                     {/* Header */}
-                    <div className="text-center mb-8">
+                    <div className="text-center mb-8 auth-brand">
                         <h2 className="text-2xl font-bold text-gray-900">Create Account</h2>
                         <p className="text-sm text-gray-500 mt-1">Step {currentStep} of {totalSteps}</p>
                     </div>
@@ -148,7 +148,7 @@ export const Register: React.FC = () => {
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-6 auth-form">
                         {/* Step 1: Personal Information */}
                         {currentStep === 1 && (
                             <div className="space-y-6 animate-fade-in">
@@ -189,7 +189,7 @@ export const Register: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={handleNext}
-                                    className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-green-200 flex items-center justify-center gap-2"
+                                    className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-green-200 flex items-center justify-center gap-2 auth-submit-btn"
                                 >
                                     Continue <ArrowRight size={18} />
                                 </button>
@@ -244,7 +244,7 @@ export const Register: React.FC = () => {
                                     <button
                                         type="button"
                                         onClick={handleNext}
-                                        className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-green-200 flex items-center justify-center gap-2"
+                                        className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-green-200 flex items-center justify-center gap-2 auth-submit-btn"
                                     >
                                         Continue <ArrowRight size={18} />
                                     </button>
@@ -302,7 +302,7 @@ export const Register: React.FC = () => {
                                     </button>
                                     <button
                                         type="submit"
-                                        className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-green-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                        className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-green-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed auth-submit-btn"
                                         disabled={isLoading}
                                     >
                                         {isLoading ? (
@@ -319,7 +319,7 @@ export const Register: React.FC = () => {
                         )}
                     </form>
                 </div>
-                <div className="bg-gray-50 p-6 text-center border-t border-gray-100">
+                <div className="bg-gray-50 p-6 text-center border-t border-gray-100 auth-footer">
                     <p className="text-sm text-gray-600">
                         Already have an account?{' '}
                         <Link to="/login" className="font-bold text-green-600 hover:text-green-700 hover:underline">

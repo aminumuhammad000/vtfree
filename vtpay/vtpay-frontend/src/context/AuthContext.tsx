@@ -12,6 +12,7 @@ interface User {
     bvn?: string;
     idCardPath?: string;
     businessName?: string;
+    role: 'user' | 'admin';
 }
 
 interface AuthContextType {

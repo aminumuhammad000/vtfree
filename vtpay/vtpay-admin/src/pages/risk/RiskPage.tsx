@@ -5,9 +5,9 @@ import toast from 'react-hot-toast';
 interface RiskRule {
     _id: string;
     name: string;
-    type: 'velocity' | 'amount_limit' | 'blacklist' | 'whitelist' | 'geo_block';
+    type: 'overload' | 'network_issue' | 'rate_limit' | 'api_error' | 'database_slow' | 'system_health';
     condition: string;
-    action: 'block' | 'flag' | 'review';
+    action: 'warn' | 'alert' | 'escalate';
     priority: number;
     status: 'active' | 'inactive';
     hits: number;
@@ -76,9 +76,9 @@ const RiskPage: React.FC = () => {
 
     const getActionBadge = (action: string) => {
         const badges = {
-            block: 'bg-red-100 text-red-800',
-            flag: 'bg-yellow-100 text-yellow-800',
-            review: 'bg-blue-100 text-blue-800',
+            warn: 'bg-yellow-100 text-yellow-800',
+            alert: 'bg-orange-100 text-orange-800',
+            escalate: 'bg-red-100 text-red-800',
         };
         return (
             <span className={`px-2 py-1 text-xs font-medium rounded-full ${badges[action as keyof typeof badges]}`}>
@@ -88,45 +88,45 @@ const RiskPage: React.FC = () => {
     };
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-4 md:p-6 space-y-6">
             {/* Header */}
-            <div className="flex justify-between items-start">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Risk Management</h1>
-                    <p className="text-sm text-slate-500 mt-1">Configure fraud detection and risk controls</p>
+                    <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900">System Health & Warnings</h1>
+                    <p className="text-xs md:text-sm text-slate-500 mt-1">Monitor system warnings for overloading, network issues & errors</p>
                 </div>
                 <button
                     onClick={() => setShowCreateModal(true)}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                    className="w-full sm:w-auto px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium shadow-sm active:scale-95"
                 >
-                    + Add Risk Rule
+                    + Add Warning Rule
                 </button>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <p className="text-sm font-medium text-slate-500">Active Rules</p>
-                    <h3 className="text-2xl font-bold text-slate-900 mt-1">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <p className="text-xs md:text-sm font-medium text-slate-500">Active Rules</p>
+                    <h3 className="text-lg md:text-2xl font-bold text-slate-900 mt-1">
                         {rules.filter(r => r.status === 'active').length}
                     </h3>
                 </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <p className="text-sm font-medium text-slate-500">Flagged Total</p>
-                    <h3 className="text-2xl font-bold text-yellow-600 mt-1">
-                        {rules.filter(r => r.action === 'flag').reduce((sum, r) => sum + (r.hits || 0), 0)}
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <p className="text-xs md:text-sm font-medium text-slate-500">Warnings</p>
+                    <h3 className="text-lg md:text-2xl font-bold text-yellow-600 mt-1">
+                        {rules.filter(r => r.action === 'warn').reduce((sum, r) => sum + (r.hits || 0), 0)}
                     </h3>
                 </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <p className="text-sm font-medium text-slate-500">Blocked Total</p>
-                    <h3 className="text-2xl font-bold text-red-600 mt-1">
-                        {rules.filter(r => r.action === 'block').reduce((sum, r) => sum + (r.hits || 0), 0)}
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <p className="text-xs md:text-sm font-medium text-slate-500">Alerts</p>
+                    <h3 className="text-lg md:text-2xl font-bold text-orange-600 mt-1">
+                        {rules.filter(r => r.action === 'alert').reduce((sum, r) => sum + (r.hits || 0), 0)}
                     </h3>
                 </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <p className="text-sm font-medium text-slate-500">Under Review</p>
-                    <h3 className="text-2xl font-bold text-blue-600 mt-1">
-                        {rules.filter(r => r.action === 'review').reduce((sum, r) => sum + (r.hits || 0), 0)}
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+                    <p className="text-xs md:text-sm font-medium text-slate-500">Escalated</p>
+                    <h3 className="text-lg md:text-2xl font-bold text-red-600 mt-1">
+                        {rules.filter(r => r.action === 'escalate').reduce((sum, r) => sum + (r.hits || 0), 0)}
                     </h3>
                 </div>
             </div>
@@ -134,7 +134,7 @@ const RiskPage: React.FC = () => {
             {/* Rules Table */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="p-4 border-b border-slate-200">
-                    <h3 className="text-lg font-semibold text-slate-900">Risk Rules</h3>
+                    <h3 className="text-base md:text-lg font-semibold text-slate-900">System Warning Rules</h3>
                 </div>
                 {loading ? (
                     <div className="p-8 text-center">
@@ -143,60 +143,62 @@ const RiskPage: React.FC = () => {
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full">
+                        <table className="w-full min-w-[800px] md:min-w-full">
                             <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Rule Name</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Type</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Action</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Priority</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Hits</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Rule Name</th>
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Type</th>
+                                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Action</th>
+                                    <th className="hidden md:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Priority</th>
+                                    <th className="hidden lg:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Hits</th>
+                                    <th className="hidden sm:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-slate-200">
                                 {rules.map((rule) => (
                                     <tr key={rule._id} className="hover:bg-slate-50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm font-medium text-slate-900">{rule.name}</div>
                                             <div className="text-xs text-slate-500">{rule.condition}</div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 capitalize">
+                                        <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-slate-600 capitalize">
                                             {rule.type.replace('_', ' ')}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                             {getActionBadge(rule.action)}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                                        <td className="hidden md:table-cell px-4 md:px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                                             {rule.priority}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                                        <td className="hidden lg:table-cell px-4 md:px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                                             {rule.hits}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="hidden sm:table-cell px-4 md:px-6 py-4 whitespace-nowrap">
                                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${rule.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                                                 }`}>
                                                 {rule.status.toUpperCase()}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedRule(rule);
-                                                    setFormData(rule);
-                                                    setShowCreateModal(true);
-                                                }}
-                                                className="text-green-600 hover:text-green-900 mr-3"
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(rule._id)}
-                                                className="text-red-600 hover:text-red-900"
-                                            >
-                                                Delete
-                                            </button>
+                                        <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <div className="flex justify-end gap-3">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedRule(rule);
+                                                        setFormData(rule);
+                                                        setShowCreateModal(true);
+                                                    }}
+                                                    className="text-green-600 hover:text-green-900"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(rule._id)}
+                                                    className="text-red-600 hover:text-red-900 hidden sm:inline"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -213,7 +215,7 @@ const RiskPage: React.FC = () => {
                         <div className="p-6 border-b border-slate-200">
                             <div className="flex justify-between items-start">
                                 <h2 className="text-xl font-bold text-slate-900">
-                                    {selectedRule ? 'Edit Risk Rule' : 'Create Risk Rule'}
+                                    {selectedRule ? 'Edit Warning Rule' : 'Create Warning Rule'}
                                 </h2>
                                 <button
                                     onClick={() => {
@@ -240,31 +242,32 @@ const RiskPage: React.FC = () => {
                                     placeholder="e.g., High Velocity Check"
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Warning Type</label>
                                     <select
-                                        value={formData.type || 'velocity'}
+                                        value={formData.type || 'overload'}
                                         onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
                                         className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                                     >
-                                        <option value="velocity">Velocity</option>
-                                        <option value="amount_limit">Amount Limit</option>
-                                        <option value="blacklist">Blacklist</option>
-                                        <option value="whitelist">Whitelist</option>
-                                        <option value="geo_block">Geo Block</option>
+                                        <option value="overload">System Overload</option>
+                                        <option value="network_issue">Network Issue</option>
+                                        <option value="rate_limit">Rate Limit Exceeded</option>
+                                        <option value="api_error">API Error</option>
+                                        <option value="database_slow">Database Slow</option>
+                                        <option value="system_health">System Health</option>
                                     </select>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Action</label>
                                     <select
-                                        value={formData.action || 'flag'}
+                                        value={formData.action || 'warn'}
                                         onChange={(e) => setFormData({ ...formData, action: e.target.value as any })}
                                         className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                                     >
-                                        <option value="flag">Flag</option>
-                                        <option value="review">Review</option>
-                                        <option value="block">Block</option>
+                                        <option value="warn">Warn</option>
+                                        <option value="alert">Alert</option>
+                                        <option value="escalate">Escalate</option>
                                     </select>
                                 </div>
                             </div>
@@ -276,10 +279,10 @@ const RiskPage: React.FC = () => {
                                     value={formData.condition || ''}
                                     onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
                                     className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    placeholder="e.g., > 5 transactions in 1 hour"
+                                    placeholder="e.g., CPU > 80% for 5 minutes"
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Priority</label>
                                     <input

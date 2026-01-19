@@ -47,10 +47,10 @@ export const Login: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-green-50 p-4">
-            <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
-                <div className="p-8">
-                    <div className="text-center mb-8">
+        <div className="min-h-screen flex items-center justify-center bg-green-50 p-4 auth-container">
+            <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden auth-wrapper">
+                <div className="p-8 auth-card">
+                    <div className="text-center mb-8 auth-brand">
                         <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Welcome Back</h2>
                         <p className="text-sm text-gray-500 mt-2">Sign in to access your dashboard</p>
                     </div>
@@ -62,7 +62,7 @@ export const Login: React.FC = () => {
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-6 auth-form">
                         <div>
                             <label className="block text-sm font-bold text-gray-900 mb-2">Email Address</label>
                             <div className="relative">
@@ -118,7 +118,7 @@ export const Login: React.FC = () => {
 
                         <button
                             type="submit"
-                            className="w-full py-3.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-green-200 hover:shadow-green-300 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                            className="w-full py-3.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-green-200 hover:shadow-green-300 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed auth-submit-btn"
                             disabled={isLoading}
                         >
                             {isLoading ? (
@@ -132,7 +132,7 @@ export const Login: React.FC = () => {
                         </button>
                     </form>
                 </div>
-                <div className="bg-gray-50 p-6 text-center border-t border-gray-100">
+                <div className="bg-gray-50 p-6 text-center border-t border-gray-100 auth-footer">
                     <p className="text-sm text-gray-600">
                         Don't have an account?{' '}
                         <Link to="/register" className="font-bold text-green-600 hover:text-green-700 hover:underline">
