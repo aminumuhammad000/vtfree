@@ -14,6 +14,454 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
+  Platform,
+} from 'react-native';
+import { authService } from '@/services/auth.service';
+import { userService } from '@/services/user.service';
+import { walletService } from '@/services/wallet.service';
+import { useAuth } from '@/context/AuthContext';
+import * as Clipboard from 'expo-clipboard';
+
+// Helper to generate DiceBear Avatar URL
+const getAvatarUrl = (seed: string) => {
+  return `https://api.dicebear.com/9.x/micah/png?seed=${encodeURIComponent(seed)}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
+};
+
+export default function ProfileScreen() {
+  const { isDark } = useTheme();
+  const router = useRouter();
+  const { profileData, getFullName } = useProfile();
+  const [user, setUser] = useState<any>(null);
+  const [wallet, setWallet] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const { logout } = useAuth();
+
+  useEffect(() => {
+    loadAllData();
+  }, []);
+
+  const loadAllData = async () => {
+    try {
+      setLoading(true);
+      await Promise.all([
+        loadUserProfile(),
+        loadWalletData(),
+      ]);
+    } catch (error: any) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadUserProfile = async () => {
+    try {
+      const response = await userService.getProfile();
+      if (response.success) {
+        setUser(response.data);
+      }
+    } catch (error: any) {
+      console.error('Error loading profile:', error);
+      const userData = await authService.getCurrentUser();
+      setUser(userData);
+    }
+  };
+
+  const loadWalletData = async () => {
+    try {
+      const response = await walletService.getWallet();
+      if (response.success) {
+        setWallet(response.data);
+      }
+    } catch (error: any) {
+      console.error('Error loading wallet:', error);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadAllData();
+    setRefreshing(false);
+  };
+
+  const handleCopyReferral = async (code: string) => {
+    await Clipboard.setStringAsync(code);
+    Alert.alert('Copied!', 'Referral code copied to clipboard');
+  };
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/login');
+          },
+        },
+      ]
+    );
+  }
+
+  const theme = {
+    primary: '#0A2540',
+    accent: '#FF9F43',
+    backgroundLight: '#F3F4F6', // Softer gray
+    backgroundDark: '#111921',
+    textHeadings: '#1E293B',
+    textBody: '#64748B',
+    cardLight: '#FFFFFF',
+    cardDark: '#1F2937',
+  };
+
+  const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
+  const cardBg = isDark ? theme.cardDark : theme.cardLight;
+  const textColor = isDark ? '#FFFFFF' : theme.textHeadings;
+  const textBodyColor = isDark ? '#9CA3AF' : theme.textBody;
+
+  // Use email or name as seed for consistent avatar
+  const avatarSeed = user?.email || user?.first_name || 'default';
+  const avatarUrl = getAvatarUrl(avatarSeed);
+
+  const menuItems = [
+    { icon: 'person', label: 'Personal Information', route: '/edit-profile', color: '#3B82F6' },
+    { icon: 'shield-checkmark', label: 'Security & Privacy', route: '/security', color: '#10B981' },
+    { icon: 'notifications', label: 'Notifications', route: '/notifications-settings', color: '#F59E0B' },
+    { icon: 'help-buoy', label: 'Help & Support', route: '/help-support', color: '#6366F1' },
+    { icon: 'information-circle', label: 'About App', route: '/about', color: '#8B5CF6' },
+  ];
+
+  const handleMenuItemPress = (route: string) => {
+    if (route) router.push(route as any);
+  };
+
+  return (
+    <View style={[styles.container, { backgroundColor: bgColor }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+
+      {/* Curved Header Background */}
+      <View style={[styles.headerBackground, { backgroundColor: isDark ? theme.cardDark : theme.primary }]} />
+
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />
+        }
+      >
+        {/* Header Title */}
+        <View style={styles.headerTop}>
+          <Text style={styles.headerTitle}>My Profile</Text>
+          <TouchableOpacity
+            style={styles.settingsBtn}
+            onPress={() => router.push('/settings')}
+          >
+            <Ionicons name="settings-outline" size={24} color="#FFF" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Profile Card (Floating) */}
+        <View style={[styles.profileCard, { backgroundColor: cardBg }]}>
+          <View style={styles.avatarContainer}>
+            <Image
+              source={{ uri: profileData?.profileImage || avatarUrl }}
+              style={styles.avatar}
+            />
+            <TouchableOpacity style={styles.editAvatarBadge} onPress={() => router.push('/edit-profile')}>
+              <Ionicons name="pencil" size={12} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={[styles.userName, { color: textColor }]}>
+            {profileData ? getFullName() : (user ? `${user.first_name} ${user.last_name}` : 'Welcome!')}
+          </Text>
+          <Text style={[styles.userEmail, { color: textBodyColor }]}>
+            {profileData?.email || user?.email || 'Sign in to access profile'}
+          </Text>
+
+          {user?.referral_code && (
+            <TouchableOpacity style={styles.referralChip} onPress={() => handleCopyReferral(user.referral_code)}>
+              <Text style={styles.referralText}>Ref: {user.referral_code}</Text>
+              <Ionicons name="copy-outline" size={12} color={theme.accent} />
+            </TouchableOpacity>
+          )}
+
+          {/* Stats Row */}
+          <View style={styles.statsContainer}>
+            <View style={[styles.statItem, { backgroundColor: isDark ? '#374151' : '#F1F5F9' }]}>
+              <Text style={[styles.statLabel, { color: textBodyColor }]}>Wallet</Text>
+              <Text style={[styles.statValue, { color: theme.primary }]}>₦{wallet?.balance?.toLocaleString() || '0'}</Text>
+            </View>
+            <View style={[styles.statItem, { backgroundColor: isDark ? '#374151' : '#F1F5F9' }]}>
+              <Text style={[styles.statLabel, { color: textBodyColor }]}>Status</Text>
+              <Text style={[styles.statValue, { color: user?.kyc_status === 'verified' ? '#10B981' : '#F59E0B' }]}>
+                {user?.kyc_status ? user.kyc_status.toUpperCase() : 'N/A'}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Menu Section */}
+        <View style={styles.menuContainer}>
+          <Text style={[styles.sectionTitle, { color: textBodyColor }]}>Account Settings</Text>
+          <View style={[styles.menuList, { backgroundColor: cardBg }]}>
+            {menuItems.map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[styles.menuItem, index !== menuItems.length - 1 && { borderBottomWidth: 1, borderBottomColor: isDark ? '#374151' : '#F1F5F9' }]}
+                activeOpacity={0.7}
+                onPress={() => handleMenuItemPress(item.route)}
+              >
+                <View style={[styles.iconBox, { backgroundColor: `${item.color}20` }]}>
+                  <Ionicons name={item.icon as any} size={20} color={item.color} />
+                </View>
+                <Text style={[styles.menuLabel, { color: textColor }]}>{item.label}</Text>
+                <Ionicons name="chevron-forward" size={18} color={textBodyColor} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Admin Section */}
+        {['owner', 'admin'].includes(profileData?.role || user?.role) && (
+          <View style={styles.menuContainer}>
+            <Text style={[styles.sectionTitle, { color: textBodyColor }]}>Admin Panel</Text>
+            <View style={[styles.menuList, { backgroundColor: cardBg }]}>
+              <TouchableOpacity
+                style={[styles.menuItem, { borderBottomWidth: 1, borderBottomColor: isDark ? '#374151' : '#F1F5F9' }]}
+                onPress={() => router.push('/admin-users')}
+              >
+                <View style={[styles.iconBox, { backgroundColor: '#EF444420' }]}>
+                  <Ionicons name="people" size={20} color="#EF4444" />
+                </View>
+                <Text style={[styles.menuLabel, { color: textColor }]}>Manage Users</Text>
+                <Ionicons name="chevron-forward" size={18} color={textBodyColor} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => router.push('/admin-notifications')}
+              >
+                <View style={[styles.iconBox, { backgroundColor: '#EF444420' }]}>
+                  <Ionicons name="megaphone" size={20} color="#EF4444" />
+                </View>
+                <Text style={[styles.menuLabel, { color: textColor }]}>Broadcasts</Text>
+                <Ionicons name="chevron-forward" size={18} color={textBodyColor} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Logout */}
+        <TouchableOpacity
+          style={styles.logoutBtn}
+          onPress={handleLogout}
+        >
+          <Text style={styles.logoutText}>Log Out</Text>
+        </TouchableOpacity>
+
+        <Text style={[styles.versionText, { color: textBodyColor }]}>v1.0.0 • Made with VTFree</Text>
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  headerBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 180,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 60,
+    marginBottom: 20,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#FFF',
+  },
+  settingsBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  profileCard: {
+    marginHorizontal: 20,
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    elevation: 8,
+    marginTop: 10,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 4,
+    borderColor: '#FFF',
+    backgroundColor: '#E2E8F0',
+  },
+  editAvatarBadge: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#0A2540',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFF',
+  },
+  userName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  userEmail: {
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  referralChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 159, 67, 0.15)',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    gap: 6,
+    marginBottom: 24,
+  },
+  referralText: {
+    fontSize: 12,
+    color: '#FF9F43',
+    fontWeight: '600',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+  },
+  statItem: {
+    flex: 1,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+  },
+  statLabel: {
+    fontSize: 12,
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  menuContainer: {
+    marginTop: 24,
+    paddingHorizontal: 20,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 12,
+    marginLeft: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  menuList: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 16,
+  },
+  iconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  menuLabel: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  logoutBtn: {
+    marginHorizontal: 20,
+    marginTop: 32,
+    paddingVertical: 18,
+    borderRadius: 16,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+  },
+  logoutText: {
+    color: '#EF4444',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  versionText: {
+    textAlign: 'center',
+    marginTop: 24,
+    fontSize: 12,
+  },
+});
+import { useTheme } from '@/components/ThemeContext';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useState, useEffect } from 'react';
+import {
+  Image,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  Alert,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { authService } from '@/services/auth.service';
 import { userService } from '@/services/user.service';
