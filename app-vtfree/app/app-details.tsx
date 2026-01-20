@@ -9,12 +9,24 @@ import { AppService } from '../services/app.service';
 import { useAuth } from '../context/AuthContext';
 import { BASE_URL } from '../services/api';
 
+import { BuildProgressModal } from '../components/BuildProgressModal';
+
 export default function AppDetailsScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
     const { token } = useAuth(); // Get token
 
     const [isBuilding, setIsBuilding] = React.useState(false);
+
+    // Build Progress State
+    const [showBuildModal, setShowBuildModal] = React.useState(false);
+    const [buildStage, setBuildStage] = React.useState('Initializing...');
+    const [buildProgress, setBuildProgress] = React.useState(0);
+    const [buildStatus, setBuildStatus] = React.useState<'not_started' | 'building' | 'completed' | 'failed'>('not_started');
+    const [apkLink, setApkLink] = React.useState<string | undefined>(undefined);
+    const [driveLink, setDriveLink] = React.useState<string | undefined>(undefined);
+
+    const pollingRef = React.useRef<NodeJS.Timeout | null>(null);
 
     // Determine color - handle both string and array from params
     const colorParam = Array.isArray(params.color) ? params.color[0] : params.color;
@@ -35,7 +47,42 @@ export default function AppDetailsScreen() {
         if (params.appId) {
             fetchAppDetails(params.appId as string);
         }
+        return () => stopPolling();
     }, [params.appId]);
+
+    const stopPolling = () => {
+        if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+        }
+    };
+
+    const startPolling = () => {
+        stopPolling();
+        pollingRef.current = setInterval(async () => {
+            try {
+                const response = await AppService.getAppDetails(params.appId as string);
+                if (response.success) {
+                    const app = response.data.app;
+                    if (app.build_progress) setBuildProgress(app.build_progress);
+                    if (app.build_stage) setBuildStage(app.build_stage);
+
+                    // Allow build status to update
+                    if (app.build_status?.android === 'completed') {
+                        setBuildStatus('completed');
+                        setApkLink(app.download_links?.android);
+                        setDriveLink(app.download_links?.android); // Use drive link as valid link
+                        stopPolling();
+                    } else if (app.build_status?.android === 'failed') {
+                        setBuildStatus('failed');
+                        stopPolling();
+                    }
+                }
+            } catch (e) {
+                console.log('Polling error', e);
+            }
+        }, 2000);
+    };
 
     const fetchAppDetails = async (id: string) => {
         try {
@@ -60,18 +107,37 @@ export default function AppDetailsScreen() {
 
     const handleBuildApk = async () => {
         setIsBuilding(true);
+        setShowBuildModal(true);
+        setBuildStatus('building');
+        setBuildProgress(0);
+        setBuildStage('Starting build process...');
+
+        startPolling();
+
         try {
+            // This request will hang until build completes, but polling runs in parallel
             const response = await AppService.buildApp(params.appId as string);
+
+            // Just in case polling missed it or race condition
             if (response.success) {
-                Alert.alert('Success', 'APK built successfully! You can find it in the output folder.');
+                setBuildStatus('completed');
+                setBuildProgress(100);
+                if (response.driveLink) setDriveLink(response.driveLink);
             } else {
-                Alert.alert('Error', 'Build failed: ' + response.message);
+                setBuildStatus('failed');
             }
         } catch (error: any) {
-            Alert.alert('Error', 'Build failed: ' + error.message);
+            // Only mark failed if not already completed (e.g. timeout)
+            setBuildStatus(prev => prev === 'completed' ? prev : 'failed');
+            Alert.alert('Error', 'Build request ended: ' + error.message);
         } finally {
             setIsBuilding(false);
+            stopPolling();
         }
+    };
+
+    const handleCloseModal = () => {
+        setShowBuildModal(false);
     };
 
     const handleDownloadSource = () => {
@@ -239,6 +305,16 @@ export default function AppDetailsScreen() {
 
                 <View style={{ height: 40 }} />
             </ScrollView>
+
+            <BuildProgressModal
+                visible={showBuildModal}
+                stage={buildStage}
+                progress={buildProgress}
+                status={buildStatus}
+                onClose={handleCloseModal}
+                apkUrl={apkLink}
+                driveLink={driveLink}
+            />
         </View>
     );
 }

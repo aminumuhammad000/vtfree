@@ -76,6 +76,7 @@
     "express-rate-limit": "^8.2.1",
     "express-validator": "^7.3.0",
     "fs-extra": "^11.3.3",
+    "googleapis": "^170.0.0",
     "helmet": "^8.1.0",
     "joi": "^18.0.1",
     "jsonwebtoken": "^9.0.2",

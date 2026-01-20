@@ -87,7 +87,7 @@ VTfreeUserSchema.pre('save', function (next) {
 });
 
 // Index for faster queries
-VTfreeUserSchema.index({ email: 1 });
+
 VTfreeUserSchema.index({ status: 1 });
 
 export default mongoose.model<IVTfreeUser>('VTfreeUser', VTfreeUserSchema);

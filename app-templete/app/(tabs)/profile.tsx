@@ -131,11 +131,11 @@ export default function ProfileScreen() {
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      
+
       {/* Header */}
       <View style={[styles.header, { backgroundColor: bgColor }]}>
         <Text style={[styles.headerTitle, { color: textColor }]}>Profile</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.settingsBtn}
           onPress={() => router.push('/settings')}
         >
@@ -149,87 +149,117 @@ export default function ProfileScreen() {
           <Text style={[styles.loadingText, { color: textBodyColor }]}>Loading...</Text>
         </View>
       ) : (
-      <ScrollView 
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={theme.primary}
-          />
-        }
-      >
-        {/* Profile Card */}
-        <View style={[styles.profileCard, { backgroundColor: cardBg }]}>
-          <View style={styles.profilePic}>
-            <Image
-              source={{ uri: profileData?.profileImage || user?.profile_image || 'https://via.placeholder.com/150' }}
-              style={styles.profileImage}
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.primary}
             />
-          </View>
-          <Text style={[styles.profileName, { color: textColor }]}>
-            {profileData ? getFullName() : (user ? `${user.first_name} ${user.last_name}` : 'Loading...')}
-          </Text>
-          <Text style={[styles.profileEmail, { color: textBodyColor }]}>
-            {profileData?.email || user?.email || ''}
-          </Text>
-          {user?.phone_number && (
-            <Text style={[styles.profilePhone, { color: textBodyColor }]}>
-              {user.phone_number}
-            </Text>
-          )}
-          <TouchableOpacity 
-            style={[styles.editButton, { backgroundColor: theme.primary }]}
-            onPress={() => router.push('/edit-profile')}
-          >
-            <Text style={styles.editButtonText}>Edit Profile</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Menu Items */}
-        <View style={styles.menuSection}>
-          {menuItems.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[styles.menuItem, { backgroundColor: cardBg }]}
-              activeOpacity={0.7}
-              onPress={() => handleMenuItemPress(item.route)}
-            >
-              <View style={styles.menuItemLeft}>
-                <Ionicons name={item.icon as any} size={24} color={isDark ? '#FFFFFF' : theme.primary} />
-                <Text style={[styles.menuItemLabel, { color: textColor }]}>{item.label}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={textBodyColor} />
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Logout Button */}
-        <TouchableOpacity 
-          style={[styles.logoutButton, { backgroundColor: '#EF4444' }]}
-          onPress={handleLogout}
+          }
         >
-          <Ionicons name="log-out-outline" size={24} color="#FFFFFF" />
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
-
-        {/* Account Stats */}
-        <View style={[styles.statsCard, { backgroundColor: cardBg }]}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: textColor }]}>₦{wallet?.balance?.toLocaleString() || '0'}</Text>
-            <Text style={[styles.statLabel, { color: textBodyColor }]}>Wallet Balance</Text>
+          {/* Profile Card */}
+          <View style={[styles.profileCard, { backgroundColor: cardBg }]}>
+            <View style={styles.profilePic}>
+              <Image
+                source={{ uri: profileData?.profileImage || user?.profile_image || 'https://via.placeholder.com/150' }}
+                style={styles.profileImage}
+              />
+            </View>
+            <Text style={[styles.profileName, { color: textColor }]}>
+              {profileData ? getFullName() : (user ? `${user.first_name} ${user.last_name}` : 'Loading...')}
+            </Text>
+            <Text style={[styles.profileEmail, { color: textBodyColor }]}>
+              {profileData?.email || user?.email || ''}
+            </Text>
+            {user?.phone_number && (
+              <Text style={[styles.profilePhone, { color: textBodyColor }]}>
+                {user.phone_number}
+              </Text>
+            )}
+            <TouchableOpacity
+              style={[styles.editButton, { backgroundColor: theme.primary }]}
+              onPress={() => router.push('/edit-profile')}
+            >
+              <Text style={styles.editButtonText}>Edit Profile</Text>
+            </TouchableOpacity>
           </View>
-          <View style={[styles.statDivider, { backgroundColor: textBodyColor }]} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: textColor }]}>{user?.kyc_status || 'Not Started'}</Text>
-            <Text style={[styles.statLabel, { color: textBodyColor }]}>KYC Status</Text>
-          </View>
-        </View>
 
-        <View style={{ height: 100 }} />
-      </ScrollView>
+          {/* Menu Items */}
+          <View style={styles.menuSection}>
+            {menuItems.map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[styles.menuItem, { backgroundColor: cardBg }]}
+                activeOpacity={0.7}
+                onPress={() => handleMenuItemPress(item.route)}
+              >
+                <View style={styles.menuItemLeft}>
+                  <Ionicons name={item.icon as any} size={24} color={isDark ? '#FFFFFF' : theme.primary} />
+                  <Text style={[styles.menuItemLabel, { color: textColor }]}>{item.label}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={textBodyColor} />
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Admin Panel - Only for Owners/Admins */}
+          {['owner', 'admin'].includes(profileData?.role || user?.role) && (
+            <View style={styles.menuSection}>
+              <Text style={[styles.sectionHeader, { color: textBodyColor, paddingHorizontal: 16, marginBottom: 8 }]}>Admin Panel</Text>
+              <TouchableOpacity
+                style={[styles.menuItem, { backgroundColor: cardBg }]}
+                activeOpacity={0.7}
+                onPress={() => router.push('/admin-users')}
+              >
+                <View style={styles.menuItemLeft}>
+                  <Ionicons name="people-outline" size={24} color={isDark ? '#FFFFFF' : theme.primary} />
+                  <Text style={[styles.menuItemLabel, { color: textColor }]}>Manage Users</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={textBodyColor} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.menuItem, { backgroundColor: cardBg, marginTop: 12 }]}
+                activeOpacity={0.7}
+                onPress={() => router.push('/admin-notifications')}
+              >
+                <View style={styles.menuItemLeft}>
+                  <Ionicons name="notifications-circle-outline" size={24} color={isDark ? '#FFFFFF' : theme.primary} />
+                  <Text style={[styles.menuItemLabel, { color: textColor }]}>Send Broadcast</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={textBodyColor} />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Logout Button */}
+          <TouchableOpacity
+            style={[styles.logoutButton, { backgroundColor: '#EF4444' }]}
+            onPress={handleLogout}
+          >
+            <Ionicons name="log-out-outline" size={24} color="#FFFFFF" />
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
+
+          {/* Account Stats */}
+          <View style={[styles.statsCard, { backgroundColor: cardBg }]}>
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: textColor }]}>₦{wallet?.balance?.toLocaleString() || '0'}</Text>
+              <Text style={[styles.statLabel, { color: textBodyColor }]}>Wallet Balance</Text>
+            </View>
+            <View style={[styles.statDivider, { backgroundColor: textBodyColor }]} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: textColor }]}>{user?.kyc_status || 'Not Started'}</Text>
+              <Text style={[styles.statLabel, { color: textBodyColor }]}>KYC Status</Text>
+            </View>
+          </View>
+
+          <View style={{ height: 100 }} />
+        </ScrollView>
       )}
     </View>
   );

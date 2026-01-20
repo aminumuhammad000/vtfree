@@ -49,51 +49,21 @@ const SignupScreen = () => {
   const cardBg = isDark ? "#1F2937" : "#FFFFFF";
   const borderColor = isDark ? "#374151" : "#334155";
 
-  const handleNextStep1 = async () => {
-    if (!fullName || !email || !phone_number) {
+  /* REMOVED handleNextStep1 */
+
+  /* REMOVED OTP LOGIC 
+  const handleVerifyEmail = async () => { ... }
+  */
+
+  const handleSignup = async () => {
+    // Validate all fields at once
+    if (!fullName || !email || !phone_number || !password || !pin) {
       Alert.alert("Missing Information", "Please fill in all fields");
       return;
     }
 
     if (!/^[0-9]{10,15}$/.test(phone_number)) {
       Alert.alert("Invalid Phone", "Please enter a valid phone number");
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      // Send OTP to email
-      await authService.resendOTP(phone_number, email);
-      Alert.alert("OTP Sent", `We have sent a verification code to ${email}`);
-      setStep(2);
-    } catch (error) {
-      console.log("OTP Error", error);
-      Alert.alert("Error", error.message || "Failed to send OTP. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleVerifyEmail = async () => {
-    if (!otpCode) {
-      Alert.alert("Validation Error", "Please enter the verification code");
-      return;
-    }
-
-    setIsVerifying(true);
-    try {
-      await authService.verifyOTP(phone_number, otpCode);
-      setStep(3);
-    } catch (error) {
-      Alert.alert("Verification Failed", error.message || "Invalid code");
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
-  const handleSignup = async () => {
-    if (!password || !pin) {
-      Alert.alert("Validation Error", "Please fill in all fields");
       return;
     }
 
@@ -115,6 +85,7 @@ const SignupScreen = () => {
     const last_name = names.slice(1).join(" ") || names[0]; // Fallback if no last name
 
     try {
+      // Direct Register without OTP
       const response = await authService.register({
         email,
         phone_number,
@@ -191,58 +162,7 @@ const SignupScreen = () => {
         </View>
       </View>
 
-      <TouchableOpacity
-        style={[styles.button, styles.primaryButton]}
-        onPress={handleNextStep1}
-      >
-        <Text style={styles.primaryButtonText}>Next</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderStep2 = () => (
-    <View style={styles.formContainer}>
-      <Text style={[styles.stepTitle, { color: textColor }]}>Confirm Email</Text>
-      <Text style={[styles.stepSubtitle, { color: textBodyColor }]}>
-        We've sent a verification code to {email}
-      </Text>
-
-      <View style={styles.inputContainer}>
-        <Text style={[styles.inputLabel, { color: textColor }]}>Verification Code</Text>
-        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
-          <TextInput
-            style={[styles.input, { color: textColor, textAlign: 'center', letterSpacing: 8, fontSize: 24 }]}
-            placeholder="0000"
-            placeholderTextColor={textBodyColor}
-            value={otpCode}
-            onChangeText={setOtpCode}
-            keyboardType="number-pad"
-            maxLength={4}
-            selectionColor="#3B82F6"
-          />
-        </View>
-      </View>
-
-      <TouchableOpacity
-        style={[styles.button, styles.primaryButton]}
-        onPress={handleVerifyEmail}
-        disabled={isVerifying}
-      >
-        {isVerifying ? (
-          <ActivityIndicator color="#FFFFFF" />
-        ) : (
-          <Text style={styles.primaryButtonText}>Verify Email</Text>
-        )}
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => setStep(1)} style={styles.backButton}>
-        <Text style={[styles.linkText, { textAlign: 'center' }]}>Back to details</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderStep3 = () => (
-    <View style={styles.formContainer}>
+      {/* Merged Password Fields */}
       <View style={styles.inputContainer}>
         <Text style={[styles.inputLabel, { color: textColor }]}>Create Password</Text>
         <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
@@ -301,7 +221,7 @@ const SignupScreen = () => {
       </View>
 
       <TouchableOpacity
-        style={[styles.button, styles.primaryButton, isLoading && styles.buttonDisabled]}
+        style={[styles.button, styles.primaryButton]}
         onPress={handleSignup}
         disabled={isLoading}
       >
@@ -311,12 +231,10 @@ const SignupScreen = () => {
           <Text style={styles.primaryButtonText}>Create Account</Text>
         )}
       </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => setStep(2)} style={styles.backButton}>
-        <Text style={[styles.linkText, { textAlign: 'center' }]}>Back</Text>
-      </TouchableOpacity>
     </View>
   );
+
+  /* REMOVED renderStep2 and renderStep3 */
 
   return (
     <KeyboardAvoidingView
@@ -333,25 +251,22 @@ const SignupScreen = () => {
             style={styles.logo}
           />
           <Text style={[styles.title, { color: textColor }]}>
-            {step === 1 ? "Create Account" : step === 2 ? "Verify Email" : "Secure Account"}
+            Create Account
           </Text>
           <Text style={[styles.subtitle, { color: textBodyColor }]}>
-            {step === 1 ? "Fill in your details to get started" : step === 2 ? "Enter the code sent to your email" : "Set up your security credentials"}
+            Fill in your details to get started
           </Text>
         </View>
 
-        {step === 1 && renderStep1()}
-        {step === 2 && renderStep2()}
-        {step === 3 && renderStep3()}
+        {renderStep1()}
+        {/* Step 2 and 3 removed */}
 
-        {step === 1 && (
-          <View style={styles.loginContainer}>
-            <Text style={[styles.loginText, { color: textBodyColor }]}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => router.push("/login")}>
-              <Text style={[styles.loginLink, { color: isDark ? theme.accent : theme.primary }]}>Log In</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        <View style={styles.loginContainer}>
+          <Text style={[styles.loginText, { color: textBodyColor }]}>Already have an account? </Text>
+          <TouchableOpacity onPress={() => router.push("/login")}>
+            <Text style={[styles.loginLink, { color: isDark ? theme.accent : theme.primary }]}>Log In</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
