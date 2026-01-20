@@ -1,17 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Linking, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { notificationsService } from '@/services/notifications.service';
+import { notificationsService } from '../services/notifications.service';
+import { useAuth } from '../context/AuthContext';
 import { useTheme } from './ThemeContext';
 
 export function AppUpdateChecker() {
     const [updateAvailable, setUpdateAvailable] = useState(false);
     const [updateInfo, setUpdateInfo] = useState<{ title: string; message: string; url: string } | null>(null);
     const { isDark } = useTheme();
+    const { isAuthenticated } = useAuth();
 
     useEffect(() => {
-        checkForUpdates();
-    }, []);
+        if (isAuthenticated) {
+            checkForUpdates();
+        }
+    }, [isAuthenticated]);
 
     const checkForUpdates = async () => {
         try {

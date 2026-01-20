@@ -16,6 +16,11 @@ import {
 } from "react-native";
 import { useTheme } from "../components/ThemeContext";
 import { authService } from "../services/auth.service";
+import { useAlert } from "../components/AlertContext";
+
+import { Config } from "../constants/Config";
+import { appService } from "../services/api"; // Added import
+import { useEffect } from "react"; // Added useEffect
 
 const SignupScreen = () => {
   const [step, setStep] = useState(1);
@@ -30,9 +35,25 @@ const SignupScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [branding, setBranding] = useState(null);
 
   const router = useRouter();
   const { isDark } = useTheme();
+
+  // Fetch branding
+  useEffect(() => {
+    const fetchBranding = async () => {
+      try {
+        const response = await appService.getPublicDetails(Config.APP_ID);
+        if (response.data.success) {
+          setBranding(response.data.data.app.branding);
+        }
+      } catch (error) {
+        console.log('Failed to fetch branding:', error);
+      }
+    };
+    fetchBranding();
+  }, []);
 
   const theme = {
     primary: "#0A2540",
@@ -44,31 +65,40 @@ const SignupScreen = () => {
   };
 
   const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
+  const brandColor = branding?.primary_color || (isDark ? theme.accent : theme.primary);
   const textColor = isDark ? "#FFFFFF" : theme.textHeadings;
   const textBodyColor = isDark ? "#9CA3AF" : theme.textBody;
   const cardBg = isDark ? "#1F2937" : "#FFFFFF";
-  const borderColor = isDark ? "#374151" : "#334155";
+  const borderColor = branding?.primary_color || (isDark ? "#374151" : "#334155");
+
+  const { showSuccess, showError, showWarning } = useAlert();
 
   const handleNextStep1 = async () => {
     if (!fullName || !email || !phone_number) {
-      Alert.alert("Missing Information", "Please fill in all fields");
+      showWarning("Please fill in all fields");
       return;
     }
 
-    if (!/^[0-9]{10,15}$/.test(phone_number)) {
-      Alert.alert("Invalid Phone", "Please enter a valid phone number");
+    let formattedPhone = phone_number.trim().replace(/\D/g, '');
+    if (formattedPhone.length === 10) {
+      formattedPhone = '0' + formattedPhone;
+    }
+
+    if (formattedPhone.length !== 11 || !formattedPhone.startsWith('0')) {
+      showWarning("Please enter a valid 11-digit phone number starting with 0");
       return;
     }
+
+    setPhoneNumber(formattedPhone);
 
     setIsLoading(true);
     try {
-      // Send OTP to email
-      await authService.resendOTP(phone_number, email);
-      Alert.alert("OTP Sent", `We have sent a verification code to ${email}`);
+      await authService.resendOTP(formattedPhone, email);
+      showSuccess(`We have sent a verification code to ${email}`);
       setStep(2);
     } catch (error) {
       console.log("OTP Error", error);
-      Alert.alert("Error", error.message || "Failed to send OTP. Please try again.");
+      showError(error.message || "Failed to send OTP. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -76,16 +106,15 @@ const SignupScreen = () => {
 
   const handleVerifyEmail = async () => {
     if (!otpCode) {
-      Alert.alert("Validation Error", "Please enter the verification code");
+      showWarning("Please enter the verification code");
       return;
     }
-
     setIsVerifying(true);
     try {
       await authService.verifyOTP(phone_number, otpCode);
       setStep(3);
     } catch (error) {
-      Alert.alert("Verification Failed", error.message || "Invalid code");
+      showError(error.message || "Invalid code");
     } finally {
       setIsVerifying(false);
     }
@@ -93,27 +122,21 @@ const SignupScreen = () => {
 
   const handleSignup = async () => {
     if (!password || !pin) {
-      Alert.alert("Validation Error", "Please fill in all fields");
+      showWarning("Please fill in all fields");
       return;
     }
-
     if (password.length < 6) {
-      Alert.alert("Validation Error", "Password must be at least 6 characters");
+      showWarning("Password must be at least 6 characters");
       return;
     }
-
     if (!/^\d{4}$/.test(pin)) {
-      Alert.alert("Validation Error", "PIN must be exactly 4 digits");
+      showWarning("PIN must be exactly 4 digits");
       return;
     }
-
     setIsLoading(true);
-
-    // Split full name
     const names = fullName.trim().split(" ");
     const first_name = names[0];
-    const last_name = names.slice(1).join(" ") || names[0]; // Fallback if no last name
-
+    const last_name = names.slice(1).join(" ") || names[0];
     try {
       const response = await authService.register({
         email,
@@ -123,18 +146,16 @@ const SignupScreen = () => {
         last_name,
         referral_code: referral_code || undefined,
         pin,
+        app_id: Config.APP_ID, // Include app_id
       });
-
       if (response.success) {
-        Alert.alert("🎉 Account Created", `Welcome ${first_name}! Your account is ready.`, [
-          { text: "Continue", onPress: () => router.replace("/(tabs)") }
-        ]);
+        showSuccess(`Welcome ${first_name}! Your account is ready.`);
+        setTimeout(() => {
+          router.replace("/(tabs)");
+        }, 1500);
       }
     } catch (error) {
-      Alert.alert(
-        "❌ Signup Failed",
-        error.message || "Registration failed. Please try again."
-      );
+      showError(error.message || "Registration failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -143,8 +164,8 @@ const SignupScreen = () => {
   const renderStep1 = () => (
     <View style={styles.formContainer}>
       <View style={styles.inputContainer}>
-        <Text style={[styles.inputLabel, { color: textColor }]}>Full Name</Text>
-        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+        <Text style={[styles.inputLabel, { color: brandColor }]}>Full Name</Text>
+        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor: borderColor }]}>
           <TextInput
             style={[styles.input, { color: textColor }]}
             placeholder="Enter your full name"
@@ -152,14 +173,13 @@ const SignupScreen = () => {
             value={fullName}
             onChangeText={setFullName}
             autoCapitalize="words"
-            selectionColor="#3B82F6"
+            selectionColor={brandColor}
           />
         </View>
       </View>
-
       <View style={styles.inputContainer}>
-        <Text style={[styles.inputLabel, { color: textColor }]}>Email Address</Text>
-        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+        <Text style={[styles.inputLabel, { color: brandColor }]}>Email Address</Text>
+        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor: borderColor }]}>
           <TextInput
             style={[styles.input, { color: textColor }]}
             placeholder="Enter your email address"
@@ -169,14 +189,13 @@ const SignupScreen = () => {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
-            selectionColor="#3B82F6"
+            selectionColor={brandColor}
           />
         </View>
       </View>
-
       <View style={styles.inputContainer}>
-        <Text style={[styles.inputLabel, { color: textColor }]}>Phone Number</Text>
-        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+        <Text style={[styles.inputLabel, { color: brandColor }]}>Phone Number</Text>
+        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor: borderColor }]}>
           <Text style={[styles.countryCode, { color: textColor }]}>+234</Text>
           <TextInput
             style={[styles.input, { marginLeft: 8, color: textColor }]}
@@ -186,13 +205,12 @@ const SignupScreen = () => {
             onChangeText={setPhoneNumber}
             keyboardType="phone-pad"
             maxLength={15}
-            selectionColor="#3B82F6"
+            selectionColor={brandColor}
           />
         </View>
       </View>
-
       <TouchableOpacity
-        style={[styles.button, styles.primaryButton]}
+        style={[styles.button, styles.primaryButton, { backgroundColor: brandColor }]}
         onPress={handleNextStep1}
       >
         <Text style={styles.primaryButtonText}>Next</Text>
@@ -202,29 +220,27 @@ const SignupScreen = () => {
 
   const renderStep2 = () => (
     <View style={styles.formContainer}>
-      <Text style={[styles.stepTitle, { color: textColor }]}>Confirm Email</Text>
+      <Text style={[styles.stepTitle, { color: brandColor }]}>Confirm Email</Text>
       <Text style={[styles.stepSubtitle, { color: textBodyColor }]}>
         We've sent a verification code to {email}
       </Text>
-
       <View style={styles.inputContainer}>
-        <Text style={[styles.inputLabel, { color: textColor }]}>Verification Code</Text>
-        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+        <Text style={[styles.inputLabel, { color: brandColor }]}>Verification Code</Text>
+        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor: borderColor }]}>
           <TextInput
             style={[styles.input, { color: textColor, textAlign: 'center', letterSpacing: 8, fontSize: 24 }]}
-            placeholder="0000"
+            placeholder="000000"
             placeholderTextColor={textBodyColor}
             value={otpCode}
             onChangeText={setOtpCode}
             keyboardType="number-pad"
-            maxLength={4}
-            selectionColor="#3B82F6"
+            maxLength={6}
+            selectionColor={brandColor}
           />
         </View>
       </View>
-
       <TouchableOpacity
-        style={[styles.button, styles.primaryButton]}
+        style={[styles.button, styles.primaryButton, { backgroundColor: brandColor }]}
         onPress={handleVerifyEmail}
         disabled={isVerifying}
       >
@@ -234,9 +250,8 @@ const SignupScreen = () => {
           <Text style={styles.primaryButtonText}>Verify Email</Text>
         )}
       </TouchableOpacity>
-
       <TouchableOpacity onPress={() => setStep(1)} style={styles.backButton}>
-        <Text style={[styles.linkText, { textAlign: 'center' }]}>Back to details</Text>
+        <Text style={[styles.linkText, { textAlign: 'center', color: brandColor }]}>Back to details</Text>
       </TouchableOpacity>
     </View>
   );
@@ -244,8 +259,8 @@ const SignupScreen = () => {
   const renderStep3 = () => (
     <View style={styles.formContainer}>
       <View style={styles.inputContainer}>
-        <Text style={[styles.inputLabel, { color: textColor }]}>Create Password</Text>
-        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+        <Text style={[styles.inputLabel, { color: brandColor }]}>Create Password</Text>
+        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor: borderColor }]}>
           <TextInput
             style={[styles.input, { color: textColor }]}
             placeholder="Create a password"
@@ -253,7 +268,7 @@ const SignupScreen = () => {
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
-            selectionColor="#3B82F6"
+            selectionColor={brandColor}
           />
           <TouchableOpacity
             style={styles.eyeIcon}
@@ -267,10 +282,9 @@ const SignupScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
-
       <View style={styles.inputContainer}>
-        <Text style={[styles.inputLabel, { color: textColor }]}>Create Transaction PIN</Text>
-        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+        <Text style={[styles.inputLabel, { color: brandColor }]}>Create Transaction PIN</Text>
+        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor: borderColor }]}>
           <TextInput
             style={[styles.input, { color: textColor }]}
             placeholder="Enter 4-digit PIN"
@@ -280,14 +294,13 @@ const SignupScreen = () => {
             keyboardType="number-pad"
             secureTextEntry
             maxLength={4}
-            selectionColor="#3B82F6"
+            selectionColor={brandColor}
           />
         </View>
       </View>
-
       <View style={styles.inputContainer}>
-        <Text style={[styles.inputLabel, { color: textColor }]}>Referral Code (Optional)</Text>
-        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+        <Text style={[styles.inputLabel, { color: brandColor }]}>Referral Code (Optional)</Text>
+        <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor: borderColor }]}>
           <TextInput
             style={[styles.input, { color: textColor }]}
             placeholder="Enter referral code"
@@ -295,13 +308,12 @@ const SignupScreen = () => {
             value={referral_code}
             onChangeText={setReferralCode}
             autoCapitalize="characters"
-            selectionColor="#3B82F6"
+            selectionColor={brandColor}
           />
         </View>
       </View>
-
       <TouchableOpacity
-        style={[styles.button, styles.primaryButton, isLoading && styles.buttonDisabled]}
+        style={[styles.button, styles.primaryButton, isLoading && styles.buttonDisabled, { backgroundColor: brandColor }]}
         onPress={handleSignup}
         disabled={isLoading}
       >
@@ -311,9 +323,8 @@ const SignupScreen = () => {
           <Text style={styles.primaryButtonText}>Create Account</Text>
         )}
       </TouchableOpacity>
-
       <TouchableOpacity onPress={() => setStep(2)} style={styles.backButton}>
-        <Text style={[styles.linkText, { textAlign: 'center' }]}>Back</Text>
+        <Text style={[styles.linkText, { textAlign: 'center', color: brandColor }]}>Back</Text>
       </TouchableOpacity>
     </View>
   );
@@ -329,10 +340,10 @@ const SignupScreen = () => {
       >
         <View style={styles.logoContainer}>
           <Image
-            source={require("../assets/images/ibdatalogo.png")}
+            source={branding?.logo_url ? { uri: branding.logo_url } : require("../assets/images/logo.png")}
             style={styles.logo}
           />
-          <Text style={[styles.title, { color: textColor }]}>
+          <Text style={[styles.title, { color: brandColor }]}>
             {step === 1 ? "Create Account" : step === 2 ? "Verify Email" : "Secure Account"}
           </Text>
           <Text style={[styles.subtitle, { color: textBodyColor }]}>
@@ -348,7 +359,7 @@ const SignupScreen = () => {
           <View style={styles.loginContainer}>
             <Text style={[styles.loginText, { color: textBodyColor }]}>Already have an account? </Text>
             <TouchableOpacity onPress={() => router.push("/login")}>
-              <Text style={[styles.loginLink, { color: isDark ? theme.accent : theme.primary }]}>Log In</Text>
+              <Text style={[styles.loginLink, { color: brandColor }]}>Log In</Text>
             </TouchableOpacity>
           </View>
         )}

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import {
   ActivityIndicator,
@@ -15,6 +15,9 @@ import {
 import { useTheme } from "../components/ThemeContext";
 import CustomAlert from "../components/CustomAlert";
 import { authService } from "../services/auth.service";
+import { appService } from "../services/api";
+
+import { Config } from "../constants/Config";
 
 export default function ForgotPasswordScreen() {
   const { isDark } = useTheme();
@@ -23,6 +26,22 @@ export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [alert, setAlert] = useState({ visible: false, message: "", type: "info" });
+  const [branding, setBranding] = useState(null);
+
+  // Fetch branding
+  useEffect(() => {
+    const fetchBranding = async () => {
+      try {
+        const response = await appService.getPublicDetails(Config.APP_ID);
+        if (response.data.success) {
+          setBranding(response.data.data.app.branding);
+        }
+      } catch (error) {
+        console.log('Failed to fetch branding:', error);
+      }
+    };
+    fetchBranding();
+  }, []);
 
   const showAlert = useCallback((message, type = "info") => {
     setAlert({ visible: true, message, type });
@@ -42,17 +61,17 @@ export default function ForgotPasswordScreen() {
   };
 
   const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
+  const brandColor = branding?.primary_color || (isDark ? theme.accent : theme.primary);
   const textColor = isDark ? "#FFFFFF" : theme.textHeadings;
   const textBodyColor = isDark ? "#9CA3AF" : theme.textBody;
   const cardBg = isDark ? "#1F2937" : "#FFFFFF";
-  const borderColor = isDark ? "#374151" : "#334155";
+  const borderColor = branding?.primary_color || (isDark ? "#374151" : "#334155");
 
   const onSubmit = async () => {
     if (!email) {
       showAlert("Please enter your email address", "error");
       return;
     }
-
     setSubmitting(true);
     try {
       const res = await authService.requestPasswordReset({ email: email.trim().toLowerCase() });
@@ -84,15 +103,18 @@ export default function ForgotPasswordScreen() {
       <KeyboardAvoidingView style={styles.keyboardView} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
           <View style={styles.logoContainer}>
-            <Image source={require("../assets/images/ibdatalogo.png")} style={styles.logo} />
-            <Text style={[styles.title, { color: textColor }]}>Forgot Password</Text>
+            <Image
+              source={branding?.logo_url ? { uri: branding.logo_url } : require("../assets/images/logo.png")}
+              style={styles.logo}
+            />
+            <Text style={[styles.title, { color: brandColor }]}>Forgot Password</Text>
             <Text style={[styles.subtitle, { color: textBodyColor }]}>Enter your email to receive an OTP</Text>
           </View>
 
           <View style={styles.formContainer}>
             <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: textColor }]}>Email</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+              <Text style={[styles.inputLabel, { color: brandColor }]}>Email</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor: borderColor }]}>
                 <TextInput
                   style={[styles.input, { color: textColor }]}
                   placeholder="Enter your email address"
@@ -102,14 +124,14 @@ export default function ForgotPasswordScreen() {
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
-                  selectionColor="#3B82F6"
+                  selectionColor={brandColor}
                 />
               </View>
             </View>
 
             <View style={styles.buttonContainer}>
               <TouchableOpacity
-                style={[styles.button, styles.primaryButton, (submitting || !email) && styles.buttonDisabled]}
+                style={[styles.button, styles.primaryButton, (submitting || !email) && styles.buttonDisabled, { backgroundColor: brandColor }]}
                 onPress={onSubmit}
                 disabled={submitting || !email}
                 activeOpacity={0.8}
@@ -122,7 +144,7 @@ export default function ForgotPasswordScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity style={[styles.button, styles.secondaryButton]} onPress={() => router.replace("/login")}>
-                <Text style={styles.secondaryButtonText}>Back to Sign In</Text>
+                <Text style={[styles.secondaryButtonText, { color: textBodyColor }]}>Back to Sign In</Text>
               </TouchableOpacity>
             </View>
           </View>

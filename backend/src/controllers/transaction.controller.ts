@@ -1,7 +1,7 @@
 // controllers/transaction.controller.ts
 import mongoose from 'mongoose';
 import { Response } from 'express';
-import { Transaction, Wallet, Operator, Plan } from '../models/index.js';
+import { Transaction, Wallet, Operator, Plan, User } from '../models/index.js';
 import { WalletService } from '../services/wallet.service.js';
 import { NotificationService } from '../services/notification.service.js';
 import { ApiResponse } from '../utils/response.js';
@@ -18,6 +18,11 @@ export class TransactionController {
 
       const { type, amount, destination_account, operator_id, plan_id, payment_method } = req.body;
 
+      const user = await User.findById(req.user?.id);
+      if (!user) {
+        return ApiResponse.error(res, 'User not found', 404);
+      }
+
       const wallet = await Wallet.findOne({ user_id: req.user?.id });
       if (!wallet) {
         return ApiResponse.error(res, 'Wallet not found', 404);
@@ -32,6 +37,7 @@ export class TransactionController {
 
       const transaction = await Transaction.create({
         user_id: req.user?.id,
+        app_id: user.app_id,
         wallet_id: wallet._id,
         type,
         amount,

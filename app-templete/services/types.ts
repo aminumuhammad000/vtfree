@@ -21,6 +21,10 @@ export interface User {
   status: 'active' | 'inactive' | 'suspended';
   created_at: string;
   updated_at: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  avatar?: string;
 }
 
 export interface Wallet {
@@ -116,37 +120,37 @@ export interface DashboardStats {
 
 export interface AdminService {
   // Auth
-  adminLogin(credentials: { email: string; password: string }): Promise<AxiosResponse<ApiResponse<{ 
+  adminLogin(credentials: { email: string; password: string }): Promise<AxiosResponse<ApiResponse<{
     token: string;
     admin: AdminUser;
   }>>>;
-  
+
   // Dashboard
   getDashboardStats(): Promise<AxiosResponse<ApiResponse<DashboardStats>>>;
-  
+
   // Users
-  getUsers(params?: { 
-    page?: number; 
-    limit?: number; 
-    search?: string; 
+  getUsers(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
     status?: string;
   }): Promise<AxiosResponse<ApiResponse<PaginatedResponse<AdminUser>>>>;
-  
+
   getUser(id: string): Promise<AxiosResponse<ApiResponse<{ user: AdminUser }>>>;
-  
+
   updateUser(id: string, userData: Partial<User>): Promise<AxiosResponse<ApiResponse<{ user: User }>>>;
-  
+
   updateUserStatus(id: string, status: 'active' | 'inactive' | 'suspended'): Promise<AxiosResponse<ApiResponse>>;
-  
+
   deleteUser(id: string): Promise<AxiosResponse<ApiResponse>>;
-  
+
   // Audit Logs
-  getAuditLogs(params?: { 
-    page?: number; 
-    limit?: number; 
+  getAuditLogs(params?: {
+    page?: number;
+    limit?: number;
     action?: string;
     userId?: string;
   }): Promise<AxiosResponse<ApiResponse<PaginatedResponse<AuditLog>>>>;
-  
+
   deleteAuditLog(id: string): Promise<AxiosResponse<ApiResponse>>;
 }

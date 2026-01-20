@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ActivityIndicator,
@@ -15,6 +15,9 @@ import {
 import { useTheme } from "../components/ThemeContext";
 import CustomAlert from "../components/CustomAlert";
 import { authService } from "../services/auth.service";
+import { appService } from "../services/api";
+
+import { Config } from "../constants/Config";
 
 export default function VerifyOTPScreen() {
   const { isDark } = useTheme();
@@ -26,6 +29,22 @@ export default function VerifyOTPScreen() {
   const [otp, setOtp] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [alert, setAlert] = useState({ visible: false, message: "", type: "info" });
+  const [branding, setBranding] = useState(null);
+
+  // Fetch branding
+  useEffect(() => {
+    const fetchBranding = async () => {
+      try {
+        const response = await appService.getPublicDetails(Config.APP_ID);
+        if (response.data.success) {
+          setBranding(response.data.data.app.branding);
+        }
+      } catch (error) {
+        console.log('Failed to fetch branding:', error);
+      }
+    };
+    fetchBranding();
+  }, []);
 
   const showAlert = useCallback((message, type = "info") => {
     setAlert({ visible: true, message, type });
@@ -45,18 +64,19 @@ export default function VerifyOTPScreen() {
   };
 
   const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
+  const brandColor = branding?.primary_color || (isDark ? theme.accent : theme.primary);
   const textColor = isDark ? "#FFFFFF" : theme.textHeadings;
   const textBodyColor = isDark ? "#9CA3AF" : theme.textBody;
   const cardBg = isDark ? "#1F2937" : "#FFFFFF";
-  const borderColor = isDark ? "#374151" : "#334155";
+  const borderColor = branding?.primary_color || (isDark ? "#374151" : "#334155");
 
   const onVerify = async () => {
     if (!email) {
       showAlert("Missing email. Please go back and enter your email.", "error");
       return;
     }
-    if (!otp || otp.length < 4) {
-      showAlert("Enter the 4-6 digit OTP sent to your email.", "error");
+    if (!otp || otp.length < 6) {
+      showAlert("Enter the 6 digit OTP sent to your email.", "error");
       return;
     }
 
@@ -105,8 +125,11 @@ export default function VerifyOTPScreen() {
       <KeyboardAvoidingView style={styles.keyboardView} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
           <View style={styles.logoContainer}>
-            <Image source={require("../assets/images/ibdatalogo.png")} style={styles.logo} />
-            <Text style={[styles.title, { color: textColor }]}>Verify OTP</Text>
+            <Image
+              source={branding?.logo_url ? { uri: branding.logo_url } : require("../assets/images/logo.png")}
+              style={styles.logo}
+            />
+            <Text style={[styles.title, { color: brandColor }]}>Verify OTP</Text>
             <Text style={[styles.subtitle, { color: textBodyColor }]}>
               Enter the OTP sent to {email || 'your email'}
             </Text>
@@ -114,8 +137,8 @@ export default function VerifyOTPScreen() {
 
           <View style={styles.formContainer}>
             <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: textColor }]}>OTP Code</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+              <Text style={[styles.inputLabel, { color: brandColor }]}>OTP Code</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor: borderColor }]}>
                 <TextInput
                   style={[styles.input, { color: textColor, letterSpacing: 6, textAlign: 'center' }]}
                   placeholder="••••••"
@@ -125,7 +148,7 @@ export default function VerifyOTPScreen() {
                   keyboardType="number-pad"
                   autoCapitalize="none"
                   autoCorrect={false}
-                  selectionColor="#3B82F6"
+                  selectionColor={brandColor}
                   maxLength={6}
                 />
               </View>
@@ -133,7 +156,7 @@ export default function VerifyOTPScreen() {
 
             <View style={styles.buttonContainer}>
               <TouchableOpacity
-                style={[styles.button, styles.primaryButton, (submitting || !otp) && styles.buttonDisabled]}
+                style={[styles.button, styles.primaryButton, (submitting || !otp) && styles.buttonDisabled, { backgroundColor: brandColor }]}
                 onPress={onVerify}
                 disabled={submitting || !otp}
                 activeOpacity={0.8}
@@ -146,7 +169,7 @@ export default function VerifyOTPScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity style={[styles.button, styles.secondaryButton]} onPress={onResend}>
-                <Text style={styles.secondaryButtonText}>Resend OTP</Text>
+                <Text style={[styles.secondaryButtonText, { color: textBodyColor }]}>Resend OTP</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={[styles.button, styles.ghostButton]} onPress={() => router.replace("/login")}>

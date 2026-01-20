@@ -2,6 +2,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from "expo-router";
+import { Config } from "../constants/Config";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -17,6 +18,8 @@ import {
 } from "react-native";
 import CustomAlert from "../components/CustomAlert";
 import { useTheme } from "../components/ThemeContext";
+import { appService } from "../services/api"; // Added import
+
 import { useAuth } from "../context/AuthContext";
 
 const LoginScreen = () => {
@@ -33,18 +36,23 @@ const LoginScreen = () => {
   });
   const [isBiometricSupported, setIsBiometricSupported] = useState(false);
   const [hasSavedCredentials, setHasSavedCredentials] = useState(false);
+  const [branding, setBranding] = useState(null); // Added branding state
   const router = useRouter();
 
-  const showAlert = useCallback((message, type = "info") => {
-    setAlert({
-      visible: true,
-      message,
-      type,
-    });
-  }, []);
-
-  const hideAlert = useCallback(() => {
-    setAlert((prev) => ({ ...prev, visible: false }));
+  // Fetch branding
+  useEffect(() => {
+    const fetchBranding = async () => {
+      try {
+        const response = await appService.getPublicDetails(Config.APP_ID);
+        if (response.data.success) {
+          console.log('Branding fetched:', response.data.data.app.branding);
+          setBranding(response.data.data.app.branding);
+        }
+      } catch (error) {
+        console.log('Failed to fetch branding:', error);
+      }
+    };
+    fetchBranding();
   }, []);
 
   // Check for biometrics and saved credentials
@@ -71,6 +79,18 @@ const LoginScreen = () => {
       router.replace("/(tabs)");
     }
   }, [isAuthenticated]);
+
+  const showAlert = useCallback((message, type = "info") => {
+    setAlert({
+      visible: true,
+      message,
+      type,
+    });
+  }, []);
+
+  const hideAlert = useCallback(() => {
+    setAlert((prev) => ({ ...prev, visible: false }));
+  }, []);
 
   const handleBiometricLogin = async () => {
     try {
@@ -173,10 +193,14 @@ const LoginScreen = () => {
   };
 
   const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
+  // Use branding color if available, otherwise default
+  const brandColor = branding?.primary_color || (isDark ? theme.accent : theme.primary);
+
   const textColor = isDark ? "#FFFFFF" : theme.textHeadings;
   const textBodyColor = isDark ? "#9CA3AF" : theme.textBody;
   const cardBg = isDark ? "#1F2937" : "#FFFFFF";
-  const borderColor = isDark ? "#374151" : "#334155";
+  // Use branding color for border if available
+  const borderColor = branding?.primary_color || (isDark ? "#374151" : "#334155");
 
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
@@ -187,6 +211,16 @@ const LoginScreen = () => {
         onClose={hideAlert}
         duration={5000}
       />
+
+      {/* Full screen loader */}
+      {isLoggingIn && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={brandColor} />
+            <Text style={[styles.loadingText, { color: textColor }]}>Signing in...</Text>
+          </View>
+        </View>
+      )}
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -197,17 +231,19 @@ const LoginScreen = () => {
         >
           <View style={styles.logoContainer}>
             <Image
-              source={require("../assets/images/ibdatalogo.png")}
+              source={branding?.logo_url ? { uri: branding.logo_url } : require("../assets/images/logo.png")}
               style={styles.logo}
             />
-            <Text style={[styles.title, { color: textColor }]}>Welcome Back</Text>
+            {/* Apply brand color to title */}
+            <Text style={[styles.title, { color: brandColor }]}>Welcome Back</Text>
             <Text style={[styles.subtitle, { color: textBodyColor }]}>Sign in to access your account</Text>
           </View>
 
           <View style={styles.formContainer}>
             <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: textColor }]}>Email</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+              {/* Apply brand color to label */}
+              <Text style={[styles.inputLabel, { color: brandColor }]}>Email</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor: borderColor }]}>
                 <TextInput
                   style={[styles.input, { color: textColor }]}
                   placeholder="Enter your email address"
@@ -217,14 +253,15 @@ const LoginScreen = () => {
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
-                  selectionColor="#3B82F6"
+                  selectionColor={brandColor}
                 />
               </View>
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: textColor }]}>Password</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor }]}>
+              {/* Apply brand color to label */}
+              <Text style={[styles.inputLabel, { color: brandColor }]}>Password</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor: borderColor }]}>
                 <TextInput
                   style={[styles.input, { color: textColor }]}
                   placeholder="Enter your password"
@@ -232,7 +269,7 @@ const LoginScreen = () => {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPassword}
-                  selectionColor="#3B82F6"
+                  selectionColor={brandColor}
                 />
                 <TouchableOpacity
                   style={styles.eyeIcon}
@@ -253,6 +290,7 @@ const LoginScreen = () => {
                   styles.button,
                   styles.primaryButton,
                   (isLoggingIn || !email || !password) && styles.buttonDisabled,
+                  { backgroundColor: brandColor } // Apply brand color to button background
                 ]}
                 onPress={handleLogin}
                 disabled={isLoggingIn || !email || !password}
@@ -524,5 +562,35 @@ const styles = StyleSheet.create({
   resendLink: {
     color: "#3B82F6",
     fontWeight: "500",
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  loadingContainer: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: '500',
   },
 });

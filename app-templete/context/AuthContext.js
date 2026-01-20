@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 import { authService } from '../services/auth.service';
+import { userService } from '../services/api';
 
 export const AuthContext = createContext();
 
@@ -19,13 +20,18 @@ export const AuthProvider = ({ children }) => {
           throw new Error('No authentication token found');
         }
 
-        const userData = await authService.getCurrentUser();
-        if (!userData) {
-          throw new Error('Invalid user data');
+        // Validate token by fetching profile
+        const response = await userService.getProfile();
+
+        // Check if response is valid (axios response structure)
+        if (response.data && response.data.success) {
+          const user = response.data.data.user;
+          setUser(user);
+          setIsAuthenticated(true);
+        } else {
+          throw new Error('Invalid token');
         }
 
-        setUser(userData);
-        setIsAuthenticated(true);
       } catch (error) {
         console.log('Auth check failed, forcing logout:', error.message);
         // Clear any invalid auth state

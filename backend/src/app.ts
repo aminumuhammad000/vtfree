@@ -18,6 +18,7 @@ import vtfreeAppRoutes from "./routes/vtfree_app.routes.js";
 import vtfreeWalletRoutes from "./routes/vtfree_wallet.routes.js";
 import appAdminRoutes from "./routes/app_admin.routes.js";
 import superAdminRoutes from "./routes/super_admin.routes.js";
+import publicRoutes from "./routes/public.routes.js";
 
 
 // Import logging middleware
@@ -95,6 +96,7 @@ app.use("/api/v1/vtfree/apps", vtfreeAppRoutes);
 app.use("/api/v1/vtfree/wallet", vtfreeWalletRoutes);
 app.use("/api/v1/app-admin", appAdminRoutes);
 app.use("/api/v1/super-admin", superAdminRoutes);
+app.use("/api/v1/public", publicRoutes);
 
 // Routes
 app.use("/api/auth", authRoutes);
