@@ -8,10 +8,12 @@ export class DisputeController {
         try {
             const { transaction_id, reason } = req.body;
             const user_id = req.user?.id;
+            const app_id = req.user?.app_id;
 
             const dispute = await Dispute.create({
                 transaction_id,
                 user_id,
+                app_id,
                 reason,
                 status: 'open'
             });
@@ -29,6 +31,9 @@ export class DisputeController {
             const skip = (page - 1) * limit;
 
             const filter: any = {};
+            if (req.user?.app_id) {
+                filter.app_id = req.user.app_id;
+            }
             if (req.query.status) filter.status = req.query.status;
 
             if (req.query.search) {
@@ -62,7 +67,12 @@ export class DisputeController {
 
     static async getDisputeById(req: AuthRequest, res: Response) {
         try {
-            const dispute = await Dispute.findById(req.params.id)
+            const query: any = { _id: req.params.id };
+            if (req.user?.app_id) {
+                query.app_id = req.user.app_id;
+            }
+
+            const dispute = await Dispute.findOne(query)
                 .populate('user_id', 'first_name last_name email')
                 .populate('transaction_id')
                 .populate('admin_id', 'first_name last_name');
@@ -86,8 +96,13 @@ export class DisputeController {
                 return ApiResponse.error(res, 'Invalid status', 400);
             }
 
-            const dispute = await Dispute.findByIdAndUpdate(
-                req.params.id,
+            const query: any = { _id: req.params.id };
+            if (req.user?.app_id) {
+                query.app_id = req.user.app_id;
+            }
+
+            const dispute = await Dispute.findOneAndUpdate(
+                query,
                 {
                     status,
                     resolution_notes,

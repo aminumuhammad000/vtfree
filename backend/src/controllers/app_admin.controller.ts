@@ -101,11 +101,17 @@ export const login = async (req: Request, res: Response) => {
 export const getDashboardStats = async (req: Request, res: Response) => {
     try {
         const app_id = (req as any).user.app_id;
+        const userId = (req as any).user.id;
+        const { logger } = await import('../config/bootstrap.js');
+        logger.info(`[DashboardStats] Request from User: ${userId}, App ID: ${app_id}`);
+
+        if (!app_id) {
+            logger.warn(`[DashboardStats] WARNING: No app_id found in token for user ${userId}`);
+        }
+
         // Import models locally to avoid circular dependency issues if any, or just ensure imports are top-level
-        const { User } = await import('../models/user.model.js');
-        const { Transaction } = await import('../models/transaction.model.js');
-
-
+        const User = mongoose.model('User');
+        const Transaction = mongoose.model('Transaction');
 
         // Run aggregations in parallel
         const [
@@ -114,7 +120,8 @@ export const getDashboardStats = async (req: Request, res: Response) => {
             totalTransactions,
             successfulTransactions,
             dataSales,
-            airtimeSales
+            airtimeSales,
+            pendingTransactions
         ] = await Promise.all([
             User.countDocuments({ app_id }),
             User.countDocuments({ app_id, status: 'active' }),
@@ -127,16 +134,28 @@ export const getDashboardStats = async (req: Request, res: Response) => {
             Transaction.aggregate([
                 { $match: { app_id, type: 'airtime_topup', status: 'successful' } },
                 { $group: { _id: null, total: { $sum: '$amount' } } }
-            ])
+            ]),
+            Transaction.countDocuments({ app_id, status: 'pending' })
         ]);
 
-        const stats = {
+        console.log(`[DashboardStats] Results for ${app_id}:`, {
             totalUsers,
             activeUsers,
             totalTransactions,
             successfulTransactions,
             totalDataSales: dataSales[0]?.total || 0,
             totalAirtimeSales: airtimeSales[0]?.total || 0
+        });
+
+        const stats = {
+            app_id, // For debugging
+            totalUsers,
+            activeUsers,
+            totalTransactions,
+            successfulTransactions,
+            totalDataSales: dataSales[0]?.total || 0,
+            totalAirtimeSales: airtimeSales[0]?.total || 0,
+            pendingTransactions
         };
 
         res.json({
@@ -257,6 +276,79 @@ export const deleteAuditLog = async (req: Request, res: Response) => {
         }
 
         res.json({ success: true, message: 'Audit log deleted successfully' });
+    } catch (error: any) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+export const createAdmin = async (req: Request, res: Response) => {
+    try {
+        const { email, first_name, last_name, password, role } = req.body;
+        const app_id = (req as any).user.app_id;
+
+        if (!email || !password) {
+            return res.status(400).json({ success: false, message: 'Email and password are required' });
+        }
+
+        const exists = await AppAdmin.findOne({ app_id, email: email.toLowerCase().trim() });
+        if (exists) {
+            return res.status(400).json({ success: false, message: 'Admin with this email already exists for this app' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        const admin = await AppAdmin.create({
+            app_id,
+            email: email.toLowerCase().trim(),
+            password: hashedPassword,
+            first_name,
+            last_name,
+            role: role || 'admin',
+            status: 'active'
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'Admin created successfully',
+            data: {
+                _id: admin._id,
+                email: admin.email,
+                first_name: admin.first_name,
+                last_name: admin.last_name,
+                role: admin.role,
+                app_id: admin.app_id
+            }
+        });
+    } catch (error: any) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getAllAdmins = async (req: Request, res: Response) => {
+    try {
+        const app_id = (req as any).user.app_id;
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const skip = (page - 1) * limit;
+
+        const admins = await AppAdmin.find({ app_id })
+            .select('-password')
+            .skip(skip)
+            .limit(limit)
+            .sort({ created_at: -1 });
+
+        const total = await AppAdmin.countDocuments({ app_id });
+
+        res.json({
+            success: true,
+            data: admins,
+            pagination: {
+                page,
+                limit,
+                total,
+                pages: Math.ceil(total / limit)
+            }
+        });
     } catch (error: any) {
         res.status(500).json({ success: false, message: error.message });
     }

@@ -13,8 +13,7 @@ import {
     FiShield,
     FiLock,
     FiEye,
-    FiEyeOff,
-    FiChevronRight
+    FiEyeOff
 } from 'react-icons/fi';
 import { deleteConfig, getAllConfigs, updateConfig } from '../api/adminApi';
 import { useToast } from '../hooks/ToastContext';

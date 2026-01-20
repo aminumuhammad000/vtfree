@@ -12,8 +12,14 @@ import {
     FiLink,
     FiZap,
     FiTarget,
-    FiLayout
+    FiLayout,
+    FiUser,
+    FiSearch,
+    FiX,
+    FiCheck
 } from 'react-icons/fi';
+import { getUsers } from '../api/adminApi';
+import { useQuery } from '@tanstack/react-query';
 import * as adminApi from '../api/adminApi';
 import Layout from '../components/Layout';
 import { useToast } from '../hooks/ToastContext';
@@ -73,6 +79,36 @@ export default function Notifications() {
     const [emailMessage, setEmailMessage] = useState('');
     const [isEmailSubmitting, setIsEmailSubmitting] = useState(false);
 
+    // User Selection State
+    const [target, setTarget] = useState<'all' | 'selected'>('all');
+    const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+    const [userSearchTerm, setUserSearchTerm] = useState('');
+    const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+
+    const { data: usersData } = useQuery({
+        queryKey: ['users-for-notification'],
+        queryFn: () => getUsers({ page: 1, limit: 1000 }).then((res: any) => res.data),
+    });
+
+    const users = usersData?.data || [];
+
+    const filteredUsers = React.useMemo(() => {
+        if (!userSearchTerm) return users.slice(0, 10);
+        return users.filter((user: any) =>
+            user.first_name.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+            user.last_name.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+            user.email.toLowerCase().includes(userSearchTerm.toLowerCase())
+        ).slice(0, 10);
+    }, [users, userSearchTerm]);
+
+    const toggleUserSelection = (userId: string) => {
+        setSelectedUserIds(prev =>
+            prev.includes(userId)
+                ? prev.filter(id => id !== userId)
+                : [...prev, userId]
+        );
+    };
+
     const handleTypeSelect = (selectedType: string) => {
         setType(selectedType);
         if (selectedType === 'app_update') {
@@ -96,6 +132,8 @@ export default function Notifications() {
                 message: message.trim(),
                 type,
                 action_link: actionLink.trim() || undefined,
+                target,
+                userIds: target === 'selected' ? selectedUserIds : undefined
             });
 
             if (response.data?.success) {
@@ -127,6 +165,8 @@ export default function Notifications() {
             const response = await adminApi.sendBroadcastEmail({
                 subject: emailSubject.trim(),
                 message: emailMessage.trim(),
+                target,
+                userIds: target === 'selected' ? selectedUserIds : undefined
             });
 
             if (response.data?.success) {
@@ -193,6 +233,126 @@ export default function Notifications() {
                                         </h2>
                                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Draft your broadcast message</p>
                                     </div>
+                                </div>
+
+                                {/* Target Selection */}
+                                <div className="px-8 pt-8 pb-0 space-y-4">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Target Audience</label>
+                                    <div className="flex gap-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => setTarget('all')}
+                                            className={`flex-1 py-3 px-4 rounded-xl border-2 font-bold text-sm transition-all flex items-center justify-center gap-2 ${target === 'all'
+                                                    ? 'border-green-500 bg-green-50 text-green-700'
+                                                    : 'border-slate-100 bg-white text-slate-500 hover:border-slate-200'
+                                                }`}
+                                        >
+                                            <FiTarget className="w-4 h-4" />
+                                            All Users
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setTarget('selected')}
+                                            className={`flex-1 py-3 px-4 rounded-xl border-2 font-bold text-sm transition-all flex items-center justify-center gap-2 ${target === 'selected'
+                                                    ? 'border-green-500 bg-green-50 text-green-700'
+                                                    : 'border-slate-100 bg-white text-slate-500 hover:border-slate-200'
+                                                }`}
+                                        >
+                                            <FiUser className="w-4 h-4" />
+                                            Select Users
+                                        </button>
+                                    </div>
+
+                                    {/* User Search & Selection */}
+                                    {target === 'selected' && (
+                                        <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            <div className="relative">
+                                                <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search by name or email..."
+                                                    value={userSearchTerm}
+                                                    onChange={(e) => {
+                                                        setUserSearchTerm(e.target.value);
+                                                        setIsUserDropdownOpen(true);
+                                                    }}
+                                                    onFocus={() => setIsUserDropdownOpen(true)}
+                                                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-green-500/10 focus:border-green-500 transition-all font-medium text-sm"
+                                                />
+                                                {userSearchTerm && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => { setUserSearchTerm(''); setIsUserDropdownOpen(false); }}
+                                                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-200 rounded-full text-slate-400 transition-colors"
+                                                    >
+                                                        <FiX className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {/* Selected Users Tags */}
+                                            {selectedUserIds.length > 0 && (
+                                                <div className="flex flex-wrap gap-2">
+                                                    {selectedUserIds.map(id => {
+                                                        const user = users.find((u: any) => u._id === id);
+                                                        if (!user) return null;
+                                                        return (
+                                                            <div key={id} className="flex items-center gap-1 pl-3 pr-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
+                                                                <span>{user.first_name} {user.last_name}</span>
+                                                                <button
+                                                                    onClick={() => toggleUserSelection(id)}
+                                                                    className="p-0.5 hover:bg-green-200 rounded-full transition-colors"
+                                                                >
+                                                                    <FiX className="w-3 h-3" />
+                                                                </button>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    <button
+                                                        onClick={() => setSelectedUserIds([])}
+                                                        className="text-[10px] font-bold text-red-500 hover:text-red-600 underline decoration-red-200 underline-offset-2"
+                                                    >
+                                                        Clear All
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {/* Dropdown */}
+                                            {isUserDropdownOpen && (
+                                                <div className="bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden max-h-60 overflow-y-auto">
+                                                    {filteredUsers.length > 0 ? (
+                                                        filteredUsers.map((user: any) => {
+                                                            const isSelected = selectedUserIds.includes(user._id);
+                                                            return (
+                                                                <button
+                                                                    key={user._id}
+                                                                    type="button"
+                                                                    onClick={() => toggleUserSelection(user._id)}
+                                                                    className={`w-full p-3 flex items-center gap-3 text-left transition-colors border-b border-slate-50 last:border-0 ${isSelected ? 'bg-green-50' : 'hover:bg-slate-50'
+                                                                        }`}
+                                                                >
+                                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${isSelected ? 'bg-green-500 text-white' : 'bg-slate-100 text-slate-500'
+                                                                        }`}>
+                                                                        {isSelected ? <FiCheck className="w-4 h-4" /> : user.first_name.charAt(0)}
+                                                                    </div>
+                                                                    <div className="flex-1">
+                                                                        <p className={`text-sm font-bold ${isSelected ? 'text-green-900' : 'text-slate-900'}`}>
+                                                                            {user.first_name} {user.last_name}
+                                                                        </p>
+                                                                        <p className="text-[10px] text-slate-500">{user.email}</p>
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        })
+                                                    ) : (
+                                                        <div className="p-4 text-center text-slate-500 text-xs font-medium">
+                                                            No users found matching "{userSearchTerm}"
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {activeTab === 'notification' ? (

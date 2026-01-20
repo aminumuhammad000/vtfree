@@ -25,7 +25,7 @@ const WalletCredit: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const { data: usersData, isLoading: isLoadingUsers } = useQuery({
+  const { data: usersData } = useQuery({
     queryKey: ['users-for-credit'],
     queryFn: () => getUsers({ page: 1, limit: 1000 }).then((res: any) => res.data),
   });
@@ -33,12 +33,12 @@ const WalletCredit: React.FC = () => {
   const users = usersData?.data || [];
 
   const filteredUsers = useMemo(() => {
-    if (!searchTerm) return [];
+    if (!searchTerm) return users.slice(0, 10);
     return users.filter((user: any) =>
       user.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    ).slice(0, 5);
+    ).slice(0, 10);
   }, [users, searchTerm]);
 
   const creditMutation = useMutation({
@@ -148,30 +148,36 @@ const WalletCredit: React.FC = () => {
                       )}
                     </div>
 
-                    {isDropdownOpen && filteredUsers.length > 0 && (
+                    {isDropdownOpen && (
                       <div className="absolute z-20 w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                        {filteredUsers.map((user: any) => (
-                          <button
-                            key={user._id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedUserId(user._id);
-                              setSearchTerm(`${user.first_name} ${user.last_name}`);
-                              setIsDropdownOpen(false);
-                              setErrors(prev => ({ ...prev, userId: '' }));
-                            }}
-                            className="w-full p-4 hover:bg-slate-50 flex items-center gap-4 text-left transition-colors border-b border-slate-50 last:border-0"
-                          >
-                            <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center text-green-700 font-bold">
-                              {user.first_name.charAt(0)}
-                            </div>
-                            <div>
-                              <p className="font-bold text-slate-900">{user.first_name} {user.last_name}</p>
-                              <p className="text-xs text-slate-500">{user.email}</p>
-                            </div>
-                            <FiArrowRight className="ml-auto text-slate-300" />
-                          </button>
-                        ))}
+                        {filteredUsers.length > 0 ? (
+                          filteredUsers.map((user: any) => (
+                            <button
+                              key={user._id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedUserId(user._id);
+                                setSearchTerm(`${user.first_name} ${user.last_name}`);
+                                setIsDropdownOpen(false);
+                                setErrors(prev => ({ ...prev, userId: '' }));
+                              }}
+                              className="w-full p-4 hover:bg-slate-50 flex items-center gap-4 text-left transition-colors border-b border-slate-50 last:border-0"
+                            >
+                              <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center text-green-700 font-bold">
+                                {user.first_name.charAt(0)}
+                              </div>
+                              <div>
+                                <p className="font-bold text-slate-900">{user.first_name} {user.last_name}</p>
+                                <p className="text-xs text-slate-500">{user.email}</p>
+                              </div>
+                              <FiArrowRight className="ml-auto text-slate-300" />
+                            </button>
+                          ))
+                        ) : (
+                          <div className="p-4 text-center text-slate-500 text-sm font-medium">
+                            No users found matching "{searchTerm}"
+                          </div>
+                        )}
                       </div>
                     )}
                     {errors.userId && <p className="text-red-500 text-[10px] font-bold uppercase ml-1 mt-1">{errors.userId}</p>}

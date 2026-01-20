@@ -184,8 +184,13 @@ export class UserController {
           return obj;
         }, {});
 
-      const user = await User.findByIdAndUpdate(
-        req.params.id,
+      const query: any = { _id: req.params.id };
+      if (req.user?.app_id) {
+        query.app_id = req.user.app_id;
+      }
+
+      const user = await User.findOneAndUpdate(
+        query,
         { ...updates, updated_at: new Date() },
         { new: true }
       ).select('-password_hash');
@@ -202,7 +207,12 @@ export class UserController {
 
   static async deleteUser(req: AuthRequest, res: Response) {
     try {
-      const user = await User.findByIdAndDelete(req.params.id);
+      const query: any = { _id: req.params.id };
+      if (req.user?.app_id) {
+        query.app_id = req.user.app_id;
+      }
+
+      const user = await User.findOneAndDelete(query);
       if (!user) {
         return ApiResponse.error(res, 'User not found', 404);
       }

@@ -275,7 +275,7 @@ const Providers: React.FC = () => {
     supported_services: [] as string[],
   });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [, setErrors] = useState<Record<string, string>>({});
 
   const canSubmit = useMemo(() => form.name && form.code, [form]);
 

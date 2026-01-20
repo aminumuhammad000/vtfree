@@ -73,7 +73,7 @@ export const getIBDataBalance = () => api.get('/funding/ibdata-balance');
 export const getVTPayAccounts = () => api.get('/funding/vtpay-accounts');
 
 // Transactions
-export const getTransactions = (params?: { page?: number; limit?: number; status?: string; type?: string }) =>
+export const getTransactions = (params?: { page?: number; limit?: number; status?: string; type?: string; search?: string; user_id?: string }) =>
   api.get('/transactions/all', { params });
 export const getTransactionById = (id: string) => api.get(`/transactions/${id}`);
 
@@ -88,9 +88,9 @@ export const getSupportContent = () => api.get('/support-content');
 export const updateSupportContent = (data: any) => api.put('/support-content', data);
 
 // Notifications
-export const sendBroadcastNotification = (data: { title: string; message: string; type: string; action_link?: string }) =>
+export const sendBroadcastNotification = (data: { title: string; message: string; type: string; action_link?: string; target?: string; userIds?: string[] }) =>
   api.post('/notifications/broadcast', data);
-export const sendBroadcastEmail = (data: { subject: string; message: string }) =>
+export const sendBroadcastEmail = (data: { subject: string; message: string; target?: string; userIds?: string[] }) =>
   api.post('/notifications/email-broadcast', data);
 
 // System Config

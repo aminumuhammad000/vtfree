@@ -286,6 +286,41 @@ export class AppAdminProviderController {
             return ApiResponse.error(res, error.message || 'Failed to get provider data', 500);
         }
     }
+    static async getEnv(req: AuthRequest, res: Response) {
+        try {
+            const app_id = req.user?.app_id;
+            const { id } = req.params;
+            const provider = await ProviderConfig.findOne({ _id: id, app_id });
+            if (!provider) return ApiResponse.error(res, 'Provider not found', 404);
+
+            const env = provider.metadata?.env || {};
+            return ApiResponse.success(res, 'Provider env retrieved', { env });
+        } catch (error) {
+            logger.error('Error getting provider env:', error);
+            return ApiResponse.error(res, 'Failed to get provider env', 500);
+        }
+    }
+
+    static async updateEnv(req: AuthRequest, res: Response) {
+        try {
+            const app_id = req.user?.app_id;
+            const { id } = req.params;
+            const { env } = req.body;
+
+            const provider = await ProviderConfig.findOne({ _id: id, app_id });
+            if (!provider) return ApiResponse.error(res, 'Provider not found', 404);
+
+            if (!provider.metadata) provider.metadata = {};
+            provider.metadata.env = env;
+            provider.markModified('metadata');
+
+            await provider.save();
+            return ApiResponse.success(res, 'Provider env updated', { env: provider.metadata.env });
+        } catch (error) {
+            logger.error('Error updating provider env:', error);
+            return ApiResponse.error(res, 'Failed to update provider env', 500);
+        }
+    }
 }
 
 export default AppAdminProviderController;

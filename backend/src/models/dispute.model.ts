@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IDispute extends Document {
     transaction_id: mongoose.Types.ObjectId;
     user_id: mongoose.Types.ObjectId;
+    app_id: string;
     reason: string;
     status: 'open' | 'resolved' | 'rejected';
     resolution_notes?: string;
@@ -14,6 +15,7 @@ export interface IDispute extends Document {
 const DisputeSchema: Schema = new Schema({
     transaction_id: { type: Schema.Types.ObjectId, ref: 'Transaction', required: true },
     user_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    app_id: { type: String, required: true, index: true },
     reason: { type: String, required: true },
     status: {
         type: String,

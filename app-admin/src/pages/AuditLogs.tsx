@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useState } from 'react';
 import {
   FiActivity,
-  FiUser,
   FiDatabase,
   FiClock,
   FiTrash2,
@@ -10,9 +9,8 @@ import {
   FiChevronRight,
   FiAlertCircle,
   FiTerminal,
-  FiSearch,
-  FiFilter,
-  FiRefreshCw
+  FiRefreshCw,
+  FiX
 } from 'react-icons/fi';
 import { deleteAuditLog, getAuditLogs } from '../api/adminApi';
 import Layout from '../components/Layout';

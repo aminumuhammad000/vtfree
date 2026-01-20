@@ -1,17 +1,20 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import React, { useState } from 'react';
-import { FiRefreshCw, FiEye, FiFilter, FiX } from 'react-icons/fi';
-import { getTransactions } from '../api/adminApi';
+import { FiRefreshCw, FiEye, FiFilter, FiX, FiSearch } from 'react-icons/fi';
+import { getTransactions, getUsers } from '../api/adminApi';
 import Layout from '../components/Layout';
 import TransactionViewModal from '../components/TransactionViewModal';
 import { useToast } from '../hooks/ToastContext';
 
 const Transactions: React.FC = () => {
   const { showSuccess, showError } = useToast();
-  const queryClient = useQueryClient();
+
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [viewTransaction, setViewTransaction] = useState<any | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const limit = 20;
@@ -19,9 +22,20 @@ const Transactions: React.FC = () => {
   const params: any = { page, limit };
   if (statusFilter) params.status = statusFilter;
   if (typeFilter) params.type = typeFilter;
+  if (searchQuery) params.search = searchQuery;
+  if (selectedUser) params.user_id = selectedUser._id;
+
+  // Fetch users for autocomplete
+  const { data: usersData } = useQuery({
+    queryKey: ['users-search', searchQuery],
+    queryFn: () => getUsers({ search: searchQuery, limit: 5 }).then((res: any) => res.data),
+    enabled: searchQuery.length > 1 && !selectedUser, // Only search if typing and no user selected
+  });
+
+  const foundUsers = usersData?.data || [];
 
   const { data, status, refetch } = useQuery({
-    queryKey: ['transactions', page, statusFilter, typeFilter],
+    queryKey: ['transactions', page, statusFilter, typeFilter, searchQuery, selectedUser?._id],
     queryFn: () => getTransactions(params).then((res: any) => res.data),
   });
 
@@ -107,7 +121,55 @@ const Transactions: React.FC = () => {
               <FiFilter className="text-slate-400" />
               <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Filter Transactions</h2>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Search</label>
+                <div className="relative">
+                  <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search user, ref..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setIsUserDropdownOpen(true);
+                      if (selectedUser) setSelectedUser(null); // Clear selected user if typing new search
+                      setPage(1);
+                    }}
+                    onFocus={() => setIsUserDropdownOpen(true)}
+                    onBlur={() => setTimeout(() => setIsUserDropdownOpen(false), 200)}
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all font-bold text-slate-700 placeholder:font-normal"
+                  />
+
+                  {/* Autocomplete Dropdown */}
+                  {isUserDropdownOpen && searchQuery.length > 1 && foundUsers.length > 0 && !selectedUser && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden max-h-60 overflow-y-auto">
+                      <div className="p-2 bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        Found Users
+                      </div>
+                      {foundUsers.map((user: any) => (
+                        <button
+                          key={user._id}
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setSearchQuery(''); // Clear search query as we selected a user
+                            setIsUserDropdownOpen(false);
+                          }}
+                          className="w-full p-3 flex items-center gap-3 hover:bg-slate-50 transition-colors text-left border-b border-slate-50 last:border-0"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-xs shrink-0">
+                            {user.first_name?.[0]}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-slate-900 truncate">{user.first_name} {user.last_name}</p>
+                            <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Status</label>
                 <select
@@ -147,6 +209,8 @@ const Transactions: React.FC = () => {
                   onClick={() => {
                     setStatusFilter('');
                     setTypeFilter('');
+                    setSearchQuery('');
+                    setSelectedUser(null);
                     setPage(1);
                   }}
                   className="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-3 rounded-xl transition-all font-bold"
@@ -157,6 +221,32 @@ const Transactions: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* User Preview Section */}
+          {selectedUser && (
+            <div className="bg-white border border-purple-100 rounded-2xl p-4 shadow-sm flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-xl">
+                  {selectedUser.first_name?.[0]}
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-purple-600 uppercase tracking-wider mb-0.5">Filtering by User</p>
+                  <h3 className="font-bold text-slate-900">{selectedUser.first_name} {selectedUser.last_name}</h3>
+                  <p className="text-sm text-slate-500">{selectedUser.email}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedUser(null);
+                  setSearchQuery('');
+                }}
+                className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-red-500 transition-colors"
+                title="Remove User Filter"
+              >
+                <FiX className="w-5 h-5" />
+              </button>
+            </div>
+          )}
 
           {/* Table Section */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">

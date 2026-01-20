@@ -13,6 +13,8 @@ router.post('/login', AppAdminController.login);
 router.get('/dashboard', authenticateAppAdmin, AppAdminController.getDashboardStats);
 router.put('/profile', authenticateAppAdmin, AppAdminController.updateProfile);
 router.put('/profile/password', authenticateAppAdmin, AppAdminController.changePassword);
+router.get('/admins', authenticateAppAdmin, AppAdminController.getAllAdmins);
+router.post('/admins', authenticateAppAdmin, AppAdminController.createAdmin);
 
 // Audit Logs
 router.get('/audit-logs', authenticateAppAdmin, AppAdminController.getAuditLogs);
@@ -28,6 +30,13 @@ router.post('/disputes', authenticateAppAdmin, DisputeController.createDispute);
 import { UserController } from '../controllers/user.controller.js';
 router.get('/users', authenticateAppAdmin, UserController.getAllUsers);
 router.get('/users/:id', authenticateAppAdmin, UserController.getUserById);
+router.put('/users/:id', authenticateAppAdmin, UserController.updateUser);
+router.put('/users/:id/status', authenticateAppAdmin, UserController.updateUser); // UserController.updateUser handles status
+router.delete('/users/:id', authenticateAppAdmin, UserController.deleteUser);
+router.post('/wallet/credit', authenticateAppAdmin, async (req, res) => {
+    const { WalletController } = await import('../controllers/wallet.controller.js');
+    return WalletController.creditWallet(req, res);
+});
 
 // Transaction Management (Filtered by App ID)
 import { TransactionController } from '../controllers/transaction.controller.js';
@@ -44,9 +53,10 @@ router.put('/support-content', authenticateAppAdmin, async (req, res, next) => {
     return SupportContentController.updateContent(req, res);
 });
 
-// System Config (TODO: Filter by App ID or restrict access)
-import appConfigRoutes from './config/app_config.routes.js';
-router.use('/config', appConfigRoutes);
+// System Config
+import * as AppConfigController from '../controllers/config/app_config.controller.js';
+router.get('/config', authenticateAppAdmin, AppConfigController.getAppConfigs);
+router.put('/config/:key', authenticateAppAdmin, AppConfigController.updateAppConfig);
 
 // Provider Management
 import { AppAdminProviderController } from '../controllers/app_admin_provider.controller.js';
@@ -60,6 +70,8 @@ router.delete('/providers/:id', authenticateAppAdmin, AppAdminProviderController
 router.post('/providers/test/:code', authenticateAppAdmin, AppAdminProviderController.testConnection);
 router.post('/providers/test-purchase/:code', authenticateAppAdmin, AppAdminProviderController.testPurchase);
 router.get('/providers/data/:code', authenticateAppAdmin, AppAdminProviderController.getProviderData);
+router.get('/providers/:id/env', authenticateAppAdmin, AppAdminProviderController.getEnv);
+router.put('/providers/:id/env', authenticateAppAdmin, AppAdminProviderController.updateEnv);
 
 // Pricing Management
 import { AppAdminPricingController } from '../controllers/app_admin_pricing.controller.js';

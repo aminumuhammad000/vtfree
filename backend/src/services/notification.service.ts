@@ -29,10 +29,31 @@ export class NotificationService {
     title: string;
     message: string;
     action_link?: string;
+    app_id?: string;
+    target?: 'all' | 'selected';
+    userIds?: string[];
   }) {
-    // Get all active users
-    const users = await User.find({ status: 'active' });
-    
+    // Get active users for the specific app
+    const filter: any = { status: 'active' };
+    if (data.app_id) {
+      filter.app_id = data.app_id;
+    }
+
+    // If targeting specific users
+    if (data.target === 'selected' && data.userIds && data.userIds.length > 0) {
+      filter._id = { $in: data.userIds };
+    }
+
+    const users = await User.find(filter);
+
+    if (users.length === 0) {
+      return {
+        success: false,
+        count: 0,
+        message: 'No users found for this broadcast'
+      };
+    }
+
     // Create notification for each user
     const notifications = users.map(user => ({
       user_id: user._id,
@@ -45,7 +66,7 @@ export class NotificationService {
 
     // Bulk insert notifications
     const result = await Notification.insertMany(notifications);
-    
+
     return {
       success: true,
       count: result.length,

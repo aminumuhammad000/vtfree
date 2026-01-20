@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FiSearch, FiUser, FiEdit2, FiTrash2, FiCheckCircle, FiEye, FiRefreshCw } from 'react-icons/fi';
+import { FiSearch, FiEdit2, FiTrash2, FiCheckCircle, FiEye, FiRefreshCw } from 'react-icons/fi';
 import { deleteUser, getUsers, updateUser, updateUserStatus } from '../api/adminApi';
 import Layout from '../components/Layout';
 import UserDeleteModal from '../components/UserDeleteModal';

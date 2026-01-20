@@ -1,4 +1,5 @@
 // controllers/transaction.controller.ts
+import mongoose from 'mongoose';
 import { Response } from 'express';
 import { Transaction, Wallet, Operator, Plan } from '../models/index.js';
 import { WalletService } from '../services/wallet.service.js';
@@ -89,10 +90,14 @@ export class TransactionController {
 
   static async getTransactionById(req: AuthRequest, res: Response) {
     try {
-      const transaction = await Transaction.findOne({
-        _id: req.params.id,
-        user_id: req.user?.id
-      }).populate('operator_id').populate('plan_id');
+      const query: any = { _id: req.params.id };
+      if (req.user?.app_id) {
+        query.app_id = req.user.app_id;
+      } else {
+        query.user_id = req.user?.id;
+      }
+
+      const transaction = await Transaction.findOne(query).populate('operator_id').populate('plan_id');
 
       if (!transaction) {
         return ApiResponse.error(res, 'Transaction not found', 404);
@@ -113,10 +118,67 @@ export class TransactionController {
       const filter: any = {};
       if (req.query.status) filter.status = req.query.status;
       if (req.query.type) filter.type = req.query.type;
+      if (req.query.user_id) filter.user_id = req.query.user_id;
 
       // Filter by app_id if present in user token (for App Admins)
       if (req.user?.app_id) {
         filter.app_id = req.user.app_id;
+      }
+
+      if (req.query.search) {
+        console.log('[TransactionController] Search query:', req.query.search);
+        const search = req.query.search as string;
+
+        let userIds: any[] = [];
+        try {
+          // Dynamic import to avoid circular dependency
+          const { User } = await import('../models/user.model.js');
+
+          const userQuery: any = {
+            $or: [
+              { email: { $regex: search, $options: 'i' } },
+              { first_name: { $regex: search, $options: 'i' } },
+              { last_name: { $regex: search, $options: 'i' } },
+              { phone_number: { $regex: search, $options: 'i' } }
+            ]
+          };
+
+          if (req.user?.app_id) {
+            userQuery.app_id = req.user.app_id;
+          }
+
+          const users = await User.find(userQuery).select('_id');
+          console.log(`[TransactionController] Found ${users.length} users`);
+          userIds = users.map(u => u._id);
+        } catch (err: any) {
+          console.error('[TransactionController] Error finding users:', err.message);
+        }
+
+        const searchFilter = {
+          $or: [
+            { user_id: { $in: userIds } },
+            { reference_number: { $regex: search, $options: 'i' } }
+          ]
+        };
+
+        // Filter transactions by these users OR by reference number
+        // Note: We must ensure app_id filter (if any) is still respected.
+        // Since filter.app_id is already set above, we can use $and if we want to be strict,
+        // but Mongoose handles top-level implicit AND. 
+        // However, mixing top-level fields with $or can be tricky.
+        // Let's use $and to be safe if we have an app_id filter.
+
+        if (filter.app_id) {
+          // If we have an app_id, we need to ensure it applies to the search results too.
+          // But wait, user search already filtered by app_id. 
+          // Reference number search doesn't inherently filter by app_id.
+          // So we should combine them.
+          filter.$and = [
+            searchFilter
+          ];
+        } else {
+          Object.assign(filter, searchFilter);
+        }
       }
 
       const transactions = await Transaction.find(filter)
@@ -149,8 +211,13 @@ export class TransactionController {
         return ApiResponse.error(res, 'Invalid status', 400);
       }
 
-      const transaction = await Transaction.findByIdAndUpdate(
-        req.params.id,
+      const query: any = { _id: req.params.id };
+      if (req.user?.app_id) {
+        query.app_id = req.user.app_id;
+      }
+
+      const transaction = await Transaction.findOneAndUpdate(
+        query,
         {
           status,
           remarks: remarks || '',

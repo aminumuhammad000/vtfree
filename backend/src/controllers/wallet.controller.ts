@@ -139,4 +139,48 @@ export class WalletController {
       return ApiResponse.error(res, error.message, 500);
     }
   }
+  static async creditWallet(req: AuthRequest, res: Response) {
+    try {
+      const { userId, amount, description } = req.body;
+      const app_id = req.user?.app_id;
+
+      if (!userId || !amount) {
+        return ApiResponse.error(res, 'User ID and amount are required', 400);
+      }
+
+      // Verify user belongs to this app
+      const { User } = await import('../models/user.model.js');
+      const user = await User.findOne({ _id: userId, app_id });
+      if (!user) {
+        return ApiResponse.error(res, 'User not found in your application', 404);
+      }
+
+      const wallet = await Wallet.findOne({ user_id: userId });
+      if (!wallet) {
+        return ApiResponse.error(res, 'Wallet not found', 404);
+      }
+
+      await WalletService.creditWallet(userId as any, amount);
+
+      // Create transaction record
+      await Transaction.create({
+        user_id: userId,
+        wallet_id: wallet._id,
+        type: 'wallet_topup',
+        amount,
+        fee: 0,
+        total_charged: amount,
+        status: 'successful',
+        reference_number: `CREDIT-${Date.now()}`,
+        payment_method: 'admin_adjustment',
+        description: description || 'Admin credit adjustment',
+        app_id
+      });
+
+      const updatedWallet = await Wallet.findOne({ user_id: userId });
+      return ApiResponse.success(res, updatedWallet, 'Wallet credited successfully');
+    } catch (error: any) {
+      return ApiResponse.error(res, error.message, 500);
+    }
+  }
 }

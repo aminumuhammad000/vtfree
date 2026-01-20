@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
     FiMail,
-    FiShield,
     FiServer,
     FiUser,
-    FiKey,
     FiSend,
     FiCheck,
     FiInfo,

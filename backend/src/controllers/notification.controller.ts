@@ -105,7 +105,7 @@ export class NotificationController {
 
   static async sendBroadcastNotification(req: AuthRequest, res: Response) {
     try {
-      const { title, message, type, action_link } = req.body;
+      const { title, message, type, action_link, target, userIds } = req.body;
 
       if (!title || !message || !type) {
         return ApiResponse.error(res, 'Title, message, and type are required', 400);
@@ -115,7 +115,10 @@ export class NotificationController {
         title,
         message,
         type,
-        action_link
+        action_link,
+        app_id: req.user?.app_id,
+        target,
+        userIds
       });
 
       return ApiResponse.success(res, result, result.message);
@@ -126,7 +129,7 @@ export class NotificationController {
 
   static async sendBroadcastEmail(req: AuthRequest, res: Response) {
     try {
-      const { subject, message } = req.body;
+      const { subject, message, target, userIds } = req.body;
       const app_id = req.user?.app_id;
 
       if (!subject || !message) {
@@ -136,8 +139,14 @@ export class NotificationController {
       const { User } = await import('../models/index.js');
       const { EmailService } = await import('../services/email.service.js');
 
-      // Find all users for this app
-      const users = await User.find({ app_id, email: { $exists: true, $ne: '' } });
+      // Find users for this app
+      const filter: any = { app_id, email: { $exists: true, $ne: '' } };
+
+      if (target === 'selected' && userIds && userIds.length > 0) {
+        filter._id = { $in: userIds };
+      }
+
+      const users = await User.find(filter);
 
       if (users.length === 0) {
         return ApiResponse.error(res, 'No users found to send email to', 404);

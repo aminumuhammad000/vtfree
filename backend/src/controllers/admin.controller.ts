@@ -41,7 +41,11 @@ export class AdminController {
       await admin.save();
 
       const token = jwt.sign(
-        { id: admin._id, role: 'admin' },
+        {
+          id: admin._id,
+          role: 'admin',
+          type: 'super_admin'
+        },
         config.jwtSecret as string,
         { expiresIn: config.jwtExpiry } as SignOptions
       );
@@ -65,7 +69,7 @@ export class AdminController {
       const dataSalesResult = await Transaction.aggregate([
         {
           $match: {
-            type: 'data',
+            type: 'data_purchase',
             status: 'successful'
           }
         },
@@ -82,7 +86,7 @@ export class AdminController {
       const airtimeSalesResult = await Transaction.aggregate([
         {
           $match: {
-            type: 'airtime',
+            type: 'airtime_topup',
             status: 'successful'
           }
         },
