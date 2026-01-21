@@ -258,14 +258,47 @@ export const triggerBuildApk = async (req: Request, res: Response) => {
         // Trigger Build
         // Note: This is a heavy operation. In production, prioritize queues.
         // We will await it here to provide immediate feedback for this demo.
-        const result = await AppGeneratorService.buildApk(appId);
+        const userEmail = (req as any).user.email;
+
+        // Progress Callback
+        const onProgress = async (stage: string, progress: number) => {
+            await CreatedApp.updateOne(
+                { app_id: appId },
+                {
+                    build_stage: stage,
+                    build_progress: progress,
+                    'build_status.android': 'building'
+                }
+            );
+        };
+
+        const result = await AppGeneratorService.buildApk(appId, userEmail, onProgress);
 
         if (result.success) {
-            // Update app status/meta if needed
-            // app.build_status = 'success'; 
-            // await app.save();
-            res.json({ success: true, message: 'APK built successfully', apkPath: result.apkPath });
+            // Update app build status and save drive link
+            app.build_status.android = 'completed';
+
+            // Save Google Drive link if available
+            if (result.driveLink) {
+                if (!app.download_links) {
+                    app.download_links = {};
+                }
+                app.download_links.android = result.driveLink;
+            }
+
+            await app.save();
+
+            res.json({
+                success: true,
+                message: 'APK built successfully',
+                apkPath: result.apkPath,
+                driveLink: result.driveLink
+            });
         } else {
+            // Update build status to failed
+            app.build_status.android = 'failed';
+            await app.save();
+
             res.status(500).json({ success: false, message: result.message });
         }
 

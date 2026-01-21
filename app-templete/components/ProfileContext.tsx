@@ -12,6 +12,7 @@ export interface ProfileData {
   city: string;
   state: string;
   profileImage: string;
+  role?: string;
 }
 
 interface ProfileContextType {
@@ -45,6 +46,7 @@ export const ProfileProvider: React.FC<ProfileProviderProps> = ({ children }) =>
     city: '',
     state: '',
     profileImage: 'https://i.pravatar.cc/150?img=12',
+    role: 'user',
   });
 
   // Load user data from server on mount
@@ -72,6 +74,7 @@ export const ProfileProvider: React.FC<ProfileProviderProps> = ({ children }) =>
             city: user.city || '',
             state: user.state || '',
             profileImage: user.avatar || 'https://i.pravatar.cc/150?img=12',
+            role: user.role || 'user',
           });
         } else {
           // Fallback to cached user data
@@ -86,6 +89,7 @@ export const ProfileProvider: React.FC<ProfileProviderProps> = ({ children }) =>
               city: cachedUser.city || '',
               state: cachedUser.state || '',
               profileImage: cachedUser.avatar || 'https://i.pravatar.cc/150?img=12',
+              role: cachedUser.role || 'user',
             });
           }
         }
@@ -103,6 +107,7 @@ export const ProfileProvider: React.FC<ProfileProviderProps> = ({ children }) =>
             city: cachedUser.city || '',
             state: cachedUser.state || '',
             profileImage: cachedUser.avatar || 'https://i.pravatar.cc/150?img=12',
+            role: cachedUser.role || 'user',
           });
         }
       }

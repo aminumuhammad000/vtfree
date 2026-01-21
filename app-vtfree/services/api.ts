@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 
 // Use LAN IP for all devices to ensure connectivity (Physical & Emulator)
 // IOS Simulator might prefer localhost, but LAN IP usually works too.
-export const BASE_URL = 'http://172.20.10.3:5000/api/v1';
+export const BASE_URL = 'http://192.168.1.116:5000/api/v1';
 
 // Alternative configuration if the above doesn't work for your specific setup:
 /*

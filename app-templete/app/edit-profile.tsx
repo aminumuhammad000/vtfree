@@ -4,33 +4,40 @@ import { useTheme } from '@/components/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { userService } from '@/services/user.service';
 import { authService } from '@/services/auth.service';
 import {
-    ActionSheetIOS,
-    Alert,
-    Image,
-    Platform,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    useColorScheme,
-    View,
+  ActionSheetIOS,
+  Alert,
+  Image,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  useColorScheme,
+  View,
+  Animated,
+  Dimensions,
 } from 'react-native';
 
+const { width } = Dimensions.get('window');
+
 const theme = {
-  primary: '#0A2540',
-  accent: '#FF9F43',
-  success: '#00D4AA',
+  primary: '#00ADFF', // Snapchat Blue
+  backgroundLight: '#FFFFFF',
+  backgroundDark: '#000000',
+  cardLight: '#F2F2F2',
+  cardDark: '#1E1E1E',
+  textLight: '#000000',
+  textDark: '#FFFFFF',
+  textSecondaryLight: '#757575',
+  textSecondaryDark: '#A0A0A0',
+  success: '#00D166',
   error: '#FF5B5B',
-  backgroundLight: '#F8F9FA',
-  backgroundDark: '#111921',
-  textHeadings: '#1E293B',
-  textBody: '#475569',
 };
 
 export default function EditProfileScreen() {
@@ -43,11 +50,11 @@ export default function EditProfileScreen() {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
-  const cardBgColor = isDark ? '#1F2937' : '#FFFFFF';
-  const textColor = isDark ? '#FFFFFF' : theme.textHeadings;
-  const textBodyColor = isDark ? '#9CA3AF' : theme.textBody;
-  const borderColor = isDark ? '#374151' : '#E5E7EB';
-  const inputBgColor = isDark ? '#374151' : '#F9FAFB';
+  const cardBgColor = isDark ? theme.cardDark : theme.cardLight;
+  const textColor = isDark ? theme.textDark : theme.textLight;
+  const textSecondaryColor = isDark ? theme.textSecondaryDark : theme.textSecondaryLight;
+  const borderColor = isDark ? '#333' : '#E5E7EB';
+  const inputBgColor = isDark ? '#333' : '#F9FAFB';
 
   // Form state
   const [firstName, setFirstName] = useState('');
@@ -73,8 +80,24 @@ export default function EditProfileScreen() {
     profileImage: profileData.profileImage,
   });
 
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+
   useEffect(() => {
     loadUserProfile();
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
   const loadUserProfile = async () => {
@@ -91,7 +114,7 @@ export default function EditProfileScreen() {
         setAddress(user.address || '');
         setCity(user.city || '');
         setState(user.state || '');
-        
+
         // Set original data for reset
         setOriginalData({
           firstName: user.first_name || '',
@@ -121,7 +144,7 @@ export default function EditProfileScreen() {
   };
 
   // Check if form has changes
-  const hasChanges = 
+  const hasChanges =
     firstName !== originalData.firstName ||
     lastName !== originalData.lastName ||
     email !== originalData.email ||
@@ -165,7 +188,7 @@ export default function EditProfileScreen() {
       }
 
       setIsImageLoading(true);
-      
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -280,7 +303,7 @@ export default function EditProfileScreen() {
       showError('Email address is required');
       return;
     }
-    
+
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
@@ -302,7 +325,7 @@ export default function EditProfileScreen() {
 
       // Call API to update profile
       const response = await userService.updateProfile(updateData);
-      
+
       if (response.success) {
         // Update the global profile context
         updateProfile({
@@ -315,10 +338,10 @@ export default function EditProfileScreen() {
           state,
           profileImage: profileImage
         });
-        
+
         // Show success message
         showSuccess('Profile updated successfully!');
-        
+
         // Navigate back after a short delay to show the success message
         setTimeout(() => {
           router.back();
@@ -326,7 +349,7 @@ export default function EditProfileScreen() {
       } else {
         showError(response.message || 'Failed to update profile');
       }
-      
+
     } catch (error: any) {
       console.error('Error updating profile:', error);
       showError(error.message || 'Failed to update profile. Please try again.');
@@ -339,8 +362,8 @@ export default function EditProfileScreen() {
     return (
       <View style={[styles.container, { backgroundColor: bgColor, justifyContent: 'center', alignItems: 'center' }]}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-        <Ionicons name="refresh" size={32} color={textBodyColor} />
-        <Text style={[{ color: textBodyColor, marginTop: 12, fontSize: 16 }]}>Loading...</Text>
+        <Ionicons name="refresh" size={32} color={textSecondaryColor} />
+        <Text style={[{ color: textSecondaryColor, marginTop: 12, fontSize: 16 }]}>Loading...</Text>
       </View>
     );
   }
@@ -348,192 +371,192 @@ export default function EditProfileScreen() {
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      
+
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: bgColor, borderBottomColor: borderColor }]}>
-        <TouchableOpacity 
-          style={styles.backButton}
+      <View style={[styles.header, { backgroundColor: bgColor }]}>
+        <TouchableOpacity
+          style={[styles.backButton, { backgroundColor: cardBgColor }]}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={24} color={textColor} />
+          <Ionicons name="arrow-back" size={20} color={textColor} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: textColor }]}>Edit Profile</Text>
-        <View style={styles.placeholder} />
+        <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Profile Picture Section */}
-        <View style={[styles.profileSection, { backgroundColor: cardBgColor }]}>
-          <View style={styles.profilePicContainer}>
-            <View style={styles.profilePic}>
-              <Image
-                source={{ uri: profileImage }}
-                style={styles.profileImage}
-              />
-              {isImageLoading && (
-                <View style={[styles.imageLoadingOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-                  <Ionicons name="refresh" size={24} color="#FFFFFF" />
-                  <Text style={{ color: '#FFFFFF', fontSize: 12, marginTop: 4 }}>Loading...</Text>
-                </View>
-              )}
+        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+          {/* Profile Picture Section */}
+          <View style={styles.profileSection}>
+            <View style={styles.profilePicContainer}>
+              <View style={[styles.profilePic, { borderColor: theme.primary }]}>
+                <Image
+                  source={{ uri: profileImage }}
+                  style={styles.profileImage}
+                />
+                {isImageLoading && (
+                  <View style={[styles.imageLoadingOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+                    <Ionicons name="refresh" size={24} color="#FFFFFF" />
+                    <Text style={{ color: '#FFFFFF', fontSize: 12, marginTop: 4 }}>Loading...</Text>
+                  </View>
+                )}
+              </View>
+              <TouchableOpacity
+                style={[styles.editPicButton, {
+                  backgroundColor: theme.primary,
+                  opacity: isImageLoading ? 0.7 : 1,
+                  borderColor: bgColor
+                }]}
+                onPress={showImagePickerOptions}
+                disabled={isImageLoading}
+              >
+                <Ionicons name="camera" size={16} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity 
-              style={[styles.editPicButton, { 
-                backgroundColor: theme.primary,
-                opacity: isImageLoading ? 0.7 : 1 
-              }]}
+            <TouchableOpacity
+              style={[styles.changePictureButton, { opacity: isImageLoading ? 0.7 : 1 }]}
               onPress={showImagePickerOptions}
+              onLongPress={forceResetLoadingState}
               disabled={isImageLoading}
             >
-              <Ionicons name="camera" size={16} color="#FFFFFF" />
+              <Text style={[styles.changePictureText, { color: theme.primary }]}>
+                {isImageLoading ? 'Loading...' : 'Change Picture'}
+              </Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity 
-            style={[styles.changePictureButton, { opacity: isImageLoading ? 0.7 : 1 }]}
-            onPress={showImagePickerOptions}
-            onLongPress={forceResetLoadingState}
-            disabled={isImageLoading}
+
+          {/* Form Section */}
+          <View style={styles.formSection}>
+            <Text style={[styles.sectionTitle, { color: textSecondaryColor }]}>PERSONAL INFORMATION</Text>
+
+            <View style={styles.inputRow}>
+              <View style={[styles.inputContainer, { flex: 1, marginRight: 8 }]}>
+                <Text style={[styles.inputLabel, { color: textSecondaryColor }]}>First Name</Text>
+                <TextInput
+                  style={[styles.textInput, {
+                    backgroundColor: cardBgColor,
+                    color: textColor
+                  }]}
+                  value={firstName}
+                  onChangeText={setFirstName}
+                  placeholder="Enter first name"
+                  placeholderTextColor={textSecondaryColor}
+                />
+              </View>
+              <View style={[styles.inputContainer, { flex: 1, marginLeft: 8 }]}>
+                <Text style={[styles.inputLabel, { color: textSecondaryColor }]}>Last Name</Text>
+                <TextInput
+                  style={[styles.textInput, {
+                    backgroundColor: cardBgColor,
+                    color: textColor
+                  }]}
+                  value={lastName}
+                  onChangeText={setLastName}
+                  placeholder="Enter last name"
+                  placeholderTextColor={textSecondaryColor}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={[styles.inputLabel, { color: textSecondaryColor }]}>Email Address</Text>
+              <TextInput
+                style={[styles.textInput, {
+                  backgroundColor: cardBgColor,
+                  color: textColor,
+                  opacity: 0.7
+                }]}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Enter email address"
+                placeholderTextColor={textSecondaryColor}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={false}
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={[styles.inputLabel, { color: textSecondaryColor }]}>Phone Number</Text>
+              <TextInput
+                style={[styles.textInput, {
+                  backgroundColor: cardBgColor,
+                  color: textColor,
+                  opacity: 0.7
+                }]}
+                value={phoneNumber}
+                onChangeText={setPhoneNumber}
+                placeholder="Enter phone number"
+                placeholderTextColor={textSecondaryColor}
+                keyboardType="phone-pad"
+                editable={false}
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={[styles.inputLabel, { color: textSecondaryColor }]}>Address</Text>
+              <TextInput
+                style={[styles.textInput, {
+                  backgroundColor: cardBgColor,
+                  color: textColor
+                }]}
+                value={address}
+                onChangeText={setAddress}
+                placeholder="Enter address"
+                placeholderTextColor={textSecondaryColor}
+              />
+            </View>
+
+            <View style={styles.inputRow}>
+              <View style={[styles.inputContainer, { flex: 1, marginRight: 8 }]}>
+                <Text style={[styles.inputLabel, { color: textSecondaryColor }]}>City</Text>
+                <TextInput
+                  style={[styles.textInput, {
+                    backgroundColor: cardBgColor,
+                    color: textColor
+                  }]}
+                  value={city}
+                  onChangeText={setCity}
+                  placeholder="Enter city"
+                  placeholderTextColor={textSecondaryColor}
+                />
+              </View>
+              <View style={[styles.inputContainer, { flex: 1, marginLeft: 8 }]}>
+                <Text style={[styles.inputLabel, { color: textSecondaryColor }]}>State</Text>
+                <TextInput
+                  style={[styles.textInput, {
+                    backgroundColor: cardBgColor,
+                    color: textColor
+                  }]}
+                  value={state}
+                  onChangeText={setState}
+                  placeholder="Enter state"
+                  placeholderTextColor={textSecondaryColor}
+                />
+              </View>
+            </View>
+          </View>
+
+          {/* Save Button */}
+          <TouchableOpacity
+            style={[styles.saveButton, {
+              backgroundColor: theme.primary,
+              opacity: isLoading ? 0.7 : 1
+            }]}
+            onPress={handleSaveProfile}
+            disabled={isLoading}
           >
-            <Text style={[styles.changePictureText, { color: theme.primary }]}>
-              {isImageLoading ? 'Loading...' : 'Change Picture'}
+            <Text style={styles.saveButtonText}>
+              {isLoading ? 'Saving...' : 'Save Changes'}
             </Text>
           </TouchableOpacity>
-        </View>
 
-        {/* Form Section */}
-        <View style={[styles.formSection, { backgroundColor: cardBgColor }]}>
-          <Text style={[styles.sectionTitle, { color: textColor }]}>Personal Information</Text>
-          
-          <View style={styles.inputRow}>
-            <View style={[styles.inputContainer, { flex: 1, marginRight: 8 }]}>
-              <Text style={[styles.inputLabel, { color: textBodyColor }]}>First Name *</Text>
-              <TextInput
-                style={[styles.textInput, { 
-                  backgroundColor: inputBgColor, 
-                  borderColor: borderColor,
-                  color: textColor 
-                }]}
-                value={firstName}
-                onChangeText={setFirstName}
-                placeholder="Enter first name"
-                placeholderTextColor={textBodyColor}
-              />
-            </View>
-            <View style={[styles.inputContainer, { flex: 1, marginLeft: 8 }]}>
-              <Text style={[styles.inputLabel, { color: textBodyColor }]}>Last Name *</Text>
-              <TextInput
-                style={[styles.textInput, { 
-                  backgroundColor: inputBgColor, 
-                  borderColor: borderColor,
-                  color: textColor 
-                }]}
-                value={lastName}
-                onChangeText={setLastName}
-                placeholder="Enter last name"
-                placeholderTextColor={textBodyColor}
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={[styles.inputLabel, { color: textBodyColor }]}>Email Address *</Text>
-            <TextInput
-              style={[styles.textInput, { 
-                backgroundColor: inputBgColor, 
-                borderColor: borderColor,
-                color: textColor 
-              }]}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Enter email address"
-              placeholderTextColor={textBodyColor}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={[styles.inputLabel, { color: textBodyColor }]}>Phone Number</Text>
-            <TextInput
-              style={[styles.textInput, { 
-                backgroundColor: inputBgColor, 
-                borderColor: borderColor,
-                color: textColor 
-              }]}
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              placeholder="Enter phone number"
-              placeholderTextColor={textBodyColor}
-              keyboardType="phone-pad"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={[styles.inputLabel, { color: textBodyColor }]}>Address</Text>
-            <TextInput
-              style={[styles.textInput, { 
-                backgroundColor: inputBgColor, 
-                borderColor: borderColor,
-                color: textColor 
-              }]}
-              value={address}
-              onChangeText={setAddress}
-              placeholder="Enter address"
-              placeholderTextColor={textBodyColor}
-            />
-          </View>
-
-          <View style={styles.inputRow}>
-            <View style={[styles.inputContainer, { flex: 1, marginRight: 8 }]}>
-              <Text style={[styles.inputLabel, { color: textBodyColor }]}>City</Text>
-              <TextInput
-                style={[styles.textInput, { 
-                  backgroundColor: inputBgColor, 
-                  borderColor: borderColor,
-                  color: textColor 
-                }]}
-                value={city}
-                onChangeText={setCity}
-                placeholder="Enter city"
-                placeholderTextColor={textBodyColor}
-              />
-            </View>
-            <View style={[styles.inputContainer, { flex: 1, marginLeft: 8 }]}>
-              <Text style={[styles.inputLabel, { color: textBodyColor }]}>State</Text>
-              <TextInput
-                style={[styles.textInput, { 
-                  backgroundColor: inputBgColor, 
-                  borderColor: borderColor,
-                  color: textColor 
-                }]}
-                value={state}
-                onChangeText={setState}
-                placeholder="Enter state"
-                placeholderTextColor={textBodyColor}
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* Save Button */}
-        <TouchableOpacity 
-          style={[styles.saveButton, { 
-            backgroundColor: theme.primary,
-            opacity: isLoading ? 0.7 : 1 
-          }]}
-          onPress={handleSaveProfile}
-          disabled={isLoading}
-        >
-          <Text style={styles.saveButtonText}>
-            {isLoading ? 'Saving...' : 'Save Changes'}
-          </Text>
-        </TouchableOpacity>
-
-        <View style={{ height: 50 }} />
+          <View style={{ height: 50 }} />
+        </Animated.View>
       </ScrollView>
     </View>
   );
@@ -547,20 +570,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingTop: 50,
-    borderBottomWidth: 1,
+    paddingHorizontal: 24,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 16,
   },
   backButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  placeholder: {
-    width: 40,
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
   scrollView: {
     flex: 1,
@@ -569,21 +593,19 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
   profileSection: {
-    marginHorizontal: 16,
-    marginBottom: 20,
-    padding: 24,
-    borderRadius: 12,
     alignItems: 'center',
+    marginBottom: 32,
   },
   profilePicContainer: {
     position: 'relative',
     marginBottom: 16,
   },
   profilePic: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     overflow: 'hidden',
+    borderWidth: 4,
   },
   profileImage: {
     width: '100%',
@@ -597,35 +619,39 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 50,
+    borderRadius: 60,
   },
   editPicButton: {
     position: 'absolute',
-    bottom: 4,
-    right: 4,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    bottom: 0,
+    right: 0,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 3,
   },
   changePictureButton: {
     paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 173, 255, 0.1)',
   },
   changePictureText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   formSection: {
-    marginHorizontal: 16,
+    paddingHorizontal: 24,
     marginBottom: 20,
-    padding: 20,
-    borderRadius: 12,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 20,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 16,
+    paddingLeft: 4,
   },
   inputContainer: {
     marginBottom: 16,
@@ -634,23 +660,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   inputLabel: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '600',
     marginBottom: 8,
+    marginLeft: 4,
   },
   textInput: {
-    borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 16,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 16,
     fontSize: 16,
+    fontWeight: '500',
   },
   saveButton: {
-    marginHorizontal: 16,
-    paddingVertical: 16,
-    borderRadius: 12,
+    marginHorizontal: 24,
+    paddingVertical: 20,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 8,
   },
   saveButtonText: {
     color: '#FFFFFF',

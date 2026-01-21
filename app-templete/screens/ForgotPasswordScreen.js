@@ -52,20 +52,22 @@ export default function ForgotPasswordScreen() {
   }, []);
 
   const theme = {
-    primary: "#0A2540",
-    accent: "#FF9F43",
-    backgroundLight: "#F8F9FA",
-    backgroundDark: "#111921",
-    textHeadings: "#1E293B",
-    textBody: "#475569",
+    primary: "#00ADFF", // Snapchat Blue
+    backgroundLight: "#FFFFFF",
+    backgroundDark: "#000000",
+    inputLight: "#F2F2F2",
+    inputDark: "#1E1E1E",
+    textLight: "#000000",
+    textDark: "#FFFFFF",
+    textSecondaryLight: "#757575",
+    textSecondaryDark: "#A0A0A0",
   };
 
   const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
-  const brandColor = branding?.primary_color || (isDark ? theme.accent : theme.primary);
-  const textColor = isDark ? "#FFFFFF" : theme.textHeadings;
-  const textBodyColor = isDark ? "#9CA3AF" : theme.textBody;
-  const cardBg = isDark ? "#1F2937" : "#FFFFFF";
-  const borderColor = branding?.primary_color || (isDark ? "#374151" : "#334155");
+  const textColor = isDark ? theme.textDark : theme.textLight;
+  const textSecondaryColor = isDark ? theme.textSecondaryDark : theme.textSecondaryLight;
+  const inputBg = isDark ? theme.inputDark : theme.inputLight;
+  const brandColor = branding?.primary_color || theme.primary;
 
   const onSubmit = async () => {
     if (!email) {
@@ -103,22 +105,23 @@ export default function ForgotPasswordScreen() {
       <KeyboardAvoidingView style={styles.keyboardView} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
           <View style={styles.logoContainer}>
-            <Image
-              source={branding?.logo_url ? { uri: branding.logo_url } : require("../assets/images/logo.png")}
-              style={styles.logo}
-            />
-            <Text style={[styles.title, { color: brandColor }]}>Forgot Password</Text>
-            <Text style={[styles.subtitle, { color: textBodyColor }]}>Enter your email to receive an OTP</Text>
+            <View style={styles.logoWrapper}>
+              <Image
+                source={branding?.logo_url ? { uri: branding.logo_url } : require("../assets/images/logo.png")}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
+            <Text style={[styles.title, { color: textColor }]}>Forgot Password</Text>
           </View>
 
           <View style={styles.formContainer}>
             <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: brandColor }]}>Email</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor: borderColor }]}>
+              <Text style={[styles.inputLabel, { color: textSecondaryColor }]}>EMAIL ADDRESS</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: inputBg }]}>
                 <TextInput
                   style={[styles.input, { color: textColor }]}
-                  placeholder="Enter your email address"
-                  placeholderTextColor={textBodyColor}
+                  placeholder=""
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -131,7 +134,7 @@ export default function ForgotPasswordScreen() {
 
             <View style={styles.buttonContainer}>
               <TouchableOpacity
-                style={[styles.button, styles.primaryButton, (submitting || !email) && styles.buttonDisabled, { backgroundColor: brandColor }]}
+                style={[styles.primaryButton, (submitting || !email) && styles.buttonDisabled, { backgroundColor: brandColor }]}
                 onPress={onSubmit}
                 disabled={submitting || !email}
                 activeOpacity={0.8}
@@ -143,8 +146,8 @@ export default function ForgotPasswordScreen() {
                 )}
               </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.button, styles.secondaryButton]} onPress={() => router.replace("/login")}>
-                <Text style={[styles.secondaryButtonText, { color: textBodyColor }]}>Back to Sign In</Text>
+              <TouchableOpacity style={styles.secondaryButton} onPress={() => router.replace("/login")}>
+                <Text style={[styles.secondaryButtonText, { color: brandColor }]}>Back to Log In</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -157,21 +160,68 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   keyboardView: { flex: 1 },
-  scrollContainer: { flexGrow: 1, justifyContent: "center", paddingVertical: 24 },
-  logoContainer: { alignItems: "center", marginBottom: 24 },
-  logo: { width: 64, height: 64, resizeMode: "contain", marginBottom: 8 },
-  title: { fontSize: 24, fontFamily: "Poppins-Bold" },
-  subtitle: { fontSize: 14, fontFamily: "Poppins-Regular" },
-  formContainer: { paddingHorizontal: 24 },
-  inputContainer: { marginBottom: 16 },
-  inputLabel: { fontSize: 14, marginBottom: 8, fontFamily: "Poppins-Medium" },
-  inputWrapper: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, height: 50 },
-  input: { flex: 1, height: 50, fontFamily: "Poppins-Regular" },
-  buttonContainer: { marginTop: 8 },
-  button: { height: 50, borderRadius: 10, alignItems: "center", justifyContent: "center", marginBottom: 12 },
-  primaryButton: { backgroundColor: "#0A2540" },
-  primaryButtonText: { color: "#FFFFFF", fontSize: 16, fontFamily: "Poppins-SemiBold" },
-  buttonDisabled: { opacity: 0.6 },
-  secondaryButton: { backgroundColor: "transparent", borderWidth: 1, borderColor: "#334155" },
-  secondaryButtonText: { color: "#334155", fontFamily: "Poppins-Medium" },
+  scrollContainer: {
+    flexGrow: 1,
+    padding: 32,
+    paddingTop: Platform.OS === 'ios' ? 80 : 60,
+  },
+  logoContainer: { alignItems: "center", marginBottom: 48 },
+  logoWrapper: {
+    width: 80,
+    height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  logo: { width: 70, height: 70 },
+  title: {
+    fontSize: 24,
+    fontWeight: "700",
+    textAlign: "center",
+    letterSpacing: -0.5,
+  },
+  formContainer: { width: "100%" },
+  inputContainer: { marginBottom: 20 },
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    marginBottom: 8,
+    letterSpacing: 1,
+    paddingLeft: 4,
+  },
+  inputWrapper: {
+    borderRadius: 12,
+    height: 52,
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  input: {
+    fontSize: 16,
+    height: "100%",
+    flex: 1,
+    fontWeight: '500',
+  },
+  buttonContainer: { marginTop: 16 },
+  primaryButton: {
+    width: "100%",
+    height: 52,
+    borderRadius: 26,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  primaryButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
+  buttonDisabled: { opacity: 0.5 },
+  secondaryButton: {
+    alignSelf: 'center',
+    padding: 12,
+  },
+  secondaryButtonText: { fontSize: 14, fontWeight: "700" },
 });

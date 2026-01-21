@@ -1,9 +1,9 @@
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from "expo-router";
 import { Config } from "../constants/Config";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -14,13 +14,17 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  Animated,
+  Dimensions,
 } from "react-native";
+import { LinearGradient } from 'expo-linear-gradient';
 import CustomAlert from "../components/CustomAlert";
 import { useTheme } from "../components/ThemeContext";
-import { appService } from "../services/api"; // Added import
-
+import { appService } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+
+const { width, height } = Dimensions.get('window');
 
 const LoginScreen = () => {
   const { login, isAuthenticated } = useAuth();
@@ -36,10 +40,17 @@ const LoginScreen = () => {
   });
   const [isBiometricSupported, setIsBiometricSupported] = useState(false);
   const [hasSavedCredentials, setHasSavedCredentials] = useState(false);
-  const [branding, setBranding] = useState(null); // Added branding state
+  const [branding, setBranding] = useState(null);
   const router = useRouter();
 
-  // Fetch branding
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const logoScale = useRef(new Animated.Value(0.8)).current;
+  const emailFocusAnim = useRef(new Animated.Value(0)).current;
+  const passwordFocusAnim = useRef(new Animated.Value(0)).current;
+
+  // Fetch branding and animate on mount
   useEffect(() => {
     const fetchBranding = async () => {
       try {
@@ -53,6 +64,26 @@ const LoginScreen = () => {
       }
     };
     fetchBranding();
+
+    // Start entrance animations
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(logoScale, {
+        toValue: 1,
+        friction: 5,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
   // Check for biometrics and saved credentials
@@ -184,23 +215,22 @@ const LoginScreen = () => {
   };
 
   const theme = {
-    primary: "#0A2540",
-    accent: "#FF9F43",
-    backgroundLight: "#F8F9FA",
-    backgroundDark: "#111921",
-    textHeadings: "#1E293B",
-    textBody: "#475569",
+    primary: "#00ADFF", // Snapchat Blue
+    backgroundLight: "#FFFFFF",
+    backgroundDark: "#000000",
+    inputLight: "#F2F2F2",
+    inputDark: "#1E1E1E",
+    textLight: "#000000",
+    textDark: "#FFFFFF",
+    textSecondaryLight: "#757575",
+    textSecondaryDark: "#A0A0A0",
   };
 
   const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
-  // Use branding color if available, otherwise default
-  const brandColor = branding?.primary_color || (isDark ? theme.accent : theme.primary);
-
-  const textColor = isDark ? "#FFFFFF" : theme.textHeadings;
-  const textBodyColor = isDark ? "#9CA3AF" : theme.textBody;
-  const cardBg = isDark ? "#1F2937" : "#FFFFFF";
-  // Use branding color for border if available
-  const borderColor = branding?.primary_color || (isDark ? "#374151" : "#334155");
+  const textColor = isDark ? theme.textDark : theme.textLight;
+  const textSecondaryColor = isDark ? theme.textSecondaryDark : theme.textSecondaryLight;
+  const inputBg = isDark ? theme.inputDark : theme.inputLight;
+  const brandColor = branding?.primary_color || theme.primary;
 
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
@@ -212,15 +242,6 @@ const LoginScreen = () => {
         duration={5000}
       />
 
-      {/* Full screen loader */}
-      {isLoggingIn && (
-        <View style={styles.loadingOverlay}>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={brandColor} />
-            <Text style={[styles.loadingText, { color: textColor }]}>Signing in...</Text>
-          </View>
-        </View>
-      )}
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -228,174 +249,201 @@ const LoginScreen = () => {
         <ScrollView
           contentContainerStyle={styles.scrollContainer}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <View style={styles.logoContainer}>
-            <Image
-              source={branding?.logo_url ? { uri: branding.logo_url } : require("../assets/images/logo.png")}
-              style={styles.logo}
-            />
-            {/* Apply brand color to title */}
-            <Text style={[styles.title, { color: brandColor }]}>Welcome Back</Text>
-            <Text style={[styles.subtitle, { color: textBodyColor }]}>Sign in to access your account</Text>
-          </View>
-
-          <View style={styles.formContainer}>
-            <View style={styles.inputContainer}>
-              {/* Apply brand color to label */}
-              <Text style={[styles.inputLabel, { color: brandColor }]}>Email</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor: borderColor }]}>
-                <TextInput
-                  style={[styles.input, { color: textColor }]}
-                  placeholder="Enter your email address"
-                  placeholderTextColor={textBodyColor}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  selectionColor={brandColor}
-                />
-              </View>
+          <Animated.View
+            style={[
+              styles.logoContainer,
+              {
+                opacity: fadeAnim,
+                transform: [
+                  { translateY: slideAnim },
+                  { scale: logoScale }
+                ]
+              }
+            ]}
+          >
+            <View style={styles.logoWrapper}>
+              <Image
+                source={branding?.logo_url ? { uri: branding.logo_url } : require("../assets/images/logo.png")}
+                style={styles.logo}
+                resizeMode="contain"
+              />
             </View>
+            <Text style={[styles.title, { color: textColor }]}>Log In</Text>
+          </Animated.View>
 
-            <View style={styles.inputContainer}>
-              {/* Apply brand color to label */}
-              <Text style={[styles.inputLabel, { color: brandColor }]}>Password</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor: borderColor }]}>
-                <TextInput
-                  style={[styles.input, { color: textColor }]}
-                  placeholder="Enter your password"
-                  placeholderTextColor={textBodyColor}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                  selectionColor={brandColor}
-                />
-                <TouchableOpacity
-                  style={styles.eyeIcon}
-                  onPress={() => setShowPassword(!showPassword)}
-                >
-                  <MaterialIcons
-                    name={showPassword ? "visibility-off" : "visibility"}
-                    size={20}
-                    color={textBodyColor}
+          <Animated.View
+            style={[
+              styles.formContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }]
+              }
+            ]}
+          >
+            <View style={styles.formContent}>
+              {/* Email Input */}
+              <View style={styles.inputContainer}>
+                <Text style={[styles.inputLabel, { color: textSecondaryColor }]}>USERNAME OR EMAIL</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: inputBg }]}>
+                  <TextInput
+                    style={[styles.input, { color: textColor }]}
+                    placeholder=""
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    selectionColor={brandColor}
+                    onFocus={() => Animated.spring(emailFocusAnim, { toValue: 1, useNativeDriver: true }).start()}
+                    onBlur={() => Animated.spring(emailFocusAnim, { toValue: 0, useNativeDriver: true }).start()}
                   />
-                </TouchableOpacity>
+                </View>
               </View>
-            </View>
 
-            <View style={styles.buttonContainer}>
+              {/* Password Input */}
+              <View style={styles.inputContainer}>
+                <Text style={[styles.inputLabel, { color: textSecondaryColor }]}>PASSWORD</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: inputBg }]}>
+                  <TextInput
+                    style={[styles.input, { color: textColor }]}
+                    placeholder=""
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    selectionColor={brandColor}
+                    onFocus={() => Animated.spring(passwordFocusAnim, { toValue: 1, useNativeDriver: true }).start()}
+                    onBlur={() => Animated.spring(passwordFocusAnim, { toValue: 0, useNativeDriver: true }).start()}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeIcon}
+                    onPress={() => setShowPassword(!showPassword)}
+                    activeOpacity={0.7}
+                  >
+                    <MaterialIcons
+                      name={showPassword ? "visibility-off" : "visibility"}
+                      size={20}
+                      color={textSecondaryColor}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Forgot Password */}
+              <TouchableOpacity
+                style={styles.forgotPasswordContainer}
+                onPress={() => router.push("/forgot-password")}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.forgotPassword, { color: brandColor }]}>
+                  Forgot Password?
+                </Text>
+              </TouchableOpacity>
+
+              {/* Login Button */}
               <TouchableOpacity
                 style={[
-                  styles.button,
                   styles.primaryButton,
+                  { backgroundColor: brandColor },
                   (isLoggingIn || !email || !password) && styles.buttonDisabled,
-                  { backgroundColor: brandColor } // Apply brand color to button background
                 ]}
                 onPress={handleLogin}
                 disabled={isLoggingIn || !email || !password}
-                activeOpacity={0.8}
+                activeOpacity={0.85}
               >
                 {isLoggingIn ? (
                   <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
-                  <Text style={styles.primaryButtonText}>Sign In</Text>
+                  <Text style={styles.buttonText}>Log In</Text>
                 )}
               </TouchableOpacity>
 
+              {/* Biometric Login */}
               {isBiometricSupported && hasSavedCredentials && (
                 <TouchableOpacity
-                  style={[styles.button, styles.secondaryButton, { marginTop: -8 }]}
+                  style={styles.biometricButton}
                   onPress={handleBiometricLogin}
                   disabled={isLoggingIn}
+                  activeOpacity={0.7}
                 >
-                  <Ionicons name="finger-print" size={24} color={isDark ? "#FFFFFF" : "#1E293B"} />
-                  <Text style={[styles.secondaryButtonText, { color: isDark ? "#FFFFFF" : "#1E293B" }]}>
-                    Login with Biometrics
-                  </Text>
+                  <Ionicons name="finger-print" size={32} color={brandColor} />
                 </TouchableOpacity>
               )}
-
-              <View style={styles.forgotPasswordContainer}>
-                <TouchableOpacity
-                  onPress={() => router.push("/forgot-password")}
-                >
-                  <Text style={[styles.forgotPassword, { color: isDark ? theme.accent : theme.primary }]}>Forgot Password?</Text>
-                </TouchableOpacity>
-              </View>
             </View>
+          </Animated.View>
 
-            <View style={styles.signupContainer}>
-              <Text style={[styles.signupText, { color: textBodyColor }]}>Don't have an account? </Text>
-              <TouchableOpacity onPress={() => router.push("/signup")}>
-                <Text style={[styles.signupLink, { color: isDark ? theme.accent : theme.primary }]}>Sign Up</Text>
-              </TouchableOpacity>
-            </View>
+          {/* Sign Up Link */}
+          <View style={styles.signupContainer}>
+            <Text style={[styles.signupText, { color: textSecondaryColor }]}>
+              New to the app?{" "}
+            </Text>
+            <TouchableOpacity onPress={() => router.push("/signup")} activeOpacity={0.7}>
+              <Text style={[styles.signupLink, { color: brandColor }]}>
+                Sign Up
+              </Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );
-}
-  ;
+};
 
 export default LoginScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    position: "relative",
   },
   keyboardView: {
     flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
-    padding: 24,
+    padding: 32,
+    paddingTop: Platform.OS === 'ios' ? 80 : 60,
   },
   logoContainer: {
     alignItems: "center",
-    marginTop: 40,
-    marginBottom: 32,
+    marginBottom: 48,
+  },
+  logoWrapper: {
+    width: 80,
+    height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
   },
   logo: {
-    width: 96,
-    height: 96,
-    borderRadius: 0,
-    marginBottom: 24,
+    width: 70,
+    height: 70,
   },
   title: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#1E293B",
+    fontWeight: "700",
     textAlign: "center",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#1E293Bf0",
-    textAlign: "center",
-    marginBottom: 32,
+    letterSpacing: -0.5,
   },
   formContainer: {
     width: "100%",
   },
+  formContent: {
+    width: "100%",
+  },
   inputContainer: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   inputLabel: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#1E293B",
+    fontSize: 11,
+    fontWeight: "700",
     marginBottom: 8,
+    letterSpacing: 1,
+    paddingLeft: 4,
   },
   inputWrapper: {
-    backgroundColor: "#fff",
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#1E293B",
-    height: 56,
+    height: 52,
     justifyContent: "center",
     paddingHorizontal: 16,
     flexDirection: "row",
@@ -403,194 +451,63 @@ const styles = StyleSheet.create({
   },
   input: {
     fontSize: 16,
-    color: "#1E293B",
-    padding: 0,
-    margin: 0,
     height: "100%",
     flex: 1,
+    fontWeight: '500',
   },
   eyeIcon: {
-    width: 24,
-    height: 24,
+    width: 32,
+    height: 32,
     justifyContent: "center",
     alignItems: "center",
   },
-  buttonContainer: {
-    width: "100%",
-    marginBottom: 24,
-  },
-  button: {
-    backgroundColor: "#1E293B",
-    width: "100%",
-    height: 48,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    flexDirection: "row",
-    marginBottom: 16,
-  },
-  primaryButton: {
-    backgroundColor: "#1E293B",
-  },
-  primaryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  secondaryButton: {
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-  },
-  secondaryButtonText: {
-    color: "#1E293B",
-    fontSize: 16,
-    fontWeight: "bold",
-    marginLeft: 8,
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-    transform: [{ scale: 0.98 }],
-  },
-  optionsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 24,
+  forgotPasswordContainer: {
+    alignSelf: 'center',
+    marginTop: 8,
+    marginBottom: 32,
   },
   forgotPassword: {
     fontSize: 14,
-    color: "#3B82F6",
-    fontWeight: "500",
+    fontWeight: "600",
   },
-  dividerContainer: {
-    flexDirection: "row",
+  primaryButton: {
+    width: "100%",
+    height: 52,
+    borderRadius: 26,
+    justifyContent: "center",
     alignItems: "center",
-    marginVertical: 20,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  divider: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#D1D5DB",
-  },
-  dividerText: {
-    color: "#6B7280",
-    fontSize: 14,
-    marginHorizontal: 12,
-  },
-  socialButton: {
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-  },
-  socialIcon: {
-    width: 24,
-    height: 24,
-    marginRight: 12,
-  },
-  socialButtonText: {
+  buttonText: {
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "700",
+  },
+  biometricButton: {
+    alignSelf: 'center',
+    padding: 12,
+  },
+  buttonDisabled: {
+    // Removed opacity to maintain full color
   },
   signupContainer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 16,
-    marginBottom: 8,
+    alignItems: 'center',
+    marginTop: 'auto',
+    paddingBottom: 20,
   },
   signupText: {
     fontSize: 14,
-    color: "#6B7280",
+    fontWeight: '500',
   },
   signupLink: {
     fontSize: 14,
-    color: "#3B82F6",
-    fontWeight: "500",
-  },
-  termsText: {
-    fontSize: 12,
-    color: "#6B7280",
-    textAlign: "center",
-    marginTop: 8,
-  },
-  linkText: {
-    color: "#3B82F6",
-    textDecorationLine: "underline",
-  },
-  otpContent: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  otpTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#111921",
-    marginBottom: 12,
-    textAlign: "center",
-  },
-  otpSubtitle: {
-    fontSize: 16,
-    color: "#6B7280",
-    textAlign: "center",
-    marginBottom: 32,
-    paddingHorizontal: 20,
-  },
-  otpInputsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
-    marginBottom: 24,
-  },
-  otpInput: {
-    width: 48,
-    height: 56,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    textAlign: "center",
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#111921",
-  },
-  resendText: {
-    fontSize: 14,
-    color: "#6B7280",
-    textAlign: "center",
-  },
-  resendLink: {
-    color: "#3B82F6",
-    fontWeight: "500",
-  },
-  loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  loadingContainer: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "700",
   },
 });

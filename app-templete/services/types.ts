@@ -25,6 +25,7 @@ export interface User {
   city?: string;
   state?: string;
   avatar?: string;
+  role?: string;
 }
 
 export interface Wallet {

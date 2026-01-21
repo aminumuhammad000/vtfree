@@ -2,7 +2,7 @@ import { useTheme } from '@/components/ThemeContext';
 import TransactionFilter, { FilterOptions } from '@/components/TransactionFilter';
 import TransactionDetailsModal from '@/components/TransactionDetailsModal';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   ScrollView,
   StatusBar,
@@ -12,8 +12,15 @@ import {
   View,
   ActivityIndicator,
   RefreshControl,
+  Animated,
+  Platform,
+  Dimensions,
 } from 'react-native';
 import { transactionService, Transaction as ApiTransaction } from '@/services/transaction.service';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+
+const { width } = Dimensions.get('window');
 
 interface Transaction {
   id: string;
@@ -29,7 +36,21 @@ interface Transaction {
   totalAmount?: string;
 }
 
+const theme = {
+  primary: "#00ADFF", // Snapchat Blue
+  backgroundLight: "#FFFFFF",
+  backgroundDark: "#000000",
+  inputLight: "#F2F2F2",
+  inputDark: "#1E1E1E",
+  textLight: "#000000",
+  textDark: "#FFFFFF",
+  textSecondaryLight: "#757575",
+  textSecondaryDark: "#A0A0A0",
+};
+
 export default function TransactionsScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
   const [filterVisible, setFilterVisible] = useState(false);
   const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
@@ -44,19 +65,32 @@ export default function TransactionsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const theme = {
-    primary: '#0A2540',
-    accent: '#FF9F43',
-    backgroundLight: '#F8F9FA',
-    backgroundDark: '#111921',
-    textHeadings: '#1E293B',
-    textBody: '#475569',
-  };
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
 
   const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
-  const textColor = isDark ? '#FFFFFF' : theme.textHeadings;
-  const textBodyColor = isDark ? '#9CA3AF' : theme.textBody;
-  const cardBg = isDark ? '#1F2937' : '#F3F4F6';
+  const textColor = isDark ? theme.textDark : theme.textLight;
+  const textSecondaryColor = isDark ? theme.textSecondaryDark : theme.textSecondaryLight;
+  const cardBg = isDark ? theme.inputDark : theme.inputLight;
+  const brandColor = theme.primary;
+
+  useEffect(() => {
+    if (!loading) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [loading]);
 
   useEffect(() => {
     loadTransactions();
@@ -66,16 +100,14 @@ export default function TransactionsScreen() {
     try {
       setLoading(true);
       const response = await transactionService.getTransactions(1, 50);
-      console.log('Transaction API Response:', response); // Debug log
-      if (response.success && response.data && Array.isArray(response.data)) {
-        const mapped = response.data.map(mapApiTransactionToLocal);
+      if (response.success && response.data && Array.isArray(response.data.transactions)) {
+        const mapped = response.data.transactions.map(mapApiTransactionToLocal);
         setAllTransactions(mapped);
       } else {
         setAllTransactions([]);
       }
     } catch (error: any) {
       console.error('Error loading transactions:', error);
-      // Show error message to user
       setAllTransactions([]);
     } finally {
       setLoading(false);
@@ -169,71 +201,97 @@ export default function TransactionsScreen() {
 
       {/* Header */}
       <View style={[styles.header, { backgroundColor: bgColor }]}>
-        <Text style={[styles.headerTitle, { color: textColor }]}>Transactions</Text>
-        <TouchableOpacity
-          style={[styles.filterBtn, hasActiveFilters && { backgroundColor: theme.primary + '20' }]}
-          onPress={handleFilterPress}
-        >
-          <Ionicons name="filter-outline" size={24} color={hasActiveFilters ? theme.primary : textColor} />
-          {hasActiveFilters && (
-            <View style={[styles.filterBadge, { backgroundColor: theme.primary }]}>
-              <Text style={styles.filterBadgeText}>•</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        <View style={styles.headerTop}>
+          <TouchableOpacity
+            style={[styles.backButton, { backgroundColor: cardBg }]}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={20} color={textColor} />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { color: textColor }]}>History</Text>
+          <TouchableOpacity
+            style={[styles.filterBtn, { backgroundColor: hasActiveFilters ? brandColor + '20' : cardBg }]}
+            onPress={handleFilterPress}
+          >
+            <Ionicons name="filter" size={20} color={hasActiveFilters ? brandColor : textColor} />
+            {hasActiveFilters && (
+              <View style={[styles.filterBadge, { backgroundColor: brandColor }]} />
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.primary} />
-          <Text style={[styles.loadingText, { color: textBodyColor }]}>Loading transactions...</Text>
+          <ActivityIndicator size="large" color={brandColor} />
+          <Text style={[styles.loadingText, { color: textSecondaryColor }]}>Loading transactions...</Text>
         </View>
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: Math.max(insets.bottom, 24) + 80 }
+          ]}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={brandColor} />}
         >
-          {filteredTransactions.length > 0 ? (
-            filteredTransactions.map(transaction => (
-              <TouchableOpacity key={transaction.id} style={[styles.transactionItem, { backgroundColor: cardBg }]} onPress={openTransactionDetails(transaction.id)}>
-                <View style={[styles.transactionLogo, { backgroundColor: transaction.bgColor }]}>
-                  <View style={styles.logoPlaceholder} />
+          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+            {filteredTransactions.length > 0 ? (
+              filteredTransactions.map(transaction => (
+                <TouchableOpacity key={transaction.id} style={[styles.transactionItem, { backgroundColor: cardBg }]} onPress={openTransactionDetails(transaction.id)}>
+                  <View style={[styles.transactionLogo, { backgroundColor: transaction.bgColor + '15' }]}>
+                    <Ionicons
+                      name={
+                        transaction.type?.includes('Airtime') ? 'phone-portrait' :
+                          transaction.type?.includes('Data') ? 'wifi' :
+                            transaction.type?.includes('Wallet') ? 'wallet' : 'receipt'
+                      }
+                      size={24}
+                      color={transaction.bgColor}
+                    />
+                  </View>
+                  <View style={styles.transactionDetails}>
+                    <Text style={[styles.transactionName, { color: textColor }]}>{transaction.name}</Text>
+                    <Text style={[styles.transactionDate, { color: textSecondaryColor }]}>{transaction.date}</Text>
+                  </View>
+                  <View style={styles.transactionRight}>
+                    <Text style={[styles.transactionAmount, { color: textColor }]}>-{transaction.amount}</Text>
+                    <View style={[styles.statusBadge, {
+                      backgroundColor:
+                        transaction.status === 'Successful' ? '#00D166' + '15' :
+                          transaction.status === 'Failed' ? '#FF5B5B' + '15' : '#FFFC00' + '15'
+                    }]}>
+                      <Text
+                        style={[
+                          styles.transactionStatus,
+                          {
+                            color:
+                              transaction.status === 'Successful'
+                                ? '#00D166'
+                                : transaction.status === 'Failed'
+                                  ? '#FF5B5B'
+                                  : '#FFFC00', // Warning yellow
+                          },
+                        ]}
+                      >
+                        {transaction.status}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <View style={[styles.emptyState, { backgroundColor: cardBg }]}>
+                <View style={[styles.emptyIconCircle, { backgroundColor: brandColor + '10' }]}>
+                  <Ionicons name="receipt-outline" size={32} color={brandColor} />
                 </View>
-                <View style={styles.transactionDetails}>
-                  <Text style={[styles.transactionName, { color: textColor }]}>{transaction.name}</Text>
-                  <Text style={[styles.transactionDate, { color: textBodyColor }]}>{transaction.date}</Text>
-                </View>
-                <View style={styles.transactionRight}>
-                  <Text style={[styles.transactionAmount, { color: textColor }]}>-{transaction.amount}</Text>
-                  <Text
-                    style={[
-                      styles.transactionStatus,
-                      {
-                        color:
-                          transaction.status === 'Successful'
-                            ? '#10B981'
-                            : transaction.status === 'Failed'
-                              ? '#EF4444'
-                              : '#FF9F43',
-                      },
-                    ]}
-                  >
-                    {transaction.status}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={textBodyColor} style={styles.chevron} />
-              </TouchableOpacity>
-            ))
-          ) : (
-            <View style={[styles.emptyState, { backgroundColor: cardBg }]}>
-              <Ionicons name="receipt-outline" size={48} color={textBodyColor} />
-              <Text style={[styles.emptyTitle, { color: textColor }]}>No transactions found</Text>
-              <Text style={[styles.emptySubtitle, { color: textBodyColor }]}>
-                Try adjusting your filters to see more results
-              </Text>
-            </View>
-          )}
+                <Text style={[styles.emptyTitle, { color: textColor }]}>No transactions found</Text>
+                <Text style={[styles.emptySubtitle, { color: textSecondaryColor }]}>
+                  Try adjusting your filters to see more results
+                </Text>
+              </View>
+            )}
+          </Animated.View>
         </ScrollView>
       )}
 
@@ -250,67 +308,115 @@ export default function TransactionsScreen() {
         onClose={closeTransactionDetails}
       />
     </View>
-    // {selectedTransactionId && transactionDetails }
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
+    paddingHorizontal: 24,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 16,
+  },
+  headerTop: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    justifyContent: 'space-between',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
+    letterSpacing: -0.5,
   },
   filterBtn: {
-    padding: 8,
-    borderRadius: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
     position: 'relative',
   },
   filterBadge: {
     position: 'absolute',
-    top: 4,
-    right: 4,
+    top: 10,
+    right: 10,
     width: 8,
     height: 8,
     borderRadius: 4,
-  },
-  filterBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
+    borderWidth: 1,
+    borderColor: '#FFF',
   },
   transactionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
-    borderRadius: 8,
-    marginHorizontal: 16,
-    marginVertical: 6,
+    padding: 16,
+    borderRadius: 24,
+    marginBottom: 12,
   },
-  transactionLogo: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
-  logoPlaceholder: { width: 24, height: 24, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 12 },
-  transactionDetails: { flex: 1, marginLeft: 12 },
-  transactionName: { fontSize: 16, fontWeight: '600' },
-  transactionDate: { fontSize: 14 },
-  transactionRight: { alignItems: 'flex-end' },
-  transactionAmount: { fontSize: 16, fontWeight: '700' },
-  transactionStatus: { fontSize: 14 },
-  chevron: { marginLeft: 8 },
+  transactionLogo: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  transactionDetails: {
+    flex: 1,
+    marginLeft: 16,
+    gap: 4,
+  },
+  transactionName: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  transactionDate: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  transactionRight: {
+    alignItems: 'flex-end',
+    gap: 6,
+  },
+  transactionAmount: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  transactionStatus: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 60,
     paddingHorizontal: 20,
-    borderRadius: 12,
-    margin: 16,
+    borderRadius: 24,
+    marginTop: 20,
   },
-  emptyTitle: { fontSize: 18, fontWeight: '600', marginTop: 16 },
+  emptyIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  emptyTitle: { fontSize: 18, fontWeight: '700', marginBottom: 8 },
   emptySubtitle: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 100 },
-  loadingText: { marginTop: 12, fontSize: 16, fontWeight: '500' },
-  scrollContent: { paddingBottom: 100 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 16, fontSize: 14, fontWeight: '600' },
+  scrollContent: { paddingHorizontal: 24, paddingTop: 8 },
 });

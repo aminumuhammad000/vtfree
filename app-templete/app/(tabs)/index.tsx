@@ -1,13 +1,13 @@
 import { useTheme } from '@/components/ThemeContext';
 import { authService } from '@/services/auth.service';
 import { billPaymentService } from '@/services/billpayment.service';
-
 import { userService } from '@/services/user.service';
 import { WalletData, walletService } from '@/services/wallet.service';
+import { notificationsService } from '@/services/notifications.service';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useRef, useEffect } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -20,7 +20,11 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Animated,
+  Platform,
+  Dimensions,
 } from 'react-native';
+const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -32,10 +36,33 @@ export default function HomeScreen() {
   const [selectedDataIndex, setSelectedDataIndex] = useState<number | null>(null);
   const [user, setUser] = useState<any>(null);
   const [wallet, setWallet] = useState<WalletData | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [pinPrompted, setPinPrompted] = useState(false);
+  const scrollViewRef = useRef<any>(null);
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+  const bannerCount = 3;
+
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [loading]);
 
   // Load data when screen comes into focus (e.g., after login)
   useFocusEffect(
@@ -69,11 +96,10 @@ export default function HomeScreen() {
         loadUserProfile(),
         loadWalletData(),
         loadDashPlans(),
+        loadUnreadCount(),
       ]);
     } catch (error: any) {
       console.error('Error loading data:', error);
-      // Don't show intrusive alert, just log error
-      // User can still use the app with cached/default data
     } finally {
       setLoading(false);
     }
@@ -81,10 +107,8 @@ export default function HomeScreen() {
 
   const loadUserProfile = async () => {
     try {
-      // Check authentication before making request
       const token = await AsyncStorage.getItem('authToken');
       if (!token) {
-        console.log('Failed to load profile from server, using cached data');
         const userData = await authService.getCurrentUser();
         setUser(userData);
         return;
@@ -93,7 +117,6 @@ export default function HomeScreen() {
       const response = await userService.getProfile();
       if (response.success) {
         setUser(response.data);
-        // Prompt to set PIN if not set (legacy/new users)
         if (!pinPrompted && !response.data?.transaction_pin) {
           setPinPrompted(true);
           Alert.alert(
@@ -108,7 +131,6 @@ export default function HomeScreen() {
       }
     } catch (error: any) {
       console.log('Error loading profile:', error);
-      // Fallback to local storage
       const userData = await authService.getCurrentUser();
       setUser(userData);
     }
@@ -116,7 +138,6 @@ export default function HomeScreen() {
 
   const loadWalletData = async () => {
     try {
-      // Check authentication before making request
       const token = await AsyncStorage.getItem('authToken');
       if (!token) {
         setWallet(null);
@@ -135,7 +156,16 @@ export default function HomeScreen() {
     }
   };
 
-
+  const loadUnreadCount = async () => {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      if (!token) return;
+      const res = await notificationsService.getUnreadCount();
+      setUnreadCount(res.count);
+    } catch (error) {
+      console.log('Error loading unread count:', error);
+    }
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -143,24 +173,45 @@ export default function HomeScreen() {
     setRefreshing(false);
   };
 
+  // Auto-scroll banners every 3 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentBannerIndex((prevIndex) => {
+        const nextIndex = (prevIndex + 1) % bannerCount;
+        if (scrollViewRef.current) {
+          scrollViewRef.current.scrollTo({
+            x: nextIndex * (width - 48 + 12), // width - padding + margin
+            animated: true,
+          });
+        }
+        return nextIndex;
+      });
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const theme = {
-    primary: '#0A2540',
-    accent: '#FF9F43',
-    backgroundLight: '#F8F9FA',
-    backgroundDark: '#111921',
-    textHeadings: '#1E293B',
-    textBody: '#475569',
+    primary: "#00ADFF", // Snapchat Blue
+    backgroundLight: "#FFFFFF",
+    backgroundDark: "#000000",
+    inputLight: "#F2F2F2",
+    inputDark: "#1E1E1E",
+    textLight: "#000000",
+    textDark: "#FFFFFF",
+    textSecondaryLight: "#757575",
+    textSecondaryDark: "#A0A0A0",
   };
 
   const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
-  const textColor = isDark ? '#FFFFFF' : theme.textHeadings;
-  const textBodyColor = isDark ? '#9CA3AF' : theme.textBody;
-  const cardBg = isDark ? '#1F2937' : '#F3F4F6';
+  const textColor = isDark ? theme.textDark : theme.textLight;
+  const textSecondaryColor = isDark ? theme.textSecondaryDark : theme.textSecondaryLight;
+  const cardBg = isDark ? theme.inputDark : theme.inputLight;
+  const brandColor = theme.primary;
 
-  const airtimeAmounts = ['₦100', '₦200', '₦500', '₦1000', '₦2000', '₦5000'];
-
-  const dataPlans = [
-  ];
+  const formatCurrency = (amount: number) => {
+    return `₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
 
   // Dashboard data plans (fetched)
   const [dashPlans, setDashPlans] = useState<Array<{ label: string; price: number; duration: string }>>([]);
@@ -171,7 +222,7 @@ export default function HomeScreen() {
     try {
       setDashPlansLoading(true);
       setDashPlansError(null);
-      const res = await billPaymentService.getDataPlans(); // no network => fetch all
+      const res = await billPaymentService.getDataPlans();
       if (res?.success && Array.isArray(res.data)) {
         const mapped = res.data.map((p: any) => ({
           label: p.plan_name || p.data_value || p.name || 'Plan',
@@ -190,31 +241,6 @@ export default function HomeScreen() {
     }
   };
 
-
-
-  const formatCurrency = (amount: number) => {
-    return `₦${amount.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
-
-  const operators = ['MTN', 'Airtel', 'Glo', '9mobile', 'DSTV', 'GoTV'];
-
-  const handleQuickProceed = () => {
-    if (selectedTab !== 'airtime') {
-      Alert.alert('Info', 'Quick Top-up proceed currently supports Airtime.');
-      return;
-    }
-    const amountLabel = selectedAirtimeIndex !== null ? airtimeAmounts[selectedAirtimeIndex] : '';
-    const amount = amountLabel.replace(/[^\d]/g, '');
-    if (!phoneNumber || !amount) {
-      Alert.alert('Missing info', 'Enter phone number and select an amount.');
-      return;
-    }
-    router.push({
-      pathname: '/buy-airtime',
-      params: { phone: phoneNumber, amount },
-    } as any);
-  };
-
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
@@ -222,26 +248,40 @@ export default function HomeScreen() {
       {/* Header */}
       <View style={[styles.header, { backgroundColor: bgColor }]}>
         <View style={styles.headerLeft}>
-          <View style={styles.profilePic}>
+          <TouchableOpacity
+            style={styles.profilePic}
+            onPress={() => router.push('/profile')}
+          >
             <Image
               source={{ uri: 'https://i.pravatar.cc/150?img=12' }}
               style={styles.profileImage}
             />
+          </TouchableOpacity>
+          <View>
+            <Text style={[styles.welcomeText, { color: textColor }]}>{user?.first_name || 'Guest'}</Text>
           </View>
-          <Text style={[styles.welcomeText, { color: textColor }]}>Welcome, {user?.first_name || 'Guest'}</Text>
         </View>
-        <TouchableOpacity
-          style={styles.notificationBtn}
-          onPress={() => router.push('/notifications')}
-        >
-          <Ionicons name="notifications-outline" size={24} color={textColor} />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={[styles.iconBtn, { backgroundColor: cardBg }]}
+            onPress={() => router.push('/notifications')}
+          >
+            <Ionicons name="notifications" size={20} color={textColor} />
+            {unreadCount > 0 && <View style={styles.notificationDot} />}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.iconBtn, { backgroundColor: cardBg, marginLeft: 12 }]}
+            onPress={() => router.push('/more')}
+          >
+            <Ionicons name="search" size={20} color={textColor} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.primary} />
-          <Text style={[styles.loadingText, { color: textBodyColor }]}>Loading...</Text>
+          <ActivityIndicator size="large" color={brandColor} />
+          <Text style={[styles.loadingText, { color: textSecondaryColor }]}>Loading your world...</Text>
         </View>
       ) : (
         <ScrollView
@@ -252,221 +292,165 @@ export default function HomeScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={theme.primary}
+              tintColor={brandColor}
             />
           }
         >
-          {/* Wallet Balance Card */}
-          <View style={styles.balanceCardContainer}>
-            <View style={[styles.balanceCard, { backgroundColor: theme.primary }]}>
-              <View style={styles.balanceHeader}>
-                <Text style={styles.balanceLabel}>Your Balance</Text>
-                <TouchableOpacity
-                  style={styles.hideButton}
-                  onPress={() => setIsBalanceHidden(!isBalanceHidden)}
-                >
-                  <Ionicons
-                    name={isBalanceHidden ? "eye-outline" : "eye-off-outline"}
-                    size={16}
-                    color="#D1D5DB"
-                  />
-                  <Text style={styles.hideText}>{isBalanceHidden ? 'Show' : 'Hide'}</Text>
+          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+            {/* Wallet Balance Card */}
+            <View style={styles.balanceCardContainer}>
+              <View style={[styles.balanceCard, { backgroundColor: brandColor }]}>
+                <View style={styles.balanceHeader}>
+                  <Text style={styles.balanceLabel}>WALLET BALANCE</Text>
+                  <TouchableOpacity
+                    style={styles.hideButton}
+                    onPress={() => setIsBalanceHidden(!isBalanceHidden)}
+                  >
+                    <Ionicons
+                      name={isBalanceHidden ? "eye" : "eye-off"}
+                      size={18}
+                      color="#FFFFFF"
+                    />
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.balanceAmount}>
+                  {isBalanceHidden ? '₦••••••' : formatCurrency(wallet?.balance || 0)}
+                </Text>
+                <View style={styles.balanceActions}>
+                  <TouchableOpacity
+                    style={styles.addMoneyBtn}
+                    onPress={() => router.push('/add-money')}
+                  >
+                    <Ionicons name="add-circle" size={20} color={brandColor} />
+                    <Text style={[styles.addMoneyText, { color: brandColor }]}>Add Money</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.historyBtn}
+                    onPress={() => router.push('/transactions')}
+                  >
+                    <Text style={styles.historyText}>View History</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
+            {/* Quick Actions */}
+            <View style={styles.quickActions}>
+              <TouchableOpacity
+                style={styles.actionItem}
+                onPress={() => router.push('/buy-airtime')}
+              >
+                <View style={[styles.actionIcon, { backgroundColor: cardBg }]}>
+                  <Ionicons name="phone-portrait" size={24} color={brandColor} />
+                </View>
+                <Text style={[styles.actionText, { color: textColor }]}>Airtime</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionItem}
+                onPress={() => router.push('/buy-data')}
+              >
+                <View style={[styles.actionIcon, { backgroundColor: cardBg }]}>
+                  <Ionicons name="wifi" size={24} color={brandColor} />
+                </View>
+                <Text style={[styles.actionText, { color: textColor }]}>Data</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionItem}
+                onPress={() => router.push('/pay-bills')}
+              >
+                <View style={[styles.actionIcon, { backgroundColor: cardBg }]}>
+                  <Ionicons name="flash" size={24} color={brandColor} />
+                </View>
+                <Text style={[styles.actionText, { color: textColor }]}>Bills</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionItem}
+                onPress={() => router.push('/more')}
+              >
+                <View style={[styles.actionIcon, { backgroundColor: cardBg }]}>
+                  <Ionicons name="apps" size={24} color={brandColor} />
+                </View>
+                <Text style={[styles.actionText, { color: textColor }]}>More</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Promotional Banners */}
+            <View style={styles.bannersSection}>
+              <ScrollView
+                ref={scrollViewRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                snapToInterval={width - 48 + 12}
+                decelerationRate="fast"
+                snapToAlignment="start"
+                contentContainerStyle={{ paddingHorizontal: 24 }}
+                style={styles.bannersScroll}
+              >
+                {/* Banner 1 */}
+                <View style={[styles.bannerCard, { backgroundColor: '#FFFC00' }]}>
+                  <View style={styles.bannerIconContainer}>
+                    <Ionicons name="flash" size={20} color="#000" />
+                  </View>
+                  <View style={styles.bannerContent}>
+                    <Text style={[styles.bannerTitle, { color: '#000' }]}>Snap Deal! ⚡</Text>
+                    <Text style={[styles.bannerSubtitle, { color: '#000' }]}>10% bonus on data today.</Text>
+                  </View>
+                </View>
+
+                {/* Banner 2 */}
+                <View style={[styles.bannerCard, { backgroundColor: brandColor }]}>
+                  <View style={styles.bannerIconContainer}>
+                    <Ionicons name="people" size={20} color="#FFF" />
+                  </View>
+                  <View style={styles.bannerContent}>
+                    <Text style={styles.bannerTitle}>Refer & Earn 💰</Text>
+                    <Text style={styles.bannerSubtitle}>Get ₦500 per friend.</Text>
+                  </View>
+                </View>
+              </ScrollView>
+            </View>
+
+            {/* Recent Transactions */}
+            <View style={styles.transactionsSection}>
+              <View style={styles.transactionsHeader}>
+                <Text style={[styles.sectionTitle, { color: textColor }]}>Recent Activity</Text>
+                <TouchableOpacity onPress={() => router.push('/transactions')}>
+                  <Text style={[styles.seeAllText, { color: brandColor }]}>See All</Text>
                 </TouchableOpacity>
               </View>
-              <Text style={styles.balanceAmount}>
-                {isBalanceHidden ? '₦••••••' : formatCurrency(wallet?.balance || 0)}
-              </Text>
-              <TouchableOpacity
-                style={[styles.addMoneyBtn, { backgroundColor: theme.accent }]}
-                onPress={() => router.push('/add-money')}
-              >
-                <Ionicons name="add" size={20} color="#FFFFFF" />
-                <Text style={styles.addMoneyText}>Add Money</Text>
-              </TouchableOpacity>
+
+              <View style={styles.transactionList}>
+                <TouchableOpacity
+                  style={[styles.transactionCard, { backgroundColor: cardBg }]}
+                  onPress={() => router.push('/transactions')}
+                >
+                  <View style={[styles.transactionIconCircle, { backgroundColor: brandColor + '20' }]}>
+                    <Ionicons name="phone-portrait" size={20} color={brandColor} />
+                  </View>
+                  <View style={styles.transactionDetails}>
+                    <Text style={[styles.transactionTitle, { color: textColor }]}>Airtime Purchase</Text>
+                    <Text style={[styles.transactionDate, { color: textSecondaryColor }]}>Today, 12:45 PM</Text>
+                  </View>
+                  <Text style={[styles.amountText, { color: '#FF4B4B' }]}>-₦1,000</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.transactionCard, { backgroundColor: cardBg }]}
+                  onPress={() => router.push('/transactions')}
+                >
+                  <View style={[styles.transactionIconCircle, { backgroundColor: '#00D1FF20' }]}>
+                    <Ionicons name="wallet" size={20} color="#00D1FF" />
+                  </View>
+                  <View style={styles.transactionDetails}>
+                    <Text style={[styles.transactionTitle, { color: textColor }]}>Wallet Funding</Text>
+                    <Text style={[styles.transactionDate, { color: textSecondaryColor }]}>Yesterday, 09:20 AM</Text>
+                  </View>
+                  <Text style={[styles.amountText, { color: '#00D166' }]}>+₦5,000</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-
-          {/* Quick Actions */}
-          <View style={styles.quickActions}>
-            <TouchableOpacity
-              style={styles.actionItem}
-              onPress={() => router.push('/buy-airtime')}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: isDark ? 'rgba(10, 37, 64, 0.3)' : 'rgba(10, 37, 64, 0.2)' }]}>
-                <Ionicons name="phone-portrait-outline" size={24} color={isDark ? '#FFFFFF' : theme.primary} />
-              </View>
-              <Text style={[styles.actionText, { color: textBodyColor }]}>Buy Airtime</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.actionItem}
-              onPress={() => router.push('/buy-data')}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: isDark ? 'rgba(10, 37, 64, 0.3)' : 'rgba(10, 37, 64, 0.2)' }]}>
-                <Ionicons name="wifi-outline" size={24} color={isDark ? '#FFFFFF' : theme.primary} />
-              </View>
-              <Text style={[styles.actionText, { color: textBodyColor }]}>Buy Data</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.actionItem}
-              onPress={() => router.push('/pay-bills')}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: isDark ? 'rgba(10, 37, 64, 0.3)' : 'rgba(10, 37, 64, 0.2)' }]}>
-                <Ionicons name="receipt-outline" size={24} color={isDark ? '#FFFFFF' : theme.primary} />
-              </View>
-              <Text style={[styles.actionText, { color: textBodyColor }]}>Pay Bills</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.actionItem}
-              onPress={() => router.push('/more')}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: isDark ? 'rgba(10, 37, 64, 0.3)' : 'rgba(10, 37, 64, 0.2)' }]}>
-                <Ionicons name="grid-outline" size={24} color={isDark ? '#FFFFFF' : theme.primary} />
-              </View>
-              <Text style={[styles.actionText, { color: textBodyColor }]}>More</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Quick Top-up Form */}
-          <View style={styles.topupSection}>
-            <Text style={[styles.sectionTitle, { color: textColor }]}>Quick Top-up</Text>
-
-            {/* Tabs */}
-            <View style={[styles.tabs, { borderBottomColor: isDark ? '#374151' : '#E5E7EB' }]}>
-              <TouchableOpacity
-                style={[
-                  styles.tab,
-                  selectedTab === 'airtime' && {
-                    borderBottomColor: isDark ? theme.accent : theme.primary
-                  }
-                ]}
-                onPress={() => setSelectedTab('airtime')}
-              >
-                <Text style={[styles.tabText, selectedTab === 'airtime' && { color: isDark ? '#FFFFFF' : theme.primary }]}>
-                  Airtime
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.tab,
-                  selectedTab === 'data' && {
-                    borderBottomColor: isDark ? theme.accent : theme.primary
-                  }
-                ]}
-                onPress={() => setSelectedTab('data')}
-              >
-                <Text style={[styles.tabText, selectedTab === 'data' && { color: isDark ? '#FFFFFF' : theme.primary }]}>
-                  Data
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Phone Input */}
-            <View style={styles.formContainer}>
-              <View style={[styles.inputContainer, { backgroundColor: cardBg }]}>
-                <TextInput
-                  style={[styles.input, { color: textColor }]}
-                  placeholder="Phone Number"
-                  placeholderTextColor={textBodyColor}
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                  keyboardType="phone-pad"
-                />
-                <Ionicons name="call-outline" size={20} color={textBodyColor} style={styles.inputIcon} />
-              </View>
-
-              {/* Amount Buttons */}
-              <View style={styles.amountGrid}>
-                {selectedTab === 'airtime' ? (
-                  airtimeAmounts.map((amount, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={[
-                        styles.amountBtn,
-                        {
-                          borderColor: isDark ? '#374151' : '#E5E7EB',
-                          backgroundColor: selectedAirtimeIndex === index
-                            ? (isDark ? theme.accent : theme.primary)
-                            : 'transparent'
-                        }
-                      ]}
-                      onPress={() => setSelectedAirtimeIndex(index)}
-                    >
-                      <Text style={[
-                        styles.amountText,
-                        {
-                          color: selectedAirtimeIndex === index
-                            ? '#FFFFFF'
-                            : textColor
-                        }
-                      ]}>
-                        {amount}
-                      </Text>
-                    </TouchableOpacity>
-                  ))
-                ) : (
-                  (dashPlans.length ? dashPlans : []).map((plan, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={[
-                        styles.dataPlanBtn,
-                        {
-                          borderColor: isDark ? '#374151' : '#E5E7EB',
-                          backgroundColor: selectedDataIndex === index
-                            ? (isDark ? theme.accent : theme.primary)
-                            : 'transparent'
-                        }
-                      ]}
-                      onPress={() => setSelectedDataIndex(index)}
-                    >
-                      <Text style={[
-                        styles.planLabel,
-                        {
-                          color: selectedDataIndex === index
-                            ? '#FFFFFF'
-                            : textColor
-                        }
-                      ]}>
-                        {plan.label}
-                      </Text>
-                      <Text style={[
-                        styles.planPrice,
-                        {
-                          color: selectedDataIndex === index
-                            ? '#FFFFFF'
-                            : theme.accent
-                        }
-                      ]}>
-                        ₦{Number(plan.price || 0).toLocaleString()}
-                      </Text>
-                      <Text style={[
-                        styles.planDuration,
-                        {
-                          color: selectedDataIndex === index
-                            ? '#F3F4F6'
-                            : textBodyColor
-                        }
-                      ]}>
-                        {plan.duration}
-                      </Text>
-                    </TouchableOpacity>
-                  ))
-                )}
-              </View>
-
-              {/* Proceed Button */}
-              <TouchableOpacity
-                style={[styles.proceedBtn, { backgroundColor: theme.primary }]}
-                onPress={handleQuickProceed}
-              >
-                <Text style={styles.proceedText}>Proceed</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-
-
-          {/* Bottom Spacing */}
-          <View style={{ height: 100 }} />
+          </Animated.View>
+          <View style={{ height: 40 }} />
         </ScrollView>
       )}
     </View>
@@ -487,238 +471,246 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingTop: 50,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   profilePic: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    overflow: 'hidden',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: '#00ADFF',
+    padding: 2,
   },
   profileImage: {
     width: '100%',
     height: '100%',
+    borderRadius: 20,
   },
   welcomeText: {
     fontSize: 18,
     fontWeight: '700',
+    letterSpacing: -0.5,
   },
-  notificationBtn: {
-    padding: 8,
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  notificationDot: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FF4B4B',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
   },
   balanceCardContainer: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     marginTop: 8,
   },
   balanceCard: {
-    borderRadius: 12,
+    borderRadius: 24,
     padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowColor: '#00ADFF',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 10,
   },
   balanceHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   balanceLabel: {
-    color: '#D1D5DB',
-    fontSize: 14,
-    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
   },
   hideButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  hideText: {
-    color: '#D1D5DB',
-    fontSize: 14,
-    fontWeight: '500',
+    padding: 4,
   },
   balanceAmount: {
     color: '#FFFFFF',
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: '700',
-    marginBottom: 16,
+    marginBottom: 20,
+    letterSpacing: -1,
   },
-  addMoneyBtn: {
+  balanceActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-    gap: 8,
+    justifyContent: 'space-between',
+  },
+  addMoneyBtn: {
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    gap: 6,
   },
   addMoneyText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
+  },
+  historyBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+  },
+  historyText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+    opacity: 0.9,
   },
   quickActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    marginTop: 24,
+    paddingHorizontal: 24,
+    marginTop: 32,
   },
   actionItem: {
     alignItems: 'center',
-    gap: 8,
-    flex: 1,
+    gap: 10,
   },
   actionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
   },
   actionText: {
-    fontSize: 12,
-    fontWeight: '500',
-    textAlign: 'center',
+    fontSize: 13,
+    fontWeight: '600',
   },
-  topupSection: {
-    paddingHorizontal: 16,
+  bannersSection: {
     marginTop: 32,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 12,
+  bannersScroll: {
+    // Removed paddingLeft to use contentContainerStyle
   },
-  tabs: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    gap: 32,
-    marginBottom: 16,
-  },
-  tab: {
-    paddingVertical: 12,
-    borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
-  },
-  activeTab: {
-    borderBottomColor: '#0A2540',
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#6B7280',
-  },
-  formContainer: {
-    gap: 16,
-  },
-  inputContainer: {
+  bannerCard: {
+    width: width - 48,
+    height: 72,
+    borderRadius: 16,
+    marginRight: 12,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    height: 48,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  input: {
+  bannerIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  bannerContent: {
     flex: 1,
-    fontSize: 16,
-  },
-  inputIcon: {
-    marginLeft: 8,
-  },
-  amountGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  amountBtn: {
-    width: '30%',
-    height: 48,
-    borderRadius: 8,
-    borderWidth: 1,
     justifyContent: 'center',
-    alignItems: 'center',
   },
-  amountText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  dataPlanBtn: {
-    width: '30%',
-    minHeight: 80,
-    borderRadius: 8,
-    borderWidth: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-  },
-  planLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  planPrice: {
+  bannerTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: 2,
   },
-  planDuration: {
+  bannerSubtitle: {
     fontSize: 11,
+    fontWeight: '500',
+    opacity: 0.8,
   },
-  proceedBtn: {
-    height: 48,
-    borderRadius: 8,
-    justifyContent: 'center',
+  transactionsSection: {
+    paddingHorizontal: 24,
+    marginTop: 40,
+  },
+  transactionsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
+    marginBottom: 20,
   },
-  proceedText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+  },
+  seeAllText: {
+    fontSize: 14,
     fontWeight: '700',
   },
-
-  operatorsSection: {
-    marginTop: 32,
+  transactionList: {
+    gap: 12,
   },
-  operatorsList: {
-    paddingHorizontal: 16,
-    marginTop: 12,
+  transactionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 20,
   },
-  operatorItem: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
+  transactionIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
-  operatorText: {
+  transactionDetails: {
+    flex: 1,
+  },
+  transactionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  transactionDate: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  amountText: {
+    fontSize: 15,
+    fontWeight: '700',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 100,
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    fontWeight: '500',
+    marginTop: 16,
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   emptyState: {
     alignItems: 'center',

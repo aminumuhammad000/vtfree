@@ -1,14 +1,19 @@
 import { useTheme } from '@/components/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  Animated,
+  Dimensions,
+  Platform,
 } from 'react-native';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export interface FilterOptions {
   status: string[];
@@ -25,60 +30,74 @@ interface TransactionFilterProps {
 }
 
 const theme = {
-  primary: '#0A2540',
-  accent: '#FF9F43',
-  success: '#00D4AA',
-  error: '#FF5B5B',
-  backgroundLight: '#F8F9FA',
-  backgroundDark: '#111921',
-  textHeadings: '#1E293B',
-  textBody: '#475569',
+  primary: '#00ADFF', // Snapchat Blue
+  backgroundLight: '#FFFFFF',
+  backgroundDark: '#000000',
+  inputLight: "#F2F2F2",
+  inputDark: "#1E1E1E",
+  textLight: "#000000",
+  textDark: "#FFFFFF",
+  textSecondaryLight: "#757575",
+  textSecondaryDark: "#A0A0A0",
 };
 
-export default function TransactionFilter({ 
-  visible, 
-  onClose, 
-  onApplyFilter, 
-  currentFilters 
+export default function TransactionFilter({
+  visible,
+  onClose,
+  onApplyFilter,
+  currentFilters
 }: TransactionFilterProps) {
   const { isDark } = useTheme();
+  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
-  const cardBgColor = isDark ? '#1F2937' : '#FFFFFF';
-  const textColor = isDark ? '#FFFFFF' : theme.textHeadings;
-  const textBodyColor = isDark ? '#9CA3AF' : theme.textBody;
-  const borderColor = isDark ? '#374151' : '#E5E7EB';
+  const cardBgColor = isDark ? theme.inputDark : theme.inputLight;
+  const textColor = isDark ? theme.textDark : theme.textLight;
+  const textSecondaryColor = isDark ? theme.textSecondaryDark : theme.textSecondaryLight;
+  const borderColor = isDark ? '#333' : '#E5E7EB';
 
   const [tempFilters, setTempFilters] = React.useState<FilterOptions>(currentFilters);
 
+  useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+          damping: 20,
+          mass: 0.8,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.timing(slideAnim, {
+        toValue: SCREEN_HEIGHT,
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [visible]);
+
   const statusOptions = [
-    { value: 'Successful', label: 'Successful', color: theme.success },
-    { value: 'Failed', label: 'Failed', color: theme.error },
-    { value: 'Pending', label: 'Pending', color: theme.accent },
+    { value: 'Successful', label: 'Successful', icon: 'checkmark-circle' },
+    { value: 'Failed', label: 'Failed', icon: 'close-circle' },
+    { value: 'Pending', label: 'Pending', icon: 'time' },
   ];
 
   const typeOptions = [
     { value: 'Airtime', label: 'Airtime', icon: 'phone-portrait' },
     { value: 'Data', label: 'Data', icon: 'wifi' },
-    { value: 'TV Subscription', label: 'TV Subscription', icon: 'tv' },
-    { value: 'Electricity', label: 'Electricity', icon: 'flash' },
-  ];
-
-  const dateRangeOptions = [
-    { value: 'all', label: 'All Time' },
-    { value: 'today', label: 'Today' },
-    { value: 'yesterday', label: 'Yesterday' },
-    { value: 'week', label: 'This Week' },
-    { value: 'month', label: 'This Month' },
-    { value: 'custom', label: 'Custom Range' },
-  ];
-
-  const amountRangeOptions = [
-    { value: 'all', label: 'All Amounts' },
-    { value: '0-500', label: '₦0 - ₦500' },
-    { value: '500-1000', label: '₦500 - ₦1,000' },
-    { value: '1000-5000', label: '₦1,000 - ₦5,000' },
-    { value: '5000+', label: '₦5,000+' },
+    { value: 'Wallet', label: 'Wallet', icon: 'wallet' },
   ];
 
   const toggleStatus = (status: string) => {
@@ -108,50 +127,47 @@ export default function TransactionFilter({
       amountRange: 'all',
     };
     setTempFilters(resetFilters);
-    onApplyFilter(resetFilters);
-    onClose();
   };
 
   const FilterSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <View style={[styles.filterSection, { borderBottomColor: borderColor }]}>
-      <Text style={[styles.sectionTitle, { color: textColor }]}>{title}</Text>
+    <View style={styles.filterSection}>
+      <Text style={[styles.sectionTitle, { color: textSecondaryColor }]}>{title}</Text>
       {children}
     </View>
   );
 
-  const FilterChip = ({ 
-    label, 
-    selected, 
-    onPress, 
-    color, 
-    icon 
-  }: { 
-    label: string; 
-    selected: boolean; 
-    onPress: () => void; 
-    color?: string;
+  const FilterChip = ({
+    label,
+    selected,
+    onPress,
+    icon
+  }: {
+    label: string;
+    selected: boolean;
+    onPress: () => void;
     icon?: string;
   }) => (
     <TouchableOpacity
       style={[
         styles.filterChip,
-        { 
-          backgroundColor: selected ? (color || theme.primary) : 'transparent',
-          borderColor: selected ? (color || theme.primary) : borderColor 
+        {
+          backgroundColor: selected ? theme.primary : cardBgColor,
+          borderColor: selected ? theme.primary : 'transparent'
         }
       ]}
       onPress={onPress}
+      activeOpacity={0.7}
     >
       {icon && (
-        <Ionicons 
-          name={icon as any} 
-          size={16} 
-          color={selected ? '#FFFFFF' : textBodyColor}
+        <Ionicons
+          name={icon as any}
+          size={16}
+          color={selected ? '#FFFFFF' : textSecondaryColor}
           style={styles.chipIcon}
         />
       )}
       <Text style={[
-        styles.filterChipText, 
+        styles.filterChipText,
         { color: selected ? '#FFFFFF' : textColor }
       ]}>
         {label}
@@ -159,136 +175,113 @@ export default function TransactionFilter({
     </TouchableOpacity>
   );
 
-  const RadioOption = ({ 
-    label, 
-    selected, 
-    onPress 
-  }: { 
-    label: string; 
-    selected: boolean; 
-    onPress: () => void; 
-  }) => (
-    <TouchableOpacity style={styles.radioOption} onPress={onPress}>
-      <View style={[
-        styles.radioCircle,
-        { borderColor: selected ? theme.primary : borderColor }
-      ]}>
-        {selected && <View style={[styles.radioInner, { backgroundColor: theme.primary }]} />}
-      </View>
-      <Text style={[styles.radioLabel, { color: textColor }]}>{label}</Text>
-    </TouchableOpacity>
-  );
-
   return (
     <Modal
       visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
+      transparent={true}
       onRequestClose={onClose}
+      statusBarTranslucent
     >
-      <View style={[styles.container, { backgroundColor: bgColor }]}>
-        {/* Header */}
-        <View style={[styles.header, { borderBottomColor: borderColor }]}>
-          <TouchableOpacity style={styles.headerButton} onPress={onClose}>
-            <Text style={[styles.headerButtonText, { color: textBodyColor }]}>Cancel</Text>
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: textColor }]}>Filter Transactions</Text>
-          <TouchableOpacity style={styles.headerButton} onPress={handleReset}>
-            <Text style={[styles.headerButtonText, { color: theme.primary }]}>Reset</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={styles.modalOverlay}>
+        <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} />
+        </Animated.View>
 
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* Status Filter */}
-          <FilterSection title="Transaction Status">
-            <View style={styles.chipsContainer}>
-              {statusOptions.map((option) => (
-                <FilterChip
-                  key={option.value}
-                  label={option.label}
-                  selected={tempFilters.status.includes(option.value)}
-                  onPress={() => toggleStatus(option.value)}
-                  color={option.color}
-                />
-              ))}
-            </View>
-          </FilterSection>
+        <Animated.View
+          style={[
+            styles.modalContent,
+            {
+              backgroundColor: bgColor,
+              transform: [{ translateY: slideAnim }]
+            }
+          ]}
+        >
+          {/* Handle Bar */}
+          <View style={styles.handleBarContainer}>
+            <View style={[styles.handleBar, { backgroundColor: isDark ? '#333' : '#E0E0E0' }]} />
+          </View>
 
-          {/* Type Filter */}
-          <FilterSection title="Transaction Type">
-            <View style={styles.chipsContainer}>
-              {typeOptions.map((option) => (
-                <FilterChip
-                  key={option.value}
-                  label={option.label}
-                  selected={tempFilters.type.includes(option.value)}
-                  onPress={() => toggleType(option.value)}
-                  icon={option.icon}
-                />
-              ))}
-            </View>
-          </FilterSection>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={handleReset}>
+              <Text style={[styles.headerButtonText, { color: textSecondaryColor }]}>Reset</Text>
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: textColor }]}>Filter</Text>
+            <TouchableOpacity onPress={handleApply}>
+              <Text style={[styles.headerButtonText, { color: theme.primary, fontWeight: '700' }]}>Done</Text>
+            </TouchableOpacity>
+          </View>
 
-          {/* Date Range Filter */}
-          <FilterSection title="Date Range">
-            <View style={styles.radioContainer}>
-              {dateRangeOptions.map((option) => (
-                <RadioOption
-                  key={option.value}
-                  label={option.label}
-                  selected={tempFilters.dateRange === option.value}
-                  onPress={() => setTempFilters({ ...tempFilters, dateRange: option.value })}
-                />
-              ))}
-            </View>
-          </FilterSection>
+          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+            {/* Status Filter */}
+            <FilterSection title="STATUS">
+              <View style={styles.chipsContainer}>
+                {statusOptions.map((option) => (
+                  <FilterChip
+                    key={option.value}
+                    label={option.label}
+                    selected={tempFilters.status.includes(option.value)}
+                    onPress={() => toggleStatus(option.value)}
+                    icon={option.icon}
+                  />
+                ))}
+              </View>
+            </FilterSection>
 
-          {/* Amount Range Filter */}
-          <FilterSection title="Amount Range">
-            <View style={styles.radioContainer}>
-              {amountRangeOptions.map((option) => (
-                <RadioOption
-                  key={option.value}
-                  label={option.label}
-                  selected={tempFilters.amountRange === option.value}
-                  onPress={() => setTempFilters({ ...tempFilters, amountRange: option.value })}
-                />
-              ))}
-            </View>
-          </FilterSection>
+            {/* Type Filter */}
+            <FilterSection title="TYPE">
+              <View style={styles.chipsContainer}>
+                {typeOptions.map((option) => (
+                  <FilterChip
+                    key={option.value}
+                    label={option.label}
+                    selected={tempFilters.type.includes(option.value)}
+                    onPress={() => toggleType(option.value)}
+                    icon={option.icon}
+                  />
+                ))}
+              </View>
+            </FilterSection>
 
-          <View style={{ height: 100 }} />
-        </ScrollView>
-
-        {/* Apply Button */}
-        <View style={[styles.footer, { borderTopColor: borderColor }]}>
-          <TouchableOpacity 
-            style={[styles.applyButton, { backgroundColor: theme.primary }]}
-            onPress={handleApply}
-          >
-            <Text style={styles.applyButtonText}>Apply Filters</Text>
-          </TouchableOpacity>
-        </View>
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </Animated.View>
       </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  modalOverlay: {
     flex: 1,
+    justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  },
+  modalContent: {
+    height: SCREEN_HEIGHT * 0.5, // Half height for better UX
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    overflow: 'hidden',
+  },
+  handleBarContainer: {
+    alignItems: 'center',
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  handleBar: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingTop: 60,
-    borderBottomWidth: 1,
-  },
-  headerButton: {
-    padding: 8,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
   },
   headerButtonText: {
     fontSize: 16,
@@ -296,80 +289,40 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
   scrollView: {
     flex: 1,
   },
   filterSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    borderBottomWidth: 1,
+    paddingHorizontal: 24,
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 16,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 12,
+    paddingLeft: 4,
   },
   chipsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 12,
   },
   filterChip: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
+    paddingVertical: 12,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
   },
   chipIcon: {
-    marginRight: 6,
+    marginRight: 8,
   },
   filterChipText: {
     fontSize: 14,
-    fontWeight: '500',
-  },
-  radioContainer: {
-    gap: 12,
-  },
-  radioOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  radioCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    marginRight: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  radioLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  footer: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-  },
-  applyButton: {
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  applyButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });

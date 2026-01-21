@@ -11,3 +11,6 @@ coverage
 backend/logs/
 logs/
 *.log
+backend/tools/
+backend/credentials/
+backend/vtfree-apps-*.json

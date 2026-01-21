@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
     View,
     Text,
@@ -8,10 +8,15 @@ import {
     ScrollView,
     Modal,
     Dimensions,
+    Animated,
+    Share,
+    Platform,
 } from 'react-native';
 import { transactionService, Transaction as ApiTransaction } from '@/services/transaction.service';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/components/ThemeContext';
+import { useAlert } from '@/components/AlertContext';
+import * as Clipboard from 'expo-clipboard';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -21,128 +26,195 @@ interface TransactionDetailsModalProps {
     onClose: () => void;
 }
 
+const theme = {
+    primary: "#00ADFF", // Snapchat Blue
+    backgroundLight: "#FFFFFF",
+    backgroundDark: "#000000",
+    inputLight: "#F2F2F2",
+    inputDark: "#1E1E1E",
+    textLight: "#000000",
+    textDark: "#FFFFFF",
+    textSecondaryLight: "#757575",
+    textSecondaryDark: "#A0A0A0",
+    success: '#00D166',
+    error: '#FF5B5B',
+    warning: '#FFFC00',
+};
+
 export default function TransactionDetailsModal({
     visible,
     transactionId,
     onClose,
 }: TransactionDetailsModalProps) {
     const { isDark } = useTheme();
+    const { showSuccess, showError, showInfo } = useAlert();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [tx, setTx] = useState<ApiTransaction | null>(null);
 
-    const theme = {
-        primary: '#0A2540',
-        accent: '#FF9F43',
-        backgroundLight: '#F8F9FA',
-        backgroundDark: '#111921',
-        cardLight: '#FFFFFF',
-        cardDark: '#1F2937',
-        textHeadings: '#1E293B',
-        textBody: '#475569',
-    };
+    // Animation values
+    const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+    const fadeAnim = useRef(new Animated.Value(0)).current;
 
     const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
-    const cardBg = isDark ? theme.cardDark : theme.cardLight;
-    const textColor = isDark ? '#FFFFFF' : theme.textHeadings;
-    const textBodyColor = isDark ? '#9CA3AF' : theme.textBody;
-    const borderColor = isDark ? '#374151' : '#E5E7EB';
+    const cardBg = isDark ? theme.inputDark : theme.inputLight;
+    const textColor = isDark ? theme.textDark : theme.textLight;
+    const textSecondaryColor = isDark ? theme.textSecondaryDark : theme.textSecondaryLight;
 
     useEffect(() => {
-        const load = async () => {
-            if (!transactionId) return;
+        if (visible) {
+            Animated.parallel([
+                Animated.spring(slideAnim, {
+                    toValue: 0,
+                    useNativeDriver: true,
+                    damping: 20,
+                    mass: 0.8,
+                }),
+                Animated.timing(fadeAnim, {
+                    toValue: 1,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+            ]).start();
 
-            try {
-                setLoading(true);
-                setError(null);
-
-                // Call the correct API method
-                const res = await transactionService.getTransactionById(transactionId);
-
-                // Log the response for debugging
-                console.log('Transaction API Response:', res);
-
-                // Parse the response - handle different possible structures
-                let transactionData = null;
-
-                if (res?.data?.transaction) {
-                    transactionData = res.data.transaction;
-                } else if (res?.transaction) {
-                    transactionData = res.transaction;
-                } else if (res?.data) {
-                    transactionData = res.data;
-                } else {
-                    transactionData = res;
-                }
-
-                console.log('Parsed transaction data:', transactionData);
-                setTx(transactionData as ApiTransaction);
-            } catch (e: any) {
-                console.error('Error loading transaction:', e);
-                setError(e?.message || 'Failed to load transaction');
-            } finally {
-                setLoading(false);
+            if (transactionId) {
+                load();
             }
-        };
-
-        if (visible && transactionId) {
-            load();
+        } else {
+            Animated.timing(slideAnim, {
+                toValue: SCREEN_HEIGHT,
+                duration: 250,
+                useNativeDriver: true,
+            }).start();
+            Animated.timing(fadeAnim, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+            }).start();
         }
     }, [visible, transactionId]);
 
-    const Row = ({ label, value }: { label: string; value?: string | number }) => (
-        <View style={styles.row}>
-            <Text style={[styles.label, { color: textBodyColor }]}>{label}</Text>
-            <Text style={[styles.value, { color: textColor }]}>{String(value ?? '—')}</Text>
-        </View>
-    );
+    const load = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const res = await transactionService.getTransactionById(transactionId!);
 
-    const getStatusColor = (status: string) => {
-        switch (status.toLowerCase()) {
-            case 'successful':
-            case 'completed':
-                return '#10B981';
-            case 'failed':
-                return '#EF4444';
-            case 'pending':
-                return '#FF9F43';
-            default:
-                return textBodyColor;
+            let transactionData = null;
+            if (res?.data?.transaction) transactionData = res.data.transaction;
+            else if (res?.transaction) transactionData = res.transaction;
+            else if (res?.data) transactionData = res.data;
+            else transactionData = res;
+
+            setTx(transactionData as ApiTransaction);
+        } catch (e: any) {
+            console.error('Error loading transaction:', e);
+            const msg = e?.message || 'Failed to load transaction';
+            setError(msg);
+            showError(msg);
+        } finally {
+            setLoading(false);
         }
     };
+
+    const handleShare = async () => {
+        if (!tx) return;
+        try {
+            const message = `Transaction Receipt\n\nAmount: ₦${tx.amount}\nType: ${formatType(tx.type)}\nStatus: ${tx.status}\nReference: ${tx.reference_number}\nDate: ${new Date(tx.created_at).toLocaleString()}`;
+            await Share.share({ message });
+        } catch (error) {
+            console.error(error);
+            showError('Failed to share receipt');
+        }
+    };
+
+    const handleCopy = async (text: string) => {
+        await Clipboard.setStringAsync(text);
+        showInfo('Copied to clipboard');
+    };
+
+    const formatType = (type: string) => {
+        return type?.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join(' ') || 'Transaction';
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status?.toLowerCase()) {
+            case 'successful':
+            case 'completed': return theme.success;
+            case 'failed': return theme.error;
+            case 'pending': return theme.warning;
+            default: return textSecondaryColor;
+        }
+    };
+
+    const getIcon = (type: string) => {
+        if (type?.includes('airtime')) return 'phone-portrait';
+        if (type?.includes('data')) return 'wifi';
+        if (type?.includes('wallet')) return 'wallet';
+        return 'receipt';
+    };
+
+    const Row = ({ label, value, copyable }: { label: string; value?: string | number; copyable?: boolean }) => (
+        <View style={styles.row}>
+            <Text style={[styles.label, { color: textSecondaryColor }]}>{label}</Text>
+            <View style={styles.valueContainer}>
+                <Text style={[styles.value, { color: textColor }]} numberOfLines={1} ellipsizeMode="middle">
+                    {String(value ?? '—')}
+                </Text>
+                {copyable && value && (
+                    <TouchableOpacity onPress={() => handleCopy(String(value))} style={styles.copyIcon}>
+                        <Ionicons name="copy-outline" size={14} color={theme.primary} />
+                    </TouchableOpacity>
+                )}
+            </View>
+        </View>
+    );
 
     return (
         <Modal
             visible={visible}
-            animationType="slide"
             transparent={true}
             onRequestClose={onClose}
+            statusBarTranslucent
         >
             <View style={styles.modalOverlay}>
-                <TouchableOpacity
-                    style={styles.modalBackdrop}
-                    activeOpacity={1}
-                    onPress={onClose}
-                />
-                <View style={[styles.modalContent, { backgroundColor: bgColor }]}>
+                <Animated.View style={[styles.backdrop, { opacity: fadeAnim }]}>
+                    <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} />
+                </Animated.View>
+
+                <Animated.View
+                    style={[
+                        styles.modalContent,
+                        {
+                            backgroundColor: bgColor,
+                            transform: [{ translateY: slideAnim }]
+                        }
+                    ]}
+                >
+                    {/* Handle Bar */}
+                    <View style={styles.handleBarContainer}>
+                        <View style={[styles.handleBar, { backgroundColor: isDark ? '#333' : '#E0E0E0' }]} />
+                    </View>
+
                     {/* Header */}
-                    <View style={[styles.header, { borderBottomColor: borderColor }]}>
+                    <View style={styles.header}>
                         <Text style={[styles.title, { color: textColor }]}>Transaction Details</Text>
-                        <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                            <Ionicons name="close" size={24} color={textColor} />
+                        <TouchableOpacity onPress={onClose} style={[styles.closeBtn, { backgroundColor: cardBg }]}>
+                            <Ionicons name="close" size={20} color={textColor} />
                         </TouchableOpacity>
                     </View>
 
-                    {/* Content */}
                     {loading ? (
                         <View style={styles.center}>
                             <ActivityIndicator size="large" color={theme.primary} />
-                            <Text style={[styles.loadingText, { color: textBodyColor }]}>Loading...</Text>
+                            <Text style={[styles.loadingText, { color: textSecondaryColor }]}>Loading details...</Text>
                         </View>
                     ) : error ? (
                         <View style={styles.center}>
-                            <Ionicons name="alert-circle" size={48} color="#EF4444" />
-                            <Text style={styles.errorText}>{error}</Text>
+                            <View style={[styles.errorIcon, { backgroundColor: theme.error + '15' }]}>
+                                <Ionicons name="alert" size={32} color={theme.error} />
+                            </View>
+                            <Text style={[styles.errorText, { color: textColor }]}>{error}</Text>
                             <TouchableOpacity
                                 style={[styles.retryBtn, { backgroundColor: theme.primary }]}
                                 onPress={onClose}
@@ -152,79 +224,69 @@ export default function TransactionDetailsModal({
                         </View>
                     ) : !tx ? (
                         <View style={styles.center}>
-                            <Ionicons name="document-text-outline" size={48} color={textBodyColor} />
-                            <Text style={[styles.errorText, { color: textBodyColor }]}>Transaction not found</Text>
+                            <Text style={[styles.errorText, { color: textSecondaryColor }]}>Transaction not found</Text>
                         </View>
                     ) : (
                         <ScrollView
                             contentContainerStyle={styles.scrollContent}
                             showsVerticalScrollIndicator={false}
                         >
-                            {/* Status Badge */}
-                            <View style={styles.statusContainer}>
-                                <View
-                                    style={[
-                                        styles.statusBadge,
-                                        { backgroundColor: getStatusColor(tx.status) + '20' }
-                                    ]}
-                                >
-                                    <Ionicons
-                                        name={
-                                            tx.status === 'successful' ? 'checkmark-circle' :
-                                                tx.status === 'failed' ? 'close-circle' :
-                                                    'time'
-                                        }
-                                        size={24}
-                                        color={getStatusColor(tx.status)}
-                                    />
-                                    <Text
-                                        style={[
-                                            styles.statusText,
-                                            { color: getStatusColor(tx.status) }
-                                        ]}
-                                    >
-                                        {tx.status?.charAt(0).toUpperCase() + tx.status?.slice(1)}
+                            {/* Receipt Header */}
+                            <View style={styles.receiptHeader}>
+                                <View style={[styles.iconCircle, { backgroundColor: theme.primary + '15' }]}>
+                                    <Ionicons name={getIcon(tx.type) as any} size={32} color={theme.primary} />
+                                </View>
+                                <Text style={[styles.amount, { color: textColor }]}>
+                                    -₦{tx.amount.toLocaleString()}
+                                </Text>
+                                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(tx.status) + '15' }]}>
+                                    <View style={[styles.statusDot, { backgroundColor: getStatusColor(tx.status) }]} />
+                                    <Text style={[styles.statusText, { color: getStatusColor(tx.status) }]}>
+                                        {tx.status?.toUpperCase()}
                                     </Text>
                                 </View>
                             </View>
 
-                            {/* Amount Card */}
-                            <View style={[styles.amountCard, { backgroundColor: theme.primary }]}>
-                                <Text style={styles.amountLabel}>Total Amount</Text>
-                                <Text style={styles.amountValue}>₦{tx.total_charged.toLocaleString()}</Text>
-                            </View>
-
                             {/* Details Card */}
-                            <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
-                                <Row label="Transaction Type" value={tx.type?.split('_').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')} />
-                                <Row label="Amount" value={`₦${tx.amount.toLocaleString()}`} />
-                                <Row label="Fee" value={`₦${(tx.fee ?? 0).toLocaleString()}`} />
-                                <Row label="Reference" value={tx.reference_number} />
-                                {tx.destination_account && <Row label="Destination" value={tx.destination_account} />}
-                                <Row label="Payment Method" value={tx.payment_method} />
-                                {tx.plan_id && <Row label="Plan ID" value={tx.plan_id} />}
-                                {tx.operator_id && <Row label="Operator" value={tx.operator_id} />}
+                            <View style={[styles.detailsCard, { backgroundColor: cardBg }]}>
+                                <Row label="Service" value={formatType(tx.type)} />
+                                <View style={[styles.divider, { backgroundColor: isDark ? '#333' : '#F0F0F0' }]} />
                                 <Row label="Date" value={new Date(tx.created_at).toLocaleString()} />
-                                {tx.description && <Row label="Description" value={tx.description} />}
-                                {tx.error_message && (
-                                    <View style={[styles.row, { alignItems: 'flex-start' }]}>
-                                        <Text style={[styles.label, { color: textBodyColor }]}>Error</Text>
-                                        <Text style={[styles.value, { color: '#EF4444' }]}>{tx.error_message}</Text>
-                                    </View>
+                                <View style={[styles.divider, { backgroundColor: isDark ? '#333' : '#F0F0F0' }]} />
+                                <Row label="Reference" value={tx.reference_number} copyable />
+                                <View style={[styles.divider, { backgroundColor: isDark ? '#333' : '#F0F0F0' }]} />
+                                {tx.destination_account && (
+                                    <>
+                                        <Row label="Recipient" value={tx.destination_account} copyable />
+                                        <View style={[styles.divider, { backgroundColor: isDark ? '#333' : '#F0F0F0' }]} />
+                                    </>
                                 )}
+                                <Row label="Total Fee" value={`₦${(tx.fee ?? 0).toLocaleString()}`} />
                             </View>
 
-                            {/* Action Buttons */}
-                            <TouchableOpacity
-                                style={[styles.actionBtn, { backgroundColor: cardBg, borderColor }]}
-                                onPress={onClose}
-                            >
-                                <Ionicons name="download-outline" size={20} color={theme.primary} />
-                                <Text style={[styles.actionBtnText, { color: theme.primary }]}>Download Receipt</Text>
-                            </TouchableOpacity>
+                            {/* Actions */}
+                            <View style={styles.actions}>
+                                <TouchableOpacity
+                                    style={[styles.actionButton, { backgroundColor: cardBg }]}
+                                    onPress={handleShare}
+                                >
+                                    <Ionicons name="share-outline" size={20} color={textColor} />
+                                    <Text style={[styles.actionButtonText, { color: textColor }]}>Share Receipt</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.actionButton, { backgroundColor: theme.primary }]}
+                                    onPress={() => {
+                                        // Handle report issue
+                                    }}
+                                >
+                                    <Ionicons name="help-buoy-outline" size={20} color="#FFF" />
+                                    <Text style={[styles.actionButtonText, { color: "#FFF" }]}>Report Issue</Text>
+                                </TouchableOpacity>
+                            </View>
                         </ScrollView>
                     )}
-                </View>
+                </Animated.View>
             </View>
         </Modal>
     );
@@ -235,35 +297,44 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'flex-end',
     },
-    modalBackdrop: {
+    backdrop: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
     },
     modalContent: {
         height: SCREEN_HEIGHT * 0.85,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
         overflow: 'hidden',
+    },
+    handleBarContainer: {
+        alignItems: 'center',
+        paddingTop: 12,
+        paddingBottom: 8,
+    },
+    handleBar: {
+        width: 40,
+        height: 4,
+        borderRadius: 2,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingTop: 20,
+        paddingHorizontal: 24,
         paddingBottom: 16,
-        borderBottomWidth: 1,
     },
     title: {
         fontSize: 20,
-        fontWeight: '700',
+        fontWeight: '800',
+        letterSpacing: -0.5,
     },
     closeBtn: {
-        width: 40,
-        height: 40,
-        alignItems: 'center',
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         justifyContent: 'center',
-        borderRadius: 20,
+        alignItems: 'center',
     },
     center: {
         flex: 1,
@@ -272,97 +343,123 @@ const styles = StyleSheet.create({
         padding: 24,
     },
     loadingText: {
-        marginTop: 12,
-        fontSize: 14,
-    },
-    errorText: {
-        marginTop: 12,
-        color: '#EF4444',
-        fontWeight: '600',
-        fontSize: 16,
-        textAlign: 'center',
-    },
-    retryBtn: {
         marginTop: 16,
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-        borderRadius: 8,
-    },
-    retryBtnText: {
-        color: '#FFFFFF',
+        fontSize: 14,
         fontWeight: '600',
     },
     scrollContent: {
-        padding: 20,
+        padding: 24,
         paddingBottom: 40,
     },
-    statusContainer: {
+    receiptHeader: {
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 32,
+    },
+    iconCircle: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    amount: {
+        fontSize: 32,
+        fontWeight: '800',
+        letterSpacing: -1,
+        marginBottom: 12,
     },
     statusBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 24,
-        gap: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+        gap: 6,
+    },
+    statusDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
     },
     statusText: {
-        fontSize: 16,
+        fontSize: 12,
         fontWeight: '700',
     },
-    amountCard: {
-        padding: 24,
-        borderRadius: 16,
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    amountLabel: {
-        color: '#FFFFFF',
-        fontSize: 14,
-        opacity: 0.8,
-        marginBottom: 8,
-    },
-    amountValue: {
-        color: '#FFFFFF',
-        fontSize: 32,
-        fontWeight: '700',
-    },
-    card: {
-        borderRadius: 12,
-        padding: 16,
-        gap: 16,
-        borderWidth: 1,
-        marginBottom: 16,
+    detailsCard: {
+        borderRadius: 24,
+        padding: 20,
+        marginBottom: 24,
     },
     row: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        paddingVertical: 12,
     },
     label: {
         fontSize: 14,
         fontWeight: '500',
     },
+    valueContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        flex: 1,
+        justifyContent: 'flex-end',
+        marginLeft: 16,
+    },
     value: {
         fontSize: 14,
         fontWeight: '600',
-        marginLeft: 16,
-        flexShrink: 1,
         textAlign: 'right',
     },
-    actionBtn: {
+    copyIcon: {
+        padding: 4,
+    },
+    divider: {
+        height: 1,
+        width: '100%',
+    },
+    actions: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    actionButton: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 16,
-        borderRadius: 12,
-        borderWidth: 1,
+        paddingVertical: 16,
+        borderRadius: 16,
         gap: 8,
     },
-    actionBtnText: {
+    actionButtonText: {
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    errorIcon: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    errorText: {
         fontSize: 16,
         fontWeight: '600',
+        textAlign: 'center',
+        marginBottom: 24,
+    },
+    retryBtn: {
+        paddingHorizontal: 32,
+        paddingVertical: 14,
+        borderRadius: 16,
+    },
+    retryBtnText: {
+        color: '#FFF',
+        fontSize: 14,
+        fontWeight: '700',
     },
 });

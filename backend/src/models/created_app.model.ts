@@ -46,6 +46,15 @@ export interface ICreatedApp extends Document {
         ios: 'not_started' | 'building' | 'completed' | 'failed';
         web: 'not_started' | 'building' | 'completed' | 'failed';
     };
+    build_progress?: number;
+    build_stage?: string;
+
+    // Download Links (Google Drive or other storage)
+    download_links?: {
+        android?: string;
+        ios?: string;
+        web?: string;
+    };
 
     // Payment
     payment_status: 'pending' | 'paid' | 'refunded';
@@ -213,6 +222,22 @@ const CreatedAppSchema: Schema = new Schema({
             enum: ['not_started', 'building', 'completed', 'failed'],
             default: 'not_started',
         },
+    },
+    // Real-time Build Progress
+    build_progress: {
+        type: Number,
+        default: 0,
+    },
+    build_stage: {
+        type: String,
+        default: '',
+    },
+
+    // Download Links
+    download_links: {
+        android: { type: String },
+        ios: { type: String },
+        web: { type: String },
     },
 
     // Payment

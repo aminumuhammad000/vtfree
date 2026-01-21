@@ -1,246 +1,193 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-  Linking,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
+  View,
   Text,
+  StyleSheet,
+  ScrollView,
   TouchableOpacity,
-  useColorScheme,
-  View
+  Linking,
+  Platform,
+  Image,
 } from 'react-native';
-
-const theme = {
-  primary: '#0A2540',
-  accent: '#FF9F43',
-  success: '#00D4AA',
-  error: '#FF5B5B',
-  backgroundLight: '#F8F9FA',
-  backgroundDark: '#111921',
-  textHeadings: '#1E293B',
-  textBody: '#475569',
-};
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@/components/ThemeContext';
 
 export default function AboutScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
+
+  const theme = {
+    primary: '#00ADFF',
+    backgroundLight: '#FFFFFF',
+    backgroundDark: '#000000',
+    cardLight: '#F2F2F2',
+    cardDark: '#1E1E1E',
+    textLight: '#000000',
+    textDark: '#FFFFFF',
+    textSecondaryLight: '#757575',
+    textSecondaryDark: '#A0A0A0',
+  };
 
   const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
-  const cardBgColor = isDark ? '#1F2937' : '#FFFFFF';
-  const textColor = isDark ? '#FFFFFF' : theme.textHeadings;
-  const textBodyColor = isDark ? '#9CA3AF' : theme.textBody;
-  const borderColor = isDark ? '#374151' : '#E5E7EB';
+  const cardBg = isDark ? theme.cardDark : theme.cardLight;
+  const textColor = isDark ? theme.textDark : theme.textLight;
+  const textSecondaryColor = isDark ? theme.textSecondaryDark : theme.textSecondaryLight;
 
-  const appInfo = {
-    version: '1.0.0',
-    buildNumber: '100',
-    releaseDate: 'November 2025',
-    developer: 'AmeeTech'
+  const developerInfo = {
+    name: 'AmeeTech',
+    email: 'aminuamee@yahoo.com',
+    website: 'https://www.ameetech.org.ng',
   };
 
   const legalLinks = [
     {
       title: 'Terms of Service',
-      description: 'Read our terms and conditions',
       icon: 'document-text',
-      action: () => Linking.openURL('https://ibdata.com.ng/terms')
+      url: 'https://ibdata.com.ng/terms'
     },
     {
       title: 'Privacy Policy',
-      description: 'How we protect your privacy',
       icon: 'shield-checkmark',
-      action: () => Linking.openURL('https://ibdata.com.ng/privacy')
+      url: 'https://ibdata.com.ng/privacy'
     },
     {
       title: 'License Agreement',
-      description: 'Software license information',
       icon: 'document',
-      action: () => Linking.openURL('https://ibdata.com.ng/license')
+      url: 'https://ibdata.com.ng/license'
     }
   ];
 
   const socialLinks = [
     {
-      title: 'Follow us on Twitter',
+      title: 'Twitter',
       icon: 'logo-twitter',
-      action: () => Linking.openURL('https://twitter.com/vtuapp')
+      url: 'https://twitter.com/vtuapp',
+      color: '#1DA1F2'
     },
     {
-      title: 'Like us on Facebook',
+      title: 'Facebook',
       icon: 'logo-facebook',
-      action: () => Linking.openURL('https://facebook.com/vtuapp')
+      url: 'https://facebook.com/vtuapp',
+      color: '#4267B2'
     },
     {
-      title: 'Follow us on Instagram',
+      title: 'Instagram',
       icon: 'logo-instagram',
-      action: () => Linking.openURL('https://instagram.com/vtuapp')
+      url: 'https://instagram.com/vtuapp',
+      color: '#E1306C'
     },
     {
-      title: 'Connect on LinkedIn',
+      title: 'LinkedIn',
       icon: 'logo-linkedin',
-      action: () => Linking.openURL('https://linkedin.com/company/vtuapp')
+      url: 'https://linkedin.com/company/vtuapp',
+      color: '#0077B5'
     }
   ];
 
-  const features = [
-    'Instant airtime and data purchases',
-    'Multiple payment methods',
-    'Secure transactions with bank-level encryption',
-    'Real-time transaction history',
-    'Bill payment services',
-    '24/7 customer support',
-    'Referral rewards program',
-    'Multi-network support'
-  ];
+  const handleLinkPress = (url: string) => {
+    Linking.openURL(url);
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: bgColor, borderBottomColor: borderColor }]}>
-        <TouchableOpacity 
-          style={styles.backButton}
+      <View style={[styles.header, { backgroundColor: bgColor }]}>
+        <TouchableOpacity
+          style={[styles.backButton, { backgroundColor: cardBg }]}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={24} color={textColor} />
+          <Ionicons name="arrow-back" size={20} color={textColor} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: textColor }]}>About</Text>
-        <View style={styles.placeholder} />
+        <Text style={[styles.headerTitle, { color: textColor }]}>About App</Text>
+        <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView 
-        style={styles.scrollView}
+      <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={styles.content}
       >
-        {/* App Logo and Info */}
-        <View style={[styles.section, { backgroundColor: cardBgColor }]}>
-          <View style={styles.appInfoContainer}>
-            <View style={styles.logoContainer}>
-              <View style={[styles.logo, { backgroundColor: theme.primary }]}>
-                <Text style={styles.logoText}>VTU</Text>
-              </View>
-            </View>
-            <Text style={[styles.appName, { color: textColor }]}>VTU App</Text>
-            <Text style={[styles.appTagline, { color: textBodyColor }]}>
-              Your trusted partner for seamless mobile transactions
-            </Text>
-            <View style={styles.versionInfo}>
-              <Text style={[styles.versionText, { color: textBodyColor }]}>
-                Version {appInfo.version} (Build {appInfo.buildNumber})
-              </Text>
-              <Text style={[styles.versionText, { color: textBodyColor }]}>
-                Released {appInfo.releaseDate}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* About Description */}
-        <View style={[styles.section, { backgroundColor: cardBgColor }]}>
-          <Text style={[styles.sectionTitle, { color: textColor }]}>About VTU App</Text>
-          <Text style={[styles.descriptionText, { color: textBodyColor }]}>
-            VTU App is Nigeria's leading mobile application for quick and secure virtual top-up services. 
-            We provide instant airtime, data bundles, and bill payment services across all major networks 
-            in Nigeria. Our mission is to make mobile transactions simple, fast, and secure for everyone.
-          </Text>
-        </View>
-
-        {/* Features */}
-        <View style={[styles.section, { backgroundColor: cardBgColor }]}>
-          <Text style={[styles.sectionTitle, { color: textColor }]}>Key Features</Text>
-          {features.map((feature, index) => (
-            <View key={index} style={styles.featureItem}>
-              <Ionicons name="checkmark-circle" size={20} color={theme.success} />
-              <Text style={[styles.featureText, { color: textBodyColor }]}>{feature}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Developer Info */}
-        <View style={[styles.section, { backgroundColor: cardBgColor }]}>
+        {/* Developer Section */}
+        <View style={[styles.section, { backgroundColor: cardBg }]}>
           <Text style={[styles.sectionTitle, { color: textColor }]}>Developer Information</Text>
-          
-          <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: textBodyColor }]}>Developed by:</Text>
-            <Text style={[styles.infoValue, { color: textColor }]}>{appInfo.developer}</Text>
-          </View>
-          
-          <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: textBodyColor }]}>Contact:</Text>
-            <TouchableOpacity onPress={() => Linking.openURL('mailto:aminuamee@yahoo.com')}>
-              <Text style={[styles.infoValue, styles.linkText, { color: theme.primary }]}>
-                aminuamee@yahoo.com
+
+          <View style={styles.devContainer}>
+            <View style={[styles.devIcon, { backgroundColor: theme.primary + '15' }]}>
+              <Ionicons name="code-slash" size={24} color={theme.primary} />
+            </View>
+            <View style={styles.devInfo}>
+              <Text style={[styles.devName, { color: textColor }]}>{developerInfo.name}</Text>
+              <Text style={[styles.devSubtext, { color: textSecondaryColor }]}>
+                Building digital solutions
               </Text>
-            </TouchableOpacity>
+            </View>
           </View>
-          
-          <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: textBodyColor }]}>Website:</Text>
-            <TouchableOpacity onPress={() => Linking.openURL('https://www.ameetech.org.ng')}>
-              <Text style={[styles.infoValue, styles.linkText, { color: theme.primary }]}>
-                www.ameetech.org.ng
-              </Text>
-            </TouchableOpacity>
-          </View>
+
+          <View style={styles.divider} />
+
+          <TouchableOpacity
+            style={styles.contactRow}
+            onPress={() => handleLinkPress(`mailto:${developerInfo.email}`)}
+          >
+            <Ionicons name="mail-outline" size={20} color={textSecondaryColor} />
+            <Text style={[styles.contactText, { color: textColor }]}>{developerInfo.email}</Text>
+            <Ionicons name="open-outline" size={16} color={textSecondaryColor} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.contactRow}
+            onPress={() => handleLinkPress(developerInfo.website)}
+          >
+            <Ionicons name="globe-outline" size={20} color={textSecondaryColor} />
+            <Text style={[styles.contactText, { color: textColor }]}>Visit Website</Text>
+            <Ionicons name="open-outline" size={16} color={textSecondaryColor} />
+          </TouchableOpacity>
         </View>
 
-        {/* Legal Information */}
-        <View style={[styles.section, { backgroundColor: cardBgColor }]}>
+        {/* Legal Section */}
+        <View style={[styles.section, { backgroundColor: cardBg }]}>
           <Text style={[styles.sectionTitle, { color: textColor }]}>Legal</Text>
-          
+
           {legalLinks.map((link, index) => (
-            <TouchableOpacity 
+            <TouchableOpacity
               key={index}
-              style={styles.legalItem}
-              onPress={link.action}
+              style={[
+                styles.listItem,
+                index !== legalLinks.length - 1 && { borderBottomWidth: 1, borderBottomColor: isDark ? '#333' : '#E5E7EB' }
+              ]}
+              onPress={() => handleLinkPress(link.url)}
             >
-              <View style={styles.legalInfo}>
-                <Ionicons name={link.icon as any} size={24} color={theme.primary} />
-                <View style={styles.legalTextContainer}>
-                  <Text style={[styles.legalTitle, { color: textColor }]}>{link.title}</Text>
-                  <Text style={[styles.legalDescription, { color: textBodyColor }]}>
-                    {link.description}
-                  </Text>
-                </View>
+              <View style={styles.listIconContainer}>
+                <Ionicons name={link.icon as any} size={20} color={textColor} />
               </View>
-              <Ionicons name="chevron-forward" size={20} color={textBodyColor} />
+              <Text style={[styles.listText, { color: textColor }]}>{link.title}</Text>
+              <Ionicons name="chevron-forward" size={16} color={textSecondaryColor} />
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Social Media */}
-        <View style={[styles.section, { backgroundColor: cardBgColor }]}>
+        {/* Follow Us Section */}
+        <View style={[styles.section, { backgroundColor: cardBg }]}>
           <Text style={[styles.sectionTitle, { color: textColor }]}>Follow Us</Text>
-          
-          {socialLinks.map((social, index) => (
-            <TouchableOpacity 
-              key={index}
-              style={styles.socialItem}
-              onPress={social.action}
-            >
-              <Ionicons name={social.icon as any} size={24} color={theme.primary} />
-              <Text style={[styles.socialText, { color: textColor }]}>{social.title}</Text>
-              <Ionicons name="chevron-forward" size={20} color={textBodyColor} />
-            </TouchableOpacity>
-          ))}
+
+          <View style={styles.socialGrid}>
+            {socialLinks.map((social, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[styles.socialButton, { backgroundColor: isDark ? '#333' : '#F5F5F5' }]}
+                onPress={() => handleLinkPress(social.url)}
+              >
+                <Ionicons name={social.icon as any} size={24} color={social.color} />
+                <Text style={[styles.socialLabel, { color: textColor }]}>{social.title}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
-        {/* Copyright */}
-        <View style={styles.copyrightContainer}>
-          <Text style={[styles.copyrightText, { color: textBodyColor }]}>
-            © 2024 VTU App. All rights reserved.
-          </Text>
-          <Text style={[styles.copyrightText, { color: textBodyColor }]}>
-            Made with ❤️ in Nigeria
-          </Text>
+        <View style={styles.footer}>
+          <Text style={[styles.versionText, { color: textSecondaryColor }]}>Version 1.0.0</Text>
+          <Text style={[styles.copyrightText, { color: textSecondaryColor }]}>© 2024 VTU App</Text>
         </View>
 
-        <View style={{ height: 50 }} />
       </ScrollView>
     </View>
   );
@@ -254,150 +201,117 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingTop: 50,
-    borderBottomWidth: 1,
+    paddingHorizontal: 24,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 16,
   },
   backButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
   },
-  placeholder: {
-    width: 40,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingTop: 20,
+  content: {
+    padding: 24,
+    paddingBottom: 40,
   },
   section: {
-    marginHorizontal: 16,
-    marginBottom: 20,
+    borderRadius: 20,
     padding: 20,
-    borderRadius: 12,
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     marginBottom: 16,
   },
-  appInfoContainer: {
+  devContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 20,
   },
-  logoContainer: {
+  devIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  devInfo: {
+    flex: 1,
+  },
+  devName: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  devSubtext: {
+    fontSize: 14,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#E5E7EB', // This will need to be dynamic if strict dark mode support for divider is needed, but usually fine
+    opacity: 0.1,
     marginBottom: 16,
   },
-  logo: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  contactText: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 15,
+  },
+  listItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  listIconContainer: {
+    width: 32,
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  listText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  socialGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  socialButton: {
+    width: '48%', // Approx half width
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 16,
+    gap: 8,
   },
-  logoText: {
-    color: '#FFFFFF',
-    fontSize: 24,
-    fontWeight: 'bold',
+  socialLabel: {
+    fontSize: 14,
+    fontWeight: '600',
   },
-  appName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  appTagline: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 20,
-    lineHeight: 22,
-  },
-  versionInfo: {
+  footer: {
     alignItems: 'center',
+    marginTop: 8,
   },
   versionText: {
     fontSize: 14,
     marginBottom: 4,
   },
-  descriptionText: {
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  featureText: {
-    fontSize: 16,
-    marginLeft: 12,
-    flex: 1,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  infoLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  infoValue: {
-    fontSize: 16,
-  },
-  linkText: {
-    textDecorationLine: 'underline',
-  },
-  legalItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  legalInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  legalTextContainer: {
-    marginLeft: 16,
-    flex: 1,
-  },
-  legalTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  legalDescription: {
-    fontSize: 14,
-  },
-  socialItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  socialText: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginLeft: 16,
-    flex: 1,
-  },
-  copyrightContainer: {
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginBottom: 20,
-  },
   copyrightText: {
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 4,
+    fontSize: 12,
   },
 });
