@@ -1,309 +1,204 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  useColorScheme,
+  Platform,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@/components/ThemeContext';
 
-const theme = {
-  primary: '#0A2540',
-  accent: '#FF9F43',
-  success: '#00D4AA',
-  error: '#FF5B5B',
-};
+const { width } = Dimensions.get('window');
 
 export default function PayBillsScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
 
-  const bgColor = isDark ? '#000000' : '#F9FAFB';
-  const cardBgColor = isDark ? '#1C1C1E' : '#FFFFFF';
-  const textColor = isDark ? '#FFFFFF' : '#1F2937';
-  const textBodyColor = isDark ? '#D1D5DB' : '#6B7280';
+  const theme = {
+    primary: '#00ADFF',
+    backgroundLight: '#FFFFFF',
+    backgroundDark: '#000000',
+    cardLight: '#F2F2F2',
+    cardDark: '#1E1E1E',
+    textLight: '#000000',
+    textDark: '#FFFFFF',
+    textSecondaryLight: '#757575',
+    textSecondaryDark: '#A0A0A0',
+    success: '#00D166',
+    warning: '#F59E0B',
+  };
+
+  const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
+  const cardBg = isDark ? theme.cardDark : theme.cardLight;
+  const textColor = isDark ? theme.textDark : theme.textLight;
+  const textSecondaryColor = isDark ? theme.textSecondaryDark : theme.textSecondaryLight;
 
   const billCategories = [
     {
       id: 1,
       title: 'Electricity',
-      description: 'Pay electricity bills',
       icon: 'flash',
       color: '#EAB308',
-      providers: ['EKEDC', 'IKEDC', 'AEDC', 'PHED', 'KEDCO', 'IBEDC'],
+      route: '/bills/electricity'
     },
     {
       id: 2,
       title: 'Cable TV',
-      description: 'Subscribe to TV services',
       icon: 'tv',
       color: '#9333EA',
-      providers: ['DSTV', 'GOTV', 'Startimes', 'Showmax'],
+      route: '/bills/tv'
     },
     {
       id: 3,
       title: 'Internet',
-      description: 'Pay internet bills',
       icon: 'globe',
       color: '#06B6D4',
-      providers: ['Spectranet', 'Smile', 'Swift', 'Coollink'],
+      route: '/bills/internet'
     },
     {
       id: 4,
       title: 'Water',
-      description: 'Pay water bills',
       icon: 'water',
       color: '#0EA5E9',
-      providers: ['Lagos Water', 'Abuja Water', 'Rivers Water'],
+      route: '/bills/water'
     },
     {
       id: 5,
       title: 'Waste',
-      description: 'Pay waste management',
       icon: 'trash',
       color: '#10B981',
-      providers: ['LAWMA', 'AEPB', 'RESWAM'],
+      route: '/bills/waste'
     },
     {
       id: 6,
-      title: 'Tax',
-      description: 'Pay government tax',
-      icon: 'receipt',
-      color: '#6366F1',
-      providers: ['LIRS', 'FIRS', 'State Tax'],
+      title: 'Betting',
+      icon: 'game-controller',
+      color: '#F43F5E',
+      route: '/bills/betting'
     },
   ];
 
-  const recentBills = [
+  const recentTransactions = [
     {
       id: 1,
-      category: 'Electricity',
-      provider: 'EKEDC',
-      amount: 5000,
-      date: '2025-10-28',
-      status: 'Paid',
+      title: 'DSTV Premium',
+      subtitle: 'Cable TV • 1234567890',
+      amount: '₦29,500',
+      date: 'Today, 10:23 AM',
+      status: 'success',
+      icon: 'tv',
+      color: '#9333EA'
     },
     {
       id: 2,
-      category: 'Cable TV',
-      provider: 'DSTV',
-      amount: 8500,
-      date: '2025-10-25',
-      status: 'Paid',
+      title: 'Ikeja Electric',
+      subtitle: 'Electricity • 0987654321',
+      amount: '₦5,000',
+      date: 'Yesterday, 4:15 PM',
+      status: 'success',
+      icon: 'flash',
+      color: '#EAB308'
     },
     {
       id: 3,
-      category: 'Internet',
-      provider: 'Spectranet',
-      amount: 12000,
-      date: '2025-10-20',
-      status: 'Paid',
+      title: 'Spectranet',
+      subtitle: 'Internet • SPE-12345',
+      amount: '₦12,000',
+      date: 'Oct 24, 2025',
+      status: 'failed',
+      icon: 'globe',
+      color: '#06B6D4'
     },
   ];
 
-  const handleBillCategoryPress = (category: any) => {
-    // Navigate to specific bill payment screen
-    console.log('Selected category:', category.title);
-  };
-
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: cardBgColor }]}>
-        <TouchableOpacity 
-          style={styles.backButton}
+      <View style={[styles.header, { backgroundColor: bgColor }]}>
+        <TouchableOpacity
+          style={[styles.backButton, { backgroundColor: cardBg }]}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={24} color={textColor} />
+          <Ionicons name="arrow-back" size={20} color={textColor} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: textColor }]}>Pay Bills</Text>
-        <TouchableOpacity style={styles.historyButton}>
-          <Ionicons name="time-outline" size={24} color={textColor} />
+        <TouchableOpacity
+          style={[styles.historyButton, { backgroundColor: cardBg }]}
+          onPress={() => router.push('/transactions')}
+        >
+          <Ionicons name="time-outline" size={20} color={textColor} />
         </TouchableOpacity>
       </View>
 
       <ScrollView
-        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={styles.content}
       >
-        {/* Quick Stats */}
-        <View style={[styles.statsCard, { backgroundColor: theme.primary }]}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>₦45,500</Text>
-            <Text style={styles.statLabel}>Total Paid This Month</Text>
+        {/* Balance Card */}
+        <View style={[styles.balanceCard, { backgroundColor: theme.primary }]}>
+          <View>
+            <Text style={styles.balanceLabel}>Wallet Balance</Text>
+            <Text style={styles.balanceValue}>₦50,000.00</Text>
           </View>
-          <View style={[styles.statDivider, { backgroundColor: 'rgba(255,255,255,0.2)' }]} />
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>12</Text>
-            <Text style={styles.statLabel}>Bills Paid</Text>
-          </View>
+          <TouchableOpacity style={styles.topUpButton}>
+            <Ionicons name="add" size={20} color={theme.primary} />
+            <Text style={[styles.topUpText, { color: theme.primary }]}>Top Up</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Bill Categories */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: textColor }]}>Bill Categories</Text>
-          <View style={styles.categoriesGrid}>
-            {billCategories.map((category) => (
-              <TouchableOpacity
-                key={category.id}
-                style={[styles.categoryCard, { backgroundColor: cardBgColor }]}
-                onPress={() => handleBillCategoryPress(category)}
-                activeOpacity={0.7}
-              >
-                <View
-                  style={[
-                    styles.categoryIcon,
-                    {
-                      backgroundColor: isDark
-                        ? `${category.color}20`
-                        : `${category.color}15`,
-                    },
-                  ]}
-                >
-                  <Ionicons
-                    name={category.icon as any}
-                    size={26}
-                    color={category.color}
-                  />
-                </View>
-                <Text style={[styles.categoryTitle, { color: textColor }]}>
-                  {category.title}
-                </Text>
-                <Text style={[styles.categoryDescription, { color: textBodyColor }]}>
-                  {category.description}
-                </Text>
-                <View style={styles.providersPreview}>
-                  <Text style={[styles.providersText, { color: textBodyColor }]}>
-                    {category.providers.length} providers
-                  </Text>
-                  <Ionicons name="chevron-forward" size={16} color={textBodyColor} />
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Recent Bills */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: textColor }]}>Recent Bills</Text>
-            <TouchableOpacity>
-              <Text style={[styles.seeAllText, { color: theme.accent }]}>See All</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.billsList}>
-            {recentBills.map((bill) => (
-              <TouchableOpacity
-                key={bill.id}
-                style={[styles.billCard, { backgroundColor: cardBgColor }]}
-                activeOpacity={0.7}
-              >
-                <View style={styles.billLeft}>
-                  <View
-                    style={[
-                      styles.billIcon,
-                      {
-                        backgroundColor: isDark
-                          ? 'rgba(255, 159, 67, 0.2)'
-                          : 'rgba(255, 159, 67, 0.1)',
-                      },
-                    ]}
-                  >
-                    <Ionicons
-                      name="receipt-outline"
-                      size={20}
-                      color={theme.accent}
-                    />
-                  </View>
-                  <View style={styles.billInfo}>
-                    <Text style={[styles.billCategory, { color: textColor }]}>
-                      {bill.category}
-                    </Text>
-                    <Text style={[styles.billProvider, { color: textBodyColor }]}>
-                      {bill.provider} • {bill.date}
-                    </Text>
-                  </View>
-                </View>
-                <View style={styles.billRight}>
-                  <Text style={[styles.billAmount, { color: textColor }]}>
-                    ₦{bill.amount.toLocaleString()}
-                  </Text>
-                  <View style={[styles.statusBadge, { backgroundColor: `${theme.success}20` }]}>
-                    <Text style={[styles.statusText, { color: theme.success }]}>
-                      {bill.status}
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Saved Billers */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: textColor }]}>Saved Billers</Text>
-            <TouchableOpacity>
-              <Ionicons name="add-circle-outline" size={24} color={theme.accent} />
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.savedBillersList}>
+        {/* Categories Grid */}
+        <Text style={[styles.sectionTitle, { color: textColor }]}>Select Service</Text>
+        <View style={styles.gridContainer}>
+          {billCategories.map((category) => (
             <TouchableOpacity
-              style={[styles.savedBillerCard, { backgroundColor: cardBgColor }]}
+              key={category.id}
+              style={[styles.categoryCard, { backgroundColor: cardBg }]}
+              activeOpacity={0.7}
+              onPress={() => console.log('Navigate to', category.route)}
+            >
+              <View style={[styles.iconContainer, { backgroundColor: category.color + '15' }]}>
+                <Ionicons name={category.icon as any} size={24} color={category.color} />
+              </View>
+              <Text style={[styles.categoryTitle, { color: textColor }]}>{category.title}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Recent Transactions */}
+        <View style={styles.recentSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: textColor, marginBottom: 0 }]}>Recent Payments</Text>
+            <TouchableOpacity onPress={() => router.push('/transactions')}>
+              <Text style={[styles.seeAllText, { color: theme.primary }]}>See All</Text>
+            </TouchableOpacity>
+          </View>
+
+          {recentTransactions.map((tx) => (
+            <TouchableOpacity
+              key={tx.id}
+              style={[styles.txItem, { backgroundColor: cardBg }]}
               activeOpacity={0.7}
             >
-              <View style={[styles.savedBillerIcon, { backgroundColor: '#EAB30820' }]}>
-                <Ionicons name="flash" size={20} color="#EAB308" />
+              <View style={[styles.txIcon, { backgroundColor: tx.color + '15' }]}>
+                <Ionicons name={tx.icon as any} size={20} color={tx.color} />
               </View>
-              <View style={styles.savedBillerInfo}>
-                <Text style={[styles.savedBillerName, { color: textColor }]}>
-                  EKEDC
-                </Text>
-                <Text style={[styles.savedBillerMeter, { color: textBodyColor }]}>
-                  Meter: 1234567890
-                </Text>
+              <View style={styles.txContent}>
+                <View style={styles.txTop}>
+                  <Text style={[styles.txTitle, { color: textColor }]}>{tx.title}</Text>
+                  <Text style={[styles.txAmount, { color: textColor }]}>{tx.amount}</Text>
+                </View>
+                <View style={styles.txBottom}>
+                  <Text style={[styles.txSubtitle, { color: textSecondaryColor }]}>{tx.subtitle}</Text>
+                  <Text style={[styles.txDate, { color: textSecondaryColor }]}>{tx.date}</Text>
+                </View>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={textBodyColor} />
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.savedBillerCard, { backgroundColor: cardBgColor }]}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.savedBillerIcon, { backgroundColor: '#9333EA20' }]}>
-                <Ionicons name="tv" size={20} color="#9333EA" />
-              </View>
-              <View style={styles.savedBillerInfo}>
-                <Text style={[styles.savedBillerName, { color: textColor }]}>
-                  DSTV Premium
-                </Text>
-                <Text style={[styles.savedBillerMeter, { color: textBodyColor }]}>
-                  Smart Card: 9876543210
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={textBodyColor} />
-            </TouchableOpacity>
-          </View>
+          ))}
         </View>
 
-        {/* Info Card */}
-        <View style={[styles.infoCard, { backgroundColor: isDark ? '#1C1C1E' : '#EFF6FF' }]}>
-          <Ionicons 
-            name="shield-checkmark" 
-            size={24} 
-            color={isDark ? theme.accent : '#3B82F6'} 
-          />
-          <Text style={[styles.infoText, { color: isDark ? textBodyColor : '#1E40AF' }]}>
-            All bill payments are secure and processed instantly. Save your billers for faster payments.
-          </Text>
-        </View>
       </ScrollView>
     </View>
   );
@@ -317,217 +212,152 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
+    paddingHorizontal: 24,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 16,
   },
   backButton: {
-    padding: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  historyButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '600',
-  },
-  historyButton: {
-    padding: 8,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 20,
-  },
-  statsCard: {
-    flexDirection: 'row',
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 24,
-    alignItems: 'center',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 24,
     fontWeight: '700',
-    color: '#FFFFFF',
+  },
+  content: {
+    padding: 24,
+    paddingBottom: 40,
+  },
+  balanceCard: {
+    borderRadius: 24,
+    padding: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 32,
+    shadowColor: '#00ADFF',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  balanceLabel: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
     marginBottom: 4,
   },
-  statLabel: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
+  balanceValue: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: '800',
   },
-  statDivider: {
-    width: 1,
-    height: 40,
+  topUpButton: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
-  section: {
-    marginBottom: 28,
+  topUpText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 16,
+  },
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 32,
+  },
+  categoryCard: {
+    width: (width - 48 - 12) / 2, // (Screen width - padding - gap) / 2
+    padding: 16,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    height: 120,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categoryTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  recentSection: {
+    gap: 12,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    marginBottom: 16,
   },
   seeAllText: {
     fontSize: 14,
-    fontWeight: '500',
-  },
-  categoriesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  categoryCard: {
-    width: '47%',
-    padding: 16,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  categoryIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  categoryTitle: {
-    fontSize: 16,
     fontWeight: '600',
-    marginBottom: 4,
   },
-  categoryDescription: {
-    fontSize: 12,
-    marginBottom: 12,
-    lineHeight: 16,
-  },
-  providersPreview: {
+  txItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
+    padding: 16,
+    borderRadius: 20,
+    gap: 16,
   },
-  providersText: {
-    fontSize: 12,
+  txIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  billsList: {
-    gap: 12,
+  txContent: {
+    flex: 1,
+    gap: 4,
   },
-  billCard: {
+  txTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
   },
-  billLeft: {
+  txBottom: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    flex: 1,
   },
-  billIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  billInfo: {
-    flex: 1,
-  },
-  billCategory: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  billProvider: {
-    fontSize: 12,
-  },
-  billRight: {
-    alignItems: 'flex-end',
-  },
-  billAmount: {
+  txTitle: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 6,
   },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+  txAmount: {
+    fontSize: 16,
+    fontWeight: '700',
   },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  savedBillersList: {
-    gap: 12,
-  },
-  savedBillerCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  savedBillerIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  savedBillerInfo: {
-    flex: 1,
-  },
-  savedBillerName: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  savedBillerMeter: {
+  txSubtitle: {
     fontSize: 12,
   },
-  infoCard: {
-    flexDirection: 'row',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 20,
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
+  txDate: {
+    fontSize: 12,
   },
 });
