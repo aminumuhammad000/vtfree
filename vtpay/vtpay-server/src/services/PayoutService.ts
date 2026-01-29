@@ -210,7 +210,8 @@ export class PayoutService {
             });
 
             payout.status = 'PROCESSING';
-            payout.externalRef = response.data?.transfer_id;
+            payout.externalRef = String(response.data?.transfer_id); // Ensure string storage
+
             // Update payrant fee if returned
             if (response.data?.fee) {
                 payout.payrantFee = response.data.fee;
