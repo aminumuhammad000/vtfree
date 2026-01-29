@@ -24,6 +24,8 @@ export const config = {
         zainboxCode: process.env.ZAINPAY_ZAINBOX_CODE || '',
     },
 
+
+
     // JWT
     jwt: {
         secret: process.env.JWT_SECRET || 'default-secret-change-me',
