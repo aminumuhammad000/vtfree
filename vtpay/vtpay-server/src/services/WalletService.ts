@@ -28,7 +28,7 @@ export class WalletService {
     /**
      * Get wallet balance
      */
-    async getBalance(userId: string): Promise<{ balance: number; clearedBalance: number; lockedBalance: number; availableBalance: number }> {
+    async getBalance(userId: string): Promise<{ balance: number; clearedBalance: number; lockedBalance: number; availableBalance: number; pendingBalance: number }> {
         const wallet = await this.getWalletByUserId(userId);
         if (!wallet) {
             throw new Error('Wallet not found');
@@ -38,6 +38,7 @@ export class WalletService {
             clearedBalance: wallet.clearedBalance,
             lockedBalance: wallet.lockedBalance,
             availableBalance: wallet.clearedBalance - wallet.lockedBalance,
+            pendingBalance: wallet.balance - wallet.clearedBalance,
         };
     }
 

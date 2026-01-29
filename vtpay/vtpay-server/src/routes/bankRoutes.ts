@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { zainpayService } from '../services';
+import { payrantService } from '../services/PayrantService';
 
 const router = Router();
 
@@ -9,29 +9,33 @@ const router = Router();
  */
 router.get('/', async (req: Request, res: Response): Promise<void> => {
     try {
-        console.log('GET /api/banks - Fetching bank list from Zainpay...');
-        const response = await zainpayService.getBankList();
+        console.log('GET /api/banks - Fetching bank list from Payrant...');
+        const banks = await payrantService.getBanksList();
 
-        if (response.code !== '00') {
-            console.error('Zainpay Error in getBankList:', response);
-            res.status(400).json({
-                success: false,
-                message: response.description || 'Failed to get bank list',
-            });
-            return;
-        }
+        console.log(`Successfully fetched ${banks.length} banks`);
 
-        console.log(`Successfully fetched ${response.data?.length || 0} banks`);
+        // Transform to frontend expectation if needed, or send as is
+        // Payrant returns { bankCode, bankName, bankUrl, bgUrl }
+        // Frontend likely expects { code, name } or uses bankCode/bankName mapping
+
+        // Let's map it to be safe for existing frontend if it used { code, name }
+        // But checking Frontend code (Step 263), it uses:
+        // banks.find(b => b.code === transferData.bankCode)
+        // So it expects `code` and `name`.
+
+        const mappedBanks = banks.map(b => ({
+            code: b.bankCode,
+            name: b.bankName,
+            bankUrl: b.bankUrl,
+            bgUrl: b.bgUrl
+        }));
+
         res.json({
             success: true,
-            data: response.data,
+            data: mappedBanks,
         });
     } catch (error: any) {
         console.error('Get bank list error:', error.message);
-        if (error.response) {
-            console.error('Zainpay API Status:', error.response.status);
-            console.error('Zainpay API Data:', error.response.data);
-        }
         res.status(500).json({
             success: false,
             message: 'Failed to get bank list',
@@ -56,32 +60,28 @@ router.get('/verify', async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
-        const response = await zainpayService.nameEnquiry(
+        console.log(`Verifying account ${accountNumber} at bank ${bankCode}...`);
+
+        const result = await payrantService.validateAccount(
             bankCode as string,
             accountNumber as string
         );
 
-        if (response.code !== '00') {
-            res.status(400).json({
-                success: false,
-                message: response.description || 'Failed to verify account',
-            });
-            return;
-        }
-
         res.json({
             success: true,
-            data: response.data,
+            data: {
+                accountName: result.account_name,
+                accountNumber: result.account_number,
+                bankCode: result.bank_code,
+                verified: result.verified
+            },
         });
     } catch (error: any) {
         console.error('Name enquiry error:', error.message);
-        if (error.response) {
-            console.error('Zainpay API Status:', error.response.status);
-            console.error('Zainpay API Data:', error.response.data);
-        }
-        res.status(500).json({
+        const message = error.response?.data?.message || error.message || 'Failed to verify account';
+        res.status(400).json({
             success: false,
-            message: 'Failed to verify account',
+            message: message,
         });
     }
 });

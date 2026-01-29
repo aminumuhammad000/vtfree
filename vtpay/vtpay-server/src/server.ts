@@ -9,8 +9,23 @@ const startServer = async (): Promise<void> => {
         await connectDatabase();
 
         // Initialize Zainpay Service with DB settings
-        const { zainpayService } = await import('./services/ZainpayService');
-        await zainpayService.refreshConfig();
+        try {
+            const { zainpayService } = await import('./services/ZainpayService');
+            await zainpayService.refreshConfig();
+        } catch (err) {
+            logger.warn('Failed to initialize ZainpayService config (using defaults)', err);
+        }
+
+        try {
+            const { payrantService } = await import('./services/PayrantService');
+            await payrantService.refreshConfig();
+        } catch (err) {
+            logger.warn('Failed to initialize PayrantService config (using defaults)', err);
+        }
+
+        // Initialize Cron Jobs
+        const { cronService } = await import('./services/CronService');
+        cronService.startDepositClearanceJob();
 
         // Start Express server
         app.listen(config.port, () => {

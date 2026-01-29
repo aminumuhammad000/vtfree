@@ -102,6 +102,7 @@ const SystemSettingSchema = new Schema<ISystemSettingDocument>(
             },
             payrant: {
                 apiKey: { type: String, default: '' },
+                webhookSecret: { type: String, default: '' },
                 baseUrl: { type: String, default: 'https://api-core.payrant.com/' },
             },
         },
@@ -148,5 +149,6 @@ const SystemSettingSchema = new Schema<ISystemSettingDocument>(
     }
 );
 
-export const SystemSetting = mongoose.model<ISystemSettingDocument>('SystemSetting', SystemSettingSchema);
+// Prevent OverwriteModelError
+export const SystemSetting = mongoose.models.SystemSetting || mongoose.model<ISystemSettingDocument>('SystemSetting', SystemSettingSchema);
 export default SystemSetting;

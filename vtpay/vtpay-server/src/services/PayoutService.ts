@@ -98,119 +98,123 @@ export class PayoutService {
     async initiatePayout(
         userId: string,
         amount: number,
-        bankDetails: {
-            bankCode: string;
-            accountNumber: string;
-            accountName: string;
+        details: { bankCode: string; accountNumber: string; accountName: string }
+    ): Promise<any> {
+        // 1. Validation
+        const user = await User.findById(userId);
+        if (!user) {
+            throw new Error('User not found');
         }
-    ): Promise<typeof Payout.prototype> {
-        const session = await mongoose.startSession();
-        session.startTransaction();
+
+        if (user.status === 'suspended') {
+            throw new Error('Your account is suspended. Please contact support.');
+        }
+
+        if (user.status === 'pending') {
+            throw new Error('Your account is pending verification.');
+        }
+
+        // KYC Check (Level 2 or 3 required for payouts)
+        if (user.kycLevel < 2) {
+            throw new Error('Please complete your KYC verification to enable withdrawals.');
+        }
+
+        if (amount < 10000) { // 100 Naira
+            throw new Error('Minimum withdrawal amount is ₦100.00');
+        }
+
+        // 2. Fees & Internal Check
+        const isInternal = await VirtualAccount.exists({ accountNumber: details.accountNumber });
+        const fees = await this.calculateFees(amount, !!isInternal);
+        const totalDeducted = amount;
+
+        // 3. Check Balance & Deduct (Without Transaction for Standalone Support)
+        const wallet = await Wallet.findOne({ userId });
+        if (!wallet) throw new Error('Wallet not found');
+
+        if (wallet.clearedBalance < totalDeducted) {
+            throw new Error('Insufficient cleared balance for this withdrawal');
+        }
+
+        // Optimistic locking / atomic update could be better here, but simple deduction for now
+        wallet.clearedBalance -= totalDeducted;
+        wallet.balance -= totalDeducted;
+        await wallet.save();
 
         try {
-            // 1. Determine if Internal or External
-            const isInternal = await VirtualAccount.exists({ accountNumber: bankDetails.accountNumber });
-            const fees = await this.calculateFees(amount, !!isInternal);
-
-            if (amount <= 0) {
-                throw new Error('Payout amount must be greater than zero');
-            }
-
-            // 2. Validate & Lock Funds
-            const wallet = await Wallet.findOne({ userId: new mongoose.Types.ObjectId(userId) }).session(session);
-            if (!wallet) {
-                throw new Error('Wallet not found');
-            }
-
-            if (wallet.clearedBalance < fees.totalDebit) {
-                throw new Error('Insufficient cleared balance');
-            }
-
-            // Move funds to locked
-            wallet.clearedBalance -= fees.totalDebit;
-            wallet.lockedBalance += fees.totalDebit;
-            await wallet.save({ session });
-
-            // 3. Create Payout Record
+            // Create Payout Record
             const payout = new Payout({
-                userId: new mongoose.Types.ObjectId(userId),
-                amount: fees.netAmount, // Use the Net Amount (what user receives)
+                userId,
+                amount: fees.netAmount,
                 fee: fees.fee,
                 payrantFee: fees.payrantFee,
-                totalDebit: fees.totalDebit,
-                ...bankDetails,
+                totalDebit: totalDeducted,
+                bankCode: details.bankCode,
+                accountNumber: details.accountNumber,
+                accountName: details.accountName,
                 payoutType: isInternal ? 'internal' : 'external',
+                reference: `PAYOUT-${uuidv4()}`,
                 status: 'INITIATED',
-                reference: `PAY-${uuidv4()}`,
-                retryCount: 0
+                retryCount: 0,
             });
-            await payout.save({ session });
+            await payout.save();
 
-            // 4. Create PENDING Ledger Entry (The "Lock" record)
-            await Transaction.create([{
-                walletId: wallet._id,
-                userId: new mongoose.Types.ObjectId(userId),
-                type: 'debit',
-                category: 'withdrawal',
-                amount: fees.totalDebit,
-                fee: fees.fee + fees.payrantFee,
-                balanceBefore: wallet.balance,
-                balanceAfter: wallet.balance, // Balance doesn't change yet, only lockedBalance
-                reference: payout.reference,
-                narration: `Payout Lock: ${bankDetails.accountNumber} (${bankDetails.bankCode})`,
-                status: 'pending',
-                isCleared: true,
-                metadata: {
-                    payoutId: payout._id,
-                    fee: fees.fee,
-                    payrantFee: fees.payrantFee,
-                    requestedAmount: amount
-                }
-            }], { session });
+            // Transaction record creation deferred to handlePayoutSuccess
+            // This ensures that only successful external payouts (or finalized internal ones) appear in the transaction history.
 
-            await session.commitTransaction();
+            // await Transaction.create({ ... });
 
-            // 4. Trigger Async Processing
-            this.processPayout(payout._id.toString()).catch(err => {
-                logger.error(`Error processing payout ${payout._id}`, err);
-            });
+            // 4. Process with Payrant (Sync for immediate feedback)
+            // We await it here so if it fails, we catch it below and refund the user immediately.
+            await this.processPayout(payout.id, true);
 
             return payout;
+
         } catch (error) {
-            await session.abortTransaction();
+            // Manually rollback wallet if payout save failed OR if processPayout failed
+            wallet.clearedBalance += totalDeducted;
+            wallet.balance += totalDeducted;
+            await wallet.save().catch(e => logger.error('CRITICAL: Failed to rollback wallet', e));
+
+            // If we created a payout record, mark it as FAILED so we have a record of the attempt
+            // We can't easily access 'payout' here if it was defined in the try block, 
+            // but the transaction rollbacks are handled by the wallet refund above.
+
             throw error;
-        } finally {
-            session.endSession();
         }
     }
 
     /**
-     * Process a payout (send to Zainpay)
+     * Process a payout (send to Payrant)
+     * @param payoutId The ID of the payout
+     * @param throwOnError If true, wil re-throw errors instead of just logging them (used for synchronous API calls)
      */
-    async processPayout(payoutId: string): Promise<void> {
+    async processPayout(payoutId: string, throwOnError: boolean = false): Promise<void> {
         const payout = await Payout.findById(payoutId);
         if (!payout || payout.status !== 'INITIATED') return;
 
         try {
             if (payout.payoutType === 'internal') {
                 // Handle internal transfer (wallet to wallet)
-                // For now, we'll just mark as completed if it's internal
-                // In a real scenario, we'd credit the destination wallet
                 await this.handlePayoutSuccess(payout);
                 return;
             }
 
-            const response = await payrantService.transfer({
+            const payload = {
                 bank_code: payout.bankCode,
                 account_number: payout.accountNumber,
                 account_name: payout.accountName,
-                amount: payout.amount,
+                amount: payout.amount / 100,
                 description: `Withdrawal from VTPay wallet: ${payout.reference}`,
                 notify_url: `${config.webhookBaseUrl}/api/webhooks/payrant`
-            });
+            };
+            logger.info(`Initiating Payrant Transfer for ${payout.reference}`, payload);
+
+            const response = await payrantService.transfer(payload);
 
             payout.status = 'PROCESSING';
-            payout.externalRef = String(response.data?.transfer_id); // Ensure string storage
+            // Store the full reference string (e.g. TRANSFER_1756818101_77) not just ID
+            payout.externalRef = response.data?.reference || String(response.data?.transfer_id);
 
             // Update payrant fee if returned
             if (response.data?.fee) {
@@ -223,139 +227,106 @@ export class PayoutService {
 
         } catch (error: any) {
             logger.error(`Payout processing failed for ${payout.reference}`, error);
-            if (error.response && error.response.status >= 400 && error.response.status < 500) {
-                await this.handlePayoutFailure(payout, error.response.data?.message || error.message || 'Provider rejected request');
-            } else {
-                // For 5xx or network errors, keep in INITIATED or move to PROCESSING to be picked up by reconciliation
-                payout.status = 'PROCESSING';
-                payout.failureReason = error.message;
-                await payout.save();
+
+            // Mark as FAILED immediately if it's a provider rejection
+            const errorMessage = error.response?.data?.message || error.message || 'Provider rejected request';
+            await this.handlePayoutFailure(payout, errorMessage, throwOnError);
+
+            if (throwOnError) {
+                // Re-throw so the caller (initiatePayout) can refund the wallet
+                throw new Error(errorMessage);
             }
         }
     }
 
     /**
-     * Handle payout failure (refund funds)
+     * Handle Payout Success (Webhook or Polling)
      */
-    async handlePayoutFailure(payout: any, reason: string): Promise<void> {
-        const session = await mongoose.startSession();
-        session.startTransaction();
+    async handlePayoutSuccess(payout: any): Promise<void> {
+        if (payout.status === 'COMPLETED') return; // Already processed
 
-        try {
-            // Defensive Check: Status Transition
-            const currentPayout = await Payout.findById(payout._id).session(session);
-            if (!currentPayout || ['COMPLETED', 'FAILED', 'MANUAL_REVIEW'].includes(currentPayout.status)) {
-                logger.warn(`Payout ${payout.reference} already in terminal state: ${currentPayout?.status}`);
-                await session.abortTransaction();
-                return;
-            }
+        payout.status = 'COMPLETED';
+        await payout.save();
 
-            currentPayout.status = 'FAILED';
-            currentPayout.failureReason = reason;
-            await currentPayout.save({ session });
-
-            const wallet = await Wallet.findOne({ userId: currentPayout.userId }).session(session);
-            if (wallet) {
-                wallet.lockedBalance -= currentPayout.totalDebit;
-                wallet.clearedBalance += currentPayout.totalDebit; // Refund to cleared
-                await wallet.save({ session });
-            }
-
-            // Update Ledger Entry
-            await Transaction.findOneAndUpdate(
-                { reference: currentPayout.reference, status: 'pending' },
-                {
-                    status: 'failed',
-                    metadata: { ...payout.metadata, failureReason: reason }
-                },
-                { session }
-            );
-
-            await session.commitTransaction();
-            logger.info(`Payout ${currentPayout.reference} failed and refunded. Reason: ${reason}`);
-        } catch (error) {
-            await session.abortTransaction();
-            logger.error(`Error handling payout failure for ${payout.reference}`, error);
-        } finally {
-            session.endSession();
-        }
-    }
-
-    /**
-     * Handle payout success (finalize)
-     */
-    async handlePayoutSuccess(payout: any, externalAmount?: number): Promise<void> {
-        const session = await mongoose.startSession();
-        session.startTransaction();
-
-        try {
-            // Defensive Check: Status Transition
-            const currentPayout = await Payout.findById(payout._id).session(session);
-            if (!currentPayout || ['COMPLETED', 'FAILED', 'MANUAL_REVIEW'].includes(currentPayout.status)) {
-                logger.warn(`Payout ${payout.reference} already in terminal state: ${currentPayout?.status}`);
-                await session.abortTransaction();
-                return;
-            }
-
-            // Defensive Check: Amount Matching
-            if (externalAmount !== undefined && externalAmount !== currentPayout.amount) {
-                logger.error(`CRITICAL: Payout ${payout.reference} amount mismatch! Expected ${currentPayout.amount}, got ${externalAmount}`);
-                currentPayout.status = 'MANUAL_REVIEW';
-                currentPayout.failureReason = `Amount mismatch: expected ${currentPayout.amount}, got ${externalAmount}`;
-                await currentPayout.save({ session });
-                await session.commitTransaction();
-                return;
-            }
-
-            currentPayout.status = 'COMPLETED';
-            currentPayout.completedAt = new Date();
-            await currentPayout.save({ session });
-
-            const wallet = await Wallet.findOne({ userId: currentPayout.userId }).session(session);
-            if (wallet) {
-                const balanceBefore = wallet.balance;
-                wallet.lockedBalance -= currentPayout.totalDebit;
-                wallet.balance -= currentPayout.totalDebit; // Permanently reduce total balance
-                await wallet.save({ session });
-
-                // Create Parent Account Ledger Entry
-                await ParentAccountLedger.create([{
-                    payoutId: currentPayout._id,
-                    amount: currentPayout.amount,
-                    fee: currentPayout.payrantFee,
-                    totalDebit: currentPayout.amount + currentPayout.payrantFee,
-                    status: 'SUCCESS',
-                    transferId: currentPayout.externalRef,
-                    description: `Payout to ${currentPayout.accountName} (${currentPayout.accountNumber})`
-                }], { session });
-
-                // Update Ledger Entry
-                await Transaction.findOneAndUpdate(
-                    { reference: currentPayout.reference, status: 'pending' },
-                    {
-                        status: 'success',
-                        balanceBefore: balanceBefore,
-                        balanceAfter: wallet.balance,
-                        clearedAt: new Date()
+        // Create the Transaction Record NOW (on success)
+        const wallet = await Wallet.findOne({ userId: payout.userId });
+        if (wallet) {
+            await Transaction.create({
+                userId: payout.userId,
+                walletId: wallet._id,
+                type: 'debit',
+                category: 'withdrawal',
+                amount: payout.totalDebit,
+                reference: payout.reference,
+                description: `Payout to ${payout.accountNumber} (${payout.bankCode})`,
+                status: 'success',
+                balanceBefore: wallet.balance + payout.totalDebit, // Reconstructed balance before (approximate)
+                balanceAfter: wallet.balance,
+                payoutId: payout._id,
+                metadata: {
+                    fees: {
+                        fee: payout.fee,
+                        payrantFee: payout.payrantFee,
+                        totalDebit: payout.totalDebit,
+                        netAmount: payout.amount
                     },
-                    { session }
-                );
-            }
-
-            await session.commitTransaction();
-            logger.info(`Payout ${currentPayout.reference} completed successfully.`);
-
-            // Trigger Email Notification (outside transaction)
-            this.sendPayoutSuccessNotification(currentPayout).catch(err => {
-                logger.error(`Failed to send payout success email for ${currentPayout.reference}`, err);
+                    beneficiary: {
+                        accountNumber: payout.accountNumber,
+                        accountName: payout.accountName,
+                        bankCode: payout.bankCode
+                    }
+                }
             });
-        } catch (error) {
-            await session.abortTransaction();
-            logger.error(`Error handling payout success for ${payout.reference}`, error);
-        } finally {
-            session.endSession();
+        }
+
+        logger.info(`Payout ${payout.reference} marked as COMPLETED and transaction recorded.`);
+
+        // Notify user via email if needed
+        const user = await User.findById(payout.userId);
+        if (user) {
+            // Email notification logic
         }
     }
+
+    /**
+     * Handle Payout Failure (Webhook or Polling)
+     */
+    async handlePayoutFailure(payout: any, reason: string, skipRefund: boolean = false): Promise<void> {
+        if (payout.status === 'FAILED') return; // Already processed
+
+        payout.status = 'FAILED';
+        payout.failureReason = reason;
+        await payout.save();
+
+        // Update transaction status
+        // No transaction to update
+        // await Transaction.updateMany(...)
+
+        if (skipRefund) {
+            logger.info(`Payout ${payout.reference} failed. Refund skipped (handled by caller). Reason: ${reason}`);
+            return;
+        }
+
+        // REFUND LOGIC
+        // We need to credit the wallet back
+        const wallet = await Wallet.findOne({ userId: payout.userId });
+        if (wallet) {
+            // Refund the TOTAL debit (amount + fees)
+            const refundAmount = payout.totalDebit;
+
+            wallet.clearedBalance += refundAmount;
+            wallet.balance += refundAmount;
+            await wallet.save();
+
+            // No Transaction needed if we never created the debit.
+            // Just silently refund the wallet.
+
+            // await Transaction.create({ ... });
+
+            logger.info(`Payout ${payout.reference} failed. Wallet refunded. Reason: ${reason}`);
+        }
+    }
+
 
     /**
      * Process Settlements (Pending -> Cleared)

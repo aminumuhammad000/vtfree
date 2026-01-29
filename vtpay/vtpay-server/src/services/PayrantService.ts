@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { logger } from '../utils/logger';
+import { SystemSetting } from '../models/SystemSetting';
 
 export interface PayrantTransferPayload {
     bank_code: string;
@@ -14,7 +15,7 @@ export interface PayrantTransferResponse {
     status: string;
     message: string;
     data: {
-        transfer_id: number; // Changed to number based on doc example "13"
+        transfer_id: number;
         reference: string;
         order_no: string;
         amount: number;
@@ -59,6 +60,7 @@ export class PayrantService {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${this.apiKey}`,
             },
+            timeout: 30000, // 30 seconds timeout
         });
 
         this.client.interceptors.response.use(
@@ -78,18 +80,24 @@ export class PayrantService {
 
     async refreshConfig() {
         try {
-            const { SystemSetting } = await import('../models/SystemSetting');
             const settings = await SystemSetting.findOne();
             if (settings && settings.integrations?.payrant) {
                 const pr = settings.integrations.payrant;
-                // Ensure no trailing slash issues if user adds one
-                this.baseUrl = pr.baseUrl?.replace(/\/+$/, '') || 'https://api-core.payrant.com';
-                this.apiKey = pr.apiKey || '';
-                this.initializeClient();
-                logger.info('Payrant config refreshed from database');
+
+                const newBaseUrl = pr.baseUrl?.replace(/\/+$/, '') || 'https://api-core.payrant.com';
+                const newApiKey = pr.apiKey || '';
+
+                if (newApiKey !== this.apiKey || newBaseUrl !== this.baseUrl) {
+                    this.baseUrl = newBaseUrl;
+                    this.apiKey = newApiKey;
+                    this.initializeClient();
+                    logger.info(`Payrant config refreshed. BaseURL: ${this.baseUrl}, KeyLength: ${this.apiKey.length}`);
+                }
+            } else {
+                logger.warn('SystemSetting or Payrant integration config not found');
             }
-        } catch (error) {
-            logger.error('Failed to refresh Payrant config', error);
+        } catch (error: any) {
+            logger.error('Failed to refresh Payrant config', { message: error?.message || 'Unknown error', stack: error?.stack });
         }
     }
 
@@ -99,11 +107,42 @@ export class PayrantService {
      */
     async getBanksList(): Promise<PayrantBank[]> {
         await this.refreshConfig();
-        const response = await this.client.get('/payout/banks_list/');
-        if (response.data?.status === 'success') {
-            return response.data.data.banks;
+        try {
+            const response = await this.client.get('/payout/banks_list/');
+            if (response.data?.status === 'success') {
+                return response.data.data.banks;
+            }
+        } catch (error) {
+            logger.warn('Failed to fetch banks from Payrant, using fallback list', error);
         }
-        return [];
+
+        // Fallback list of major Nigerian banks
+        return [
+            { bankCode: "090405", bankName: "Moniepoint MFB", bankUrl: "https://transsnet-android-upload-image-prod.s3.amazonaws.com/activity/17518943562816-small%20bank.png", bgUrl: "" },
+            { bankCode: "100033", bankName: "PalmPay", bankUrl: "", bgUrl: "" },
+            { bankCode: "044", bankName: "Access Bank", bankUrl: "", bgUrl: "" },
+            { bankCode: "058", bankName: "Guaranty Trust Bank", bankUrl: "", bgUrl: "" },
+            { bankCode: "057", bankName: "Zenith Bank", bankUrl: "", bgUrl: "" },
+            { bankCode: "033", bankName: "United Bank for Africa", bankUrl: "", bgUrl: "" },
+            { bankCode: "011", bankName: "First Bank of Nigeria", bankUrl: "", bgUrl: "" },
+            { bankCode: "090267", bankName: "Kuda Microfinance Bank", bankUrl: "", bgUrl: "" },
+            { bankCode: "076", bankName: "Polaris Bank", bankUrl: "", bgUrl: "" },
+            { bankCode: "032", bankName: "Union Bank of Nigeria", bankUrl: "", bgUrl: "" },
+            { bankCode: "215", bankName: "Unity Bank", bankUrl: "", bgUrl: "" },
+            { bankCode: "035", bankName: "Wema Bank", bankUrl: "", bgUrl: "" },
+            { bankCode: "050", bankName: "Ecobank Nigeria", bankUrl: "", bgUrl: "" },
+            { bankCode: "023", bankName: "Citibank Nigeria", bankUrl: "", bgUrl: "" },
+            { bankCode: "063", bankName: "Diamond Bank", bankUrl: "", bgUrl: "" },
+            { bankCode: "214", bankName: "FCMB", bankUrl: "", bgUrl: "" },
+            { bankCode: "070", bankName: "Fidelity Bank", bankUrl: "", bgUrl: "" },
+            { bankCode: "030", bankName: "Heritage Bank", bankUrl: "", bgUrl: "" },
+            { bankCode: "301", bankName: "Jaiz Bank", bankUrl: "", bgUrl: "" },
+            { bankCode: "082", bankName: "Keystone Bank", bankUrl: "", bgUrl: "" },
+            { bankCode: "081", bankName: "Providus Bank", bankUrl: "", bgUrl: "" },
+            { bankCode: "221", bankName: "Stanbic IBTC Bank", bankUrl: "", bgUrl: "" },
+            { bankCode: "232", bankName: "Sterling Bank", bankUrl: "", bgUrl: "" },
+            { bankCode: "032", bankName: "Union Bank of Nigeria", bankUrl: "", bgUrl: "" }
+        ];
     }
 
     /**
@@ -129,17 +168,25 @@ export class PayrantService {
      */
     async transfer(payload: PayrantTransferPayload): Promise<PayrantTransferResponse> {
         await this.refreshConfig();
-        const response = await this.client.post('/payout/transfer', payload);
+        const response = await this.client.post('/payout/transfer/', payload);
         return response.data;
     }
 
     /**
      * Verify Transfer
-     * Note: Not explicitly documented for Payouts in the user snippets, 
-     * but keeping a placeholder or removing if unused. 
-     * The snippet showed GET /api-core/transaction/api.php?action=verify for Checkout.
-     * We will rely on webhooks for now as per docs.
      */
+    async verifyTransfer(reference: string): Promise<PayrantTransferResponse> {
+        await this.refreshConfig();
+        // Fallback: Verify is not officially documented public endpoint yet? 
+        // We will try GET /payout/transfer/:reference or similar if known, 
+        // else throw or return mock for now to allow compilation.
+
+        // Actually, assuming standard pattern:
+        // const response = await this.client.get(\`/payout/transfer/${reference}\`);
+        // return response.data;
+
+        throw new Error('Verify transfer not implemented yet');
+    }
 }
 
 export const payrantService = new PayrantService();

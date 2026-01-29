@@ -69,13 +69,18 @@ export class ZainpayService {
             const settings = await SystemSetting.findOne();
             if (settings && settings.integrations?.zainpay) {
                 const zp = settings.integrations.zainpay;
-                this.baseUrl = zp.baseUrl || config.zainpay.baseUrl;
-                this.publicKey = zp.apiKey || config.zainpay.publicKey;
-                this.initializeClient();
-                logger.info('Zainpay config refreshed from database');
+                this.baseUrl = zp.baseUrl || config.zainpay.baseUrl || '';
+                this.publicKey = zp.apiKey || config.zainpay.publicKey || '';
+
+                if (this.baseUrl && this.publicKey) {
+                    this.initializeClient();
+                    logger.info('Zainpay config refreshed from database');
+                } else {
+                    logger.warn('Zainpay config missing baseUrl or publicKey in DB');
+                }
             }
-        } catch (error) {
-            logger.error('Failed to refresh Zainpay config', error);
+        } catch (error: any) {
+            logger.error('Failed to refresh Zainpay config', { message: error.message || error });
         }
     }
 
