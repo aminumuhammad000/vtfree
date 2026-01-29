@@ -338,3 +338,23 @@ export const downloadApk = async (req: Request, res: Response) => {
         res.status(500).json({ success: false, message: error.message || 'Server error' });
     }
 };
+
+export const getPublicAppDetails = async (req: Request, res: Response) => {
+    try {
+        const { appId } = req.params;
+        // Find app by app_id only, no owner check needed for public info
+        const app = await CreatedApp.findOne({ app_id: appId }).select('app_name package_name branding services status company');
+
+        if (!app) {
+            return res.status(404).json({ success: false, message: 'App not found' });
+        }
+
+        res.json({
+            success: true,
+            data: { app }
+        });
+    } catch (error) {
+        console.error('Get public app details error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};

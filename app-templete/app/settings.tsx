@@ -130,27 +130,7 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <View style={[styles.section, { backgroundColor: cardBgColor }]}>
-          <Text style={[styles.sectionTitle, { color: textColor }]}>Security</Text>
-          <Text style={[styles.sectionDescription, { color: textBodyColor }]}>Manage your security settings</Text>
 
-          <TouchableOpacity
-            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 }}
-            onPress={() => router.push('/security')}
-            activeOpacity={0.7}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: isDark ? '#0A254020' : '#0A254015' }}>
-                <Ionicons name="lock-closed-outline" size={20} color={theme.primary} />
-              </View>
-              <View style={{ marginLeft: 12 }}>
-                <Text style={{ color: textColor, fontSize: 16, fontWeight: '600' }}>Transaction PIN</Text>
-                <Text style={{ color: textBodyColor, fontSize: 13 }}>Set or update your 4-digit PIN</Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={textBodyColor} />
-          </TouchableOpacity>
-        </View>
 
         {/* Admin Panel Section - Only visible to admins */}
         {(user?.role === 'admin' || user?.role_id === 'admin') && (

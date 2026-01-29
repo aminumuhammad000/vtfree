@@ -19,7 +19,7 @@ export class AuthController {
         return ApiResponse.error(res, error.details[0].message, 400);
       }
 
-      const { email, phone_number, password, first_name, last_name, referral_code, pin } = req.body;
+      const { email, phone_number, password, first_name, last_name, referral_code, pin, app_id } = req.body;
 
       const existingUser = await User.findOne({ $or: [{ email }, { phone_number }] });
       if (existingUser) {
@@ -46,6 +46,7 @@ export class AuthController {
         country: 'Nigeria',
         kyc_status: 'pending',
         status: 'active',
+        app_id, // Save the app_id
         transaction_pin: pin ? await bcrypt.hash(String(pin), 10) : undefined
       });
 
@@ -62,48 +63,38 @@ export class AuthController {
 
   static async login(req: Request, res: Response) {
     try {
-      const fs = require('fs');
-      const logFile = '/tmp/vtfree-login-debug.log';
-
-      fs.appendFileSync(logFile, `\n=== Login Attempt ${new Date().toISOString()} ===\n`);
-      fs.appendFileSync(logFile, `Request body: ${JSON.stringify(req.body)}\n`);
-
+      console.log('Login request received:', req.body);
       const { error } = userValidation.login.validate(req.body);
       if (error) {
-        fs.appendFileSync(logFile, `Validation error: ${error.details[0].message}\n`);
+        console.log('Validation error:', error.details[0].message);
         return ApiResponse.error(res, error.details[0].message, 400);
       }
 
       const { email, password } = req.body;
-      fs.appendFileSync(logFile, `Email: ${email}, Password length: ${password?.length}\n`);
 
       const user = await User.findOne({ email });
       if (!user) {
-        fs.appendFileSync(logFile, `User not found for: ${email}\n`);
+        console.log('User not found:', email);
         return ApiResponse.error(res, 'Invalid credentials', 401);
       }
-      fs.appendFileSync(logFile, `User found: ${user.email}, Has hash: ${!!user.password_hash}\n`);
 
       const isPasswordValid = await bcrypt.compare(password, user.password_hash);
-      fs.appendFileSync(logFile, `Password check result: ${isPasswordValid}\n`);
 
       if (!isPasswordValid) {
-        fs.appendFileSync(logFile, `Password mismatch!\n`);
+        console.log('Invalid password for user:', email);
         return ApiResponse.error(res, 'Invalid credentials', 401);
       }
 
       if (user.status !== 'active') {
-        fs.appendFileSync(logFile, `Account inactive: ${user.status}\n`);
+        console.log('User inactive:', email);
         return ApiResponse.error(res, 'Account is inactive', 403);
       }
 
       const token = jwt.sign({ id: user._id }, configService.getSync('JWT_SECRET') || config.jwtSecret, { expiresIn: configService.getSync('JWT_EXPIRY') || config.jwtExpiry } as SignOptions);
-      fs.appendFileSync(logFile, `Login successful!\n`);
 
       return ApiResponse.success(res, { user, token }, 'Login successful');
     } catch (error: any) {
-      const fs = require('fs');
-      fs.appendFileSync('/tmp/vtfree-login-debug.log', `ERROR: ${error.message}\n${error.stack}\n`);
+      console.error('Login error:', error);
       return ApiResponse.error(res, error.message, 500);
     }
   }

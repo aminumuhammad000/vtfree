@@ -108,6 +108,20 @@ api.interceptors.response.use(
     if (status === 401) {
       // Clear auth data on 401
       try {
+        // Check if the token that failed is the current one
+        const currentToken = await AsyncStorage.getItem('authToken');
+        const failedTokenHeader = error.config?.headers?.Authorization;
+
+        // Extract token from "Bearer <token>"
+        const failedToken = failedTokenHeader ? String(failedTokenHeader).replace('Bearer ', '') : null;
+
+        // Only clear if the failed token matches the current token (or if we can't verify)
+        // This prevents clearing a NEW token if an OLD request fails
+        if (currentToken && failedToken && currentToken !== failedToken) {
+          console.log('⚠️ Ignoring 401 from old token. Current token is different.');
+          return Promise.reject(error);
+        }
+
         // Get current route before clearing storage
         const currentRoute = window.location.pathname;
         const isAuthPage = ['/login', '/register', '/forgot-password', '/auth/'].some(path =>
@@ -582,9 +596,14 @@ const adminService: AdminService = {
   }
 };
 
+// App Service
+const appService = {
+  getPublicDetails: (appId: string) => api.get<ApiResponse<{ app: any }>>(`/v1/public/apps/${appId}`),
+};
+
 // Export all services
 export {
-  adminService, authService, billPaymentService, api as default, notificationService, promotionService, supportService, transactionService, userService,
+  adminService, appService, authService, billPaymentService, api as default, notificationService, promotionService, supportService, transactionService, userService,
   walletService
 };
 

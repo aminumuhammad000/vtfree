@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   SafeAreaView
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { appService } from "../services/api";
 
 const { width } = Dimensions.get('window');
 
@@ -36,10 +37,28 @@ const onboardingData = [
   },
 ];
 
+import { Config } from "../constants/Config";
+
 const OnboardingScreen = ({ navigation }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
   const slidesRef = useRef(null);
+  const [branding, setBranding] = useState(null);
+
+  // Fetch branding
+  useEffect(() => {
+    const fetchBranding = async () => {
+      try {
+        const response = await appService.getPublicDetails(Config.APP_ID);
+        if (response.data.success) {
+          setBranding(response.data.data.app.branding);
+        }
+      } catch (error) {
+        console.log('Failed to fetch branding:', error);
+      }
+    };
+    fetchBranding();
+  }, []);
 
   const viewableItemsChanged = useRef(({ viewableItems }) => {
     setCurrentIndex(viewableItems[0]?.index || 0);
@@ -56,25 +75,44 @@ const OnboardingScreen = ({ navigation }) => {
     }
   };
 
+  // Default theme colors
+  const theme = {
+    primary: "#0A2540",
+    accent: "#FF9F43",
+    background: "#111418",
+    text: "#FFFFFF",
+    textSecondary: "#9dabb8",
+  };
+
+  const brandColor = branding?.primary_color || theme.primary;
+  const accentColor = branding?.secondary_color || theme.accent;
+  const bgColor = branding?.background_color || theme.background;
+  // If background is light, use dark text, else light text
+  const isLightBg = bgColor === '#F8F9FA' || bgColor === '#FFFFFF' || bgColor === '#fff';
+  const textColor = isLightBg ? '#1E293B' : '#FFFFFF';
+  const textSecondaryColor = isLightBg ? '#475569' : '#9dabb8';
+
   const renderItem = ({ item }) => (
     <View style={styles.slide}>
       <View style={styles.iconContainer}>
-        <MaterialIcons name={item.icon} size={96} color="#34d399" />
+        <MaterialIcons name={item.icon} size={96} color={brandColor} />
       </View>
-      <Text style={styles.title}>{item.title}</Text>
-      <Text style={styles.description}>{item.description}</Text>
+      <Text style={[styles.title, { color: textColor }]}>{item.title}</Text>
+      <Text style={[styles.description, { color: textSecondaryColor }]}>{item.description}</Text>
     </View>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: bgColor }]}>
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <Image
-            source={require('../assets/images/logo.png')} // Replace with your logo
+            source={branding?.logo_url ? { uri: branding.logo_url } : require('../assets/images/logo.png')}
             style={styles.logo}
           />
-          <Text style={styles.logoText}>Connecta VTU</Text>
+          <Text style={[styles.logoText, { color: textColor }]}>
+            {branding?.app_display_name || 'VTFree App'}
+          </Text>
         </View>
       </View>
 
@@ -103,7 +141,7 @@ const OnboardingScreen = ({ navigation }) => {
               key={i}
               style={[
                 styles.paginationDot,
-                currentIndex === i ? styles.paginationDotActive : null,
+                currentIndex === i ? { backgroundColor: brandColor, width: 32 } : { backgroundColor: '#3c4753' },
               ]}
             />
           ))}
@@ -111,10 +149,10 @@ const OnboardingScreen = ({ navigation }) => {
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.trustText}>Trusted & Secure with Minimal Fees.</Text>
-        
-        <TouchableOpacity 
-          style={styles.primaryButton}
+        <Text style={[styles.trustText, { color: textSecondaryColor }]}>Trusted & Secure with Minimal Fees.</Text>
+
+        <TouchableOpacity
+          style={[styles.primaryButton, { backgroundColor: brandColor }]}
           onPress={scrollTo}
         >
           <Text style={styles.primaryButtonText}>
@@ -122,11 +160,11 @@ const OnboardingScreen = ({ navigation }) => {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.secondaryButton}
           onPress={() => navigation.navigate('Login')}
         >
-          <Text style={styles.secondaryButtonText}>Log In</Text>
+          <Text style={[styles.secondaryButtonText, { color: textColor }]}>Log In</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -163,7 +201,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   slide: {
-    width: width - 32,
+    width: width,
     alignItems: 'center',
     paddingHorizontal: 16,
   },
@@ -205,10 +243,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: '#3c4753',
     marginHorizontal: 4,
-  },
-  paginationDotActive: {
-    width: 32,
-    backgroundColor: '#34d399',
   },
   footer: {
     padding: 24,

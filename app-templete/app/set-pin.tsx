@@ -1,30 +1,57 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+  ScrollView,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@/components/ThemeContext';
 import { useAlert } from '@/components/AlertContext';
 import { userService } from '@/services/user.service';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, useColorScheme, View } from 'react-native';
-
-const theme = {
-  primary: '#0A2540',
-  accent: '#FF9F43',
-};
 
 export default function SetPinScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const { showSuccess, showError, showInfo } = useAlert();
-
-  const bgColor = isDark ? '#111921' : '#F8F9FA';
-  const cardBgColor = isDark ? '#1F2937' : '#FFFFFF';
-  const textColor = isDark ? '#FFFFFF' : '#1F2937';
-  const textBodyColor = isDark ? '#9CA3AF' : '#6B7280';
-  const borderColor = isDark ? '#374151' : '#E5E7EB';
+  const { isDark } = useTheme();
+  const { showSuccess, showError } = useAlert();
+  const [loading, setLoading] = useState(false);
 
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [showPin, setShowPin] = useState({
+    pin: false,
+    confirm: false,
+  });
+
+  const theme = {
+    primary: '#00ADFF',
+    backgroundLight: '#FFFFFF',
+    backgroundDark: '#000000',
+    cardLight: '#F2F2F2',
+    cardDark: '#1E1E1E',
+    textLight: '#000000',
+    textDark: '#FFFFFF',
+    textSecondaryLight: '#757575',
+    textSecondaryDark: '#A0A0A0',
+    inputBgLight: '#F8F9FA',
+    inputBgDark: '#2C2C2C',
+  };
+
+  const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
+  const cardBg = isDark ? theme.cardDark : theme.cardLight;
+  const textColor = isDark ? theme.textDark : theme.textLight;
+  const textSecondaryColor = isDark ? theme.textSecondaryDark : theme.textSecondaryLight;
+  const inputBg = isDark ? theme.inputBgDark : theme.inputBgLight;
+
+  const toggleShowPin = (field: 'pin' | 'confirm') => {
+    setShowPin(prev => ({ ...prev, [field]: !prev[field] }));
+  };
 
   const handleSetPin = async () => {
     if (!/^[0-9]{4}$/.test(pin)) {
@@ -54,99 +81,169 @@ export default function SetPinScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
-      <View style={[styles.header, { backgroundColor: bgColor, borderBottomColor: borderColor }]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={textColor} />
+      <View style={[styles.header, { backgroundColor: bgColor }]}>
+        <TouchableOpacity
+          style={[styles.backButton, { backgroundColor: cardBg }]}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={20} color={textColor} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: textColor }]}>Set Transaction PIN</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <View style={styles.content}>
-        <View style={[styles.card, { backgroundColor: cardBgColor, borderColor }]}>
-          <Text style={[styles.label, { color: textBodyColor }]}>Enter 4-digit PIN</Text>
-          <View style={[styles.inputWrapper, { borderColor, backgroundColor: isDark ? '#374151' : '#F9FAFB' }]}>
-            <Ionicons name="lock-closed-outline" size={18} color={textBodyColor} />
-            <TextInput
-              style={[styles.input, { color: textColor }]}
-              value={pin}
-              onChangeText={(t) => setPin(t.replace(/\D/g, '').slice(0, 4))}
-              keyboardType="number-pad"
-              maxLength={4}
-              secureTextEntry
-              placeholder="••••"
-              placeholderTextColor={textBodyColor}
-            />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[styles.content, { flexGrow: 1, justifyContent: 'center' }]}
+        >
+          <View style={[styles.infoCard, { backgroundColor: theme.primary + '15' }]}>
+            <Ionicons name="lock-closed" size={24} color={theme.primary} />
+            <Text style={[styles.infoText, { color: textColor }]}>
+              Set a 4-digit PIN to secure your transactions. You'll need this for airtime, data, and transfers.
+            </Text>
           </View>
 
-          <Text style={[styles.label, { color: textBodyColor, marginTop: 16 }]}>Confirm PIN</Text>
-          <View style={[styles.inputWrapper, { borderColor, backgroundColor: isDark ? '#374151' : '#F9FAFB' }]}>
-            <Ionicons name="lock-closed" size={18} color={textBodyColor} />
-            <TextInput
-              style={[styles.input, { color: textColor }]}
-              value={confirmPin}
-              onChangeText={(t) => setConfirmPin(t.replace(/\D/g, '').slice(0, 4))}
-              keyboardType="number-pad"
-              maxLength={4}
-              secureTextEntry
-              placeholder="••••"
-              placeholderTextColor={textBodyColor}
-            />
+          <View style={styles.formGroup}>
+            <Text style={[styles.label, { color: textSecondaryColor }]}>Enter 4-digit PIN</Text>
+            <View style={[styles.inputContainer, { backgroundColor: inputBg }]}>
+              <TextInput
+                style={[styles.input, { color: textColor }]}
+                value={pin}
+                onChangeText={(t) => setPin(t.replace(/\D/g, '').slice(0, 4))}
+                keyboardType="number-pad"
+                maxLength={4}
+                secureTextEntry={!showPin.pin}
+                placeholder="••••"
+                placeholderTextColor={textSecondaryColor}
+              />
+              <TouchableOpacity onPress={() => toggleShowPin('pin')} style={styles.eyeIcon}>
+                <Ionicons name={showPin.pin ? "eye-off" : "eye"} size={20} color={textSecondaryColor} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={[styles.label, { color: textSecondaryColor }]}>Confirm PIN</Text>
+            <View style={[styles.inputContainer, { backgroundColor: inputBg }]}>
+              <TextInput
+                style={[styles.input, { color: textColor }]}
+                value={confirmPin}
+                onChangeText={(t) => setConfirmPin(t.replace(/\D/g, '').slice(0, 4))}
+                keyboardType="number-pad"
+                maxLength={4}
+                secureTextEntry={!showPin.confirm}
+                placeholder="••••"
+                placeholderTextColor={textSecondaryColor}
+              />
+              <TouchableOpacity onPress={() => toggleShowPin('confirm')} style={styles.eyeIcon}>
+                <Ionicons name={showPin.confirm ? "eye-off" : "eye"} size={20} color={textSecondaryColor} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: loading || pin.length !== 4 || confirmPin.length !== 4 ? (isDark ? '#374151' : '#D1D5DB') : theme.accent }]}
-            disabled={loading || pin.length !== 4 || confirmPin.length !== 4}
+            style={[styles.submitButton, { backgroundColor: theme.primary }]}
             onPress={handleSetPin}
-            activeOpacity={0.8}
+            disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color="#FFF" />
             ) : (
-              <Text style={styles.primaryButtonText}>Set PIN</Text>
+              <Text style={styles.submitButtonText}>Set PIN</Text>
             )}
           </TouchableOpacity>
-
-          <Text style={[styles.helper, { color: textBodyColor }]}>You'll use this PIN to authorize airtime, data and bill payments.</Text>
-        </View>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: {
+    flex: 1,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingTop: 50,
-    borderBottomWidth: 1,
+    paddingHorizontal: 24,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 16,
   },
-  backButton: { padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: '700' },
-  content: { padding: 16 },
-  card: { borderRadius: 12, padding: 16, borderWidth: 1 },
-  label: { fontSize: 14, marginBottom: 8 },
-  inputWrapper: {
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  content: {
+    padding: 24,
+  },
+  infoCard: {
+    flexDirection: 'row',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 32,
+    alignItems: 'center',
+    gap: 12,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  formGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    height: 48,
+    height: 50,
+    borderRadius: 12,
+    paddingHorizontal: 16,
   },
-  input: { flex: 1, fontSize: 18, letterSpacing: 8 },
-  primaryButton: {
-    height: 48,
-    borderRadius: 8,
-    alignItems: 'center',
+  input: {
+    flex: 1,
+    fontSize: 18,
+    height: '100%',
+    letterSpacing: 4,
+  },
+  eyeIcon: {
+    padding: 8,
+  },
+  submitButton: {
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
-    marginTop: 20,
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 40,
+    shadowColor: '#00ADFF',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  primaryButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 16 },
-  helper: { marginTop: 12, textAlign: 'center' },
+  submitButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
 });

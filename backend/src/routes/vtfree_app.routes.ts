@@ -4,6 +4,9 @@ import { authenticateVTfreeUser } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
+// Public routes
+router.get('/public/:appId', VTfreeAppController.getPublicAppDetails);
+
 // All routes require authentication
 router.use(authenticateVTfreeUser);
 

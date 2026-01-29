@@ -96,13 +96,13 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <AlertProvider>
-        <ProfileProvider>
-          <AuthProvider>
+        <AuthProvider>
+          <ProfileProvider>
             <StatusBar style="light" />
             <AuthLayout />
             <AppUpdateChecker />
-          </AuthProvider>
-        </ProfileProvider>
+          </ProfileProvider>
+        </AuthProvider>
       </AlertProvider>
     </ThemeProvider>
   );

@@ -9,6 +9,9 @@ export interface UserUpdateData {
   city?: string;
   state?: string;
   country?: string;
+  bvn?: string;
+  nin?: string;
+  kyc_status?: string;
 }
 
 export const userService = {
@@ -122,6 +125,18 @@ export const userService = {
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { success: false, message: 'Failed to fetch users' };
+    }
+  },
+
+  /**
+   * Get user referrals
+   */
+  getReferrals: async (): Promise<any> => {
+    try {
+      const response = await api.get('/users/referrals');
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { success: false, message: 'Failed to fetch referrals' };
     }
   },
 };
