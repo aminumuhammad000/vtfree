@@ -10,6 +10,12 @@ export const config = {
     // MongoDB
     mongodbUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/vtpay',
 
+    // Payrant
+    payrant: {
+        baseUrl: process.env.PAYRANT_BASE_URL || 'https://api.payrant.com',
+        apiKey: process.env.PAYRANT_API_KEY || '',
+    },
+
     // Zainpay
     zainpay: {
         baseUrl: process.env.ZAINPAY_BASE_URL || 'https://sandbox.zainpay.ng',

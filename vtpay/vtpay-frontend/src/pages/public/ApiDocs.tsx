@@ -187,16 +187,9 @@ export const ApiDocs: React.FC = () => {
                                     <h4 className="text-emerald-800 text-xs font-bold uppercase tracking-widest mb-3">Supported Bank Types</h4>
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-y-2 gap-x-4">
                                         {[
-                                            { code: 'zenithBank', name: 'Zenith Bank' },
-                                            { code: 'firstBank', name: 'First Bank' },
-                                            { code: 'accessBank', name: 'Access Bank' },
                                             { code: 'fcmb', name: 'FCMB' },
                                             { code: 'fidelity', name: 'Fidelity Bank' },
-                                            { code: 'sterlingBank', name: 'Sterling Bank' },
-                                            { code: 'polarisBank', name: 'Polaris Bank' },
-                                            { code: 'kudaBank', name: 'Kuda Bank' },
-                                            { code: 'jaizBank', name: 'Jaiz Bank' },
-                                            { code: 'tajBank', name: 'Taj Bank' }
+                                            { code: 'moniepoint', name: 'Moniepoint' }
                                         ].map(bank => (
                                             <div key={bank.code} className="flex items-center gap-2">
                                                 <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
@@ -211,7 +204,7 @@ export const ApiDocs: React.FC = () => {
                                 <CodeBlock
                                     id="req-create"
                                     code={`{
-  "bankType": "zenithBank",
+  "bankType": "moniepoint",
   "accountName": "John Doe",
   "email": "john.doe@example.com",
   "reference": "cust_ref_12345",
@@ -231,8 +224,8 @@ export const ApiDocs: React.FC = () => {
     "accountName": "John Doe",
     "alias": "John Doe",
     "reference": "cust_ref_12345",
-    "bankName": "Zenith Bank",
-    "bankType": "zenithBank",
+    "bankName": "Moniepoint",
+    "bankType": "moniepoint",
     "status": "active"
   }
 }`}

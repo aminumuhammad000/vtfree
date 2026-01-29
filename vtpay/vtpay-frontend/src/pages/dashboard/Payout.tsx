@@ -10,15 +10,14 @@ import {
     Loader2,
     Wallet,
     Search,
-    UserCheck,
-    Edit2,
     Clock,
     XCircle,
     History,
     Info,
     AlertTriangle,
     MessageSquare,
-    Link as LinkIcon
+    Sparkles,
+    Plus
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -47,7 +46,6 @@ export const Payout: React.FC = () => {
     const [selectedAccountId, setSelectedAccountId] = useState<string>('');
     const [showSavedAccount, setShowSavedAccount] = useState(true);
     const [isSavingAccount, setIsSavingAccount] = useState(false);
-    const [isDeletingAccount, setIsDeletingAccount] = useState<string | null>(null);
 
     const [showConfirmation, setShowConfirmation] = useState(false);
 
@@ -170,25 +168,7 @@ export const Payout: React.FC = () => {
         }
     };
 
-    const deleteSavedAccount = async (accountId: string) => {
-        if (!window.confirm('Are you sure you want to remove this payout account?')) return;
 
-        setIsDeletingAccount(accountId);
-        try {
-            await api.delete(`/payout/saved-accounts/${accountId}`);
-            setTransferSuccess('Account removed successfully');
-            if (selectedAccountId === accountId) {
-                setSelectedAccountId('');
-                setSavedAccount(null);
-            }
-            await fetchSavedAccount();
-            setTimeout(() => setTransferSuccess(''), 3000);
-        } catch (error: any) {
-            setTransferError(error.response?.data?.message || 'Failed to remove account');
-        } finally {
-            setIsDeletingAccount(null);
-        }
-    };
 
     const handleSelectAccount = (account: any) => {
         setSelectedAccountId(account._id);
@@ -280,6 +260,12 @@ export const Payout: React.FC = () => {
         setShowConfirmation(true);
     };
 
+    // Success Modal State
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [transferResult, setTransferResult] = useState<any>(null);
+
+    // ... existing code ...
+
     const processTransfer = async () => {
         setIsTransferLoading(true);
         setTransferError('');
@@ -288,7 +274,7 @@ export const Payout: React.FC = () => {
         try {
             const amountInKobo = Math.round(parseFloat(transferData.amount) * 100);
 
-            await api.post('/payout', {
+            const response = await api.post('/payout', {
                 accountNumber: savedAccount.accountNumber,
                 bankCode: savedAccount.bankCode,
                 accountName: savedAccount.accountName,
@@ -296,19 +282,23 @@ export const Payout: React.FC = () => {
                 narration: transferData.narration,
             });
 
-            setTransferSuccess('Withdrawal initiated successfully! It will be processed shortly.');
+            setTransferResult(response.data.data);
+            setShowSuccessModal(true);
             setTransferData(prev => ({ ...prev, amount: '', narration: '' }));
-            setShowConfirmation(false); // Close modal
+            setShowConfirmation(false);
             fetchWallet();
             fetchPayoutHistory();
         } catch (err: any) {
             console.error('Transfer error:', err);
             setTransferError(err.response?.data?.message || 'Withdrawal failed');
-            setShowConfirmation(false); // Close on error to allow retry
+            setShowConfirmation(false);
         } finally {
             setIsTransferLoading(false);
         }
     };
+
+
+
 
     const formatCurrency = (amount: number) => {
         if (isNaN(amount) || amount === null || amount === undefined) {
@@ -322,7 +312,65 @@ export const Payout: React.FC = () => {
         }).format(amount);
     };
 
-    // Helper functions moved to inline or removed if unused
+    // Success Modal Component
+    const SuccessModal = () => {
+        if (!showSuccessModal || !transferResult) return null;
+
+        return (
+            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                <div className="bg-white w-full max-w-sm md:max-w-md rounded-3xl shadow-2xl overflow-hidden animate-bounce-in relative">
+                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-green-400 to-emerald-600"></div>
+
+                    <div className="p-8 pb-6 flex flex-col items-center text-center">
+                        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6 shadow-sm relative">
+                            <div className="absolute inset-0 bg-green-200 rounded-full animate-ping opacity-25"></div>
+                            <CheckCircle2 size={40} className="text-green-600 relative z-10" />
+                        </div>
+
+                        <h2 className="text-2xl font-black text-gray-900 mb-2">Withdrawal Successful!</h2>
+                        <p className="text-sm text-gray-500 font-medium mb-6">Your funds are on the way to your bank account.</p>
+
+                        <div className="w-full bg-gray-50 rounded-2xl p-5 border border-gray-100 space-y-4">
+                            <div className="flex justify-between items-center pb-3 border-b border-gray-100 border-dashed">
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Amount Sent</span>
+                                <span className="text-xl font-black text-gray-900">{formatCurrency(transferResult.amount / 100)}</span>
+                            </div>
+
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Recipient</span>
+                                <div className="text-right">
+                                    <p className="text-xs font-bold text-gray-900">{transferResult.accountName}</p>
+                                    <p className="text-[10px] font-bold text-gray-400">{transferResult.bankName}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-between items-center">
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Reference</span>
+                                <span className="text-[10px] font-mono font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded-md">{transferResult.reference}</span>
+                            </div>
+
+                            <div className="flex justify-between items-center pt-2">
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Status</span>
+                                <span className="text-[10px] font-bold text-green-700 bg-green-100 px-2 py-1 rounded-full flex items-center gap-1">
+                                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                                    Processing
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-6 pt-2 bg-white">
+                        <button
+                            onClick={() => setShowSuccessModal(false)}
+                            className="w-full py-4 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl font-bold text-base shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 active:translate-y-0"
+                        >
+                            Done
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     return (
         <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-6 md:space-y-8">
@@ -408,94 +456,57 @@ export const Payout: React.FC = () => {
                             {savedAccount && showSavedAccount ? (
                                 <div className="animate-fade-in space-y-6 md:space-y-8">
                                     {/* Saved Accounts Selection */}
-                                    {savedAccounts.length > 0 && (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {/* Quick Send Horizontal List */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                                                <Sparkles size={16} className="text-yellow-500 fill-yellow-500" />
+                                                Quick Send
+                                            </h3>
+                                            <button
+                                                onClick={() => setShowSavedAccount(false)}
+                                                className="text-[10px] font-bold text-green-700 bg-green-50 px-3 py-1.5 rounded-full hover:bg-green-100 transition-colors flex items-center gap-1 border border-green-100"
+                                            >
+                                                <Plus size={12} /> New Beneficiary
+                                            </button>
+                                        </div>
+
+                                        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2">
                                             {savedAccounts.map((acc) => (
                                                 <div
                                                     key={acc._id}
                                                     onClick={() => handleSelectAccount(acc)}
-                                                    className={`p-4 rounded-2xl border-2 transition-all cursor-pointer relative group ${selectedAccountId === acc._id ? 'border-green-500 bg-green-50' : 'border-gray-100 bg-white hover:border-green-200'}`}
+                                                    className={`min-w-[100px] p-3 rounded-2xl border transition-all cursor-pointer relative group flex-shrink-0 flex flex-col items-center text-center gap-2 ${selectedAccountId === acc._id
+                                                        ? 'border-green-500 bg-green-50 shadow-md transform scale-105'
+                                                        : 'border-gray-100 bg-white hover:border-green-200 hover:shadow-sm'
+                                                        }`}
                                                 >
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedAccountId === acc._id ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
-                                                            <UserCheck size={16} />
-                                                        </div>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                deleteSavedAccount(acc._id);
-                                                            }}
-                                                            disabled={isDeletingAccount === acc._id}
-                                                            className={`p-1.5 rounded-lg transition-all ${isDeletingAccount === acc._id ? 'text-red-400 cursor-not-allowed' : 'text-gray-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100'}`}
-                                                        >
-                                                            {isDeletingAccount === acc._id ? (
-                                                                <Loader2 size={14} className="animate-spin" />
-                                                            ) : (
-                                                                <XCircle size={14} />
-                                                            )}
-                                                        </button>
+                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-sm transition-colors ${selectedAccountId === acc._id ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-500 group-hover:bg-green-100 group-hover:text-green-600'
+                                                        }`}>
+                                                        {acc.accountName.charAt(0)}
                                                     </div>
-                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{acc.bankName}</p>
-                                                    <p className="text-sm font-black text-gray-900 truncate">{acc.accountName}</p>
-                                                    <p className="text-xs font-bold text-gray-500 mt-1 tracking-wider">{acc.accountNumber}</p>
+
+                                                    <div className="w-full">
+                                                        <p className="text-[10px] font-black text-gray-900 truncate w-full leading-tight">{acc.accountName.split(' ')[0]}</p>
+                                                        <p className="text-[9px] font-bold text-gray-400 truncate w-full">{acc.bankName}</p>
+                                                    </div>
 
                                                     {selectedAccountId === acc._id && (
-                                                        <div className="absolute top-2 right-2">
-                                                            <CheckCircle2 size={16} className="text-green-600" />
+                                                        <div className="absolute top-1 right-1">
+                                                            <div className="bg-white rounded-full p-0.5">
+                                                                <CheckCircle2 size={12} className="text-green-600 fill-green-100" />
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </div>
                                             ))}
-
-                                            {savedAccounts.length < 5 && (
-                                                <button
-                                                    onClick={() => setShowSavedAccount(false)}
-                                                    className="p-4 rounded-2xl border-2 border-dashed border-gray-200 hover:border-green-400 hover:bg-green-50 transition-all flex flex-col items-center justify-center gap-2 group"
-                                                >
-                                                    <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center group-hover:bg-green-100 transition-colors">
-                                                        <Edit2 size={16} className="text-gray-400 group-hover:text-green-600" />
-                                                    </div>
-                                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest group-hover:text-green-600">Add New Account</span>
-                                                </button>
-                                            )}
                                         </div>
-                                    )}
+                                    </div>
 
-                                    {!savedAccounts.length && savedAccount && (
-                                        <div className="bg-gray-50/50 rounded-2xl p-5 border border-gray-100 relative group hover:border-green-200 transition-colors">
-                                            <div className="flex items-start justify-between mb-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center shadow-sm text-green-600">
-                                                        <UserCheck size={20} />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Destination</p>
-                                                        <h4 className="text-sm font-black text-gray-900">{savedAccount.bankName}</h4>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={() => setShowSavedAccount(false)}
-                                                    className="text-[10px] text-gray-500 hover:text-green-600 flex items-center gap-1.5 font-bold transition-colors bg-white px-3 py-1.5 rounded-lg border border-gray-200 hover:border-green-200 shadow-sm"
-                                                >
-                                                    <Edit2 size={12} />
-                                                    Change
-                                                </button>
-                                            </div>
-
-                                            <div className="flex items-center justify-between bg-white rounded-xl p-3 border border-gray-100">
-                                                <div>
-                                                    <p className="text-xs font-bold text-gray-900 tracking-wider font-mono">{savedAccount.accountNumber}</p>
-                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest truncate max-w-[150px]">{savedAccount.accountName}</p>
-                                                </div>
-                                                <CheckCircle2 size={16} className="text-green-500" />
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <form onSubmit={handleTransfer} className="space-y-6">
-                                        <div>
-                                            <div className="flex items-center justify-between mb-3">
-                                                <label className="block text-[10px] md:text-xs uppercase tracking-widest text-gray-500 font-black">Withdrawal Amount</label>
+                                    <form onSubmit={handleTransfer} className="space-y-8 mt-6">
+                                        <div className="flex flex-col items-center justify-center space-y-4">
+                                            <div className="flex items-center justify-between w-full">
+                                                <label className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-gray-400">Enter Amount</label>
                                                 {wallet && (
                                                     <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-md cursor-pointer hover:bg-green-100 transition-colors"
                                                         onClick={() => setTransferData({ ...transferData, amount: wallet.clearedBalanceNaira.toString() })}
@@ -505,8 +516,8 @@ export const Payout: React.FC = () => {
                                                 )}
                                             </div>
 
-                                            <div className="relative group">
-                                                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-black text-xl md:text-2xl group-focus-within:text-green-600 transition-colors">₦</span>
+                                            <div className="relative group w-full max-w-sm mx-auto">
+                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 font-black text-3xl sm:text-4xl group-focus-within:text-green-500 transition-colors">₦</span>
                                                 <input
                                                     type="number"
                                                     name="amount"
@@ -514,29 +525,29 @@ export const Payout: React.FC = () => {
                                                     onChange={handleTransferChange}
                                                     min="100"
                                                     required
-                                                    placeholder="0.00"
-                                                    className="w-full pl-12 pr-6 py-4 md:py-6 rounded-2xl border-2 border-gray-100 focus:border-green-500 focus:ring-4 focus:ring-green-50 outline-none transition-all font-black text-2xl md:text-4xl tracking-tight"
+                                                    placeholder="0"
+                                                    className="w-full pl-12 sm:pl-14 pr-4 py-3 bg-transparent border-b-2 border-gray-100 focus:border-green-500 outline-none transition-all font-black text-5xl sm:text-6xl text-center tracking-tighter text-gray-900 placeholder:text-gray-200"
                                                 />
                                             </div>
 
                                             {/* Quick Amount Pills */}
-                                            <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-2 scrollbar-none">
+                                            <div className="flex flex-wrap justify-center gap-2 mt-2">
                                                 {['1000', '2000', '5000', '10000', '20000', '50000'].map((amt) => (
                                                     <button
                                                         key={amt}
                                                         type="button"
                                                         onClick={() => setTransferData({ ...transferData, amount: amt })}
-                                                        className="px-4 py-2 bg-gray-50 border border-gray-100 hover:border-green-500 hover:bg-green-50 hover:text-green-700 rounded-xl text-xs font-bold text-gray-600 transition-all whitespace-nowrap flex-shrink-0"
+                                                        className="px-3 py-1.5 bg-gray-50 border border-gray-100 hover:border-green-500 hover:bg-green-50 hover:text-green-700 rounded-full text-[10px] sm:text-xs font-bold text-gray-500 transition-all whitespace-nowrap"
                                                     >
                                                         ₦{parseInt(amt).toLocaleString()}
                                                     </button>
                                                 ))}
                                             </div>
 
-                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-2 gap-1">
-                                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Min: ₦100.00</p>
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 w-full text-center sm:text-left">
+                                                <p className="text-[10px] text-gray-300 font-bold uppercase tracking-wider mx-auto sm:mx-0">Min: ₦100.00</p>
                                                 {wallet && parseFloat(transferData.amount) > wallet.clearedBalanceNaira && (
-                                                    <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider flex items-center gap-1 animate-pulse">
+                                                    <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider flex items-center justify-center gap-1 animate-pulse mx-auto sm:mx-0">
                                                         <AlertTriangle size={12} />
                                                         Insufficient funds
                                                     </p>
@@ -545,7 +556,6 @@ export const Payout: React.FC = () => {
                                         </div>
 
                                         <div>
-                                            <label className="block text-[10px] md:text-xs uppercase tracking-widest text-gray-500 font-black mb-3">Narration (Optional)</label>
                                             <div className="relative">
                                                 <MessageSquare className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                                 <input
@@ -553,8 +563,8 @@ export const Payout: React.FC = () => {
                                                     name="narration"
                                                     value={transferData.narration}
                                                     onChange={handleTransferChange}
-                                                    placeholder="What's this for?"
-                                                    className="w-full pl-12 pr-6 py-3.5 md:py-4 rounded-xl border-2 border-gray-100 focus:border-green-500 focus:ring-4 focus:ring-green-50 outline-none transition-all font-bold text-sm md:text-base placeholder:font-medium"
+                                                    placeholder="Add a note (optional)"
+                                                    className="w-full pl-12 pr-6 py-4 rounded-xl bg-gray-50 border-2 border-transparent focus:bg-white focus:border-green-100 focus:ring-4 focus:ring-green-50 outline-none transition-all font-bold text-sm text-gray-700 placeholder:text-gray-400"
                                                 />
                                             </div>
                                         </div>
@@ -594,9 +604,8 @@ export const Payout: React.FC = () => {
                                             type="button"
                                             onClick={(e) => handleTransfer(e)}
                                             disabled={isTransferLoading || !transferData.amount || parseFloat(transferData.amount) <= 0 || (wallet && parseFloat(transferData.amount) > wallet.clearedBalanceNaira)}
-                                            className="w-full py-4 md:py-5 bg-green-600 hover:bg-green-700 text-white rounded-xl md:rounded-2xl font-black text-base md:text-lg shadow-xl shadow-green-200 mt-4 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:-translate-y-1 active:translate-y-0 relative overflow-hidden group"
+                                            className="w-full py-4 md:py-5 bg-gray-900 hover:bg-gray-800 text-white rounded-2xl font-black text-base md:text-lg shadow-xl hover:shadow-2xl mt-4 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:-translate-y-1 active:translate-y-0 relative overflow-hidden group"
                                         >
-                                            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
                                             {isTransferLoading ? (
                                                 <>
                                                     <Loader2 className="w-5 h-5 md:w-6 md:h-6 animate-spin relative z-10" />
@@ -1067,6 +1076,9 @@ export const Payout: React.FC = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* Render Success Modal */}
+                <SuccessModal />
             </div>
         </div>
     );

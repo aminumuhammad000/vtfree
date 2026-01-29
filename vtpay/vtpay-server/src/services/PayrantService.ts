@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
+import https from 'https';
 import { logger } from '../utils/logger';
 import { SystemSetting } from '../models/SystemSetting';
 
@@ -56,6 +57,7 @@ export class PayrantService {
     private initializeClient() {
         this.client = axios.create({
             baseURL: this.baseUrl,
+            httpsAgent: new https.Agent({ family: 4 }), // Force IPv4
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${this.apiKey}`,
@@ -66,11 +68,22 @@ export class PayrantService {
         this.client.interceptors.response.use(
             (response) => response,
             (error: AxiosError) => {
+                if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+                    error.message = 'Payment provider timed out. The transaction may be pending.';
+                } else if (error.code === 'ERR_NETWORK') {
+                    error.message = 'Network error connecting to payment provider.';
+                } else if ((error.response?.data as any)?.message) {
+                    // Pass through provider's message
+                    // (optional: could attach it to error.message if needed immediately, 
+                    // but usually we read from response.data in PayoutService)
+                }
+
                 logger.error('Payrant API Error', {
                     method: error.config?.method?.toUpperCase(),
                     url: error.config?.url,
                     status: error.response?.status,
                     data: error.response?.data,
+                    code: error.code,
                     message: error.message
                 });
                 throw error;

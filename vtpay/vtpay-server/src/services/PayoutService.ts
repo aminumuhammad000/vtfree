@@ -189,7 +189,7 @@ export class PayoutService {
      * @param payoutId The ID of the payout
      * @param throwOnError If true, wil re-throw errors instead of just logging them (used for synchronous API calls)
      */
-    async processPayout(payoutId: string, throwOnError: boolean = false): Promise<void> {
+    async processPayout(payoutId: string, throwOnError: boolean = false): Promise<any> {
         const payout = await Payout.findById(payoutId);
         if (!payout || payout.status !== 'INITIATED') return;
 
@@ -212,7 +212,6 @@ export class PayoutService {
 
             const response = await payrantService.transfer(payload);
 
-            payout.status = 'PROCESSING';
             // Store the full reference string (e.g. TRANSFER_1756818101_77) not just ID
             payout.externalRef = response.data?.reference || String(response.data?.transfer_id);
 
@@ -221,15 +220,37 @@ export class PayoutService {
                 payout.payrantFee = response.data.fee;
                 payout.totalDebit = payout.amount + payout.fee + payout.payrantFee;
             }
-            await payout.save();
+
+            // Immediately mark as COMPLETED/SUCCESSFUL as per user request
+            // The wallet balance was already deducted in initiatePayout.
+            await this.handlePayoutSuccess(payout);
 
             logger.info(`Payout ${payout.reference} processed to Payrant. Ref: ${payout.externalRef}`);
 
         } catch (error: any) {
             logger.error(`Payout processing failed for ${payout.reference}`, error);
 
+            // Check if it's a timeout or network error
+            if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT' || error.code === 'ERR_NETWORK') {
+                logger.warn(`Payout ${payout.reference} timed out. Marking as PROCESSING/PENDING for manual or webhook reconciliation.`);
+                // Do NOT refund. Leave as INITIATED or set to PROCESSING.
+                // We'll trust the webhook or manual check to resolve it.
+                payout.status = 'PROCESSING';
+                payout.failureReason = 'Provider response timed out. Awaiting confirmation.';
+                await payout.save();
+
+                // If throwOnError (sync call), we suppress the error so the UI sees it as "submitted"
+                // The UI will see status as PROCESSING which is fine.
+                return payout;
+            }
+
             // Mark as FAILED immediately if it's a provider rejection
-            const errorMessage = error.response?.data?.message || error.message || 'Provider rejected request';
+            const errorMessage =
+                error.response?.data?.data?.message ||
+                error.response?.data?.message ||
+                error.response?.data?.error ||
+                error.message ||
+                'Provider rejected request';
             await this.handlePayoutFailure(payout, errorMessage, throwOnError);
 
             if (throwOnError) {
@@ -242,7 +263,7 @@ export class PayoutService {
     /**
      * Handle Payout Success (Webhook or Polling)
      */
-    async handlePayoutSuccess(payout: any): Promise<void> {
+    async handlePayoutSuccess(payout: any, externalAmount?: number): Promise<void> {
         if (payout.status === 'COMPLETED') return; // Already processed
 
         payout.status = 'COMPLETED';
@@ -258,7 +279,7 @@ export class PayoutService {
                 category: 'withdrawal',
                 amount: payout.totalDebit,
                 reference: payout.reference,
-                description: `Payout to ${payout.accountNumber} (${payout.bankCode})`,
+                narration: `Withdrawal of ₦${payout.amount / 100} (Fee: ₦${(payout.totalDebit - payout.amount) / 100})`,
                 status: 'success',
                 balanceBefore: wallet.balance + payout.totalDebit, // Reconstructed balance before (approximate)
                 balanceAfter: wallet.balance,
