@@ -37,8 +37,6 @@ export const Payout: React.FC = () => {
 
     // Verification State
     const [recipientName, setRecipientName] = useState('');
-    const [isVerifying, setIsVerifying] = useState(false);
-    const [verificationError, setVerificationError] = useState('');
 
     // Saved Account State
     const [savedAccount, setSavedAccount] = useState<any>(null);
@@ -851,20 +849,8 @@ export const Payout: React.FC = () => {
                                                 maxLength={10}
                                                 required
                                                 placeholder="Enter 10-digit number"
-                                                className={`w-full px-5 md:px-6 py-3.5 md:py-4 rounded-xl md:rounded-2xl border-2 border-gray-100 focus:border-green-500 focus:ring-4 focus:ring-green-50 outline-none transition-all font-black tracking-widest text-sm md:text-base ${verificationError ? 'border-red-500 bg-red-50' : ''} ${recipientName ? 'border-green-500 bg-green-50' : ''}`}
+                                                className={`w-full px-5 md:px-6 py-3.5 md:py-4 rounded-xl md:rounded-2xl border-2 border-gray-100 focus:border-green-500 focus:ring-4 focus:ring-green-50 outline-none transition-all font-black tracking-widest text-sm md:text-base ${recipientName ? 'border-green-500 bg-green-50' : ''}`}
                                             />
-                                            {isVerifying && (
-                                                <div className="flex items-center gap-2 mt-3 text-xs text-blue-600 font-bold animate-pulse">
-                                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                                    Verifying account...
-                                                </div>
-                                            )}
-                                            {verificationError && (
-                                                <div className="flex items-center gap-2 mt-3 text-xs text-red-600 font-bold animate-fade-in">
-                                                    <AlertCircle className="w-4 h-4" />
-                                                    {verificationError}
-                                                </div>
-                                            )}
                                         </div>
 
                                         <div>
@@ -886,7 +872,7 @@ export const Payout: React.FC = () => {
                                         <button
                                             type="button"
                                             onClick={saveBankDetails}
-                                            disabled={isSavingAccount || isVerifying || !recipientName}
+                                            disabled={isSavingAccount || !recipientName}
                                             className="w-full py-4 md:py-5 bg-green-600 hover:bg-green-700 text-white rounded-xl md:rounded-2xl font-black text-base md:text-lg shadow-xl shadow-green-200 mt-4 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 transition-all transform hover:-translate-y-1 active:translate-y-0"
                                         >
                                             {isSavingAccount ? (
