@@ -14,6 +14,7 @@ import VTfreeTransaction from '../models/vtfree_transaction.model.js';
 // import { PaystackService } from '../services/paystack.service.js';
 import { PricingService } from '../services/pricing.service.js';
 import { AppGeneratorService } from '../services/app_generator.service.js';
+import { addBuildJob } from '../queues/app_build.queue.js';
 
 export const createApp = async (req: Request, res: Response) => {
     try {
@@ -256,6 +257,7 @@ export const triggerBuildApk = async (req: Request, res: Response) => {
     try {
         const { appId } = req.params;
         const owner_id = (req as any).user.id;
+        const { target = 'android_apk' } = req.body;
 
         // Verify ownership
         const app = await CreatedApp.findOne({ app_id: appId, owner_id });
@@ -263,56 +265,74 @@ export const triggerBuildApk = async (req: Request, res: Response) => {
             return res.status(404).json({ success: false, message: 'App not found or unauthorized' });
         }
 
-        // Trigger Build
-        // Note: This is a heavy operation. In production, prioritize queues.
-        // We will await it here to provide immediate feedback for this demo.
-        const userEmail = (req as any).user.email;
+        // Check if already building
+        if (app.status === 'building') {
+            return res.status(409).json({ success: false, message: 'A build is already in progress for this app.' });
+        }
 
-        // Progress Callback
-        const onProgress = async (stage: string, progress: number) => {
-            await CreatedApp.updateOne(
-                { app_id: appId },
-                {
-                    build_stage: stage,
-                    build_progress: progress,
-                    'build_status.android': 'building'
-                }
-            );
+        const options = {
+            app_id: app.app_id,
+            app_name: app.app_name,
+            package_name: app.package_name,
+            branding: {
+                primary_color: app.branding.primary_color,
+                secondary_color: app.branding.secondary_color,
+                logo_url: app.branding.logo_url,
+            },
+            server_url: process.env.API_BASE_URL || 'https://vua.vtfree.com/api',
+            target
         };
 
-        const result = await AppGeneratorService.buildApk(appId, userEmail, onProgress);
+        // Enqueue Build Job
+        await addBuildJob(appId, { appId, options });
 
-        if (result.success) {
-            // Update app build status and save drive link
-            app.build_status.android = 'completed';
-
-            // Save Google Drive link if available
-            if (result.driveLink) {
-                if (!app.download_links) {
-                    app.download_links = {};
-                }
-                app.download_links.android = result.driveLink;
+        // Update status in DB
+        await CreatedApp.updateOne(
+            { app_id: appId },
+            {
+                status: 'building',
+                build_progress: 0,
+                build_stage: 'Queued'
             }
+        );
 
-            await app.save();
-
-            res.json({
-                success: true,
-                message: 'APK built successfully',
-                apkPath: result.apkPath,
-                driveLink: result.driveLink
-            });
-        } else {
-            // Update build status to failed
-            app.build_status.android = 'failed';
-            await app.save();
-
-            res.status(500).json({ success: false, message: result.message });
-        }
+        res.json({
+            success: true,
+            message: 'Build requested and added to queue.',
+            status: 'queued'
+        });
 
     } catch (error: any) {
         console.error('Trigger build error:', error);
         res.status(500).json({ success: false, message: error.message || 'Server error' });
+    }
+};
+
+export const getAppBuildStatus = async (req: Request, res: Response) => {
+    try {
+        const { appId } = req.params;
+        const owner_id = (req as any).user.id;
+
+        const app = await CreatedApp.findOne({ app_id: appId, owner_id })
+            .select('status build_status build_progress build_stage download_links build_error');
+
+        if (!app) {
+            return res.status(404).json({ success: false, message: 'App not found' });
+        }
+
+        res.json({
+            success: true,
+            data: {
+                status: app.status,
+                progress: app.build_progress,
+                stage: app.build_stage,
+                links: app.download_links,
+                error: (app as any).build_error
+            }
+        });
+    } catch (error) {
+        console.error('Get build status error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 };
 

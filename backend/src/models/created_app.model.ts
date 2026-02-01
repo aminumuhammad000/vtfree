@@ -56,6 +56,13 @@ export interface ICreatedApp extends Document {
         web?: string;
     };
 
+    // GitHub Details
+    github_repo?: string;
+    last_commit?: string;
+    build_status_full?: 'queued' | 'building' | 'completed' | 'failed';
+    build_error?: string;
+    last_build_id?: string;
+
     // Payment
     payment_status: 'pending' | 'paid' | 'refunded';
     total_paid: number;
@@ -248,6 +255,16 @@ const CreatedAppSchema: Schema = new Schema({
         ios: { type: String },
         web: { type: String },
     },
+
+    // GitHub & Expanded Build Status
+    github_repo: { type: String },
+    last_commit: { type: String },
+    build_status_full: {
+        type: String,
+        enum: ['queued', 'building', 'completed', 'failed'],
+    },
+    build_error: { type: String },
+    last_build_id: { type: String },
 
     // Payment
     payment_status: {
