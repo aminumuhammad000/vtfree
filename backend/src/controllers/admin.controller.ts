@@ -3,8 +3,9 @@ import bcrypt from 'bcryptjs';
 import { Request, Response } from 'express';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { config } from '../config/bootstrap.js';
-import { AdminUser, AuditLog, Transaction, User, Zainbox, ApiKey, FeeRule, RiskRule } from '../models/index.js';
+import { AdminUser, AuditLog, Transaction, User, Zainbox, ApiKey, FeeRule, RiskRule, CreatedApp } from '../models/index.js';
 import { AdminService } from '../services/admin.service.js';
+import { EmailService } from '../services/email.service.js';
 import { AuthRequest } from '../types/index.js';
 import { ApiResponse } from '../utils/response.js';
 import crypto from 'crypto';
@@ -139,6 +140,24 @@ export class AdminController {
         ip_address: req.ip
       });
 
+      // If account is activated, send notification if it was previously inactive/suspended
+      if (status === 'active' && oldStatus !== 'active') {
+        try {
+          // Fetch App Details for branding
+          const app = await CreatedApp.findOne({ app_id: user.app_id });
+          if (app) {
+            console.log(`📧 Sending Activation email to ${user.email} (Status change)`);
+            await EmailService.sendKYCApproval(
+              user.email,
+              `${user.first_name} ${user.last_name}`,
+              app
+            );
+          }
+        } catch (emailError) {
+          console.error('❌ Failed to send activation email:', emailError);
+        }
+      }
+
       return ApiResponse.success(res, user, 'User status updated successfully');
     } catch (error: any) {
       return ApiResponse.error(res, error.message, 500);
@@ -230,6 +249,11 @@ export class AdminController {
           return obj;
         }, {});
 
+      const oldUser = await User.findById(req.params.id);
+      if (!oldUser) {
+        return ApiResponse.error(res, 'User not found', 404);
+      }
+
       const user = await User.findByIdAndUpdate(
         req.params.id,
         { ...updates, updated_at: new Date() },
@@ -240,8 +264,34 @@ export class AdminController {
         return ApiResponse.error(res, 'User not found', 404);
       }
 
+      // Detect KYC Status Change to 'verified'
+      if (updates.kyc_status === 'verified' && oldUser.kyc_status !== 'verified') {
+        try {
+          // If the user was inactive (pending approval), activate them now
+          if (user.status === 'inactive') {
+            user.status = 'active';
+            await (user as any).save();
+            console.log(`✅ User ${user.email} activated upon KYC verification`);
+          }
+
+          // Fetch App Details for branding
+          const app = await CreatedApp.findOne({ app_id: user.app_id });
+          if (app) {
+            console.log(`📧 Sending KYC Approval email to ${user.email} for App: ${app.app_name}`);
+            await EmailService.sendKYCApproval(
+              user.email,
+              `${user.first_name} ${user.last_name}`,
+              app
+            );
+          }
+        } catch (emailError) {
+          console.error('❌ Failed to process KYC approval actions:', emailError);
+        }
+      }
+
       return ApiResponse.success(res, user, 'User updated successfully');
     } catch (error: any) {
+      console.error('Update user error:', error);
       return ApiResponse.error(res, error.message, 500);
     }
   }

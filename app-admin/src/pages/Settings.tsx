@@ -11,13 +11,15 @@ import {
     FiTwitter,
     FiInstagram,
     FiSave,
-    FiInfo
+    FiInfo,
+    FiGift
 } from 'react-icons/fi';
 import { getSupportContent, updateSupportContent } from '../api/adminApi';
 import Layout from '../components/Layout';
 import SystemConfig from '../components/SystemConfig';
 import EmailSettings from '../components/EmailSettings';
 import PaymentSettings from '../components/PaymentSettings';
+import ReferralSettings from '../components/ReferralSettings';
 import { useToast } from '../hooks/ToastContext';
 
 interface SupportContent {
@@ -32,7 +34,7 @@ interface SupportContent {
 
 const Settings = () => {
     const { showSuccess, showError } = useToast();
-    const [activeTab, setActiveTab] = useState<'general' | 'system' | 'email' | 'payment'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'system' | 'email' | 'payment' | 'referral'>('general');
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<SupportContent>({
         email: '',
@@ -87,6 +89,7 @@ const Settings = () => {
         { id: 'general', label: 'General', icon: FiSettings },
         { id: 'email', label: 'Email', icon: FiMail },
         { id: 'payment', label: 'Payment', icon: FiCreditCard },
+        { id: 'referral', label: 'Referral', icon: FiGift },
         { id: 'system', label: 'System', icon: FiCpu },
     ];
 
@@ -231,6 +234,8 @@ const Settings = () => {
                 return <div className="animate-in fade-in slide-in-from-bottom-4 duration-500"><EmailSettings /></div>;
             case 'payment':
                 return <div className="animate-in fade-in slide-in-from-bottom-4 duration-500"><PaymentSettings /></div>;
+            case 'referral':
+                return <div className="animate-in fade-in slide-in-from-bottom-4 duration-500"><ReferralSettings /></div>;
             default:
                 return null;
         }
@@ -255,8 +260,8 @@ const Settings = () => {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as any)}
                                 className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold transition-all ${activeTab === tab.id
-                                        ? 'bg-white text-green-600 shadow-sm'
-                                        : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
+                                    ? 'bg-white text-green-600 shadow-sm'
+                                    : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
                                     }`}
                             >
                                 <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? 'text-green-600' : 'text-slate-400'}`} />

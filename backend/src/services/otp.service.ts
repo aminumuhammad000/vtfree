@@ -20,9 +20,17 @@ export class OTPService {
       is_used: false
     });
 
+    // Send email asynchronously without blocking the response
     if (email) {
-      const { EmailService } = await import('./email.service.js');
-      await EmailService.sendOTP(email, otp_code);
+      (async () => {
+        try {
+          const { EmailService } = await import('./email.service.js');
+          await EmailService.sendOTP(email, otp_code);
+          console.log(`✅ OTP email sent to ${email}`);
+        } catch (error) {
+          console.error(`❌ Failed to send OTP email to ${email}:`, error);
+        }
+      })();
     }
 
     return otp_code;

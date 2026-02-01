@@ -26,8 +26,10 @@ interface TransactionDetailsModalProps {
     onClose: () => void;
 }
 
+import { BRAND_COLORS } from '@/constants/theme';
+
 const theme = {
-    primary: "#00ADFF", // Snapchat Blue
+    primary: BRAND_COLORS.primary,
     backgroundLight: "#FFFFFF",
     backgroundDark: "#000000",
     inputLight: "#F2F2F2",
@@ -36,9 +38,9 @@ const theme = {
     textDark: "#FFFFFF",
     textSecondaryLight: "#757575",
     textSecondaryDark: "#A0A0A0",
-    success: '#00D166',
-    error: '#FF5B5B',
-    warning: '#FFFC00',
+    success: BRAND_COLORS.success,
+    error: BRAND_COLORS.error,
+    warning: BRAND_COLORS.warning,
 };
 
 export default function TransactionDetailsModal({

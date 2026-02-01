@@ -9,6 +9,7 @@ import { useEffect } from 'react';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { View, ActivityIndicator } from 'react-native';
 import { AppUpdateChecker } from '@/components/AppUpdateChecker';
+import { ConnectionIndicator } from '@/components/ConnectionIndicator';
 
 // Keep splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -99,6 +100,7 @@ export default function RootLayout() {
         <AuthProvider>
           <ProfileProvider>
             <StatusBar style="light" />
+            <ConnectionIndicator />
             <AuthLayout />
             <AppUpdateChecker />
           </ProfileProvider>

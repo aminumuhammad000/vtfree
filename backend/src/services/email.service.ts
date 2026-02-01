@@ -62,4 +62,65 @@ export class EmailService {
     `;
         return await this.sendEmail(email, subject, html);
     }
+
+    static async sendKYCApproval(email: string, userName: string, appDetails: any) {
+        const primaryColor = appDetails.branding?.primary_color || '#16a34a';
+        const logoUrl = appDetails.branding?.logo_url;
+        const appName = appDetails.app_name || 'Our Platform';
+        const companyName = appDetails.company?.name || appName;
+        const companyAddress = appDetails.company?.address || '';
+        const companyPhone = appDetails.company?.phone || '';
+
+        const subject = `Congratulations! Your KYC for ${appName} is Verified`;
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    .container { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9fafb; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; }
+                    .header { background-color: ${primaryColor}; padding: 30px; text-align: center; }
+                    .logo { max-width: 150px; height: auto; margin-bottom: 20px; }
+                    .content { padding: 40px 30px; background-color: #ffffff; }
+                    .title { color: #111827; font-size: 24px; font-weight: 800; margin-bottom: 16px; text-align: center; }
+                    .body-text { color: #4b5563; font-size: 16px; line-height: 1.6; margin-bottom: 24px; }
+                    .success-badge { display: inline-block; background-color: #ecfdf5; color: #059669; padding: 8px 16px; border-radius: 9999px; font-weight: 700; font-size: 14px; margin-bottom: 20px; }
+                    .footer { background-color: #f3f4f6; padding: 30px; text-align: center; color: #9ca3af; font-size: 12px; }
+                    .company-info { margin-bottom: 8px; font-weight: 600; color: #6b7280; }
+                    .btn { display: inline-block; background-color: ${primaryColor}; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; margin-top: 10px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header" style="background-color: ${primaryColor};">
+                        ${logoUrl ? `<img src="${logoUrl}" alt="${appName}" class="logo">` : `<h1 style="color: white; margin: 0;">${appName}</h1>`}
+                    </div>
+                    <div class="content">
+                        <div style="text-align: center;">
+                            <div class="success-badge">Identity Verified</div>
+                        </div>
+                        <h2 class="title">Everything is ready, ${userName}!</h2>
+                        <p class="body-text">
+                            Great news! Your identity verification (KYC) documents have been reviewed and approved by our team. 
+                            You now have full access to all features on the <strong>${appName}</strong> app, including higher transaction limits and premium services.
+                        </p>
+                        <div style="text-align: center;">
+                            <a href="#" class="btn" style="background-color: ${primaryColor};">Explore App Now</a>
+                        </div>
+                        <p class="body-text" style="margin-top: 30px; border-top: 1px solid #f3f4f6; padding-top: 20px;">
+                            If you have any questions or need further assistance, feel free to contact our support team.
+                        </p>
+                    </div>
+                    <div class="footer">
+                        <div class="company-info">${companyName}</div>
+                        ${companyAddress ? `<div>${companyAddress}</div>` : ''}
+                        ${companyPhone ? `<div>Tel: ${companyPhone}</div>` : ''}
+                        <p style="margin-top: 20px;">&copy; ${new Date().getFullYear()} ${companyName}. All rights reserved.</p>
+                        <p>You received this email because your account status on ${appName} was updated.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+        return await this.sendEmail(email, subject, html);
+    }
 }

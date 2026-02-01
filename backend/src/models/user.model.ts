@@ -17,11 +17,13 @@ const userSchema = new Schema<IUser>({
   kyc_document_id_back_url: { type: String },
   referral_code: { type: String, unique: true, required: true },
   referred_by: { type: Schema.Types.ObjectId, ref: 'User' },
+  referral_bonus_claimed: { type: Boolean, default: false },
   biometric_enabled: { type: Boolean, default: false },
   nin: { type: String },
   bvn: { type: String },
   // Store hashed PIN; do not enforce 4-char length on hash
   transaction_pin: { type: String },
+  profile_picture_url: { type: String },
   virtual_account: {
     account_number: { type: String },
     account_name: { type: String },

@@ -2,13 +2,9 @@
 import { Request, Response, Router } from 'express';
 import { PaymentController } from '../controllers/payment.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
-import payrantRouter from './payrant.routes.js';
 import virtualAccountRouter from './virtualAccount.routes.js';
 
 const router = Router();
-
-// Mount Payrant routes under /payment/payrant
-router.use('/payrant', payrantRouter);
 
 // Mount Virtual Account routes under /payment/virtual-account
 router.use('/virtual-account', virtualAccountRouter);
@@ -36,11 +32,11 @@ router.delete('/virtual-account', authenticate, PaymentController.deactivateVirt
 
 /**
  * @route   POST /api/payment/initiate
- * @desc    Initialize payment for wallet funding (Payrant, Monnify, or Paystack)
+ * @desc    Initialize payment for wallet funding (Monnify or Paystack)
  * @access  Private
  * @body    { 
  *   amount: number, 
- *   gateway?: 'payrant' | 'monnify' | 'paystack',
+ *   gateway?: 'monnify' | 'paystack',
  *   email?: string (required for Paystack)
  * }
  */
@@ -53,24 +49,6 @@ router.post('/initiate', authenticate, PaymentController.initiatePayment);
  */
 router.get('/verify/:reference', authenticate, PaymentController.verifyPayment);
 
-/**
- * @route   POST /api/payment/webhook/monnify
- * @desc    Handle Monnify webhook for payment confirmation
- * @access  Public (Webhook from Monnify)
- */
-router.post('/webhook/monnify', (req: Request, res: Response) => {
-  return PaymentController.handleMonnifyWebhook(req, res);
-});
-
-/**
- * @route   POST /api/payment/webhook/paystack
- * @desc    Handle Paystack webhook for payment confirmation
- * @access  Public (Webhook from Paystack)
- */
-// Using type assertion to resolve TypeScript error
-router.post('/webhook/paystack', (req: Request, res: Response) => {
-  return (PaymentController as any).handlePaystackWebhook(req, res);
-});
 
 /**
  * @route   GET /api/payment/banks
@@ -78,28 +56,5 @@ router.post('/webhook/paystack', (req: Request, res: Response) => {
  * @access  Private
  */
 router.get('/banks', authenticate, PaymentController.getBanks);
-
-/**
- * @route   POST /api/payment/payrant/create-virtual-account
- * @desc    Create Payrant virtual account for user
- * @access  Private
- */
-router.post('/payrant/create-virtual-account', authenticate, PaymentController.createVirtualAccount);
-
-/**
- * @route   GET /api/payment/payrant/virtual-account
- * @desc    Get user's Payrant virtual account
- * @access  Private
- */
-router.get('/payrant/virtual-account', authenticate, PaymentController.getVirtualAccount);
-
-/**
- * @route   POST /api/payment/webhook/payrant
- * @desc    Handle Payrant webhook for virtual account deposits
- * @access  Public (Webhook from Payrant)
- */
-router.post('/webhook/payrant', (req: Request, res: Response) => {
-  return PaymentController.handlePayrantWebhook(req, res);
-});
 
 export default router;

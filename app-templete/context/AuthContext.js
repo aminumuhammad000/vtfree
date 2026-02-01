@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
 
         // Check if response is valid (axios response structure)
         if (response.data && response.data.success) {
-          const user = response.data.data.user;
+          const user = response.data.data;
           setUser(user);
           setIsAuthenticated(true);
         } else {
@@ -92,17 +92,14 @@ export const AuthProvider = ({ children }) => {
         throw new Error(response.message || 'Invalid email or password');
       }
 
-      // Verify we have a valid user and token
-      if (!response.data?.user) {
-        throw new Error('Invalid user data received');
+      const user = response.data.user;
+      const token = response.data.token;
+
+      if (!user || !token) {
+        throw new Error('Invalid user or token received from server');
       }
 
-      const token = await AsyncStorage.getItem('authToken');
-      if (!token) {
-        throw new Error('Authentication failed: No token received');
-      }
-
-      setUser(response.data.user);
+      setUser(user);
       setIsAuthenticated(true);
       return { success: true };
     } catch (error) {

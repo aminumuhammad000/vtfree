@@ -212,22 +212,36 @@ const FundingPanel: React.FC = () => {
                                         <td colSpan={4} className="px-6 py-4 text-center text-gray-500">No providers.</td>
                                     </tr>
                                 )}
-                                {providers.map((p) => (
-                                    <tr key={p.code} className="hover:bg-gray-50 transition">
-                                        <td className="px-6 py-4 text-sm text-gray-900">{p.name}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-900 uppercase">{p.code}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-900 font-medium">
-                                            {p.balance === null || p.balance === '***.**'
-                                                ? (p.status === 'error' ? <span className="text-red-600">Error</span> : (p.balance === '***.**' ? '***.**' : 'N/A'))
-                                                : `₦${Number(p.balance).toLocaleString()}`}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm">
-                                            <span className={`px-2 py-1 rounded text-xs font-semibold ${p.status === 'ok' ? 'bg-green-100 text-green-800' : (p.status === 'unsupported' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800')}`}>
-                                                {p.status}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {providers.map((p) => {
+                                    const isVTPayError = p.reason?.toLowerCase().includes('configuration') ||
+                                        p.reason?.toLowerCase().includes('api key') ||
+                                        p.reason?.toLowerCase().includes('unauthorized') ||
+                                        p.reason?.includes('401') || p.reason?.includes('403');
+
+                                    return (
+                                        <tr key={p.code} className="hover:bg-gray-50 transition">
+                                            <td className="px-6 py-4 text-sm text-gray-900">{p.name}</td>
+                                            <td className="px-6 py-4 text-sm text-gray-900 uppercase">{p.code}</td>
+                                            <td className="px-6 py-4 text-sm text-gray-900 font-medium">
+                                                {p.balance === null || p.balance === '***.**'
+                                                    ? (p.status === 'error' ?
+                                                        <div className="flex flex-col">
+                                                            <span className="text-red-600 font-bold">Error</span>
+                                                            {isVTPayError && (
+                                                                <span className="text-[10px] text-red-500 mt-1">Check Configuration</span>
+                                                            )}
+                                                        </div>
+                                                        : (p.balance === '***.**' ? '***.**' : 'N/A'))
+                                                    : `₦${Number(p.balance).toLocaleString()}`}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm">
+                                                <span className={`px-2 py-1 rounded text-xs font-semibold ${p.status === 'ok' ? 'bg-green-100 text-green-800' : (p.status === 'unsupported' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800')}`}>
+                                                    {p.status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>

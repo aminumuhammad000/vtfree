@@ -1,42 +1,65 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Centralized theme colors for the application.
+ * Modify these values to change the app's appearance across all screens.
  */
 
-import { Platform } from 'react-native';
-
-const tintColorLight = '#b6bdc2ff';
-const tintColorDark = '#fff';
+export const BRAND_COLORS = {
+  primary: "#8e03a0ff",
+  secondary: "#0e00d1ff",
+  accent: "#9333EA",
+  success: "#00D166",
+  error: "#FF3B30",
+  warning: "#FFCC00",
+};
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
+    primary: BRAND_COLORS.primary,
+    secondary: BRAND_COLORS.secondary,
+    accent: BRAND_COLORS.accent,
+    success: BRAND_COLORS.success,
+    error: BRAND_COLORS.error,
+    warning: BRAND_COLORS.warning,
+
+    text: '#1A1A1A',
+    textSecondary: '#757575',
+    background: '#FFFFFF',
+    surface: '#F2F2F2',
+    border: '#E5E5E5',
+    tint: BRAND_COLORS.primary,
     icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    tabIconDefault: '#999',
+    tabIconSelected: BRAND_COLORS.primary,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
+    primary: BRAND_COLORS.primary,
+    secondary: BRAND_COLORS.secondary,
+    accent: BRAND_COLORS.accent,
+    success: BRAND_COLORS.success,
+    error: BRAND_COLORS.error,
+    warning: BRAND_COLORS.warning,
+
+    text: '#FFFFFF',
+    textSecondary: '#A0A0A0',
+    background: '#000000',
+    surface: '#1E1E1E',
+    border: '#333333',
+    tint: '#FFFFFF',
     icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    tabIconDefault: '#555',
+    tabIconSelected: BRAND_COLORS.primary,
   },
 };
 
+export type AppTheme = typeof Colors.light;
+
+import { Platform } from 'react-native';
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {

@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/components/ThemeContext';
 import { useAlert } from '@/components/AlertContext';
+import * as LocalAuthentication from 'expo-local-authentication';
 
 export default function SecurityScreen() {
   const router = useRouter();
@@ -77,6 +78,37 @@ export default function SecurityScreen() {
     }
   };
 
+  const handleToggleBiometric = async (value: boolean) => {
+    try {
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+      if (!hasHardware || !isEnrolled) {
+        Alert.alert(
+          'Not Supported',
+          'Biometric authentication is not available or not set up on this device.'
+        );
+        return;
+      }
+
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: value ? 'Verify to enable Biometric Login' : 'Verify to disable Biometric Login',
+        fallbackLabel: 'Use Passcode',
+        disableDeviceFallback: false,
+      });
+
+      if (result.success) {
+        setBiometricEnabled(value);
+        showSuccess(`Biometric login ${value ? 'enabled' : 'disabled'} successfully`);
+      } else {
+        Alert.alert('Authentication Failed', 'We could not verify your identity.');
+      }
+    } catch (error) {
+      console.error('Biometric error:', error);
+      Alert.alert('Error', 'An unexpected error occurred during authentication.');
+    }
+  };
+
   const handleSignOutAllDevices = () => {
     Alert.alert(
       'Sign Out All Devices',
@@ -88,7 +120,6 @@ export default function SecurityScreen() {
           style: 'destructive',
           onPress: () => {
             showSuccess('Signed out from all devices');
-            // Implement actual sign out logic here
           }
         },
       ]
@@ -171,7 +202,7 @@ export default function SecurityScreen() {
             </View>
             <Switch
               value={biometricEnabled}
-              onValueChange={setBiometricEnabled}
+              onValueChange={handleToggleBiometric}
               trackColor={{ false: isDark ? '#333' : '#E5E7EB', true: theme.primary }}
               thumbColor={'#FFFFFF'}
             />

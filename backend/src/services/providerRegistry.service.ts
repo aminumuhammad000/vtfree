@@ -39,13 +39,28 @@ class ProviderRegistryService {
   }
 
   async getPreferredProviderFor(service: string): Promise<{ code: string; client: ProviderClient } | null> {
+    // Always prioritize IBData first (priority 0)
     const providers = await ProviderConfig.find({ active: true, supported_services: { $in: [service] } })
       .sort({ priority: 1, name: 1 });
 
-    for (const p of providers) {
-      const client = this.getClient(p.code);
-      if (client) return { code: p.code, client };
+    // Check for IBData first regardless of other providers
+    const ibdataProvider = providers.find(p => p.code === 'ibdata');
+    if (ibdataProvider) {
+      const ibdataClient = this.getClient('ibdata');
+      if (ibdataClient) {
+        return { code: 'ibdata', client: ibdataClient };
+      }
     }
+
+    // Then check other providers
+    for (const p of providers) {
+      if (p.code !== 'ibdata') {
+        const client = this.getClient(p.code);
+        if (client) return { code: p.code, client };
+      }
+    }
+
+    // Final fallback to IBData
     const fallback = this.getClient('ibdata');
     return fallback ? { code: 'ibdata', client: fallback } : null;
   }

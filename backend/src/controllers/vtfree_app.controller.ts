@@ -11,7 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { AppCreationService } from '../services/app_creation.service.js';
 import VTfreeUser from '../models/vtfree_user.model.js';
 import VTfreeTransaction from '../models/vtfree_transaction.model.js';
-import { PaystackService } from '../services/paystack.service.js';
+// import { PaystackService } from '../services/paystack.service.js';
 import { PricingService } from '../services/pricing.service.js';
 import { AppGeneratorService } from '../services/app_generator.service.js';
 
@@ -39,6 +39,8 @@ export const createApp = async (req: Request, res: Response) => {
         // 3. Handle Payment Method Checks
         // If Card payment, initiate Paystack transaction
         if (payment_method === 'card') {
+            return res.status(400).json({ success: false, message: 'Card payment is temporarily unavailable. Please use Wallet.' });
+            /*
             const paystackService = new PaystackService();
             const transactionRecord = await paystackService.initializeTransaction(
                 owner_email,
@@ -53,6 +55,7 @@ export const createApp = async (req: Request, res: Response) => {
                 reference: transactionRecord.data.reference,
                 amount: totalAmount
             });
+            */
         }
 
         // If Wallet payment (default), check balance
@@ -122,13 +125,17 @@ export const verifyAppPayment = async (req: Request, res: Response) => {
         const owner_email = (req as any).user.email;
 
         // 1. Verify Paystack Payment
+        /*
         const paystackService = new PaystackService();
         const verification = await paystackService.verifyTransaction(reference);
 
         if (!verification.status || verification.data.status !== 'success') {
             return res.status(400).json({ success: false, message: 'Payment verification failed' });
         }
+        */
+        return res.status(400).json({ success: false, message: 'Card payment verification unavailable.' });
 
+        /*
         // 2. Check if reference already used (Idempotency)
         const existingTx = await VTfreeTransaction.findOne({ reference });
         if (existingTx) {
@@ -146,6 +153,7 @@ export const verifyAppPayment = async (req: Request, res: Response) => {
             status: 'success',
             metadata: { ...appPayload, method: 'card', paystack_ref: reference }
         });
+        */
 
         // 4. Create App
         const { app_name, package_name, platforms, branding, services } = appPayload;

@@ -1,10 +1,6 @@
 import axios from 'axios';
 
-<<<<<<< HEAD
-const API_URL = 'http://localhost:5000/api/v1/super-admin';
-=======
-const API_URL = 'http://localhost:5000/api/super-admin';
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
+const API_URL = 'https://api.vtfree.com.ng/api/v1/super-admin';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -13,7 +9,7 @@ const api = axios.create({
   },
 });
 
-// Add auth token interceptor (placeholder for now)
+// Add auth token interceptor
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('super_admin_token');
   if (token) {
@@ -26,7 +22,6 @@ export const getDashboardStats = async () => {
   return api.get('/dashboard');
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const getUsers = async (params?: {
   page?: number;
   limit?: number;
@@ -43,9 +38,6 @@ export const getApps = async () => {
 
 // This will fetch VTfreeUsers who are app owners
 export const getOwners = async () => {
-  // We can reuse the users endpoint if we add a type filter, or just use a new one.
-  // For now, let's assume we want all VTfreeUsers.
-  // Actually, let's check if there's an endpoint for this.
   return api.get('/owners');
 };
 
@@ -55,13 +47,8 @@ export const approveKyc = (id: string) => api.put(`/users/${id}/kyc/approve`);
 export const rejectKyc = (id: string, reason: string) =>
   api.put(`/users/${id}/kyc/reject`, { reason });
 
-<<<<<<< HEAD
 export const getTransactions = async (params?: any) => {
   return api.get('/transactions', { params });
-=======
-export const getTransactions = async () => {
-  return api.get('/transactions');
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 };
 
 export const getPayments = async () => {
@@ -134,7 +121,6 @@ export const updateTicketStatusApi = async (id: string, status: string, priority
   return api.patch(`/tickets/${id}/status`, { status, priority });
 };
 
-<<<<<<< HEAD
 // VTPay
 export const getVTPaySettings = async () => api.get('/vtpay/settings');
 export const updateVTPaySettings = async (data: any) => api.post('/vtpay/settings', data);
@@ -144,8 +130,6 @@ export const createVTPayAccount = async (data: any) => api.post('/vtpay/accounts
 export const getVTPayAccountBalance = async (accountNumber: string) => api.get(`/vtpay/accounts/${accountNumber}/balance`);
 export const getVTPayAccountTransactions = async (accountNumber: string) => api.get(`/vtpay/accounts/${accountNumber}/transactions`);
 
-=======
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 const superAdminApi = {
   getDashboardStats,
   getUsers,
@@ -172,7 +156,6 @@ const superAdminApi = {
   getLogs,
   getTickets,
   updateTicketStatus: updateTicketStatusApi,
-<<<<<<< HEAD
   getVTPaySettings,
   updateVTPaySettings,
   getVTPayPlatformBalance,
@@ -180,8 +163,6 @@ const superAdminApi = {
   createVTPayAccount,
   getVTPayAccountBalance,
   getVTPayAccountTransactions,
-=======
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 };
 
 export default superAdminApi;

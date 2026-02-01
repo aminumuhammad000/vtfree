@@ -22,6 +22,7 @@ import { authService } from '@/services/auth.service';
 import { userService } from '@/services/user.service';
 import { walletService } from '@/services/wallet.service';
 import { useAuth } from '@/context/AuthContext';
+import { useAlert } from '@/components/AlertContext';
 import * as Clipboard from 'expo-clipboard';
 
 const { width } = Dimensions.get('window');
@@ -31,22 +32,8 @@ const getAvatarUrl = (seed: string) => {
   return `https://api.dicebear.com/9.x/micah/png?seed=${encodeURIComponent(seed)}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
 };
 
-const theme = {
-  primary: '#00ADFF', // Snapchat Blue
-  backgroundLight: '#FFFFFF',
-  backgroundDark: '#000000',
-  cardLight: '#F2F2F2',
-  cardDark: '#1E1E1E',
-  textLight: '#000000',
-  textDark: '#FFFFFF',
-  textSecondaryLight: '#757575',
-  textSecondaryDark: '#A0A0A0',
-  success: '#00D166',
-  error: '#FF5B5B',
-};
-
 export default function ProfileScreen() {
-  const { isDark } = useTheme();
+  const { isDark, theme } = useTheme();
   const router = useRouter();
   const { profileData, getFullName } = useProfile();
   const [user, setUser] = useState<any>(null);
@@ -119,9 +106,11 @@ export default function ProfileScreen() {
     setRefreshing(false);
   };
 
+  const { showSuccess } = useAlert();
+
   const handleCopyReferral = async (code: string) => {
     await Clipboard.setStringAsync(code);
-    Alert.alert('Copied!', 'Referral code copied to clipboard');
+    showSuccess('Referral code copied to clipboard!');
   };
 
   const handleLogout = async () => {
@@ -142,17 +131,18 @@ export default function ProfileScreen() {
     );
   }
 
-  const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
-  const cardBg = isDark ? theme.cardDark : theme.cardLight;
-  const textColor = isDark ? theme.textDark : theme.textLight;
-  const textSecondaryColor = isDark ? theme.textSecondaryDark : theme.textSecondaryLight;
+  const bgColor = theme.background;
+  const cardBg = theme.surface;
+  const textColor = theme.text;
+  const textSecondaryColor = theme.textSecondary;
 
   // Use email or name as seed for consistent avatar
-  const avatarSeed = user?.email || user?.first_name || 'default';
+  const avatarSeed = profileData?.email || profileData?.first_name || 'default';
   const avatarUrl = getAvatarUrl(avatarSeed);
 
   const menuItems = [
     { icon: 'person', label: 'Personal Information', route: '/edit-profile', color: theme.primary },
+    { icon: 'shield-checkmark', label: 'Identity (KYC)', route: '/kyc', color: '#10B981' },
     { icon: 'lock-closed', label: 'Change PIN', route: '/set-pin', color: '#F59E0B' },
     { icon: 'key', label: 'Change Password', route: '/change-password', color: '#EF4444' },
     { icon: 'people', label: 'My Referrals', route: '/referrals', color: '#8B5CF6' },
@@ -224,6 +214,13 @@ export default function ProfileScreen() {
                   <Ionicons name="pencil" size={14} color={theme.primary} />
                 </TouchableOpacity>
 
+                {profileData?.kyc_status === 'verified' && (
+                  <View style={[styles.kycChip, { backgroundColor: theme.success + '15' }]}>
+                    <Ionicons name="shield-checkmark" size={12} color={theme.success} />
+                    <Text style={[styles.kycText, { color: theme.success, marginLeft: 4 }]}>Verified</Text>
+                  </View>
+                )}
+
                 {user?.referral_code && (
                   <TouchableOpacity style={[styles.referralChip, { backgroundColor: cardBg }]} onPress={() => handleCopyReferral(user.referral_code)}>
                     <Text style={[styles.referralText, { color: textSecondaryColor }]}>Ref: {user.referral_code}</Text>
@@ -257,17 +254,17 @@ export default function ProfileScreen() {
               activeOpacity={0.9}
               onPress={() => router.push('/kyc')}
             >
-              <View style={[styles.statIconContainer, { backgroundColor: user?.kyc_status === 'verified' ? theme.success + '20' : '#F59E0B20' }]}>
+              <View style={[styles.statIconContainer, { backgroundColor: profileData?.kyc_status === 'verified' ? theme.success + '20' : '#F59E0B20' }]}>
                 <Ionicons
-                  name={user?.kyc_status === 'verified' ? "checkmark-circle" : "alert-circle"}
+                  name={profileData?.kyc_status === 'verified' ? "checkmark-circle" : "alert-circle"}
                   size={18}
-                  color={user?.kyc_status === 'verified' ? theme.success : '#F59E0B'}
+                  color={profileData?.kyc_status === 'verified' ? theme.success : '#F59E0B'}
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.statLabel, { color: textSecondaryColor }]} numberOfLines={1}>STATUS</Text>
-                <Text style={[styles.statValue, { color: textColor }]} numberOfLines={1} adjustsFontSizeToFit>
-                  {user?.kyc_status ? (user.kyc_status === 'verified' ? 'Verified' : 'Pending') : 'N/A'}
+                <Text style={[styles.statLabel, { color: textSecondaryColor }]} numberOfLines={1}>KYC STATUS</Text>
+                <Text style={[styles.statValue, { color: profileData?.kyc_status === 'verified' ? theme.success : '#F59E0B' }]} numberOfLines={1}>
+                  {profileData?.kyc_status?.toUpperCase() || 'NOT VERIFIED'}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -416,16 +413,19 @@ const styles = StyleSheet.create({
   profileActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 20,
     marginBottom: 24,
   },
   editProfileButton: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     borderRadius: 20,
-    gap: 6,
+    gap: 4,
   },
   editProfileText: {
     fontSize: 12,
@@ -435,24 +435,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     borderRadius: 20,
-    gap: 6,
+    gap: 4,
   },
   referralText: {
     fontSize: 12,
     fontWeight: '700',
   },
+  kycChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    gap: 4,
+  },
+  kycText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
   statsContainer: {
     flexDirection: 'row',
-    paddingHorizontal: 24,
-    gap: 12,
+    paddingHorizontal: 16,
+    gap: 10,
     marginBottom: 32,
   },
   statItem: {
     flex: 1,
     borderRadius: 20,
-    padding: 12,
+    padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,

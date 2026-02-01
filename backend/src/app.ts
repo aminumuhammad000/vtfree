@@ -19,6 +19,7 @@ import vtfreeWalletRoutes from "./routes/vtfree_wallet.routes.js";
 import appAdminRoutes from "./routes/app_admin.routes.js";
 import superAdminRoutes from "./routes/super_admin.routes.js";
 import publicRoutes from "./routes/public.routes.js";
+import vtpayRoutes from "./routes/vtpay.routes.js";
 
 
 // Import logging middleware
@@ -109,6 +110,7 @@ app.use("/api/v1/support", supportRoutes);
 app.use("/api/wallet", walletRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/billpayment", billpaymentRoutes);
+app.use("/api/vtpay", vtpayRoutes);
 app.use("/api/v1/support-content", supportContentRoutes);
 
 

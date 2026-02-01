@@ -1,24 +1,30 @@
-import React, { createContext, ReactNode, useContext, useState, useEffect } from 'react';
+import React, { createContext, ReactNode, useContext, useState, useEffect, useCallback } from 'react';
 import { authService } from '../services/auth.service';
-import { userService } from '../services/api'; // Changed to api.ts where userService is exported
+import { userService } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { User } from '../services/types';
 
 export interface ProfileData {
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   email: string;
-  phoneNumber: string;
+  phone_number: string;
   address: string;
   city: string;
   state: string;
   profileImage: string;
   role?: string;
+  kyc_status?: 'pending' | 'verified' | 'rejected' | 'none';
+  bvn?: string;
+  nin?: string;
+  date_of_birth?: string;
 }
 
 interface ProfileContextType {
   profileData: ProfileData;
   updateProfile: (data: ProfileData) => void;
   getFullName: () => string;
+  refreshProfile: () => Promise<void>;
 }
 
 const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
@@ -38,94 +44,102 @@ interface ProfileProviderProps {
 export const ProfileProvider: React.FC<ProfileProviderProps> = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const [profileData, setProfileData] = useState<ProfileData>({
-    firstName: '',
-    lastName: '',
+    first_name: '',
+    last_name: '',
     email: '',
-    phoneNumber: '',
+    phone_number: '',
     address: '',
     city: '',
     state: '',
     profileImage: 'https://i.pravatar.cc/150?img=12',
     role: 'user',
+    kyc_status: 'none',
   });
 
-  // Load user data from server on mount
-  useEffect(() => {
-    const loadUserProfile = async () => {
-      if (!isAuthenticated) return;
+  const loadUserProfile = useCallback(async () => {
+    if (!isAuthenticated) return;
 
-      try {
-        // Try to get from server first
-        const response = await userService.getProfile();
-        if (response.data && response.data.data && response.data.data.user) {
-          // The API response structure in api.ts is ApiResponse<{ user: User }>
-          // but the actual response might be { success: true, data: { user: ... } }
-          // Let's check api.ts types. api.ts says: api.get<ApiResponse<{ user: User }>>
-          // ApiResponse<T> usually has { success: boolean, data: T, message: string }
-          // So response.data is { success: true, data: { user: ... }, ... }
-          // So we need response.data.data.user
-          const user = response.data.data.user;
-          setProfileData({
-            firstName: user.first_name || '',
-            lastName: user.last_name || '',
-            email: user.email || '',
-            phoneNumber: user.phone_number || '',
-            address: user.address || '',
-            city: user.city || '',
-            state: user.state || '',
-            profileImage: user.avatar || 'https://i.pravatar.cc/150?img=12',
-            role: user.role || 'user',
-          });
-        } else {
-          // Fallback to cached user data
-          const cachedUser = await authService.getCurrentUser();
-          if (cachedUser) {
-            setProfileData({
-              firstName: cachedUser.first_name || '',
-              lastName: cachedUser.last_name || '',
-              email: cachedUser.email || '',
-              phoneNumber: cachedUser.phone_number || '',
-              address: cachedUser.address || '',
-              city: cachedUser.city || '',
-              state: cachedUser.state || '',
-              profileImage: cachedUser.avatar || 'https://i.pravatar.cc/150?img=12',
-              role: cachedUser.role || 'user',
-            });
-          }
-        }
-      } catch (error) {
-        console.log('Failed to load profile from server, using cached data');
-        // Fallback to cached user data
-        const cachedUser = await authService.getCurrentUser();
+    try {
+      const response = await userService.getProfile();
+      if (response.data && response.data.success && response.data.data) {
+        const user = response.data.data as User;
+
+        setProfileData({
+          first_name: user.first_name || '',
+          last_name: user.last_name || '',
+          email: user.email || '',
+          phone_number: user.phone_number || '',
+          address: user.address || '',
+          city: user.city || '',
+          state: user.state || '',
+          profileImage: user.profile_picture_url || user.avatar || 'https://i.pravatar.cc/150?img=12',
+          role: user.role || 'user',
+          kyc_status: user.kyc_status || 'none',
+          bvn: user.bvn || '',
+          nin: user.nin || '',
+          date_of_birth: user.date_of_birth || '',
+        });
+      } else {
+        const cachedUser = await authService.getCurrentUser() as User;
         if (cachedUser) {
           setProfileData({
-            firstName: cachedUser.first_name || '',
-            lastName: cachedUser.last_name || '',
+            first_name: cachedUser.first_name || '',
+            last_name: cachedUser.last_name || '',
             email: cachedUser.email || '',
-            phoneNumber: cachedUser.phone_number || '',
+            phone_number: cachedUser.phone_number || '',
             address: cachedUser.address || '',
             city: cachedUser.city || '',
             state: cachedUser.state || '',
-            profileImage: cachedUser.avatar || 'https://i.pravatar.cc/150?img=12',
+            profileImage: cachedUser.profile_picture_url || cachedUser.avatar || 'https://i.pravatar.cc/150?img=12',
             role: cachedUser.role || 'user',
+            kyc_status: cachedUser.kyc_status || 'none',
+            bvn: cachedUser.bvn || '',
+            nin: cachedUser.nin || '',
+            date_of_birth: cachedUser.date_of_birth || '',
           });
         }
       }
-    };
-
-    loadUserProfile();
+    } catch (error) {
+      console.log('Failed to load profile from server');
+      const cachedUser = await authService.getCurrentUser() as any;
+      if (cachedUser) {
+        setProfileData({
+          first_name: cachedUser.first_name || '',
+          last_name: cachedUser.last_name || '',
+          email: cachedUser.email || '',
+          phone_number: cachedUser.phone_number || '',
+          address: cachedUser.address || '',
+          city: cachedUser.city || '',
+          state: cachedUser.state || '',
+          profileImage: cachedUser.profile_picture_url || cachedUser.avatar || 'https://i.pravatar.cc/150?img=12',
+          role: cachedUser.role || 'user',
+          kyc_status: cachedUser.kyc_status || 'none',
+          bvn: cachedUser.bvn || '',
+          nin: cachedUser.nin || '',
+          date_of_birth: cachedUser.date_of_birth || '',
+        });
+      }
+    }
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    loadUserProfile();
+  }, [loadUserProfile]);
 
   const updateProfile = (data: ProfileData) => {
     setProfileData(data);
   };
 
   const getFullName = () => {
-    return `${profileData.firstName} ${profileData.lastName}`;
+    return `${profileData.first_name} ${profileData.last_name}`;
+  };
+
+  const refreshProfile = async () => {
+    await loadUserProfile();
   };
 
   return (
-    <ProfileContext.Provider value={{ profileData, updateProfile, getFullName }}>
+    <ProfileContext.Provider value={{ profileData, updateProfile, getFullName, refreshProfile }}>
       {children}
     </ProfileContext.Provider>
   );

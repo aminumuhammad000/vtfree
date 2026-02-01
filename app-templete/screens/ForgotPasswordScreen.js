@@ -1,5 +1,4 @@
 import React, { useCallback, useState, useEffect } from "react";
-import { useRouter } from "expo-router";
 import {
   ActivityIndicator,
   Image,
@@ -8,19 +7,24 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { useRouter } from "expo-router";
+import * as Haptics from 'expo-haptics';
+import Animated, { FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated';
+
 import { useTheme } from "../components/ThemeContext";
 import CustomAlert from "../components/CustomAlert";
 import { authService } from "../services/auth.service";
 import { appService } from "../services/api";
-
 import { Config } from "../constants/Config";
+import { PremiumInput, PremiumButton } from "../components/PremiumUI";
+import { PremiumBackground } from "../components/PremiumBackground";
+import { ConnectionIndicator } from "../components/ConnectionIndicator";
 
 export default function ForgotPasswordScreen() {
-  const { isDark } = useTheme();
+  const { isDark, theme } = useTheme();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -28,7 +32,6 @@ export default function ForgotPasswordScreen() {
   const [alert, setAlert] = useState({ visible: false, message: "", type: "info" });
   const [branding, setBranding] = useState(null);
 
-  // Fetch branding
   useEffect(() => {
     const fetchBranding = async () => {
       try {
@@ -45,33 +48,17 @@ export default function ForgotPasswordScreen() {
 
   const showAlert = useCallback((message, type = "info") => {
     setAlert({ visible: true, message, type });
+    if (type === 'error') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    else Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }, []);
 
   const hideAlert = useCallback(() => {
     setAlert((prev) => ({ ...prev, visible: false }));
   }, []);
 
-  const theme = {
-    primary: "#00ADFF", // Snapchat Blue
-    backgroundLight: "#FFFFFF",
-    backgroundDark: "#000000",
-    inputLight: "#F2F2F2",
-    inputDark: "#1E1E1E",
-    textLight: "#000000",
-    textDark: "#FFFFFF",
-    textSecondaryLight: "#757575",
-    textSecondaryDark: "#A0A0A0",
-  };
-
-  const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
-  const textColor = isDark ? theme.textDark : theme.textLight;
-  const textSecondaryColor = isDark ? theme.textSecondaryDark : theme.textSecondaryLight;
-  const inputBg = isDark ? theme.inputDark : theme.inputLight;
-  const brandColor = branding?.primary_color || theme.primary;
-
   const onSubmit = async () => {
     if (!email) {
-      showAlert("Please enter your email address", "error");
+      showAlert("Please enter your email", "error");
       return;
     }
     setSubmitting(true);
@@ -81,147 +68,126 @@ export default function ForgotPasswordScreen() {
         showAlert("OTP has been sent to your email.", "success");
         setTimeout(() => {
           router.push({ pathname: "/verify-otp", params: { email: email.trim().toLowerCase() } });
-        }, 500);
+        }, 1500);
       } else {
-        showAlert(res?.message || "Failed to send OTP. Please try again.", "error");
+        showAlert(res?.message || "Failed to send OTP", "error");
       }
     } catch (e) {
-      const msg = e?.message || "Failed to send OTP. Please try again.";
-      showAlert(msg, "error");
+      showAlert(e.message || "An error occurred", "error");
     } finally {
       setSubmitting(false);
     }
   };
 
+  const brandColor = branding?.primary_color || theme.primary;
+  const textColor = theme.text;
+  const secondaryTextColor = theme.textSecondary;
+
   return (
-    <View style={[styles.container, { backgroundColor: bgColor }]}>
+    <PremiumBackground isDark={isDark} brandColor={brandColor}>
+      <ConnectionIndicator />
       <CustomAlert
         visible={alert.visible}
         message={alert.message}
         type={alert.type}
         onClose={hideAlert}
-        duration={5000}
       />
-      <KeyboardAvoidingView style={styles.keyboardView} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
-          <View style={styles.logoContainer}>
-            <View style={styles.logoWrapper}>
+          <Animated.View entering={FadeInUp.delay(200)} style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
               <Image
                 source={branding?.logo_url ? { uri: branding.logo_url } : require("../assets/images/logo.png")}
                 style={styles.logo}
-                resizeMode="contain"
               />
-            </View>
-            <Text style={[styles.title, { color: textColor }]}>Forgot Password</Text>
-          </View>
+            </TouchableOpacity>
+            <Text style={[styles.title, { color: textColor }]}>Reset Password</Text>
+            <Text style={[styles.subtitle, { color: secondaryTextColor }]}>
+              Enter your email to receive a reset OTP
+            </Text>
+          </Animated.View>
 
-          <View style={styles.formContainer}>
-            <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: textSecondaryColor }]}>EMAIL ADDRESS</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: inputBg }]}>
-                <TextInput
-                  style={[styles.input, { color: textColor }]}
-                  placeholder=""
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  selectionColor={brandColor}
-                />
-              </View>
-            </View>
+          <Animated.View entering={FadeInDown.delay(400)} style={styles.form}>
+            <PremiumInput
+              label="Email Address"
+              icon="email-outline"
+              value={email}
+              onChangeText={setEmail}
+              isDark={isDark}
+              placeholder="Enter your email"
+              keyboardType="email-address"
+            />
 
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={[styles.primaryButton, (submitting || !email) && styles.buttonDisabled, { backgroundColor: brandColor }]}
-                onPress={onSubmit}
-                disabled={submitting || !email}
-                activeOpacity={0.8}
-              >
-                {submitting ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <Text style={styles.primaryButtonText}>Send OTP</Text>
-                )}
-              </TouchableOpacity>
+            <PremiumButton
+              title="Send Reset OTP"
+              onPress={onSubmit}
+              loading={submitting}
+              disabled={!email}
+              brandColor={brandColor}
+              style={{ marginTop: 20 }}
+            />
 
-              <TouchableOpacity style={styles.secondaryButton} onPress={() => router.replace("/login")}>
-                <Text style={[styles.secondaryButtonText, { color: brandColor }]}>Back to Log In</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+            <TouchableOpacity
+              style={[styles.backToLogin, { backgroundColor: brandColor + '15' }]}
+              onPress={() => {
+                Haptics.selectionAsync();
+                router.replace("/login");
+              }}
+            >
+              <Text style={[styles.backText, { color: brandColor }]}>Back to Login</Text>
+            </TouchableOpacity>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </PremiumBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  keyboardView: { flex: 1 },
   scrollContainer: {
     flexGrow: 1,
-    padding: 32,
-    paddingTop: Platform.OS === 'ios' ? 80 : 60,
+    paddingHorizontal: 24,
+    paddingTop: Platform.OS === 'ios' ? 100 : 70,
+    paddingBottom: 40,
   },
-  logoContainer: { alignItems: "center", marginBottom: 48 },
-  logoWrapper: {
-    width: 80,
-    height: 80,
+  header: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  backBtn: {
+    width: 100,
+    height: 100,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
-  logo: { width: 70, height: 70 },
+  logo: {
+    width: 50,
+    height: 50,
+  },
   title: {
-    fontSize: 24,
-    fontWeight: "700",
-    textAlign: "center",
+    fontSize: 28,
+    fontWeight: '800',
     letterSpacing: -0.5,
   },
-  formContainer: { width: "100%" },
-  inputContainer: { marginBottom: 20 },
-  inputLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    marginBottom: 8,
-    letterSpacing: 1,
-    paddingLeft: 4,
-  },
-  inputWrapper: {
-    borderRadius: 12,
-    height: 52,
-    justifyContent: "center",
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  input: {
-    fontSize: 16,
-    height: "100%",
-    flex: 1,
+  subtitle: {
+    fontSize: 15,
+    marginTop: 8,
+    textAlign: 'center',
     fontWeight: '500',
   },
-  buttonContainer: { marginTop: 16 },
-  primaryButton: {
-    width: "100%",
-    height: 52,
-    borderRadius: 26,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+  form: {
+    width: '100%',
   },
-  primaryButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
-  buttonDisabled: { opacity: 0.5 },
-  secondaryButton: {
+  backToLogin: {
+    marginTop: 30,
     alignSelf: 'center',
-    padding: 12,
+    padding: 10,
+    borderRadius: 12,
+    paddingHorizontal: 20,
   },
-  secondaryButtonText: { fontSize: 14, fontWeight: "700" },
+  backText: {
+    fontSize: 14,
+    fontWeight: '700',
+  }
 });

@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { Config } from '../config/Config';
 
-const API_URL = 'https://api.vtfree.com.ng/api/v1';
+const API_URL = Config.API_V1_URL;
 
 const api = axios.create({
     baseURL: API_URL,

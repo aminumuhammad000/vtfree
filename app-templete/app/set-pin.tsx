@@ -103,7 +103,7 @@ export default function SetPinScreen() {
           <View style={[styles.infoCard, { backgroundColor: theme.primary + '15' }]}>
             <Ionicons name="lock-closed" size={24} color={theme.primary} />
             <Text style={[styles.infoText, { color: textColor }]}>
-              Set a 4-digit PIN to secure your transactions. You'll need this for airtime, data, and transfers.
+              Set a 4-digit PIN to secure your transactions. You&apos;ll need this for airtime, data, and transfers.
             </Text>
           </View>
 

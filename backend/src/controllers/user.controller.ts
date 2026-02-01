@@ -1,9 +1,12 @@
 // controllers/user.controller.ts
 import { Response } from 'express';
-import { User } from '../models/index.js';
+import { User, CreatedApp } from '../models/index.js';
+import { EmailService } from '../services/email.service.js';
 import { ApiResponse } from '../utils/response.js';
 import { AuthRequest } from '../types/index.js';
 import bcrypt from 'bcryptjs';
+import { configService } from '../services/config.service.js';
+
 
 export class UserController {
   static async getProfile(req: AuthRequest, res: Response) {
@@ -21,7 +24,10 @@ export class UserController {
 
   static async updateProfile(req: AuthRequest, res: Response) {
     try {
-      const allowedUpdates = ['first_name', 'last_name', 'address', 'city', 'state', 'date_of_birth'];
+      const allowedUpdates = [
+        'first_name', 'last_name', 'address', 'city', 'state',
+        'date_of_birth', 'phone_number', 'bvn', 'nin', 'kyc_status'
+      ];
       const updates = Object.keys(req.body)
         .filter(key => allowedUpdates.includes(key))
         .reduce((obj: any, key) => {
@@ -45,16 +51,20 @@ export class UserController {
     try {
       const { kyc_document_id_front_url, kyc_document_id_back_url } = req.body;
 
+      const autoApprove = await configService.get('KYC_AUTO_APPROVE', 'false');
+      const kycStatus = autoApprove === 'true' ? 'verified' : 'pending';
+
       const user = await User.findByIdAndUpdate(
         req.user?.id,
         {
           kyc_document_id_front_url,
           kyc_document_id_back_url,
-          kyc_status: 'pending',
+          kyc_status: kycStatus,
           updated_at: new Date()
         },
         { new: true }
       ).select('-password_hash');
+
 
       return ApiResponse.success(res, user, 'KYC documents uploaded successfully');
     } catch (error: any) {
@@ -189,6 +199,11 @@ export class UserController {
         query.app_id = req.user.app_id;
       }
 
+      const oldUser = await User.findOne(query);
+      if (!oldUser) {
+        return ApiResponse.error(res, 'User not found', 404);
+      }
+
       const user = await User.findOneAndUpdate(
         query,
         { ...updates, updated_at: new Date() },
@@ -197,6 +212,34 @@ export class UserController {
 
       if (!user) {
         return ApiResponse.error(res, 'User not found', 404);
+      }
+
+      // Detection logic for "Approving" the user
+      const isStatusActivating = updates.status === 'active' && oldUser.status !== 'active';
+      const isKYCVerifying = updates.kyc_status === 'verified' && oldUser.kyc_status !== 'verified';
+
+      if (isStatusActivating || isKYCVerifying) {
+        try {
+          // If KYC approved, automatically activate the account if it was inactive
+          if (isKYCVerifying && user.status === 'inactive') {
+            user.status = 'active';
+            await (user as any).save();
+            console.log(`✅ User ${user.email} automatically activated upon KYC approval`);
+          }
+
+          // Fetch App Details for branding
+          const app = await CreatedApp.findOne({ app_id: user.app_id });
+          if (app) {
+            console.log(`📧 Sending branded approval email to ${user.email} for App: ${app.app_name}`);
+            await EmailService.sendKYCApproval(
+              user.email,
+              `${user.first_name} ${user.last_name}`,
+              app
+            );
+          }
+        } catch (error) {
+          console.error('❌ Error in after-approval hooks:', error);
+        }
       }
 
       return ApiResponse.success(res, user, 'User updated successfully');
@@ -298,6 +341,21 @@ export class UserController {
       await user.save();
 
       return ApiResponse.success(res, null, 'Transaction PIN updated successfully');
+    } catch (error: any) {
+      return ApiResponse.error(res, error.message, 500);
+    }
+  }
+
+  static async getReferrals(req: AuthRequest, res: Response) {
+    try {
+      const userId = req.user?.id;
+
+      // Find all users who were referred by this user
+      const referrals = await User.find({ referred_by: userId })
+        .select('first_name last_name email phone_number created_at kyc_status referral_bonus_claimed')
+        .sort({ created_at: -1 });
+
+      return ApiResponse.success(res, referrals, 'Referrals retrieved successfully');
     } catch (error: any) {
       return ApiResponse.error(res, error.message, 500);
     }

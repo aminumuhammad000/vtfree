@@ -17,8 +17,29 @@ export class AppAdminProviderController {
 
             let providers = await ProviderConfig.find(filter).sort({ priority: 1, name: 1 });
 
-            // If no providers found for this app, maybe we should return defaults?
-            // For now, let's just return what's there.
+            // Ensure IBData exists and is first
+            let ibdataProvider = providers.find(p => p.code === 'ibdata');
+
+            if (!ibdataProvider) {
+                // Auto-create IBData provider if it doesn't exist
+                ibdataProvider = await ProviderConfig.create({
+                    app_id,
+                    name: 'IBData (Default)',
+                    code: 'ibdata',
+                    active: true,
+                    priority: 0,
+                    supported_services: ['airtime', 'data'],
+                    metadata: {
+                        is_default: true,
+                        auto_configured: true,
+                        description: 'Pre-configured provider. No API key needed - funded via VTFree wallet.'
+                    }
+                });
+                logger.info(`Auto-created IBData provider for app: ${app_id}`);
+
+                // Refresh the list
+                providers = await ProviderConfig.find(filter).sort({ priority: 1, name: 1 });
+            }
 
             const sanitized = providers.map((p: any) => {
                 const obj = p.toObject();
@@ -26,6 +47,9 @@ export class AppAdminProviderController {
                     obj.metadata = { ...obj.metadata };
                     delete obj.metadata.env;
                 }
+                // Add flag to indicate if it's the default provider
+                obj.is_default = obj.code === 'ibdata';
+                obj.requires_api_key = obj.code !== 'ibdata';
                 return obj;
             });
 
@@ -114,8 +138,16 @@ export class AppAdminProviderController {
         try {
             const app_id = req.user?.app_id;
             const { id } = req.params;
+
+            const provider = await ProviderConfig.findOne({ _id: id, app_id });
+            if (!provider) return ApiResponse.error(res, 'Provider not found', 404);
+
+            // Prevent deletion of default IBData provider
+            if (provider.code === 'ibdata' && provider.metadata?.is_default) {
+                return ApiResponse.error(res, 'Cannot delete the default IBData provider. You can disable it instead.', 403);
+            }
+
             const removed = await ProviderConfig.findOneAndDelete({ _id: id, app_id });
-            if (!removed) return ApiResponse.error(res, 'Provider not found', 404);
             logger.info(`Provider deleted for app ${app_id}: ${id}`);
             return ApiResponse.success(res, 'Provider deleted', { provider: removed });
         } catch (error) {

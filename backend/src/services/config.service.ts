@@ -52,10 +52,7 @@ class ConfigService {
             { key: 'MAIL_FROM_NAME', group: 'EMAIL', description: 'Sender Name' },
             { key: 'MAIL_FROM_ADDRESS', group: 'EMAIL', description: 'Sender Email Address' },
             { key: 'MAIL_PROVIDER', group: 'EMAIL', description: 'Email Provider (gmail/other)' },
-            { key: 'DEFAULT_PAYMENT_GATEWAY', group: 'PAYMENT', description: 'Default Payment Gateway (vtpay/payrant/paystack/monnify)' },
-
-            { key: 'PAYRANT_API_KEY', group: 'PAYMENT', description: 'Payrant API Key' },
-            { key: 'PAYRANT_WEBHOOK_SECRET', group: 'PAYMENT', description: 'Payrant Webhook Secret' },
+            { key: 'DEFAULT_PAYMENT_GATEWAY', group: 'PAYMENT', description: 'Default Payment Gateway (vtpay/paystack/monnify)' },
 
             { key: 'TERMII_API_KEY', group: 'SMS', description: 'Termii API Key' },
             { key: 'TERMII_SENDER_ID', group: 'SMS', description: 'Termii Sender ID' },
@@ -88,6 +85,7 @@ class ConfigService {
             { key: 'FLUTTERWAVE_ENCRYPTION_KEY', group: 'PAYMENT', description: 'Flutterwave Encryption Key' },
             { key: 'FLUTTERWAVE_IS_ACTIVE', group: 'PAYMENT', description: 'Flutterwave Gateway Status' },
 
+            { key: 'KYC_AUTO_APPROVE', group: 'SECURITY', description: 'Auto-approve KYC uploads (true/false)' },
             { key: 'NODE_ENV', group: 'SYSTEM', description: 'Environment (development/production)' },
         ];
 
