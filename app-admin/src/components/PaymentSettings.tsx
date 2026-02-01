@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
     FiCreditCard,
     FiShield,
-    FiKey,
     FiGlobe,
     FiCheckCircle,
     FiLock,

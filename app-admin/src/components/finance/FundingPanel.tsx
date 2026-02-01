@@ -40,7 +40,7 @@ const FundingPanel: React.FC = () => {
         queryKey: ['provider-balances'],
         queryFn: async () => {
             const res = await getProviderBalances();
-            return res.data?.data as { providers: Array<{ code: string; name: string; balance: number | string | null; currency: string | null; status: string }>; total: number };
+            return res.data?.data as { providers: Array<{ code: string; name: string; balance: number | string | null; currency: string | null; status: string; reason?: string }>; total: number };
         }
     });
 

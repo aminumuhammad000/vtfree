@@ -1,15 +1,8 @@
-<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import paths from 'routes/paths';
 import { UserService, User as BackendUser } from 'services/user.service';
-=======
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Icon } from '@iconify/react';
-import paths from 'routes/paths';
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 
 type UserType = 'vtfree-users' | 'admin-users';
 
@@ -24,10 +17,7 @@ interface User {
     type: UserType;
     virtual_account?: { bank: string; account_number: string } | null;
     role?: string;
-<<<<<<< HEAD
     app_id?: string;
-=======
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
     lastActive?: string;
 }
 
@@ -37,7 +27,6 @@ const Users = () => {
     const [activeTab, setActiveTab] = useState<UserType>('vtfree-users');
     const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
     const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
-<<<<<<< HEAD
     const [owners, setOwners] = useState<User[]>([]);
     const [admins, setAdmins] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
@@ -101,103 +90,12 @@ const Users = () => {
         }
     };
 
-=======
-
-    // Mock data
-    const users: User[] = [
-        {
-            id: '1',
-            name: 'John Doe',
-            email: 'john@example.com',
-            phone: '+2348012345678',
-            status: 'active',
-            balance: 25000,
-            date: '2024-01-15',
-            type: 'vtfree-users',
-            virtual_account: { bank: 'Wema Bank', account_number: '1234567890' },
-            lastActive: '2 hours ago'
-        },
-        {
-            id: '2',
-            name: 'Jane Smith',
-            email: 'jane@example.com',
-            phone: '+2348098765432',
-            status: 'suspended',
-            balance: 5000,
-            date: '2024-01-14',
-            type: 'vtfree-users',
-            virtual_account: null,
-            lastActive: '1 day ago'
-        },
-        {
-            id: '3',
-            name: 'Mike Johnson',
-            email: 'mike@example.com',
-            phone: '+2348055555555',
-            status: 'active',
-            balance: 150000,
-            date: '2024-01-13',
-            type: 'admin-users',
-            role: 'Support Admin',
-            lastActive: '5 min ago'
-        },
-        {
-            id: '4',
-            name: 'Sarah Connor',
-            email: 'sarah@vtpay.com',
-            phone: '+2348011111111',
-            status: 'active',
-            balance: 0,
-            date: '2024-01-10',
-            type: 'admin-users',
-            role: 'Finance Manager',
-            lastActive: '1 hour ago'
-        },
-        {
-            id: '5',
-            name: 'David Wilson',
-            email: 'david@example.com',
-            phone: '+2348077777777',
-            status: 'pending',
-            balance: 0,
-            date: '2024-01-16',
-            type: 'vtfree-users',
-            virtual_account: null,
-            lastActive: 'Never'
-        }
-    ];
-
-    const filteredUsers = users.filter(user =>
-        user.type === activeTab &&
-        (user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.phone.includes(searchTerm))
-    );
-
-    const stats = {
-        total: users.filter(u => u.type === activeTab).length,
-        active: users.filter(u => u.type === activeTab && u.status === 'active').length,
-        suspended: users.filter(u => u.type === activeTab && u.status === 'suspended').length,
-        pending: users.filter(u => u.type === activeTab && u.status === 'pending').length,
-    };
-
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'active': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-            case 'suspended': return 'bg-red-100 text-red-700 border-red-200';
-            case 'pending': return 'bg-amber-100 text-amber-700 border-amber-200';
-            default: return 'bg-slate-100 text-slate-700 border-slate-200';
-        }
-    };
-
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
     const handleBulkAction = (action: string) => {
         console.log(`Performing ${action} on users:`, selectedUsers);
         // Implement bulk action logic
         setSelectedUsers([]);
     };
 
-<<<<<<< HEAD
     const handleUserAction = async (userId: string, action: string) => {
         setActionMenuOpen(null);
         let status: 'active' | 'suspended' | 'pending' = 'active';
@@ -221,12 +119,6 @@ const Users = () => {
         } catch (error) {
             console.error(`Error performing ${action} on user:`, error);
         }
-=======
-    const handleUserAction = (userId: string, action: string) => {
-        console.log(`Performing ${action} on user:`, userId);
-        setActionMenuOpen(null);
-        // Implement individual action logic
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
     };
 
     const toggleUserSelection = (userId: string) => {
@@ -326,11 +218,7 @@ const Users = () => {
                         <Icon icon="solar:users-group-rounded-bold" width="20" />
                         <span>VTFree Users</span>
                         <span className="ml-1 px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs font-bold">
-<<<<<<< HEAD
                             {owners.length}
-=======
-                            {users.filter(u => u.type === 'vtfree-users').length}
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
                         </span>
                     </button>
                     <button
@@ -343,11 +231,7 @@ const Users = () => {
                         <Icon icon="solar:shield-user-bold" width="20" />
                         <span>Admin Users</span>
                         <span className="ml-1 px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-xs font-bold">
-<<<<<<< HEAD
                             {admins.length}
-=======
-                            {users.filter(u => u.type === 'admin-users').length}
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
                         </span>
                     </button>
                 </div>
@@ -439,14 +323,10 @@ const Users = () => {
                                     </>
                                 )}
                                 {activeTab === 'admin-users' && (
-<<<<<<< HEAD
                                     <>
                                         <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">App ID</th>
                                         <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Role</th>
                                     </>
-=======
-                                    <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Role</th>
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
                                 )}
                                 <th className="px-6 py-4 text-center text-xs font-bold text-slate-700 uppercase tracking-wider">Status</th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Last Active</th>
@@ -454,7 +334,6 @@ const Users = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-<<<<<<< HEAD
                             {loading ? (
                                 <tr>
                                     <td colSpan={8} className="px-6 py-16 text-center">
@@ -465,9 +344,6 @@ const Users = () => {
                                     </td>
                                 </tr>
                             ) : filteredUsers.map((user) => (
-=======
-                            {filteredUsers.map((user) => (
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
                                 <tr
                                     key={user.id}
                                     className="hover:bg-slate-50 transition-colors group"
@@ -515,7 +391,6 @@ const Users = () => {
                                         </>
                                     )}
                                     {activeTab === 'admin-users' && (
-<<<<<<< HEAD
                                         <>
                                             <td className="px-6 py-4">
                                                 <span className="text-sm font-mono text-slate-600">{user.app_id || 'N/A'}</span>
@@ -526,13 +401,6 @@ const Users = () => {
                                                 </span>
                                             </td>
                                         </>
-=======
-                                        <td className="px-6 py-4">
-                                            <span className="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold">
-                                                {user.role}
-                                            </span>
-                                        </td>
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
                                     )}
                                     <td className="px-6 py-4">
                                         <div className="flex justify-center">
@@ -607,11 +475,7 @@ const Users = () => {
                             ))}
                             {filteredUsers.length === 0 && (
                                 <tr>
-<<<<<<< HEAD
                                     <td colSpan={8} className="px-6 py-16 text-center">
-=======
-                                    <td colSpan={activeTab === 'vtfree-users' ? 8 : 7} className="px-6 py-16 text-center">
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
                                         <div className="flex flex-col items-center justify-center">
                                             <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                                                 <Icon icon="solar:users-group-rounded-linear" className="text-slate-400" width="48" />
@@ -630,11 +494,7 @@ const Users = () => {
                 {filteredUsers.length > 0 && (
                     <div className="px-6 py-4 bg-slate-50 border-t-2 border-slate-200 flex items-center justify-between">
                         <p className="text-sm text-slate-600">
-<<<<<<< HEAD
                             Showing <span className="font-bold text-slate-900">{filteredUsers.length}</span> of <span className="font-bold text-slate-900">{currentUsers.length}</span> users
-=======
-                            Showing <span className="font-bold text-slate-900">{filteredUsers.length}</span> of <span className="font-bold text-slate-900">{users.filter(u => u.type === activeTab).length}</span> users
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
                         </p>
                         <div className="flex gap-2">
                             <button className="px-4 py-2 border-2 border-slate-200 rounded-lg text-slate-600 hover:border-slate-300 hover:bg-white transition-all font-semibold text-sm">

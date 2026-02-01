@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,21 +8,48 @@ import {
   ScrollView,
   Platform,
   Alert,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  ActivityIndicator
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/components/ThemeContext';
 import { useAlert } from '@/components/AlertContext';
 import * as LocalAuthentication from 'expo-local-authentication';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SecurityScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
-  const { showSuccess, showInfo } = useAlert();
+  const { showSuccess, showInfo, showError } = useAlert();
 
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  const [biometricEnabled, setBiometricEnabled] = useState(true);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [biometricTxEnabled, setBiometricTxEnabled] = useState(false);
   const [loginNotifications, setLoginNotifications] = useState(true);
+
+  // PIN Modal State
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pin, setPin] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const bioLogin = await AsyncStorage.getItem('biometric_enabled');
+      const bioTx = await AsyncStorage.getItem('biometric_tx_enabled');
+
+      setBiometricEnabled(bioLogin === 'true');
+      setBiometricTxEnabled(bioTx === 'true');
+    } catch (e) {
+      console.log('Error loading security settings', e);
+    }
+  };
 
   const theme = {
     primary: '#00ADFF',
@@ -99,6 +126,7 @@ export default function SecurityScreen() {
 
       if (result.success) {
         setBiometricEnabled(value);
+        await AsyncStorage.setItem('biometric_enabled', value.toString());
         showSuccess(`Biometric login ${value ? 'enabled' : 'disabled'} successfully`);
       } else {
         Alert.alert('Authentication Failed', 'We could not verify your identity.');
@@ -106,6 +134,47 @@ export default function SecurityScreen() {
     } catch (error) {
       console.error('Biometric error:', error);
       Alert.alert('Error', 'An unexpected error occurred during authentication.');
+    }
+  };
+
+  const handleToggleBiometricTx = async (value: boolean) => {
+    if (value) {
+      // Enable: Check hardware -> Open PIN modal
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      if (!hasHardware) {
+        return showError('Biometrics not supported on this device');
+      }
+      setShowPinModal(true);
+    } else {
+      // Disable: Clear storage
+      setBiometricTxEnabled(false);
+      await AsyncStorage.removeItem('biometric_tx_enabled');
+      await AsyncStorage.removeItem('transaction_pin');
+      showSuccess('Transaction biometrics disabled');
+    }
+  };
+
+  const saveTransactionPin = async () => {
+    if (pin.length !== 4) return showError('Enter 4-digit PIN');
+
+    // Authenticate user to confirm ownership before saving
+    const result = await LocalAuthentication.authenticateAsync({
+      promptMessage: 'Authenticate to Enable',
+    });
+
+    if (result.success) {
+      try {
+        await AsyncStorage.setItem('biometric_tx_enabled', 'true');
+        await AsyncStorage.setItem('transaction_pin', pin);
+        setBiometricTxEnabled(true);
+        setShowPinModal(false);
+        setPin('');
+        showSuccess('Biometrics enabled for transactions');
+      } catch (e) {
+        showError('Failed to save settings');
+      }
+    } else {
+      showError('Authentication failed');
     }
   };
 
@@ -188,7 +257,7 @@ export default function SecurityScreen() {
             />
           </View>
 
-          <View style={styles.settingItem}>
+          <View style={[styles.settingItem, { borderBottomColor: isDark ? '#333' : '#E5E7EB' }]}>
             <View style={styles.settingInfo}>
               <View style={[styles.iconContainer, { backgroundColor: theme.primary + '15' }]}>
                 <Ionicons name="finger-print" size={20} color={theme.primary} />
@@ -203,6 +272,26 @@ export default function SecurityScreen() {
             <Switch
               value={biometricEnabled}
               onValueChange={handleToggleBiometric}
+              trackColor={{ false: isDark ? '#333' : '#E5E7EB', true: theme.primary }}
+              thumbColor={'#FFFFFF'}
+            />
+          </View>
+
+          <View style={styles.settingItem}>
+            <View style={styles.settingInfo}>
+              <View style={[styles.iconContainer, { backgroundColor: theme.primary + '15' }]}>
+                <Ionicons name="wallet-outline" size={20} color={theme.primary} />
+              </View>
+              <View style={styles.settingText}>
+                <Text style={[styles.settingLabel, { color: textColor }]}>Transaction Biometrics</Text>
+                <Text style={[styles.settingDescription, { color: textSecondaryColor }]}>
+                  Use Biometrics for purchases
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={biometricTxEnabled}
+              onValueChange={handleToggleBiometricTx}
               trackColor={{ false: isDark ? '#333' : '#E5E7EB', true: theme.primary }}
               thumbColor={'#FFFFFF'}
             />
@@ -259,6 +348,49 @@ export default function SecurityScreen() {
         </View>
 
       </ScrollView>
+
+      {/* PIN Modal */}
+      <Modal visible={showPinModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.pinModal, { backgroundColor: isDark ? '#1E1E1E' : '#FFFFFF' }]}>
+            <Text style={[styles.pinTitle, { color: textColor }]}>Enter Transaction PIN</Text>
+            <Text style={[styles.pinSubtitle, { color: textSecondaryColor }]}>
+              Enter your 4-digit PIN to enable biometric transactions.
+            </Text>
+
+            <TextInput
+              style={[styles.pinInput, { color: textColor, backgroundColor: isDark ? '#333' : '#F2F2F2' }]}
+              value={pin}
+              onChangeText={(t) => setPin(t.replace(/\D/g, '').slice(0, 4))}
+              keyboardType="number-pad"
+              maxLength={4}
+              secureTextEntry
+              autoFocus
+              placeholder="0000"
+              placeholderTextColor={textSecondaryColor}
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: isDark ? '#333' : '#F2F2F2' }]}
+                onPress={() => {
+                  setShowPinModal(false);
+                  setPin('');
+                }}
+              >
+                <Text style={{ color: textColor }}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalBtn, { backgroundColor: theme.primary }]}
+                onPress={saveTransactionPin}
+              >
+                <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Enable</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -348,5 +480,44 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     lineHeight: 18,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  pinModal: {
+    borderRadius: 20,
+    padding: 24,
+  },
+  pinTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  pinSubtitle: {
+    fontSize: 14,
+    marginBottom: 20,
+  },
+  pinInput: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    letterSpacing: 8,
+    textAlign: 'center',
+    paddingVertical: 15,
+    borderRadius: 12,
+    marginBottom: 25,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 15,
+  },
+  modalBtn: {
+    flex: 1,
+    height: 50,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

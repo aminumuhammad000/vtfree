@@ -20,6 +20,8 @@ import { useAlert } from '@/components/AlertContext';
 import { useTheme } from '@/components/ThemeContext';
 import * as Contacts from 'expo-contacts';
 import * as Haptics from 'expo-haptics';
+import * as LocalAuthentication from 'expo-local-authentication';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, {
   FadeInDown,
   FadeInUp,
@@ -48,6 +50,10 @@ export default function BuyAirtimeScreen() {
   const [contactSearch, setContactSearch] = useState('');
   const [contactsLoading, setContactsLoading] = useState(false);
 
+  // Biometric State
+  const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
+  const [storedPin, setStoredPin] = useState<string | null>(null);
+
   const brandColor = theme.primary;
   const bgColor = theme.background;
   const textColor = theme.text;
@@ -61,6 +67,27 @@ export default function BuyAirtimeScreen() {
   ];
 
   const quickAmounts = [100, 200, 500, 1000, 2000, 5000];
+
+  useEffect(() => {
+    checkBiometricStatus();
+  }, []);
+
+  const checkBiometricStatus = async () => {
+    try {
+      const enabled = await AsyncStorage.getItem('biometric_tx_enabled');
+      const savedPin = await AsyncStorage.getItem('transaction_pin');
+
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+      if (enabled === 'true' && savedPin && hasHardware && isEnrolled) {
+        setIsBiometricEnabled(true);
+        setStoredPin(savedPin);
+      }
+    } catch (e) {
+      console.log('Error checking biometrics', e);
+    }
+  };
 
   const handleNetworkSelect = (id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -82,8 +109,9 @@ export default function BuyAirtimeScreen() {
     }
   };
 
-  const handleBuyAirtime = async () => {
-    if (pin.length < 4) return;
+  const handleBuyAirtime = async (pinOverride?: string) => {
+    const transactionPin = pinOverride || pin;
+    if (transactionPin.length < 4) return;
     setIsLoading(true);
     try {
       const amount = selectedAmount || parseFloat(customAmount);
@@ -93,7 +121,7 @@ export default function BuyAirtimeScreen() {
         amount,
         airtime_type: 'VTU',
         ported_number: true,
-        pin,
+        pin: transactionPin,
       });
 
       if (res.success) {
@@ -107,6 +135,24 @@ export default function BuyAirtimeScreen() {
       showError(e.message || 'An error occurred');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const triggerBiometricAuth = async () => {
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Authenticate Transaction',
+        disableDeviceFallback: false,
+      });
+
+      if (result.success && storedPin) {
+        setPin(storedPin);
+        handleBuyAirtime(storedPin);
+      } else if (!result.success && result.error !== 'user_cancel') {
+        showError('Authentication failed');
+      }
+    } catch (e) {
+      showError('Biometric error');
     }
   };
 
@@ -213,6 +259,10 @@ export default function BuyAirtimeScreen() {
                 return showError('Check all fields');
               }
               setShowPinModal(true);
+              // Auto-trigger biometrics if enabled
+              if (isBiometricEnabled) {
+                setTimeout(() => triggerBiometricAuth(), 500);
+              }
             }}
           >
             <Text style={styles.btnText}>Proceed to Payment</Text>
@@ -238,17 +288,30 @@ export default function BuyAirtimeScreen() {
                 keyboardType="numeric"
                 value={pin}
                 onChangeText={setPin}
-                autoFocus
+                autoFocus={!isBiometricEnabled}
               />
             </View>
 
-            <TouchableOpacity
-              style={[styles.confirmBtn, { backgroundColor: brandColor }]}
-              onPress={handleBuyAirtime}
-              disabled={isLoading}
-            >
-              {isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnText}>Pay Now</Text>}
-            </TouchableOpacity>
+            <View style={{ gap: 15 }}>
+              <TouchableOpacity
+                style={[styles.confirmBtn, { backgroundColor: brandColor }]}
+                onPress={() => handleBuyAirtime()}
+                disabled={isLoading}
+              >
+                {isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnText}>Pay Now</Text>}
+              </TouchableOpacity>
+
+              {isBiometricEnabled && (
+                <TouchableOpacity
+                  style={[styles.confirmBtn, { backgroundColor: cardBg, marginTop: 0 }]}
+                  onPress={triggerBiometricAuth}
+                  disabled={isLoading}
+                >
+                  <MaterialCommunityIcons name="fingerprint" size={24} color={brandColor} />
+                  <Text style={[styles.btnText, { color: textColor, marginLeft: 10 }]}>Pay with Biometrics</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </Animated.View>
         </Pressable>
       </Modal>

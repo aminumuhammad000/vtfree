@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance
 const api = axios.create({
-  baseURL: 'https://api.vtfree.com.ng/api/v1',
+  baseURL: 'http://api.vtfree.com.ng/api/v1',
   headers: {
     'Content-Type': 'application/json',
   },

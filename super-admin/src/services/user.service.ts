@@ -11,6 +11,7 @@ export interface User {
     created_at: string;
     role?: string;
     last_login?: string;
+    app_id?: string;
 }
 
 export interface UserResponse {

@@ -24,7 +24,8 @@
     "migrate:admin-appids:rollback": "tsx src/scripts/migrate_admin_appids.ts --rollback",
     "migrate:test-setup": "tsx src/scripts/test_migration.ts",
     "migrate:test-verify": "tsx src/scripts/test_migration.ts --verify",
-    "migrate:test-cleanup": "tsx src/scripts/test_migration.ts --cleanup"
+    "migrate:test-cleanup": "tsx src/scripts/test_migration.ts --cleanup",
+    "create:super-admin": "tsx create-super-admin.ts"
   },
   "jest": {
     "preset": "ts-jest/presets/default-esm",

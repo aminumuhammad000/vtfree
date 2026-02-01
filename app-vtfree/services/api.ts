@@ -5,14 +5,7 @@ import { Platform } from 'react-native';
 // DEVELOPMENT: Use local backend
 // Change this IP to match your computer's local IP address
 // Run "hostname -I" or "ipconfig" to find your local IP
-export const BASE_URL = Platform.select({
-    ios: 'http://localhost:5000/api/v1',        // iOS Simulator
-    android: 'http://10.0.2.2:5000/api/v1',     // Android Emulator
-    default: 'http://192.168.43.204:5000/api/v1', // Physical device (update this IP!)
-}) as string;
-
-// PRODUCTION: Uncomment this when deploying to production
-// export const BASE_URL = 'https://api.vtfree.com.ng/api/v1';
+export const BASE_URL = 'http://api.vtfree.com.ng/api/v1';
 
 const api = axios.create({
     baseURL: BASE_URL,

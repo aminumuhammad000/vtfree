@@ -9,9 +9,11 @@ async function ensureSuperAdmin() {
         await mongoose.connect(config.mongoUri);
         console.log('✅ Connected to MongoDB');
 
-        const email = 'superadmin@vtuapp.com';
-        const password = 'SuperAdmin@123';
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const email = 'superadmin@vtfree.com';
+        const password = 'Admin@123456';
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
 
         // Check if admin exists
         let admin = await SuperAdmin.findOne({ email });
