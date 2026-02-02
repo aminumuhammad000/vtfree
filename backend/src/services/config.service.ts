@@ -87,6 +87,16 @@ class ConfigService {
 
             { key: 'KYC_AUTO_APPROVE', group: 'SECURITY', description: 'Auto-approve KYC uploads (true/false)' },
             { key: 'NODE_ENV', group: 'SYSTEM', description: 'Environment (development/production)' },
+
+            // App Pricing
+            { key: 'APP_PRICE_ANDROID', group: 'PRICING', description: 'Base price for Android App', value: '10000' },
+            { key: 'APP_PRICE_IOS', group: 'PRICING', description: 'Base price for iOS App', value: '100000' },
+            { key: 'APP_PRICE_WEB', group: 'PRICING', description: 'Base price for Web App', value: '20000' },
+            { key: 'PUBLISH_PRICE_PLAY_STORE', group: 'PRICING', description: 'Google Play Store publishing fee', value: '35000' },
+            { key: 'PUBLISH_PRICE_APP_STORE', group: 'PRICING', description: 'Apple App Store publishing fee', value: '50000' },
+            { key: 'APP_UPGRADE_FEE', group: 'PRICING', description: 'Fee for upgrading app to latest version', value: '5000' },
+            { key: 'APP_UPGRADE_ENABLED', group: 'SYSTEM', description: 'Enable/Disable App Upgrades', value: 'true' },
+            { key: 'LATEST_TEMPLATE_VERSION', group: 'SYSTEM', description: 'Latest App Template Version', value: '2.0.0' },
         ];
 
         for (const def of defaults) {
@@ -99,7 +109,7 @@ class ConfigService {
                 }
                 await SystemConfig.create({
                     key: def.key,
-                    value,
+                    value: (def as any).value || value,
                     group: def.group,
                     description: def.description
                 });

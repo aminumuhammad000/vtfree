@@ -1,7 +1,9 @@
 import express from 'express';
 import * as AppAdminController from '../controllers/app_admin.controller.js';
+import * as AppBrandingController from '../controllers/app_branding.controller.js';
 import { DisputeController } from '../controllers/dispute.controller.js';
 import { authenticateAppAdmin } from '../middleware/auth.middleware.js';
+import { logoUpload } from '../middleware/upload.middleware.js';
 
 const router = express.Router();
 
@@ -110,5 +112,10 @@ router.get('/support/messages', authenticateAppAdmin, AppAdminSupportController.
 router.get('/support/messages/:id', authenticateAppAdmin, AppAdminSupportController.getTicketById);
 router.post('/support/messages/:id/reply', authenticateAppAdmin, AppAdminSupportController.replyToTicket);
 router.patch('/support/messages/:id/status', authenticateAppAdmin, AppAdminSupportController.updateStatus);
+
+// Branding Management
+router.get('/branding', authenticateAppAdmin, AppBrandingController.getBranding);
+router.put('/branding', authenticateAppAdmin, AppBrandingController.updateBranding);
+router.post('/branding/logo', authenticateAppAdmin, logoUpload.single('logo'), AppBrandingController.uploadLogo);
 
 export default router;

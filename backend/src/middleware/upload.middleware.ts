@@ -4,8 +4,13 @@ import fs from 'fs';
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(process.cwd(), 'uploads', 'logos');
+const profileDir = path.join(process.cwd(), 'uploads', 'profiles');
+
 if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
+}
+if (!fs.existsSync(profileDir)) {
+    fs.mkdirSync(profileDir, { recursive: true });
 }
 
 // Configure storage
@@ -14,11 +19,12 @@ const storage = multer.diskStorage({
         cb(null, uploadsDir);
     },
     filename: (req, file, cb) => {
-        const app_id = (req as any).user.app_id;
+        const userId = (req as any).user.id;
+        const appId = (req as any).user.app_id || 'new_app';
         const ext = path.extname(file.originalname);
         const timestamp = Date.now();
-        // Format: {app_id}_logo_{timestamp}.{ext}
-        cb(null, `${app_id}_logo_${timestamp}${ext}`);
+        // Format: {app_id}_{userId}_logo_{timestamp}.{ext}
+        cb(null, `${appId}_${userId}_logo_${timestamp}${ext}`);
     }
 });
 
@@ -33,11 +39,29 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
     }
 };
 
-// Multer configuration
+// Multer configuration for logos
 export const logoUpload = multer({
     storage,
     fileFilter,
     limits: {
         fileSize: 2 * 1024 * 1024, // 2MB limit
+    }
+});
+
+// Multer configuration for profile pictures
+export const profilePictureUpload = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => {
+            cb(null, profileDir);
+        },
+        filename: (req, file, cb) => {
+            const userId = (req as any).user.id;
+            const ext = path.extname(file.originalname);
+            cb(null, `profile_${userId}_${Date.now()}${ext}`);
+        }
+    }),
+    fileFilter,
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit
     }
 });

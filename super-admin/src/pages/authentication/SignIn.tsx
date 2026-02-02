@@ -160,13 +160,6 @@ const SignIn = () => {
             label="Remember me"
             sx={{ ml: -0.75 }}
           />
-          <Link
-            href={paths.resetPassword}
-            fontSize="body2.fontSize"
-            fontWeight={600}
-          >
-            Reset password?
-          </Link>
         </Stack>
 
         {error && (

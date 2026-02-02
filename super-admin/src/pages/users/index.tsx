@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Icon } from '@iconify/react';
 import paths from 'routes/paths';
 import { UserService, User as BackendUser } from 'services/user.service';
+import { toast } from 'react-hot-toast';
 
 type UserType = 'vtfree-users' | 'admin-users';
 
@@ -113,11 +114,13 @@ const Users = () => {
             }
 
             if (success) {
+                toast.success(`User ${action}ed successfully`);
                 // Refresh data
                 fetchAllData();
             }
         } catch (error) {
             console.error(`Error performing ${action} on user:`, error);
+            toast.error(`Failed to ${action} user`);
         }
     };
 

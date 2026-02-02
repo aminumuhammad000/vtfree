@@ -1,6 +1,6 @@
 const ENV = {
     DEV_API: 'http://localhost:5000',
-    PROD_API: 'http://api.vtfree.com.ng',
+    PROD_API: 'http://192.168.43.204:5000',
     IS_LOCAL: false, // Set to false to use the live API
 };
 

@@ -1,105 +1,77 @@
 import mongoose from 'mongoose';
-import { Feature } from '../models/feature.model.js';
+import Feature from '../models/Feature.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 const features = [
     {
-        name: 'Data Services',
-        description: 'Enable data purchase functionality in app',
-        price: 0,
-        category: 'Service',
-        billing_cycle: 'monthly',
-        status: 'active',
-        icon: 'solar:database-bold'
+        feature_id: 'airtime',
+        name: 'Airtime Topup',
+        slug: 'airtime-topup',
+        description: 'Instant airtime recharge for all networks',
+        icon_name: 'Smartphone',
+        base_price: 1000,
+        is_active: true,
+        category: 'communication',
+        display_order: 1,
+        requires_api: true
     },
     {
-        name: 'Airtime Services',
-        description: 'Enable airtime purchase functionality',
-        price: 0,
-        category: 'Service',
-        billing_cycle: 'monthly',
-        status: 'active',
-        icon: 'solar:phone-bold'
+        feature_id: 'data',
+        name: 'Data Bundle',
+        slug: 'data-bundle',
+        description: 'Cheap data bundles for all networks',
+        icon_name: 'Globe',
+        base_price: 1500,
+        is_active: true,
+        category: 'communication',
+        display_order: 2,
+        requires_api: true
     },
     {
-        name: 'Cable TV Payment',
-        description: 'Enable cable TV subscription payments',
-        price: 0,
-        category: 'Service',
-        billing_cycle: 'monthly',
-        status: 'active',
-        icon: 'solar:tv-bold'
+        feature_id: 'cable',
+        name: 'Cable TV',
+        slug: 'cable-tv',
+        description: 'Pay for DSTV, GOTV, and StarTimes',
+        icon_name: 'Monitor',
+        base_price: 2000,
+        is_active: true,
+        category: 'utility',
+        display_order: 3,
+        requires_api: true
     },
     {
-        name: 'Utility Bill Payment',
-        description: 'Enable electricity and utility bill payments',
-        price: 0,
-        category: 'Service',
-        billing_cycle: 'monthly',
-        status: 'active',
-        icon: 'solar:lightbulb-bolt-bold'
+        feature_id: 'electricity',
+        name: 'Electricity',
+        slug: 'electricity-bill',
+        description: 'Pay for prepaid and postpaid electricity',
+        icon_name: 'Zap',
+        base_price: 2000,
+        is_active: true,
+        category: 'utility',
+        display_order: 4,
+        requires_api: true
     },
     {
-        name: 'Publish to Web',
-        description: 'Deploy your app as a web application',
-        price: 5000,
-        category: 'Publishing',
-        billing_cycle: 'one-time',
-        status: 'active',
-        icon: 'solar:global-bold'
-    },
-    {
-        name: 'Build Android App',
-        description: 'Generate Android APK for your app',
-        price: 10000,
-        category: 'Publishing',
-        billing_cycle: 'one-time',
-        status: 'active',
-        icon: 'solar:smartphone-2-bold'
-    },
-    {
-        name: 'Build iOS App',
-        description: 'Generate iOS IPA for your app',
-        price: 15000,
-        category: 'Publishing',
-        billing_cycle: 'one-time',
-        status: 'active',
-        icon: 'solar:apple-bold'
-    },
-    {
-        name: 'Publish to iOS Store',
-        description: 'Submit and publish to Apple App Store',
-        price: 25000,
-        category: 'Publishing',
-        billing_cycle: 'yearly',
-        status: 'active',
-        icon: 'solar:star-bold'
-    },
-    {
-        name: 'Custom Branding',
-        description: 'Full white-label branding customization',
-        price: 3000,
-        category: 'Add-on',
-        billing_cycle: 'monthly',
-        status: 'active',
-        icon: 'solar:palette-bold'
-    },
-    {
-        name: 'Priority Support',
-        description: '24/7 dedicated support channel',
-        price: 5000,
-        category: 'Add-on',
-        billing_cycle: 'monthly',
-        status: 'active',
-        icon: 'solar:headphones-round-sound-bold'
+        feature_id: 'wallet',
+        name: 'Wallet System',
+        slug: 'wallet-system',
+        description: 'Internal wallet for users to store funds',
+        icon_name: 'Wallet',
+        base_price: 5000,
+        is_active: true,
+        category: 'finance',
+        display_order: 5,
+        requires_api: false
     }
 ];
 
 async function seed() {
     try {
-        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/vtfree');
+        const mongoUrl = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/vtfree';
+        console.log('Connecting to:', mongoUrl);
+        await mongoose.connect(mongoUrl);
         console.log('Connected to MongoDB');
 
         await Feature.deleteMany({});

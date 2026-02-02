@@ -12,6 +12,7 @@ export interface User {
     role?: string;
     last_login?: string;
     app_id?: string;
+    apps?: any[];
 }
 
 export interface UserResponse {
@@ -55,5 +56,10 @@ export const UserService = {
         // This endpoint might need to be implemented in the backend if not already there
         const response = await api.patch(`/super-admin/admins/${id}/status`, { status });
         return response.data.success;
+    },
+
+    creditOwnerWallet: async (id: string, amount: number, reason?: string): Promise<any> => {
+        const response = await api.post(`/super-admin/owners/${id}/credit`, { amount, reason });
+        return response.data;
     }
 };

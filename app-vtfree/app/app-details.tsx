@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Share, Linking, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Share, Linking, Alert, Image, Modal, TextInput } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Share2, Globe, Smartphone, Play, Plus, ChevronRight, Copy } from 'lucide-react-native';
+import { ArrowLeft, Share2, Globe, Smartphone, Play, Plus, ChevronRight, Copy, Settings, Lock, Edit, Download, Laptop, Rocket, RefreshCw, ArrowRight } from 'lucide-react-native';
 import Colors from '../constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -26,29 +26,78 @@ export default function AppDetailsScreen() {
     const [apkLink, setApkLink] = React.useState<string | undefined>(undefined);
     const [driveLink, setDriveLink] = React.useState<string | undefined>(undefined);
 
-    const pollingRef = React.useRef<NodeJS.Timeout | null>(null);
+    const pollingRef = React.useRef<any>(null);
 
     // Determine color - handle both string and array from params
     const colorParam = Array.isArray(params.color) ? params.color[0] : params.color;
     const appColor = colorParam || Colors.primary;
 
+    const initialStatus = typeof params.status === 'string'
+        ? (params.status.charAt(0).toUpperCase() + params.status.slice(1))
+        : 'Building';
+
     const [appData, setAppData] = React.useState({
         name: params.name || 'VTfree App',
         package: params.package || 'com.vtfree.app',
         version: '1.0.0',
-        status: 'Building',
+        status: initialStatus,
         type: params.type || 'Android',
         icon: params.type === 'Web' ? Globe : Smartphone,
+        logo: params.logo as string | null,
         color: appColor,
         admins: [] as any[]
     });
+
+    const [showAdminModal, setShowAdminModal] = React.useState(false);
+    const [adminForm, setAdminForm] = React.useState({ email: '', password: '', firstName: '', lastName: '' });
+    const [isAddingAdmin, setIsAddingAdmin] = React.useState(false);
+
+    const handleAddAdmin = async () => {
+        if (!adminForm.email || !adminForm.password) {
+            Alert.alert('Error', 'Email and Password are required');
+            return;
+        }
+        setIsAddingAdmin(true);
+        try {
+            await AppService.addAppAdmin(params.appId as string, {
+                email: adminForm.email,
+                password: adminForm.password,
+                first_name: adminForm.firstName,
+                last_name: adminForm.lastName
+            });
+            Alert.alert('Success', 'Admin added successfully');
+            setShowAdminModal(false);
+            setAdminForm({ email: '', password: '', firstName: '', lastName: '' });
+            fetchAppDetails(params.appId as string);
+        } catch (error: any) {
+            Alert.alert('Error', error.message || 'Failed to add admin');
+        } finally {
+            setIsAddingAdmin(false);
+        }
+    };
+
+    const [showBuildConfirm, setShowBuildConfirm] = React.useState(false);
+
+    const [prices, setPrices] = React.useState<any>(null);
 
     React.useEffect(() => {
         if (params.appId) {
             fetchAppDetails(params.appId as string);
         }
+        fetchPrices();
         return () => stopPolling();
     }, [params.appId]);
+
+    const fetchPrices = async () => {
+        try {
+            const res = await AppService.getAppPrices();
+            if (res.success) {
+                setPrices(res.data);
+            }
+        } catch (e) {
+            console.error('Failed to fetch prices', e);
+        }
+    };
 
     const stopPolling = () => {
         if (pollingRef.current) {
@@ -89,14 +138,31 @@ export default function AppDetailsScreen() {
             const response = await AppService.getAppDetails(id);
             if (response.success) {
                 const app = response.data.app;
+                let displayStatus = 'Building';
+                if (app.status === 'active' || app.status === 'live') displayStatus = 'Live';
+                else if (app.status === 'pending') displayStatus = 'Pending';
+                else if (app.status === 'failed') displayStatus = 'Failed';
+
+                // Map Admins properly
+                const formattedAdmins = (response.data.admins || []).map((admin: any) => ({
+                    id: admin._id,
+                    name: admin.first_name ? `${admin.first_name} ${admin.last_name || ''}` : (admin.email.split('@')[0]), // Use name or username part of email
+                    email: admin.email,
+                    role: admin.role.charAt(0).toUpperCase() + admin.role.slice(1),
+                    status: admin.status.charAt(0).toUpperCase() + admin.status.slice(1),
+                    app_id: admin.app_id || params.appId // fallback but backend should provide it
+                }));
+
                 setAppData(prev => ({
                     ...prev,
                     name: app.app_name,
                     package: app.package_name,
-                    status: app.status === 'active' ? 'Live' : 'Building',
+                    version: app.version || '1.0.0',
+                    status: displayStatus,
                     color: app.branding?.primary_color || Colors.primary,
-                    admins: [
-                        { id: 1, name: 'Owner', role: 'Super Admin', status: 'Active' }
+                    logo: app.branding?.logo_url || null,
+                    admins: formattedAdmins.length > 0 ? formattedAdmins : [
+                        { id: 'default', name: 'Owner', role: 'Super Admin', status: 'Active' }
                     ]
                 }));
             }
@@ -105,35 +171,33 @@ export default function AppDetailsScreen() {
         }
     };
 
+    const handleUpgrade = () => {
+        router.push({
+            pathname: '/build-app',
+            params: { appId: params.appId }
+        });
+    };
+
     const handleBuildApk = async () => {
-        setIsBuilding(true);
-        setShowBuildModal(true);
-        setBuildStatus('building');
-        setBuildProgress(0);
-        setBuildStage('Starting build process...');
-
-        startPolling();
-
-        try {
-            // This request will hang until build completes, but polling runs in parallel
-            const response = await AppService.buildApp(params.appId as string);
-
-            // Just in case polling missed it or race condition
-            if (response.success) {
-                setBuildStatus('completed');
-                setBuildProgress(100);
-                if (response.driveLink) setDriveLink(response.driveLink);
-            } else {
-                setBuildStatus('failed');
-            }
-        } catch (error: any) {
-            // Only mark failed if not already completed (e.g. timeout)
-            setBuildStatus(prev => prev === 'completed' ? prev : 'failed');
-            Alert.alert('Error', 'Build request ended: ' + error.message);
-        } finally {
-            setIsBuilding(false);
-            stopPolling();
+        // If app is already building, go to status
+        if (appData.status === 'Building') {
+            router.push({
+                pathname: '/build-status',
+                params: { appId: params.appId }
+            });
+            return;
         }
+
+        // Otherwise show confirmation before navigation
+        setShowBuildConfirm(true);
+    };
+
+    const proceedToBuild = () => {
+        setShowBuildConfirm(false);
+        router.push({
+            pathname: '/build-app',
+            params: { appId: params.appId }
+        });
     };
 
     const handleCloseModal = () => {
@@ -163,7 +227,6 @@ export default function AppDetailsScreen() {
     const platforms = [
         { name: 'Website', icon: Globe, active: appData.type === 'Web' || appData.type === 'All', status: 'Live' },
         { name: 'Android', icon: Smartphone, active: appData.type === 'Android' || appData.type === 'All', status: 'Live' },
-        { name: 'iOS', icon: Smartphone, active: appData.type === 'iOS' || appData.type === 'All', status: 'Not Active' },
     ];
 
     return (
@@ -185,8 +248,11 @@ export default function AppDetailsScreen() {
                 <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.appCard}>
                     <View style={styles.appHeaderRow}>
                         <View style={[styles.appIcon, { backgroundColor: `${appData.color}20` }]}>
-                            {/* Render icon correctly */}
-                            <appData.icon color={appData.color} size={40} />
+                            {appData.logo ? (
+                                <Image source={{ uri: appData.logo }} style={{ width: '100%', height: '100%', borderRadius: 12 }} />
+                            ) : (
+                                <appData.icon color={appData.color} size={32} />
+                            )}
                         </View>
                         <View style={styles.appInfo}>
                             <Text style={styles.appName}>{appData.name}</Text>
@@ -205,9 +271,17 @@ export default function AppDetailsScreen() {
                         </View>
                     </View>
 
-                    <TouchableOpacity style={styles.primaryButton}>
+                    <TouchableOpacity
+                        style={[styles.primaryButton, appData.status !== 'Live' && { backgroundColor: Colors.gray[300], opacity: 0.7 }]}
+                        disabled={appData.status !== 'Live'}
+                        onPress={() => {
+                            // Link to Dashboard logic here if needed
+                        }}
+                    >
                         <Play color={Colors.white} size={20} />
-                        <Text style={styles.primaryButtonText}>Open Dashboard</Text>
+                        <Text style={styles.primaryButtonText}>
+                            {appData.status === 'Live' ? 'Open Dashboard' : 'Dashboard Unavailable'}
+                        </Text>
                     </TouchableOpacity>
                 </Animated.View>
 
@@ -224,8 +298,8 @@ export default function AppDetailsScreen() {
                                 <platform.icon color={platform.active ? Colors.primary : Colors.gray[400]} size={24} />
                             </View>
                             <Text style={[styles.platformName, !platform.active && { color: Colors.gray[400] }]}>{platform.name}</Text>
-                            <Text style={[styles.platformStatus, { color: platform.active ? Colors.success : Colors.gray[400] }]}>
-                                {platform.active ? '✓ Active' : 'Not Purchased'}
+                            <Text style={[styles.platformStatus, { color: (platform.active && appData.status !== 'Pending') ? Colors.success : Colors.gray[400] }]}>
+                                {platform.active ? (appData.status === 'Pending' ? 'Pending Payment' : '✓ Active') : 'Not Purchased'}
                             </Text>
                         </Animated.View>
                     ))}
@@ -234,7 +308,10 @@ export default function AppDetailsScreen() {
                 {/* Admin Management */}
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Admin Management</Text>
-                    <TouchableOpacity style={styles.addAdminButton}>
+                    <TouchableOpacity
+                        style={styles.addAdminButton}
+                        onPress={() => setShowAdminModal(true)}
+                    >
                         <Plus color={Colors.primary} size={20} />
                         <Text style={styles.addAdminText}>Add New</Text>
                     </TouchableOpacity>
@@ -245,11 +322,12 @@ export default function AppDetailsScreen() {
                         <View key={admin.id}>
                             <TouchableOpacity style={styles.adminItem}>
                                 <View style={styles.adminAvatar}>
-                                    <Text style={styles.adminInitials}>{admin.name.substring(0, 2).toUpperCase()}</Text>
+                                    <Text style={styles.adminInitials}>{admin.name ? admin.name.substring(0, 2).toUpperCase() : 'AD'}</Text>
                                 </View>
                                 <View style={styles.adminInfo}>
-                                    <Text style={styles.adminName}>{admin.name}</Text>
-                                    <Text style={styles.adminRole}>{admin.role}</Text>
+                                    <Text style={styles.adminName}>{admin.name || 'Admin'}</Text>
+                                    <Text style={styles.adminRole}>{admin.email}</Text>
+                                    {admin.app_id && <Text style={{ fontSize: 10, color: Colors.gray[400], marginTop: 2 }}>App Code: {admin.app_id}</Text>}
                                 </View>
                                 <View style={styles.adminStatus}>
                                     <View style={[styles.statusDot, { backgroundColor: Colors.success }]} />
@@ -263,45 +341,126 @@ export default function AppDetailsScreen() {
                 </Animated.View>
 
                 {/* Branding Settings */}
-                <Text style={styles.sectionTitle}>App Branding</Text>
-                <Animated.View entering={FadeInDown.delay(500).springify()} style={styles.configCard}>
-                    <TouchableOpacity style={styles.configItem}>
-                        <View style={styles.configIcon}>
-                            <Smartphone color={Colors.primary} size={20} />
-                        </View>
-                        <Text style={styles.configText}>App Icon & Logo</Text>
-                        <ChevronRight color={Colors.gray[400]} size={20} />
-                    </TouchableOpacity>
-                    <View style={styles.configDivider} />
-                    <TouchableOpacity style={styles.configItem}>
-                        <View style={styles.configIcon}>
-                            <Globe color={Colors.secondary} size={20} />
-                        </View>
-                        <Text style={styles.configText}>Colors & Theme</Text>
-                        <ChevronRight color={Colors.gray[400]} size={20} />
+                {/* App Configuration & Updates - NEW SECTION */}
+                <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>App Configuration</Text>
+                </View>
+
+                <Animated.View entering={FadeInDown.delay(500).springify()}>
+                    <TouchableOpacity
+                        style={styles.mainConfigCard}
+                        onPress={() => router.push({ pathname: '/edit-app', params: { appId: params.appId } })}
+                        activeOpacity={0.8}
+                    >
+                        <LinearGradient
+                            colors={[Colors.white, '#F0FDF4']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.mainConfigGradient}
+                        >
+                            <View style={[styles.configIconLarge, { backgroundColor: Colors.primaryLighter }]}>
+                                <Edit color={Colors.primary} size={28} />
+                            </View>
+
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.mainConfigTitle}>Edit App Details</Text>
+                                <Text style={styles.mainConfigSubtitle}>
+                                    Modify your app name, colors, styles, logo and other settings.
+                                </Text>
+                            </View>
+
+                            <View style={styles.arrowContainer}>
+                                <ArrowRight color={Colors.primary} size={20} />
+                            </View>
+                        </LinearGradient>
                     </TouchableOpacity>
                 </Animated.View>
 
                 {/* Developer Zone */}
-                <Text style={styles.sectionTitle}>Developer Zone</Text>
-                <TouchableOpacity
-                    style={[styles.primaryButton, { backgroundColor: Colors.primary, marginBottom: 10 }]}
-                    onPress={handleBuildApk}
-                    disabled={isBuilding}
-                >
-                    <Play color={Colors.white} size={20} />
-                    <Text style={styles.primaryButtonText}>{isBuilding ? 'Building APK...' : 'Build APK'}</Text>
-                </TouchableOpacity>
+                <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Developer Zone</Text>
+                </View>
 
-                <TouchableOpacity style={[styles.primaryButton, { backgroundColor: Colors.success, marginBottom: 10 }]} onPress={handleDownloadApk}>
-                    <Smartphone color={Colors.white} size={20} />
-                    <Text style={styles.primaryButtonText}>Download APK</Text>
-                </TouchableOpacity>
+                <Animated.View entering={FadeInDown.delay(600).springify()} style={styles.devCard}>
 
-                <TouchableOpacity style={[styles.primaryButton, { backgroundColor: Colors.gray[900], marginBottom: 40 }]} onPress={handleDownloadSource}>
-                    <Copy color={Colors.white} size={20} />
-                    <Text style={styles.primaryButtonText}>Download Source Code</Text>
-                </TouchableOpacity>
+                    {/* Primary Action Section */}
+                    <View style={styles.devSection}>
+                        <Text style={styles.devSectionTitle}>Actions</Text>
+
+                        {appData.version !== '2.0.0' && appData.status !== 'Pending' && (
+                            <TouchableOpacity
+                                style={[styles.actionButton, { backgroundColor: Colors.secondary }]}
+                                onPress={handleUpgrade}
+                                disabled={isBuilding}
+                            >
+                                <Rocket color={Colors.white} size={20} />
+                                <View>
+                                    <Text style={styles.actionButtonText}>Upgrade to v2.0.0</Text>
+                                    <Text style={styles.actionButtonSubtext}>Get latest features & fixes</Text>
+                                </View>
+                            </TouchableOpacity>
+                        )}
+
+                        <TouchableOpacity
+                            style={[
+                                styles.actionButton,
+                                {
+                                    backgroundColor: appData.status === 'Pending' ? Colors.warning :
+                                        (appData.status === 'Failed' ? Colors.red[600] : Colors.primary)
+                                }
+                            ]}
+                            onPress={handleBuildApk}
+                            disabled={isBuilding}
+                        >
+                            {appData.status === 'Pending' ? <Lock color={Colors.white} size={24} /> :
+                                (appData.status === 'Failed' ? <RefreshCw color={Colors.white} size={24} /> :
+                                    <Play color={Colors.white} size={24} />)}
+
+                            <View>
+                                <Text style={styles.actionButtonText}>
+                                    {appData.status === 'Pending' ? 'Complete Payment' :
+                                        (appData.status === 'Failed' ? 'Retry Build' :
+                                            (isBuilding ? 'Building in Progress...' : 'Start New Build'))}
+                                </Text>
+                                <Text style={styles.actionButtonSubtext}>
+                                    {appData.status === 'Pending' ? 'Unlock full access' :
+                                        (appData.status === 'Failed' ? 'Fix build issues' :
+                                            'Generate new APK & Web Bundle')}
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.divider} />
+
+                    {/* Downloads Section */}
+                    <View style={styles.devSection}>
+                        <Text style={styles.devSectionTitle}>Downloads</Text>
+                        <View style={styles.downloadGrid}>
+                            <TouchableOpacity
+                                style={[styles.downloadButton, appData.status === 'Pending' && styles.disabledButton]}
+                                onPress={handleDownloadApk}
+                                disabled={appData.status === 'Pending'}
+                            >
+                                <View style={[styles.downloadIcon, { backgroundColor: Colors.green[100] }]}>
+                                    {appData.status === 'Pending' ? <Lock color={Colors.green[600]} size={20} /> : <Smartphone color={Colors.green[600]} size={20} />}
+                                </View>
+                                <Text style={styles.downloadText}>Android APK</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.downloadButton, appData.status === 'Pending' && styles.disabledButton]}
+                                onPress={handleDownloadSource}
+                                disabled={appData.status === 'Pending'}
+                            >
+                                <View style={[styles.downloadIcon, { backgroundColor: Colors.gray[100] }]}>
+                                    {appData.status === 'Pending' ? <Lock color={Colors.gray[600]} size={20} /> : <Laptop color={Colors.gray[600]} size={20} />}
+                                </View>
+                                <Text style={styles.downloadText}>Web Bundle</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Animated.View>
 
                 <View style={{ height: 40 }} />
             </ScrollView>
@@ -315,6 +474,122 @@ export default function AppDetailsScreen() {
                 apkUrl={apkLink}
                 driveLink={driveLink}
             />
+
+            {/* Add Admin Modal */}
+            <Modal
+                visible={showAdminModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowAdminModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Add New Admin</Text>
+                            <TouchableOpacity onPress={() => setShowAdminModal(false)}>
+                                <Text style={{ fontSize: 20, color: Colors.gray[500] }}>✕</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={styles.inputLabel}>Email Address</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="admin@example.com"
+                            value={adminForm.email}
+                            onChangeText={(text) => setAdminForm({ ...adminForm, email: text })}
+                            autoCapitalize="none"
+                            keyboardType="email-address"
+                        />
+
+                        <Text style={styles.inputLabel}>Temporary Password</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Password"
+                            value={adminForm.password}
+                            onChangeText={(text) => setAdminForm({ ...adminForm, password: text })}
+                            secureTextEntry
+                        />
+                        <View style={{ flexDirection: 'row', gap: 10 }}>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.inputLabel}>First Name</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="John"
+                                    value={adminForm.firstName}
+                                    onChangeText={(text) => setAdminForm({ ...adminForm, firstName: text })}
+                                />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.inputLabel}>Last Name</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Doe"
+                                    value={adminForm.lastName}
+                                    onChangeText={(text) => setAdminForm({ ...adminForm, lastName: text })}
+                                />
+                            </View>
+                        </View>
+
+                        <TouchableOpacity
+                            style={[styles.modalButton, isAddingAdmin && { opacity: 0.7 }]}
+                            onPress={handleAddAdmin}
+                            disabled={isAddingAdmin}
+                        >
+                            <Text style={styles.modalButtonText}>{isAddingAdmin ? 'Adding...' : 'Add Admin'}</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Build Confirmation Modal */}
+            <Modal
+                visible={showBuildConfirm}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowBuildConfirm(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.confirmIconContainer}>
+                            <Rocket color={Colors.white} size={32} />
+                        </View>
+
+                        <Text style={styles.confirmTitle}>Start New Build?</Text>
+                        <Text style={styles.confirmMessage}>
+                            You are about to start a new build process.
+                            {appData.status === 'Pending' ? ' This requires payment.' : ' This may incur a fee if upgrading or rebuilding.'}
+                        </Text>
+
+                        <View style={styles.confirmStats}>
+                            <View style={styles.statItem}>
+                                <Text style={styles.statLabel}>Current Version</Text>
+                                <Text style={styles.statValue}>{appData.version}</Text>
+                            </View>
+                            <View style={[styles.statItem, { borderLeftWidth: 1, borderLeftColor: Colors.gray[200], paddingLeft: 15 }]}>
+                                <Text style={styles.statLabel}>Target</Text>
+                                <Text style={styles.statValue}>{appData.type}</Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.confirmActions}>
+                            <TouchableOpacity
+                                style={styles.cancelButton}
+                                onPress={() => setShowBuildConfirm(false)}
+                            >
+                                <Text style={styles.cancelButtonText}>Cancel</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.confirmButton}
+                                onPress={proceedToBuild}
+                            >
+                                <Text style={styles.confirmButtonText}>Continue</Text>
+                                <ArrowRight color={Colors.white} size={16} />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -540,6 +815,196 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.gray[100],
         marginVertical: 8,
     },
+    mainConfigCard: {
+        marginBottom: 32,
+        borderRadius: 24,
+        overflow: 'hidden',
+        shadowColor: Colors.shadow.default,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 5,
+    },
+    mainConfigGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 24,
+        gap: 16,
+    },
+    configIconLarge: {
+        width: 56,
+        height: 56,
+        borderRadius: 16,
+        backgroundColor: Colors.primaryLighter,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    mainConfigTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: Colors.text.primary,
+        marginBottom: 4,
+    },
+    mainConfigSubtitle: {
+        fontSize: 13,
+        color: Colors.gray[500],
+        lineHeight: 18,
+    },
+    // Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    modalContent: {
+        backgroundColor: Colors.white,
+        borderRadius: 24,
+        padding: 24,
+        width: '100%',
+        maxWidth: 400,
+        shadowColor: Colors.black,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 12,
+        elevation: 8,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: Colors.text.primary,
+    },
+    modalCloseText: {
+        fontSize: 24,
+        color: Colors.gray[400],
+        lineHeight: 24,
+    },
+    inputLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: Colors.text.secondary,
+        marginBottom: 8,
+        marginTop: 8,
+    },
+    input: {
+        backgroundColor: Colors.gray[50],
+        borderWidth: 1,
+        borderColor: Colors.border.light,
+        borderRadius: 12,
+        padding: 12,
+        fontSize: 16,
+        color: Colors.text.primary,
+    },
+    modalButton: {
+        backgroundColor: Colors.primary,
+        borderRadius: 12,
+        padding: 16,
+        alignItems: 'center',
+        marginTop: 24,
+    },
+    modalButtonText: {
+        color: Colors.white,
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    // Confirmation Modal Styles
+    confirmIconContainer: {
+        alignSelf: 'center',
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: Colors.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    confirmTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: Colors.text.primary,
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    confirmMessage: {
+        fontSize: 14,
+        color: Colors.text.secondary,
+        textAlign: 'center',
+        marginBottom: 24,
+        lineHeight: 20,
+    },
+    confirmStats: {
+        flexDirection: 'row',
+        backgroundColor: Colors.gray[50],
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 24,
+    },
+    statItem: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    statLabel: {
+        fontSize: 12,
+        color: Colors.gray[500],
+        marginBottom: 4,
+        textTransform: 'uppercase',
+    },
+    statValue: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: Colors.text.primary,
+    },
+    confirmActions: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    cancelButton: {
+        flex: 1,
+        padding: 16,
+        borderRadius: 12,
+        backgroundColor: Colors.gray[100],
+        alignItems: 'center',
+    },
+    cancelButtonText: {
+        color: Colors.gray[600],
+        fontWeight: '600',
+        fontSize: 16,
+    },
+    confirmButton: {
+        flex: 1,
+        padding: 16,
+        borderRadius: 12,
+        backgroundColor: Colors.primary,
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    confirmButtonText: {
+        color: Colors.white,
+        fontWeight: '600',
+        fontSize: 16,
+    },
+    arrowContainer: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: 'rgba(255,255,255,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     configCard: {
         backgroundColor: Colors.white,
         borderRadius: 24,
@@ -575,5 +1040,80 @@ const styles = StyleSheet.create({
         height: 1,
         backgroundColor: Colors.gray[100],
         marginLeft: 72,
+    },
+    devCard: {
+        backgroundColor: Colors.white,
+        borderRadius: 24,
+        padding: 20,
+        shadowColor: Colors.shadow.default,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 3,
+        marginBottom: 32,
+    },
+    devSection: {
+        marginBottom: 16,
+    },
+    devSectionTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: Colors.gray[500],
+        marginBottom: 12,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    actionButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        borderRadius: 16,
+        gap: 16,
+        marginBottom: 12,
+        shadowColor: Colors.shadow.default,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    actionButtonText: {
+        color: Colors.white,
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginBottom: 2,
+    },
+    actionButtonSubtext: {
+        color: 'rgba(255,255,255,0.8)',
+        fontSize: 12,
+    },
+    downloadGrid: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    downloadButton: {
+        flex: 1,
+        backgroundColor: Colors.gray[50],
+        padding: 16,
+        borderRadius: 16,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: Colors.gray[100],
+    },
+    downloadIcon: {
+        width: 48,
+        height: 48,
+        borderRadius: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 8,
+    },
+    downloadText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: Colors.text.primary,
+        textAlign: 'center',
+    },
+    disabledButton: {
+        opacity: 0.5,
     },
 });

@@ -13,30 +13,35 @@ export const login = async (req: Request, res: Response) => {
 
         // Sanitize inputs
         email = email?.trim().toLowerCase();
-        app_id = app_id?.trim(); // Keep case sensitivity for app_id unless we decide otherwise, but definitely trim. 
-        // Actually, let's try to find it case-insensitive if exact match fails, or just enforce lowercase if that's the convention.
-        // Given the previous script created 'vtu_app_001', let's try to be flexible.
-        // But for now, just trim is safe.
+        app_id = app_id?.trim(); // The frontend should now send package_name as 'app_id'
 
-        console.log(`Login attempt for App: ${app_id}, Email: ${email}`);
-
-        console.log(`Login attempt for App: ${app_id}, Email: ${email}`);
+        console.log(`Login attempt for Package Name: ${app_id}, Email: ${email}`);
         console.log(`Connected to DB: ${mongoose.connection.name}`);
 
-        // Find admin for specific app
-        let admin = await AppAdmin.findOne({ app_id, email });
+        // First, find the app by package_name to get the app_id
+        const app = await CreatedApp.findOne({ package_name: app_id });
 
-        // Fallback: Case-insensitive App ID check
-        if (!admin) {
-            console.log('Exact match not found, trying case-insensitive App ID...');
-            // We can't easily do case-insensitive find on a non-regex field without regex, 
-            // but since app_id is likely unique per app, we can try to find the app first?
-            // Or just use regex for app_id.
-            admin = await AppAdmin.findOne({
-                app_id: { $regex: new RegExp(`^${app_id}$`, 'i') },
-                email
+        if (!app) {
+            // Fallback: Try case-insensitive package name
+            const appCaseInsensitive = await CreatedApp.findOne({
+                package_name: { $regex: new RegExp(`^${app_id}$`, 'i') }
             });
+
+            if (!appCaseInsensitive) {
+                console.log(`Login failed: App not found for package_name ${app_id}`);
+                return res.status(400).json({ success: false, message: 'Invalid credentials' });
+            }
+
+            // Use the actual app_id from the found app
+            app_id = appCaseInsensitive.app_id;
+        } else {
+            app_id = app.app_id;
         }
+
+        console.log(`Found app with app_id: ${app_id} for package_name: ${req.body.app_id}`);
+
+        // Find admin for specific app using the actual app_id
+        const admin = await AppAdmin.findOne({ app_id, email });
 
         console.log('Admin query result:', admin ? 'Found' : 'Not Found');
 
@@ -54,9 +59,6 @@ export const login = async (req: Request, res: Response) => {
             console.log(`Login failed: Password mismatch for email ${email}`);
             return res.status(400).json({ success: false, message: 'Invalid credentials' });
         }
-
-        // Get App details
-        const app = await CreatedApp.findOne({ app_id });
 
         // Generate token
         const token = jwt.sign(
@@ -88,6 +90,7 @@ export const login = async (req: Request, res: Response) => {
                 app: {
                     name: app?.app_name,
                     logo: app?.branding.logo_url,
+                    package_name: app?.package_name,
                 },
                 token,
             },

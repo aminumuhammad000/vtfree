@@ -4,7 +4,7 @@ import { View, ActivityIndicator } from 'react-native';
 import Colors from '../constants/Colors';
 
 export default function Index() {
-    const { user, isLoading } = useAuth();
+    const { user, isLoading, hasLaunched } = useAuth();
 
     if (isLoading) {
         return (
@@ -16,6 +16,10 @@ export default function Index() {
 
     if (user) {
         return <Redirect href="/(tabs)/home" />;
+    }
+
+    if (hasLaunched) {
+        return <Redirect href="/login" />;
     }
 
     return <Redirect href="/onboarding" />;

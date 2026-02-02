@@ -14,6 +14,7 @@ export { default as appAdminRoutes } from './app_admin.routes.js';
 export { default as superAdminRoutes } from './super_admin.routes.js';
 export { default as vtfreeAppRoutes } from './vtfree_app.routes.js';
 export { default as vtfreeAuthRoutes } from './vtfree_auth.routes.js';
+export { default as vtfreeWalletRoutes } from './vtfree_wallet.routes.js';
 
 import authRoutes from './auth.routes.js';
 import usersRoutes from './users.routes.js';
@@ -27,7 +28,9 @@ import appAdminRoutes from './app_admin.routes.js';
 import superAdminRoutes from './super_admin.routes.js';
 import vtfreeAppRoutes from './vtfree_app.routes.js';
 import vtfreeAuthRoutes from './vtfree_auth.routes.js';
+import vtfreeWalletRoutes from './vtfree_wallet.routes.js';
 import vtpayRoutes from './vtpay.routes.js';
+import webhookRoutes from './webhook.routes.js';
 
 export default (app: Express) => {
   // ... your existing routes
@@ -47,11 +50,17 @@ export default (app: Express) => {
   app.use('/api/v1/vtfree-app', vtfreeAppRoutes);
   app.use('/api/v1/vtfree-auth', vtfreeAuthRoutes);
 
+  // VTFree Wallet Routes (matches frontend: /vtfree/wallet -> /api/v1/vtfree/wallet)
+  app.use('/api/v1/vtfree/wallet', vtfreeWalletRoutes);
+
   // Bill payment routes
   app.use('/api/v1/billpayment', billPaymentRoutes);
 
   // VTPay routes
   app.use('/api/v1/vtpay', vtpayRoutes);
+
+  // Webhooks - Open endpoints
+  app.use('/api/v1/webhooks', webhookRoutes);
 
   // Health check
   app.get('/health', (req: Request, res: Response) => {

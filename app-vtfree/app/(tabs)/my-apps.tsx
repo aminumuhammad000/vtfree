@@ -119,7 +119,7 @@ export default function MyAppsScreen() {
             >
                 <View style={styles.headerContent}>
                     <View>
-                        <Text style={styles.headerTitle}>My Apps 🚀</Text>
+                        <Text style={styles.headerTitle}>My Apps</Text>
                         <Text style={styles.headerSubtitle}>Manage your deployed universe</Text>
                     </View>
                     <TouchableOpacity
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
     headerTitle: {
-        fontSize: 28,
+        fontSize: 24,
         fontWeight: '900',
         color: Colors.white,
         letterSpacing: 0.5,

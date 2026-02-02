@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import CreatedApp from '../models/created_app.model.js';
 import path from 'path';
 import fs from 'fs';
+import { cloudinaryService } from '../services/cloudinary.service.js';
 
 /**
  * GET /api/app-admin/branding
@@ -162,8 +163,17 @@ export const uploadLogo = async (req: Request, res: Response) => {
             });
         }
 
-        // Delete old logo if exists
-        if (app.branding.logo_url) {
+        // Upload to Cloudinary
+        const uploadResult = await cloudinaryService.uploadImage(req.file.path, `vtfree/logos/${app_id}`);
+
+        // Delete old logo from Cloudinary if it was a Cloudinary URL
+        if (app.branding.logo_url && app.branding.logo_url.includes('cloudinary.com')) {
+            const publicId = cloudinaryService.getPublicIdFromUrl(app.branding.logo_url);
+            if (publicId) {
+                await cloudinaryService.deleteImage(publicId);
+            }
+        } else if (app.branding.logo_url) {
+            // Delete old local logo if exists
             const oldLogoPath = path.join(process.cwd(), 'uploads', app.branding.logo_url.replace('/uploads/', ''));
             if (fs.existsSync(oldLogoPath)) {
                 fs.unlinkSync(oldLogoPath);
@@ -171,10 +181,15 @@ export const uploadLogo = async (req: Request, res: Response) => {
         }
 
         // Save new logo URL
-        const logoUrl = `/uploads/logos/${req.file.filename}`;
+        const logoUrl = uploadResult.secure_url;
         app.branding.logo_url = logoUrl;
         app.branding.last_updated = new Date();
         await app.save();
+
+        // Clean up local file after upload
+        if (fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
 
         res.json({
             success: true,

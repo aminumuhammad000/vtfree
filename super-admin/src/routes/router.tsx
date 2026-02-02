@@ -37,7 +37,7 @@ const Providers = lazy(() => import('pages/providers'));
 const VTPayManagement = lazy(() => import('pages/vtpay'));
 
 const SignIn = lazy(() => import('pages/authentication/SignIn'));
-const ResetPassword = lazy(() => import('pages/authentication/ResetPassword'));
+// const ResetPassword = lazy(() => import('pages/authentication/ResetPassword'));
 const Error404 = lazy(() => import('pages/errors/Error404'));
 
 const routes = [
@@ -152,10 +152,12 @@ const routes = [
             ),
           },
 
-          {
-            path: paths.resetPassword,
-            element: <ResetPassword />,
-          },
+          /*
+                    {
+                      path: paths.resetPassword,
+                      element: <ResetPassword />,
+                    },
+          */
         ],
       },
       {

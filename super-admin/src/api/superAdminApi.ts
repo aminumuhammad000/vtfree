@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://api.vtfree.com.ng/api/v1/super-admin';
+const API_URL = 'http://localhost:5000/api/v1/super-admin';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -34,6 +34,10 @@ export const getUsers = async (params?: {
 
 export const getApps = async () => {
   return api.get('/apps');
+};
+
+export const createApp = async (data: any) => {
+  return api.post('/apps', data);
 };
 
 // This will fetch VTfreeUsers who are app owners
@@ -134,6 +138,7 @@ const superAdminApi = {
   getDashboardStats,
   getUsers,
   getApps,
+  createApp,
   getOwners,
   getTransactions,
   getPayments,

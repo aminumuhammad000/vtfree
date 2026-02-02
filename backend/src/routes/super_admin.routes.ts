@@ -21,8 +21,11 @@ router.get('/pricing/ibdata-plans', SuperAdminController.getIBDataPlans);
 router.post('/pricing/update-profit', SuperAdminController.updatePlanProfit);
 router.post('/pricing/sync-ibdata', SuperAdminController.syncIBDataPlans);
 router.get('/pricing/ibdata-balance', SuperAdminController.getIBDataBalance);
+router.get('/pricing/build-prices', SuperAdminController.getBuildPrices);
+router.post('/pricing/build-price', SuperAdminController.updateBuildPrice);
 
 router.patch('/owners/:id/status', SuperAdminController.updateOwnerStatus);
+router.post('/owners/:id/credit', SuperAdminController.creditOwnerWallet);
 router.patch('/admins/:id/status', SuperAdminController.updateAdminStatus);
 
 router.get('/dashboard', SuperAdminController.getDashboardStats);

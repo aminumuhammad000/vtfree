@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import superAdminApi from '../../api/superAdminApi';
+import { toast } from 'react-hot-toast';
 
 interface VTPayAccount {
     id: string;
@@ -99,10 +100,10 @@ const VTPayManagement = () => {
         setLoading(true);
         try {
             await superAdminApi.updateVTPaySettings(settings);
-            alert('Settings updated successfully');
+            toast.success('Settings updated successfully');
         } catch (error) {
             console.error('Error updating VTPay settings:', error);
-            alert('Failed to update settings');
+            toast.error('Failed to update settings');
         } finally {
             setLoading(false);
         }
@@ -113,12 +114,12 @@ const VTPayManagement = () => {
         setLoading(true);
         try {
             await superAdminApi.createVTPayAccount(newAccount);
-            alert('Virtual account created successfully');
+            toast.success('Virtual account created successfully');
             setShowCreateModal(false);
             fetchAccounts();
         } catch (error: any) {
             console.error('Error creating VTPay account:', error);
-            alert(error.response?.data?.message || 'Failed to create virtual account');
+            toast.error(error.response?.data?.message || 'Failed to create virtual account');
         } finally {
             setLoading(false);
         }

@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, Modal, TextInput, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Wallet, ArrowUpRight, ArrowDownLeft, X, CreditCard } from 'lucide-react-native';
+import { ArrowLeft, Wallet, ArrowUpRight, ArrowDownLeft, X, CreditCard, CheckCircle, TrendingUp, Clock, Zap } from 'lucide-react-native';
 import Colors from '../constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import { WalletService } from '../services/wallet.service';
 import { useAuth } from '../context/AuthContext';
+import { AuthService } from '../services/auth.service';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function WalletScreen() {
     const router = useRouter();
-    const { user } = useAuth();
+    const { user, updateUser } = useAuth();
 
     const [balance, setBalance] = useState(0);
     const [transactions, setTransactions] = useState<any[]>([]);
@@ -20,6 +22,7 @@ export default function WalletScreen() {
     const [showFundModal, setShowFundModal] = useState(false);
     const [fundAmount, setFundAmount] = useState('');
     const [funding, setFunding] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
 
     useEffect(() => {
         fetchWalletData();
@@ -76,6 +79,31 @@ export default function WalletScreen() {
         return '₦' + amount.toLocaleString();
     };
 
+    const handleCreateVirtualAccount = async () => {
+        setIsGenerating(true);
+        try {
+            const res = await AuthService.createVirtualAccount('wema'); // Defaulting to Wema
+            if (res.success) {
+                // Update local user state
+                const updatedUser = { ...user, virtual_account: res.data };
+                // Use context updater if available, else manual
+                if (updateUser) {
+                    await updateUser(updatedUser);
+                } else {
+                    // Fallback if context doesn't expose updater yet (though we added it)
+                    await AsyncStorage.setItem('vtfree_user', JSON.stringify(updatedUser));
+                }
+                Alert.alert('Success', 'Virtual account generated successfully!');
+            } else {
+                Alert.alert('Failed', res.message || 'Failed to generate virtual account');
+            }
+        } catch (error: any) {
+            Alert.alert('Error', error.response?.data?.message || 'An error occurred');
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
     return (
         <View style={styles.container}>
             {/* Header */}
@@ -104,13 +132,65 @@ export default function WalletScreen() {
                     </View>
                     <Text style={styles.balanceValue}>{formatCurrency(balance)}</Text>
 
-                    <View style={styles.cardActions}>
-                        <TouchableOpacity style={styles.fundButton} onPress={() => setShowFundModal(true)}>
-                            <CreditCard color={Colors.primary} size={20} />
-                            <Text style={styles.fundButtonText}>Fund Wallet</Text>
-                        </TouchableOpacity>
-                    </View>
                 </LinearGradient>
+
+                {/* Virtual Account / Funding Section */}
+                <Text style={styles.sectionTitle}>Fund Wallet</Text>
+
+                {user?.virtual_account ? (
+                    <View style={styles.virtualAccountCard}>
+                        <View style={styles.vaHeader}>
+                            <CheckCircle color={Colors.green[600]} size={18} />
+                            <Text style={styles.vaTitle}>Bank Transfer (Instant)</Text>
+                        </View>
+                        <View style={styles.vaContent}>
+                            <View style={styles.vaItem}>
+                                <Text style={styles.vaLabel}>Bank Name</Text>
+                                <Text style={styles.vaValue}>{user.virtual_account.bank}</Text>
+                            </View>
+                            <View style={styles.vaDivider} />
+                            <View style={styles.vaItem}>
+                                <Text style={styles.vaLabel}>Account Number</Text>
+                                <View style={styles.vaAccountRow}>
+                                    <Text style={styles.vaAccountNumber}>{user.virtual_account.account_number}</Text>
+                                    <TouchableOpacity style={styles.copyButton}>
+                                        <Text style={styles.copyText}>Copy</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                            <View style={styles.vaDivider} />
+                            <View style={styles.vaItem}>
+                                <Text style={styles.vaLabel}>Account Name</Text>
+                                <Text style={styles.vaValue}>{user.virtual_account.account_name}</Text>
+                            </View>
+                        </View>
+                        <View style={styles.vaFooter}>
+                            <Clock size={12} color={Colors.gray[500]} />
+                            <Text style={styles.vaNote}>Transfer to this account to fund your wallet instantly.</Text>
+                        </View>
+                    </View>
+                ) : (
+                    <TouchableOpacity
+                        style={styles.generateButton}
+                        onPress={handleCreateVirtualAccount}
+                        disabled={isGenerating}
+                    >
+                        {isGenerating ? (
+                            <ActivityIndicator color={Colors.white} />
+                        ) : (
+                            <>
+                                <LinearGradient
+                                    colors={[Colors.primary, Colors.primaryLight]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={StyleSheet.absoluteFill}
+                                />
+                                <Zap color={Colors.white} size={20} fill={Colors.white} />
+                                <Text style={styles.generateButtonText}>Generate Personal Account Number</Text>
+                            </>
+                        )}
+                    </TouchableOpacity>
+                )}
 
                 {/* Transactions */}
                 <Text style={styles.sectionTitle}>Recent Transactions</Text>
@@ -237,6 +317,7 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         padding: 16,
+        paddingBottom: 120, // Space for TabBar
     },
     balanceCard: {
         borderRadius: 20,
@@ -399,5 +480,102 @@ const styles = StyleSheet.create({
         color: Colors.white,
         fontWeight: 'bold',
         fontSize: 16,
+    },
+    virtualAccountCard: {
+        backgroundColor: '#F0FDF4',
+        borderRadius: 20,
+        padding: 20,
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: '#DCFCE7',
+    },
+    vaHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 16,
+    },
+    vaTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#166534',
+    },
+    vaContent: {
+        gap: 0,
+    },
+    vaItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 12,
+    },
+    vaDivider: {
+        height: 1,
+        backgroundColor: '#DCFCE7',
+    },
+    vaLabel: {
+        fontSize: 13,
+        color: '#166534',
+        opacity: 0.7,
+    },
+    vaValue: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#166534',
+    },
+    vaAccountRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    vaAccountNumber: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#166534',
+        letterSpacing: 1,
+    },
+    copyButton: {
+        backgroundColor: Colors.white,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 6,
+        borderWidth: 0.5,
+        borderColor: '#DCFCE7',
+    },
+    copyText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: Colors.primary,
+    },
+    vaFooter: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginTop: 16,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: '#DCFCE7',
+    },
+    vaNote: {
+        fontSize: 11,
+        color: '#166534',
+        opacity: 0.6,
+        fontStyle: 'italic',
+    },
+    generateButton: {
+        borderRadius: 16,
+        height: 60,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        overflow: 'hidden',
+        marginBottom: 24,
+    },
+    generateButtonText: {
+        color: Colors.white,
+        fontSize: 16,
+        fontWeight: 'bold',
+        zIndex: 1,
     },
 });

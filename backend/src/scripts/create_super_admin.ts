@@ -1,55 +1,64 @@
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
+import dotenv from 'dotenv';
+import path from 'path';
 import SuperAdmin from '../models/super_admin.model.js';
 
+// Load environment variables
 dotenv.config();
 
-const MONGODB_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/connecta_vtu';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/vtfree';
 
 async function createSuperAdmin() {
+    const email = process.env.ADMIN_EMAIL || 'admin@vtfree.com';
+    const password = process.env.ADMIN_PASSWORD || 'Admin@12345';
+    const firstName = 'System';
+    const lastName = 'Administrator';
+
     try {
-        await mongoose.connect(MONGODB_URI);
-        console.log('Connected to database.');
+        console.log('Connecting to MongoDB...');
+        await mongoose.connect(MONGO_URI);
+        console.log('Connected successfully.');
 
-        const email = 'superadmin@vtfree.com';
-        const password = 'Admin@123456';
-
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
+        // Check if admin already exists
         const existingAdmin = await SuperAdmin.findOne({ email });
+
         if (existingAdmin) {
-            console.log('Super Admin already exists. Updating password...');
+            console.log(`Admin with email ${email} already exists.`);
+            console.log('Updating password...');
+
+            const hashedPassword = await bcrypt.hash(password, 10);
             existingAdmin.password = hashedPassword;
-            existingAdmin.first_name = 'Super';
-            existingAdmin.last_name = 'Admin';
             await existingAdmin.save();
-            console.log(`✅ Super Admin updated successfully.`);
+
+            console.log('Password updated successfully.');
+        } else {
+            console.log(`Creating new super admin: ${email}...`);
+
+            const hashedPassword = await bcrypt.hash(password, 10);
+
+            await SuperAdmin.create({
+                email,
+                password: hashedPassword,
+                first_name: firstName,
+                last_name: lastName,
+                role: 'super_admin',
+                permissions: ['all'],
+                status: 'active'
+            });
+
+            console.log('-----------------------------------');
+            console.log('Super Admin Created Successfully!');
             console.log(`Email: ${email}`);
             console.log(`Password: ${password}`);
-            process.exit(0);
+            console.log('-----------------------------------');
         }
 
-        const newAdmin = new SuperAdmin({
-            email,
-            password: hashedPassword,
-            first_name: 'Super',
-            last_name: 'Admin',
-            role: 'super_admin',
-            permissions: ['all']
-        });
-
-        await newAdmin.save();
-
-        console.log('✅ Super Admin created successfully.');
-        console.log(`Email: ${email}`);
-        console.log(`Password: ${password}`);
-
+    } catch (error: any) {
+        console.error('Error creating super admin:', error.message);
+    } finally {
+        await mongoose.disconnect();
         process.exit(0);
-    } catch (error) {
-        console.error('Error creating super admin:', error);
-        process.exit(1);
     }
 }
 

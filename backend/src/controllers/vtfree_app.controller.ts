@@ -15,6 +15,7 @@ import VTfreeTransaction from '../models/vtfree_transaction.model.js';
 import { PricingService } from '../services/pricing.service.js';
 import { AppGeneratorService } from '../services/app_generator.service.js';
 import { addBuildJob } from '../queues/app_build.queue.js';
+import { cloudinaryService } from '../services/cloudinary.service.js';
 
 export const createApp = async (req: Request, res: Response) => {
     try {
@@ -66,15 +67,26 @@ export const createApp = async (req: Request, res: Response) => {
         }
 
         if (user.wallet_balance < totalAmount) {
-            return res.status(402).json({
-                success: false,
-                message: 'Insufficient wallet balance',
-                code: 'INSUFFICIENT_FUNDS',
-                data: {
-                    required: totalAmount,
-                    current: user.wallet_balance,
-                    shortfall: totalAmount - user.wallet_balance
-                }
+            // INSUFFICIENT FUNDS: Save app as pending instead of failing
+            const result = await AppCreationService.createNewApp({
+                owner_id,
+                owner_email,
+                app_name,
+                package_name,
+                platforms,
+                branding,
+                services: services || [],
+                company,
+                admin_credentials: req.body.admin_credentials || undefined,
+                payment_status: 'pending'
+            });
+
+            return res.status(201).json({
+                success: true,
+                message: 'App details saved. Please fund your wallet to complete the build.',
+                code: 'INSUFFICIENT_FUNDS_SAVED',
+                saved_offline: true,
+                data: result
             });
         }
 
@@ -208,13 +220,64 @@ export const getAppDetails = async (req: Request, res: Response) => {
             return res.status(404).json({ success: false, message: 'App not found' });
         }
 
+        const admins = await AppAdmin.find({ app_id: appId }).select('email first_name last_name role status app_id');
+
         res.json({
             success: true,
-            data: { app }
+            data: { app, admins }
         });
     } catch (error) {
         console.error('Get app details error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const addAppAdmin = async (req: Request, res: Response) => {
+    try {
+        const { appId } = req.params;
+        const owner_id = (req as any).user.id;
+        const { email, password, first_name, last_name, role = 'admin' } = req.body;
+
+        // Verify App Ownership
+        const app = await CreatedApp.findOne({ app_id: appId, owner_id });
+        if (!app) {
+            return res.status(404).json({ success: false, message: 'App not found' });
+        }
+
+        // Check if admin exists
+        const existingAdmin = await AppAdmin.findOne({ app_id: appId, email });
+        if (existingAdmin) {
+            return res.status(400).json({ success: false, message: 'Admin with this email already exists for this app.' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const newAdmin = await AppAdmin.create({
+            app_id: appId,
+            email,
+            password: hashedPassword,
+            first_name,
+            last_name,
+            role,
+            status: 'active',
+            created_by: owner_id
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'Admin added successfully',
+            data: {
+                id: newAdmin._id,
+                email: newAdmin.email,
+                role: newAdmin.role,
+                status: newAdmin.status,
+                app_id: newAdmin.app_id
+            }
+        });
+
+    } catch (error: any) {
+        console.error('Add app admin error:', error);
+        res.status(500).json({ success: false, message: error.message || 'Server error' });
     }
 };
 
@@ -270,6 +333,11 @@ export const triggerBuildApk = async (req: Request, res: Response) => {
             return res.status(409).json({ success: false, message: 'A build is already in progress for this app.' });
         }
 
+        const targets: string[] = [];
+        if (app.platforms.android) targets.push('android_apk');
+        if (app.platforms.web) targets.push('web');
+        if (targets.length === 0) targets.push('android_apk');
+
         const options = {
             app_id: app.app_id,
             app_name: app.app_name,
@@ -280,7 +348,9 @@ export const triggerBuildApk = async (req: Request, res: Response) => {
                 logo_url: app.branding.logo_url,
             },
             server_url: process.env.API_BASE_URL || 'https://vua.vtfree.com/api',
-            target
+            targets: targets,
+            target: targets[0],
+            user_email: (req as any).user.email
         };
 
         // Enqueue Build Job
@@ -314,7 +384,7 @@ export const getAppBuildStatus = async (req: Request, res: Response) => {
         const owner_id = (req as any).user.id;
 
         const app = await CreatedApp.findOne({ app_id: appId, owner_id })
-            .select('status build_status build_progress build_stage download_links build_error');
+            .select('status build_status build_progress build_stage download_links build_error payment_status total_paid');
 
         if (!app) {
             return res.status(404).json({ success: false, message: 'App not found' });
@@ -327,7 +397,9 @@ export const getAppBuildStatus = async (req: Request, res: Response) => {
                 progress: app.build_progress,
                 stage: app.build_stage,
                 links: app.download_links,
-                error: (app as any).build_error
+                error: (app as any).build_error,
+                payment_status: app.payment_status,
+                total_paid: app.total_paid
             }
         });
     } catch (error) {
@@ -384,5 +456,298 @@ export const getPublicAppDetails = async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Get public app details error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const uploadLogo = async (req: Request, res: Response) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: 'No file uploaded'
+            });
+        }
+
+        const userId = (req as any).user.id;
+
+        // Upload to Cloudinary
+        const uploadResult = await cloudinaryService.uploadImage(req.file.path, `vtfree/logos/users/${userId}`);
+
+        // Clean up local file
+        if (fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+
+        res.json({
+            success: true,
+            message: 'Logo uploaded successfully',
+            data: {
+                logo_url: uploadResult.secure_url
+            }
+        });
+    } catch (error: any) {
+        console.error('Upload logo error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Server error'
+        });
+    }
+};
+
+export const payAndStartBuild = async (req: Request, res: Response) => {
+    try {
+        const { appId } = req.params;
+        const owner_id = (req as any).user.id;
+        const owner_email = (req as any).user.email;
+
+        const app = await CreatedApp.findOne({ app_id: appId, owner_id });
+        if (!app) {
+            return res.status(404).json({ success: false, message: 'App not found' });
+        }
+
+        if (app.payment_status === 'paid') {
+            return res.status(400).json({ success: false, message: 'App is already paid for' });
+        }
+
+        // 1. Recalculate Total Cost
+        const PRICES = await PricingService.getAppCreationPrices();
+        let totalAmount = 0;
+        if (app.platforms.android) totalAmount += PRICES.PLATFORM_ANDROID;
+        if (app.platforms.ios) totalAmount += PRICES.PLATFORM_IOS;
+        if (app.platforms.web) totalAmount += PRICES.PLATFORM_WEB;
+
+        // 2. Check Balance
+        const user = await VTfreeUser.findById(owner_id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        if (user.wallet_balance < totalAmount) {
+            return res.status(402).json({
+                success: false,
+                message: 'Insufficient wallet balance',
+                code: 'INSUFFICIENT_FUNDS',
+                data: {
+                    required: totalAmount,
+                    current: user.wallet_balance,
+                    shortfall: totalAmount - user.wallet_balance
+                }
+            });
+        }
+
+        // 3. Process Wallet Payment
+        user.wallet_balance -= totalAmount;
+        await user.save();
+
+        await VTfreeTransaction.create({
+            user_id: owner_id,
+            type: 'debit',
+            amount: totalAmount,
+            reference: `PAY-${uuidv4()}`,
+            description: `Payment for App Creation (Finalizing): ${app.app_name}`,
+            status: 'success',
+            metadata: { app_name: app.app_name, package_name: app.package_name, method: 'wallet' }
+        });
+
+        // 4. Update App Status
+        app.payment_status = 'paid';
+        app.total_paid = totalAmount;
+        app.status = 'building';
+        await app.save();
+
+        // 5. Trigger App Generation
+        const targets: string[] = [];
+        if (app.platforms.android) targets.push('android_apk');
+        if (app.platforms.web) targets.push('web');
+        // Default to android if none (should unlikely happen if valid app)
+        if (targets.length === 0) targets.push('android_apk');
+
+        await addBuildJob(appId, {
+            appId: appId,
+            options: {
+                app_id: appId,
+                app_name: app.app_name,
+                package_name: app.package_name,
+                branding: app.branding,
+                server_url: process.env.API_BASE_URL || 'https://vua.vtfree.com/api',
+                targets: targets,
+                target: targets[0], // backward compatibility
+                user_email: owner_email
+            }
+        });
+
+        res.json({
+            success: true,
+            message: 'Payment successful. App build started.',
+            data: { app }
+        });
+
+    } catch (error: any) {
+        console.error('Pay and build error:', error);
+        res.status(500).json({ success: false, message: error.message || 'Server error' });
+    }
+};
+
+export const updateAppDetails = async (req: Request, res: Response) => {
+    try {
+        const { appId } = req.params;
+        const owner_id = (req as any).user.id;
+        const {
+            app_name,
+            branding,
+            services,
+            company,
+            rebuild = false,
+            payment_settings,
+            email_settings,
+            referral_settings
+        } = req.body;
+
+        const app = await CreatedApp.findOne({ app_id: appId, owner_id });
+        if (!app) {
+            return res.status(404).json({ success: false, message: 'App not found' });
+        }
+
+        // 1. Update Basic Info
+        if (app_name) app.app_name = app_name;
+        if (branding) {
+            app.branding = { ...app.branding, ...branding };
+        }
+        if (services) app.services = services;
+        if (company) {
+            app.company = { ...app.company, ...company };
+        }
+
+        // 2. Update Advanced Settings
+        if (payment_settings) {
+            app.payment_settings = { ...app.payment_settings, ...payment_settings };
+        }
+        if (email_settings) {
+            app.email_settings = { ...app.email_settings, ...email_settings };
+        }
+        if (referral_settings) {
+            app.referral_settings = { ...app.referral_settings, ...referral_settings };
+        }
+
+        await app.save();
+
+        // 3. Trigger Rebuild if requested (and if paid)
+        if (rebuild && app.payment_status === 'paid') {
+            const options = {
+                app_id: app.app_id,
+                app_name: app.app_name,
+                package_name: app.package_name,
+                branding: app.branding,
+                server_url: process.env.API_BASE_URL || 'https://vua.vtfree.com/api',
+                target: app.platforms.android ? 'android_apk' : (app.platforms.web ? 'web' : 'android_apk')
+            };
+            await addBuildJob(appId, { appId, options });
+
+            // Update status to building
+            app.status = 'building';
+            await app.save();
+        }
+
+        res.json({
+            success: true,
+            message: 'App details updated successfully' + (rebuild ? ' and build triggered.' : '.'),
+            data: { app }
+        });
+
+    } catch (error: any) {
+        console.error('Update app error:', error);
+        res.status(500).json({ success: false, message: error.message || 'Server error' });
+    }
+};
+
+const LATEST_TEMPLATE_VERSION = '2.0.0';
+
+export const upgradeApp = async (req: Request, res: Response) => {
+    try {
+        const { appId } = req.params;
+        const owner_id = (req as any).user.id;
+
+        const app = await CreatedApp.findOne({ app_id: appId, owner_id });
+        if (!app) {
+            return res.status(404).json({ success: false, message: 'App not found' });
+        }
+
+        if (app.payment_status !== 'paid') {
+            return res.status(403).json({ success: false, message: 'Please complete payment before upgrading.' });
+        }
+
+        // 1. Fetch Dynamic Upgrade Config
+        const CONFIG = await PricingService.getAppCreationPrices();
+        const LATEST_VERSION = CONFIG.LATEST_TEMPLATE_VERSION || '2.0.0'; // Fallback
+        const UPGRADE_FEE = CONFIG.APP_UPGRADE_FEE || 0;
+
+        if (!CONFIG.APP_UPGRADE_ENABLED) {
+            return res.status(403).json({ success: false, message: 'App upgrades are currently disabled by admin.' });
+        }
+
+        // Check if already on latest version
+        if (app.version === LATEST_VERSION) {
+            return res.status(400).json({ success: false, message: 'App is already on the latest version.' });
+        }
+
+        // 2. Check & Deduct Balance if Fee > 0
+        if (UPGRADE_FEE > 0) {
+            const user = await VTfreeUser.findById(owner_id);
+            if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+            if (user.wallet_balance < UPGRADE_FEE) {
+                return res.status(402).json({
+                    success: false,
+                    message: `Insufficient wallet balance. Upgrade fee is ₦${UPGRADE_FEE.toLocaleString()}`,
+                    code: 'INSUFFICIENT_FUNDS',
+                    data: {
+                        required: UPGRADE_FEE,
+                        current: user.wallet_balance,
+                        shortfall: UPGRADE_FEE - user.wallet_balance
+                    }
+                });
+            }
+
+            // Deduct & Transact
+            user.wallet_balance -= UPGRADE_FEE;
+            await user.save();
+
+            await VTfreeTransaction.create({
+                user_id: owner_id,
+                type: 'debit',
+                amount: UPGRADE_FEE,
+                reference: `UPGRADE-${uuidv4()}`,
+                description: `App Upgrade to v${LATEST_VERSION}: ${app.app_name}`,
+                status: 'success',
+                metadata: { app_name: app.app_name, version: LATEST_VERSION, old_version: app.version }
+            });
+        }
+
+        // 3. Update version in DB
+        const oldVersion = app.version;
+        app.version = LATEST_VERSION;
+        app.status = 'building';
+        await app.save();
+
+        // 4. Trigger Rebuild
+        const options = {
+            app_id: app.app_id,
+            app_name: app.app_name,
+            package_name: app.package_name,
+            branding: app.branding,
+            server_url: process.env.API_BASE_URL || 'https://vua.vtfree.com/api',
+            target: app.platforms.android ? 'android_apk' : (app.platforms.web ? 'web' : 'android_apk')
+        };
+        await addBuildJob(appId, { appId, options });
+
+        res.json({
+            success: true,
+            message: `App upgraded from v${oldVersion} to v${LATEST_VERSION}.`,
+            data: { app, fee_deducted: UPGRADE_FEE }
+        });
+
+    } catch (error: any) {
+        console.error('Upgrade app error:', error);
+        res.status(500).json({ success: false, message: error.message || 'Server error' });
     }
 };

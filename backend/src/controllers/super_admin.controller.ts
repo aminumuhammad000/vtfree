@@ -4,13 +4,15 @@ import bcrypt from 'bcryptjs';
 import SuperAdmin from '../models/super_admin.model.js';
 import CreatedApp from '../models/created_app.model.js';
 import VTfreeUser from '../models/vtfree_user.model.js';
+import VTfreeTransaction from '../models/vtfree_transaction.model.js';
 import { Transaction } from '../models/transaction.model.js';
 import PlatformTransaction from '../models/platform_transaction.model.js';
 import { User } from '../models/user.model.js';
 import AppAdmin from '../models/app_admin.model.js';
 import AirtimePlan from '../models/airtime_plan.model.js';
+import Feature from '../models/Feature.js';
+import { Plan } from '../models/plan.model.js';
 import ibdataService from '../services/ibdata.service.js';
-import ProviderConfig from '../models/provider.model.js';
 import logger from '../utils/logger.js';
 import { normalizeNetwork, getNetworkName, NetworkId } from '../utils/network.js';
 import { VTPayService } from '../services/vtpay.service.js';
@@ -145,7 +147,19 @@ export const getOwnerById = async (req: Request, res: Response) => {
         const { id } = req.params;
         const owner = await VTfreeUser.findById(id).select('-password');
         if (!owner) return res.status(404).json({ success: false, message: 'Owner not found' });
-        res.json({ success: true, data: { owner } });
+
+        // Fetch apps owned by this user
+        const apps = await CreatedApp.find({ owner_id: id }).sort({ created_at: -1 });
+
+        res.json({
+            success: true,
+            data: {
+                owner: {
+                    ...owner.toObject(),
+                    apps: apps || []
+                }
+            }
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Server error' });
     }
@@ -179,6 +193,53 @@ export const updateOwnerStatus = async (req: Request, res: Response) => {
         if (!owner) return res.status(404).json({ success: false, message: 'Owner not found' });
         res.json({ success: true, data: { owner } });
     } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const creditOwnerWallet = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { amount, reason } = req.body;
+
+        if (!amount || isNaN(amount) || amount <= 0) {
+            return res.status(400).json({ success: false, message: 'Invalid amount' });
+        }
+
+        const owner = await VTfreeUser.findById(id);
+        if (!owner) {
+            return res.status(404).json({ success: false, message: 'Owner not found' });
+        }
+
+        owner.wallet_balance += Number(amount);
+        await owner.save();
+
+        // Create transaction record
+        await VTfreeTransaction.create({
+            user_id: owner._id,
+            type: 'credit',
+            amount: Number(amount),
+            reference: `MANUAL_CREDIT_${Date.now()}`,
+            description: reason || 'Wallet credited by Admin',
+            status: 'success',
+            metadata: {
+                initiator: 'super_admin'
+            },
+            created_at: new Date()
+        });
+
+        // Log the transaction (optional but recommended)
+        logger.info(`Super Admin credited wallet of ${owner.email} with ${amount}. Reason: ${reason || 'N/A'}`);
+
+        res.json({
+            success: true,
+            message: `Successfully credited ₦${amount} to ${owner.first_name}'s wallet`,
+            data: {
+                wallet_balance: owner.wallet_balance
+            }
+        });
+    } catch (error) {
+        console.error('Credit owner wallet error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
@@ -409,21 +470,34 @@ export const getAllPayments = async (req: Request, res: Response) => {
 // Plans Management
 export const getAllPlans = async (req: Request, res: Response) => {
     try {
-        const { Plan } = await import('../models/plan.model.js');
         const plans = await Plan.find().sort({ created_at: -1 });
         res.json({ success: true, data: { plans } });
     } catch (error) {
+        logger.error('Error fetching all plans:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
 
 export const createPlan = async (req: Request, res: Response) => {
     try {
-        const { Plan } = await import('../models/plan.model.js');
-        const plan = new Plan(req.body);
+        const { name, price, billing, features, status } = req.body;
+
+        if (!name) {
+            return res.status(400).json({ success: false, message: 'Plan name is required' });
+        }
+
+        const plan = new Plan({
+            name,
+            price: Number(price) || 0,
+            billing: billing || 'monthly',
+            features: features || [],
+            status: status || 'active'
+        });
+
         await plan.save();
         res.json({ success: true, data: { plan } });
     } catch (error) {
+        logger.error('Error creating plan:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
@@ -431,10 +505,18 @@ export const createPlan = async (req: Request, res: Response) => {
 export const updatePlan = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { Plan } = await import('../models/plan.model.js');
-        const plan = await Plan.findByIdAndUpdate(id, req.body, { new: true });
+        const updateData = req.body;
+
+        if (updateData.price !== undefined) {
+            updateData.price = Number(updateData.price) || 0;
+        }
+
+        const plan = await Plan.findByIdAndUpdate(id, updateData, { new: true });
+        if (!plan) return res.status(404).json({ success: false, message: 'Plan not found' });
+
         res.json({ success: true, data: { plan } });
     } catch (error) {
+        logger.error('Error updating plan:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
@@ -442,10 +524,12 @@ export const updatePlan = async (req: Request, res: Response) => {
 export const deletePlan = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { Plan } = await import('../models/plan.model.js');
-        await Plan.findByIdAndDelete(id);
+        const plan = await Plan.findByIdAndDelete(id);
+        if (!plan) return res.status(404).json({ success: false, message: 'Plan not found' });
+
         res.json({ success: true, message: 'Plan deleted' });
     } catch (error) {
+        logger.error('Error deleting plan:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
@@ -453,21 +537,37 @@ export const deletePlan = async (req: Request, res: Response) => {
 // Features Management
 export const getAllFeatures = async (req: Request, res: Response) => {
     try {
-        const { Feature } = await import('../models/feature.model.js');
         const features = await Feature.find().sort({ created_at: -1 });
         res.json({ success: true, data: { features } });
     } catch (error) {
+        logger.error('Error fetching all features:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
 
 export const createFeature = async (req: Request, res: Response) => {
     try {
-        const { Feature } = await import('../models/feature.model.js');
-        const feature = new Feature(req.body);
+        const { feature_id, name, slug, description, icon_name, base_price, category, is_active } = req.body;
+
+        if (!feature_id || !name || !slug) {
+            return res.status(400).json({ success: false, message: 'feature_id, name, and slug are required' });
+        }
+
+        const feature = new Feature({
+            feature_id,
+            name,
+            slug,
+            description,
+            icon_name: icon_name || 'CheckSquare',
+            base_price: Number(base_price) || 0,
+            category: category || 'utility',
+            is_active: is_active !== undefined ? is_active : true
+        });
+
         await feature.save();
         res.json({ success: true, data: { feature } });
     } catch (error) {
+        logger.error('Error creating feature:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
@@ -475,10 +575,18 @@ export const createFeature = async (req: Request, res: Response) => {
 export const updateFeature = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { Feature } = await import('../models/feature.model.js');
-        const feature = await Feature.findByIdAndUpdate(id, req.body, { new: true });
+        const updateData = req.body;
+
+        if (updateData.base_price !== undefined) {
+            updateData.base_price = Number(updateData.base_price) || 0;
+        }
+
+        const feature = await Feature.findByIdAndUpdate(id, updateData, { new: true });
+        if (!feature) return res.status(404).json({ success: false, message: 'Feature not found' });
+
         res.json({ success: true, data: { feature } });
     } catch (error) {
+        logger.error('Error updating feature:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
@@ -486,10 +594,12 @@ export const updateFeature = async (req: Request, res: Response) => {
 export const deleteFeature = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { Feature } = await import('../models/feature.model.js');
-        await Feature.findByIdAndDelete(id);
+        const feature = await Feature.findByIdAndDelete(id);
+        if (!feature) return res.status(404).json({ success: false, message: 'Feature not found' });
+
         res.json({ success: true, message: 'Feature deleted' });
     } catch (error) {
+        logger.error('Error deleting feature:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
@@ -886,5 +996,57 @@ export const getVTPayAccountTransactions = async (req: Request, res: Response) =
     } catch (error: any) {
         logger.error('Error fetching VTPay account transactions:', error);
         res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Build Option Prices Management
+export const getBuildPrices = async (req: Request, res: Response) => {
+    try {
+        const priceKeys = [
+            'PLATFORM_ANDROID',
+            'PLATFORM_WEB',
+            'PUBLISH_PRICE_PLAY_STORE',
+            'PUBLISH_WEB'
+        ];
+
+        const prices: any = {};
+        for (const key of priceKeys) {
+            const value = await configService.get(key);
+            prices[key] = value ? Number(value) : 0;
+        }
+
+        res.json({ success: true, data: prices });
+    } catch (error: any) {
+        logger.error('Error fetching build prices:', error);
+        res.status(500).json({ success: false, message: error.message || 'Server error' });
+    }
+};
+
+export const updateBuildPrice = async (req: Request, res: Response) => {
+    try {
+        const { key, value } = req.body;
+
+        const validKeys = [
+            'PLATFORM_ANDROID',
+            'PLATFORM_WEB',
+            'PUBLISH_PRICE_PLAY_STORE',
+            'PUBLISH_WEB'
+        ];
+
+        if (!validKeys.includes(key)) {
+            return res.status(400).json({ success: false, message: 'Invalid price key' });
+        }
+
+        const numValue = Number(value);
+        if (isNaN(numValue) || numValue < 0) {
+            return res.status(400).json({ success: false, message: 'Invalid price value' });
+        }
+
+        await configService.set(key, numValue.toString());
+
+        res.json({ success: true, message: 'Build price updated successfully' });
+    } catch (error: any) {
+        logger.error('Error updating build price:', error);
+        res.status(500).json({ success: false, message: error.message || 'Server error' });
     }
 };

@@ -25,7 +25,8 @@
     "migrate:test-setup": "tsx src/scripts/test_migration.ts",
     "migrate:test-verify": "tsx src/scripts/test_migration.ts --verify",
     "migrate:test-cleanup": "tsx src/scripts/test_migration.ts --cleanup",
-    "create:super-admin": "tsx create-super-admin.ts"
+    "create:super-admin": "tsx src/scripts/create_super_admin.ts",
+    "setup:app": "tsx src/scripts/create_app_setup.ts"
   },
   "jest": {
     "preset": "ts-jest/presets/default-esm",
@@ -72,6 +73,7 @@
     "axios": "^1.13.1",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.67.2",
+    "cloudinary": "^2.9.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",

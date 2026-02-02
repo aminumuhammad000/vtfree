@@ -16,6 +16,7 @@ export class AppCreationService {
         services: string[];
         company?: { name?: string; email?: string; phone?: string; address?: string };
         admin_credentials?: { email: string; password: string };
+        payment_status?: 'pending' | 'paid';
     }) {
         // 1. Validate Package Name
         const existingApp = await CreatedApp.findOne({ package_name: data.package_name });
@@ -23,8 +24,8 @@ export class AppCreationService {
             throw new Error('Package name already taken');
         }
 
-        // 2. Generate App ID
-        const app_id = `app_${uuidv4().split('-')[0]}`;
+        // 2. Generate App ID (Use package name as requested)
+        const app_id = data.package_name;
 
         // 3. Generate or Use Admin Credentials
         let adminEmail = data.owner_email;
@@ -41,6 +42,9 @@ export class AppCreationService {
         const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
         // 4. Create App Record
+        const status = data.payment_status === 'pending' ? 'pending' : 'building';
+        const payment_status = data.payment_status || 'paid';
+
         const newApp = new CreatedApp({
             app_id,
             owner_id: data.owner_id,
@@ -49,15 +53,17 @@ export class AppCreationService {
             platforms: data.platforms,
             branding: data.branding,
             services: data.services,
-            company: data.company, // Add company details
-            status: 'building',
+            company: data.company,
+            status,
+            payment_status,
+            total_paid: payment_status === 'paid' ? 0 : 0, // Will be updated on actual payment
             admin_email: adminEmail,
             admin_password_hash: hashedPassword,
         });
 
         await newApp.save();
 
-        // 5. Create Admin Account
+        // 5. Create Admin Account (We can create it now, it doesn't hurt)
         await AdminGenerationService.createAdminAccount({
             app_id,
             email: adminEmail,
@@ -66,18 +72,20 @@ export class AppCreationService {
             created_by: data.owner_id
         });
 
-        // 6. Trigger App Generation via Queue
-        await addBuildJob(app_id, {
-            appId: app_id,
-            options: {
-                app_id,
-                app_name: data.app_name,
-                package_name: data.package_name,
-                branding: data.branding,
-                server_url: process.env.API_BASE_URL || 'https://vua.vtfree.com/api',
-                target: data.platforms.android ? 'android_apk' : (data.platforms.web ? 'web' : 'android_apk')
-            }
-        });
+        // 6. Trigger App Generation via Queue ONLY IF PAID
+        if (payment_status === 'paid') {
+            await addBuildJob(app_id, {
+                appId: app_id,
+                options: {
+                    app_id,
+                    app_name: data.app_name,
+                    package_name: data.package_name,
+                    branding: data.branding,
+                    server_url: process.env.API_BASE_URL || 'https://vua.vtfree.com/api',
+                    target: data.platforms.android ? 'android_apk' : (data.platforms.web ? 'web' : 'android_apk')
+                }
+            });
+        }
 
         return {
             app: newApp,

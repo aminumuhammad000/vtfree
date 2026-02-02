@@ -35,15 +35,32 @@ sudo npm install -g pm2
 ```
 
 ## 2. Backend Deployment
-```bash
 cd /var/www/vtfree/backend
 npm install
 # Update .env with production credentials (JWT_SECRET, MONGO_URI, etc.)
 npm run build
 pm2 start dist/server.js --name "vtfree-api"
-```
 
-## 3. Frontend Deployments
+### Create Super Admin
+```bash
+cd backend
+npm run create:super-admin
+```
+*   **Default Email**: `superadmin@vtfree.com`
+*   **Default Password**: `Admin@123456`
+
+### Create App & Owner
+Use this script to create a business owner and their first VTU application.
+```bash
+cd backend
+npm run setup:app -- --email=owner@example.com --password=Admin@123456 --name="My VTU App" --id=app_001
+```
+*   `--email`: The email of the app owner.
+*   `--password`: The password for both owner dashboard and app admin.
+*   `--name`: The display name of the VTU application.
+*   `--id`: A unique ID for the application (e.g., `app_001`).
+
+## 4. Frontend Deployments
 
 ### Landing Page
 Static files, no build needed. Move to `/var/www/vtfree/landing`.

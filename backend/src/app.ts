@@ -20,6 +20,10 @@ import appAdminRoutes from "./routes/app_admin.routes.js";
 import superAdminRoutes from "./routes/super_admin.routes.js";
 import publicRoutes from "./routes/public.routes.js";
 import vtpayRoutes from "./routes/vtpay.routes.js";
+import featuresRoutes from "./routes/features.routes.js";
+import webhookRoutes from "./routes/webhook.routes.js";
+import configRoutes from "./routes/config.routes.js";
+import virtualAccountRoutes from "./routes/virtualAccount.routes.js";
 
 
 // Import logging middleware
@@ -86,7 +90,7 @@ app.use(detailedRequestLogger);
 // Morgan logger for standard HTTP request logging
 app.use(requestLogger);
 
-logger.info('🚀 VTU App Backend Starting...', {
+logger.info('VTU App Backend Starting...', {
   environment: process.env.NODE_ENV || 'development',
   nodeVersion: process.version
 });
@@ -98,6 +102,10 @@ app.use("/api/v1/vtfree/wallet", vtfreeWalletRoutes);
 app.use("/api/v1/app-admin", appAdminRoutes);
 app.use("/api/v1/super-admin", superAdminRoutes);
 app.use("/api/v1/public", publicRoutes);
+app.use("/api/v1/features", featuresRoutes);
+app.use("/api/v1/webhooks", webhookRoutes);
+app.use("/api/v1/config", configRoutes);
+app.use("/api/v1/virtual-accounts", virtualAccountRoutes);
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -116,7 +124,7 @@ app.use("/api/v1/support-content", supportContentRoutes);
 
 // Root route
 app.get("/", (req: Request, res: Response) => {
-  res.send("✅ Connecta Backend (MongoDB) is running...");
+  res.send("Connecta Backend (MongoDB) is running...");
 });
 
 // Health check
@@ -143,7 +151,7 @@ app.use(errorLogger);
 
 // Global error handler
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  logger.error("❌ Unhandled Error:", {
+  logger.error("Unhandled Error:", {
     error: {
       name: err.name,
       message: err.message,

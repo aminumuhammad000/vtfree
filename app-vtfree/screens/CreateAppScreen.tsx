@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Dimensions, Image, Switch, Platform, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Dimensions, Image, Switch, Platform, ActivityIndicator, Alert, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
     ArrowLeft,
@@ -11,6 +11,7 @@ import {
     Shield,
     Rocket,
     Check,
+    CheckCircle,
     Upload,
     HelpCircle,
     Smartphone,
@@ -18,7 +19,10 @@ import {
     Monitor,
     ChevronDown,
     Wallet,
-    CreditCard
+    CreditCard,
+    Eye,
+    EyeOff,
+    X
 } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
@@ -26,22 +30,26 @@ import Animated, { FadeInRight, FadeOutLeft, Layout, SlideInRight, SlideOutLeft 
 import Colors from '../constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AppService } from '../services/app.service';
-import { Modal } from 'react-native';
+import { FeatureService, Feature } from '../services/feature.service';
+import { WalletService } from '../services/wallet.service';
 import ColorPicker, { Panel1, Swatches, Preview, OpacitySlider, HueSlider } from 'reanimated-color-picker';
 import * as ImagePicker from 'expo-image-picker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as LucideIcons from 'lucide-react-native';
+
 
 const { width } = Dimensions.get('window');
 
 export default function CreateAppScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const [currentStep, setCurrentStep] = useState(1);
     const [formData, setFormData] = useState({
-        // Step 1: Branding
         logo: null as string | null,
         primaryColor: '#16A34A',
         secondaryColor: '#22C55E',
         appName: '',
-        tagline: '',
+        packageName: '',
 
         // Step 2: Business Info
         businessName: '',
@@ -57,23 +65,119 @@ export default function CreateAppScreen() {
         adminEmail: '',
         adminPassword: '',
 
-        // Step 5: Build Options
         platforms: [] as string[],
+        androidBuildTypes: [] as ('apk' | 'aab')[],
         publishPlayStore: false,
         publishAppStore: false,
+        publishWeb: false,
         paymentMethod: 'wallet' as 'wallet' | 'card'
     });
 
     const [showColorPicker, setShowColorPicker] = useState(false);
     const [activeColorType, setActiveColorType] = useState<'primary' | 'secondary'>('primary');
+    const [features, setFeatures] = useState<Feature[]>([]);
+    const [walletBalance, setWalletBalance] = useState<number | null>(null);
+    const [userVirtualAccount, setUserVirtualAccount] = useState<any>(null);
+    const [selectedCategory, setSelectedCategory] = useState('all');
+    const [showPassword, setShowPassword] = useState(false);
+    const [hexInput, setHexInput] = useState('');
+    const [appPrices, setAppPrices] = useState<any>({
+        PLATFORM_ANDROID: 10000,
+        PLATFORM_WEB: 20000,
+        PUBLISH_PRICE_PLAY_STORE: 35000,
+        PUBLISH_PRICE_APP_STORE: 50000,
+        PUBLISH_WEB: 15000
+    });
+    const [loadingData, setLoadingData] = useState(true);
+    const [showInsufficientModal, setShowInsufficientModal] = useState(false);
+    const [showSavedModal, setShowSavedModal] = useState(false);
+    const [savedAppData, setSavedAppData] = useState<any>(null);
+    const [myApps, setMyApps] = useState<any[]>([]);
+    const [showAppSelector, setShowAppSelector] = useState(false);
+    const [insufficientData, setInsufficientData] = useState({ required: 0, current: 0 });
 
-    const onSelectColor = ({ hex }: { hex: string }) => {
+    // Auto-generate package name when app name changes
+    const [packageError, setPackageError] = useState('');
+    const [checkingPackage, setCheckingPackage] = useState(false);
+
+    // Auto-generate package name when app name changes
+    useEffect(() => {
+        if (formData.appName && !formData.packageName) {
+            const cleanName = formData.appName.toLowerCase().replace(/[^a-z0-9]/g, '');
+            setFormData((prev: any) => ({
+                ...prev,
+                packageName: `com.${cleanName}.app`
+            }));
+        }
+    }, [formData.appName]);
+
+    // Check package availability when package name changes
+    useEffect(() => {
+        const checkPackage = async () => {
+            if (!formData.packageName || formData.packageName.length < 5) return;
+
+            setCheckingPackage(true);
+            setPackageError('');
+
+            try {
+                const response = await AppService.checkPackageAvailability(formData.packageName);
+                if (!response.success || !response.available) {
+                    setPackageError('Package name is already taken');
+                }
+            } catch (error) {
+                // Ignore network errors for now, allow submission to handle final check
+            } finally {
+                setCheckingPackage(false);
+            }
+        };
+
+        const timeoutId = setTimeout(checkPackage, 800);
+        return () => clearTimeout(timeoutId);
+    }, [formData.packageName]);
+
+    // Fetch data on mount
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                setLoadingData(true);
+                const [featuresData, walletData, pricesData, myAppsData] = await Promise.all([
+                    FeatureService.getActiveFeatures(),
+                    WalletService.getWallet().catch(() => ({ success: true, data: { balance: 0 } })),
+                    AppService.getAppPrices().catch(() => ({ success: true, data: {} })),
+                    AppService.getMyApps().catch(() => ({ success: true, data: { apps: [] } }))
+                ]);
+                setFeatures(featuresData);
+                setWalletBalance(walletData.data?.balance || 0);
+                setUserVirtualAccount(walletData.data?.virtual_account);
+                if (pricesData.success && pricesData.data) {
+                    setAppPrices((prev: any) => ({ ...prev, ...pricesData.data }));
+                }
+                if (myAppsData.success && myAppsData.data?.apps) {
+                    setMyApps(myAppsData.data.apps);
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+                Alert.alert('Error', 'Failed to load initial data');
+            } finally {
+                setLoadingData(false);
+            }
+        };
+        loadData();
+    }, []);
+
+    const onSelectColor = (hex: string) => {
+        setHexInput(hex.replace('#', '').toUpperCase());
         if (activeColorType === 'primary') {
-            setFormData(prev => ({ ...prev, primaryColor: hex }));
+            setFormData((prev: any) => ({ ...prev, primaryColor: hex }));
         } else {
-            setFormData(prev => ({ ...prev, secondaryColor: hex }));
+            setFormData((prev: any) => ({ ...prev, secondaryColor: hex }));
         }
     };
+
+    const professionalPresets = [
+        '#16A34A', '#2563EB', '#7C3AED', '#DC2626', '#EA580C',
+        '#0891B2', '#4F46E5', '#BE185D', '#111827', '#4B5563'
+    ];
 
     const totalSteps = 6;
 
@@ -86,59 +190,128 @@ export default function CreateAppScreen() {
         { number: 6, title: 'Review', icon: Check }
     ];
 
-    const servicesList = [
-        { id: 'airtime', label: 'Airtime', icon: '📱', price: 3000 },
-        { id: 'data', label: 'Data', icon: '📶', price: 5000 },
-        { id: 'cable', label: 'Cable TV', icon: '📺', price: 3000 },
-        { id: 'electricity', label: 'Electricity', icon: '⚡', price: 3000 },
-        { id: 'exam', label: 'Exam Pins', icon: '📝', price: 3000 },
-        { id: 'airtime2cash', label: 'Airtime to Cash', icon: '💰', price: 5000 },
-        { id: 'sms', label: 'Bulk SMS', icon: '💬', price: 3000 },
-        { id: 'giftcard', label: 'Gift Card', icon: '🎁', price: 5000 }
-    ];
+    // Get icon component from Lucide
+    const getIconComponent = (iconName: string) => {
+        const IconComponent = (LucideIcons as any)[iconName];
+        return IconComponent || LucideIcons.HelpCircle;
+    };
 
     const calculateTotal = () => {
         let total = 0;
         // Services
-        formData.services.forEach(serviceId => {
-            const service = servicesList.find(s => s.id === serviceId);
-            if (service) total += service.price;
+        formData.services.forEach(featureId => {
+            const feature = features.find(f => f.feature_id === featureId);
+            if (feature) total += feature.base_price;
         });
 
         // Platform Base Fees
-        if (formData.platforms.includes('android')) total += 10000; // Android App Base Price
-        if (formData.platforms.includes('ios')) total += 100000;   // iOS App Base Price
-        if (formData.platforms.includes('web')) total += 20000;    // Web App Base Price
+        if (formData.platforms.includes('android')) total += appPrices.PLATFORM_ANDROID;
+        if (formData.platforms.includes('web')) total += appPrices.PLATFORM_WEB;
 
         // Publishing Fees
-        if (formData.platforms.includes('android') && formData.publishPlayStore) total += 35000;
-        if (formData.platforms.includes('ios') && formData.publishAppStore) total += 50000;
+        if (formData.platforms.includes('android') && formData.publishPlayStore) total += appPrices.PUBLISH_PLAY_STORE;
 
         return total;
     };
 
-    const formatCurrency = (amount: number) => {
+
+    const formatCurrency = (amount: number | undefined) => {
+        if (amount === undefined || amount === null || isNaN(amount)) {
+            return '₦0';
+        }
         return `₦${amount.toLocaleString()}`;
     };
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
     const pickImage = async () => {
         // No permissions request is necessary for launching the image library
         let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ['images'],
+            mediaTypes: 'images',
             allowsEditing: true,
             aspect: [1, 1],
-            quality: 0.5,
-            base64: true,
+            quality: 0.8,
         });
 
         if (!result.canceled) {
-            setFormData({ ...formData, logo: `data:image/jpeg;base64,${result.assets[0].base64}` });
+            const asset = result.assets[0];
+
+            // Validate Dimensions (Min 512x512)
+            if (asset.width < 512 || asset.height < 512) {
+                Alert.alert(
+                    'Image Too Small',
+                    `Your logo must be at least 512x512 pixels for high-quality app icons. Currently: ${asset.width}x${asset.height}px.`
+                );
+                return;
+            }
+
+            try {
+                setIsUploadingLogo(true);
+                const response = await AppService.uploadLogo(asset.uri);
+                if (response.success) {
+                    setFormData({ ...formData, logo: response.data.logo_url });
+                } else {
+                    Alert.alert('Upload Failed', response.message || 'Could not upload logo. Please try again.');
+                }
+            } catch (error: any) {
+                console.error('Logo upload error:', error);
+                Alert.alert('Error', 'An error occurred while uploading your logo. Please check your connection.');
+            } finally {
+                setIsUploadingLogo(false);
+            }
         }
     };
 
     const handleNext = async () => {
+        // Validation based on current step
+        if (currentStep === 1) {
+            if (!formData.appName.trim()) {
+                Alert.alert('Required', 'Please enter your App Name');
+                return;
+            }
+            if (!formData.packageName.trim()) {
+                Alert.alert('Required', 'Please enter your Package Name');
+                return;
+            }
+            if (packageError) {
+                Alert.alert('Invalid Package', packageError);
+                return;
+            }
+        } else if (currentStep === 2) {
+            if (!formData.businessName.trim()) {
+                Alert.alert('Required', 'Please enter your Business Name');
+                return;
+            }
+            if (!formData.email.trim()) {
+                Alert.alert('Required', 'Please enter your Business Email');
+                return;
+            }
+        } else if (currentStep === 3) {
+            if (formData.services.length === 0) {
+                Alert.alert('Required', 'Please select at least one service for your app');
+                return;
+            }
+        } else if (currentStep === 4) {
+            if (!formData.adminEmail.trim()) {
+                Alert.alert('Required', 'Please enter an Admin Email');
+                return;
+            }
+            if (!formData.adminPassword.trim()) {
+                Alert.alert('Required', 'Please enter an Admin Password');
+                return;
+            }
+        } else if (currentStep === 5) {
+            if (formData.platforms.length === 0) {
+                Alert.alert('Required', 'Please select at least one platform (Android or Web)');
+                return;
+            }
+            if (formData.platforms.includes('android') && formData.androidBuildTypes.length === 0) {
+                Alert.alert('Required', 'Please select at least one Android build type (APK or AAB)');
+                return;
+            }
+        }
+
         if (currentStep < totalSteps) {
             setCurrentStep(currentStep + 1);
         } else {
@@ -151,33 +324,51 @@ export default function CreateAppScreen() {
         try {
             const payload = {
                 app_name: formData.appName,
-                package_name: `com.vtfree.${formData.appName.toLowerCase().replace(/\s+/g, '')}`,
+                package_name: formData.packageName,
                 platforms: {
                     android: formData.platforms.includes('android'),
                     ios: formData.platforms.includes('ios'),
                     web: formData.platforms.includes('web')
                 },
+                android_build_types: formData.androidBuildTypes,
                 publish_play_store: formData.publishPlayStore,
                 publish_app_store: formData.publishAppStore,
+                publish_web: formData.publishWeb,
                 branding: {
                     primary_color: formData.primaryColor,
                     secondary_color: formData.secondaryColor,
                     logo_url: formData.logo || 'https://via.placeholder.com/150'
                 },
                 services: formData.services,
-                payment_method: formData.paymentMethod
+                payment_method: formData.paymentMethod,
+                admin_credentials: {
+                    email: formData.adminEmail,
+                    password: formData.adminPassword
+                },
+                company: {
+                    name: formData.businessName,
+                    email: formData.email,
+                    phone: formData.phone,
+                    address: formData.address
+                }
             };
 
             const response = await AppService.createApp(payload);
 
             if (response.success && !response.payment_required) {
-                router.push({
-                    pathname: '/build-status',
-                    params: {
-                        appId: response.data.app.app_id,
-                        adminCredentials: JSON.stringify(response.data.admin_credentials)
-                    }
-                });
+                if (response.saved_offline) {
+                    setSavedAppData(response.data);
+                    setShowSavedModal(true);
+                    setIsSubmitting(false);
+                } else {
+                    router.push({
+                        pathname: '/build-status',
+                        params: {
+                            appId: response.data.app.app_id,
+                            adminCredentials: JSON.stringify(response.data.admin_credentials)
+                        }
+                    });
+                }
             } else if (response.payment_required) {
                 // Handle Card Payment URL
                 const { payment_url, reference } = response;
@@ -197,14 +388,11 @@ export default function CreateAppScreen() {
                 );
             } else {
                 if (response.code === 'INSUFFICIENT_FUNDS') {
-                    Alert.alert(
-                        'Insufficient Funds',
-                        `You need ₦${(response.data.required || 0).toLocaleString()} but have ₦${(response.data.current || 0).toLocaleString()}. Please fund your wallet.`,
-                        [
-                            { text: 'Cancel', style: 'cancel' },
-                            { text: 'My Wallet', onPress: () => router.push('/wallet') }
-                        ]
-                    );
+                    setInsufficientData({
+                        required: response.data.required || 0,
+                        current: response.data.current || 0
+                    });
+                    setShowInsufficientModal(true);
                 } else {
                     Alert.alert('Error', response.message || 'Failed to create app');
                 }
@@ -251,21 +439,25 @@ export default function CreateAppScreen() {
     };
 
     const toggleService = (serviceId: string) => {
-        setFormData(prev => ({
-            ...prev,
-            services: prev.services.includes(serviceId)
-                ? prev.services.filter(s => s !== serviceId)
-                : [...prev.services, serviceId]
-        }));
+        setFormData((prev: any) => {
+            const isSelected = prev.services.includes(serviceId);
+            if (isSelected) {
+                return { ...prev, services: prev.services.filter((s: string) => s !== serviceId) };
+            } else {
+                return { ...prev, services: [...prev.services, serviceId] };
+            }
+        });
     };
 
     const togglePlatform = (platformId: string) => {
-        setFormData(prev => ({
-            ...prev,
-            platforms: prev.platforms.includes(platformId)
-                ? prev.platforms.filter(p => p !== platformId)
-                : [...prev.platforms, platformId]
-        }));
+        setFormData((prev: any) => {
+            const isSelected = prev.platforms.includes(platformId);
+            if (isSelected) {
+                return { ...prev, platforms: prev.platforms.filter((p: string) => p !== platformId) };
+            } else {
+                return { ...prev, platforms: [...prev.platforms, platformId] };
+            }
+        });
     };
 
     const renderStepContent = () => {
@@ -281,14 +473,23 @@ export default function CreateAppScreen() {
                         {/* Logo Upload */}
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>App Logo</Text>
-                            <TouchableOpacity style={styles.uploadBox} onPress={pickImage}>
-                                {formData.logo ? (
+                            <TouchableOpacity
+                                style={[styles.uploadBox, isUploadingLogo && { opacity: 0.6 }]}
+                                onPress={pickImage}
+                                disabled={isUploadingLogo}
+                            >
+                                {isUploadingLogo ? (
+                                    <View style={{ alignItems: 'center' }}>
+                                        <ActivityIndicator size="large" color={Colors.primary} />
+                                        <Text style={[styles.uploadText, { marginTop: 8 }]}>Uploading to Cloudinary...</Text>
+                                    </View>
+                                ) : formData.logo ? (
                                     <Image source={{ uri: formData.logo }} style={{ width: 80, height: 80, borderRadius: 8 }} resizeMode="contain" />
                                 ) : (
                                     <>
                                         <Upload color={Colors.gray[400]} size={32} style={{ marginBottom: 8 }} />
                                         <Text style={styles.uploadText}>Click to upload logo</Text>
-                                        <Text style={styles.uploadSubtext}>PNG, JPG up to 2MB</Text>
+                                        <Text style={styles.uploadSubtext}>Required size: 512x512px or larger (Square)</Text>
                                     </>
                                 )}
                             </TouchableOpacity>
@@ -306,16 +507,31 @@ export default function CreateAppScreen() {
                             />
                         </View>
 
-                        {/* Tagline */}
+                        {/* Package Name */}
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Tagline</Text>
+                            <Text style={styles.label}>Package Name (App Bundle ID)</Text>
                             <TextInput
-                                style={styles.input}
-                                value={formData.tagline}
-                                onChangeText={(text) => setFormData({ ...formData, tagline: text })}
-                                placeholder="Recharge made easy"
+                                style={[styles.input, packageError ? { borderColor: Colors.red[500] } : null]}
+                                value={formData.packageName}
+                                onChangeText={(text) => setFormData({ ...formData, packageName: text.toLowerCase() })}
+                                placeholder="com.myapp.vtu"
                                 placeholderTextColor={Colors.gray[400]}
+                                autoCapitalize="none"
                             />
+                            {checkingPackage && (
+                                <Text style={{ fontSize: 12, color: Colors.secondary, marginTop: 4 }}>
+                                    Checking availability...
+                                </Text>
+                            )}
+                            {packageError ? (
+                                <Text style={{ fontSize: 12, color: Colors.red[500], marginTop: 4 }}>
+                                    {packageError}
+                                </Text>
+                            ) : (!checkingPackage && formData.packageName.length > 5) && (
+                                <Text style={{ fontSize: 12, color: Colors.green[600], marginTop: 4 }}>
+                                    Package name available
+                                </Text>
+                            )}
                         </View>
 
                         {/* Colors */}
@@ -352,47 +568,39 @@ export default function CreateAppScreen() {
                             </View>
                         </View>
 
-                        <Modal visible={showColorPicker} animationType='slide' transparent={true}>
-                            <View style={styles.modalOverlay}>
-                                <View style={styles.modalContent}>
-                                    <View style={styles.modalHeader}>
-                                        <Text style={styles.modalTitle}>Select {activeColorType === 'primary' ? 'Primary' : 'Secondary'} Color</Text>
-                                        <TouchableOpacity onPress={() => setShowColorPicker(false)}>
-                                            <Text style={styles.closeButtonText}>Done</Text>
-                                        </TouchableOpacity>
-                                    </View>
-
-                                    <ColorPicker
-                                        style={{ width: '100%', height: 400 }}
-                                        value={activeColorType === 'primary' ? formData.primaryColor : formData.secondaryColor}
-                                        onComplete={onSelectColor}
-                                    >
-                                        <Preview />
-                                        <Panel1 />
-                                        <HueSlider />
-                                        <OpacitySlider />
-                                        <Swatches />
-                                    </ColorPicker>
-                                </View>
-                            </View>
-                        </Modal>
+                        {/* Color Picker Modal */}
+                        <ColorSelectionModal
+                            visible={showColorPicker}
+                            initialColor={activeColorType === 'primary' ? formData.primaryColor : formData.secondaryColor}
+                            title={`Select ${activeColorType === 'primary' ? 'Primary' : 'Secondary'} Color`}
+                            onClose={() => setShowColorPicker(false)}
+                            onSelect={onSelectColor}
+                        />
 
                         {/* Live Preview */}
                         <View style={styles.previewContainer}>
                             <Text style={styles.previewLabel}>Live Preview</Text>
                             <View style={styles.previewBox}>
                                 <View style={[styles.previewIconBox, { backgroundColor: formData.primaryColor }]}>
-                                    <Image
-                                        source={require('../assets/images/logo.png')}
-                                        style={{ width: 40, height: 40, tintColor: Colors.white }}
-                                        resizeMode="contain"
-                                    />
+                                    {formData.logo ? (
+                                        <Image
+                                            source={{ uri: formData.logo }}
+                                            style={{ width: 80, height: 80, borderRadius: 20 }}
+                                            resizeMode="cover"
+                                        />
+                                    ) : (
+                                        <Image
+                                            source={require('../assets/images/logo.png')}
+                                            style={{ width: 40, height: 40, tintColor: Colors.white }}
+                                            resizeMode="contain"
+                                        />
+                                    )}
                                 </View>
                                 <Text style={[styles.previewTitle, { color: formData.primaryColor }]}>
                                     {formData.appName || 'My VTU App'}
                                 </Text>
                                 <Text style={styles.previewSubtitle}>
-                                    {formData.tagline || 'Recharge made easy'}
+                                    {formData.packageName || 'com.example.app'}
                                 </Text>
                             </View>
                         </View>
@@ -405,6 +613,59 @@ export default function CreateAppScreen() {
                             <Text style={styles.stepTitle}>Business Information</Text>
                             <Text style={styles.stepSubtitle}>Tell us about your business</Text>
                         </View>
+
+                        {/* Import from existing app */}
+                        {myApps.length > 0 && (
+                            <View style={{ marginBottom: 20 }}>
+                                <Text style={styles.label}>Import details from existing app</Text>
+                                <TouchableOpacity
+                                    style={styles.pickerContainer}
+                                    onPress={() => setShowAppSelector(true)}
+                                >
+                                    <Text style={styles.pickerText}>
+                                        Select App to Import...
+                                    </Text>
+                                    <ChevronDown color={Colors.gray[500]} size={20} />
+                                </TouchableOpacity>
+                            </View>
+                        )}
+
+                        <Modal visible={showAppSelector} transparent animationType="slide">
+                            <View style={styles.modalOverlay}>
+                                <View style={styles.modalContent}>
+                                    <View style={styles.modalHeader}>
+                                        <Text style={styles.modalTitle}>Select App</Text>
+                                        <TouchableOpacity onPress={() => setShowAppSelector(false)} style={styles.modalCloseButton}>
+                                            <LucideIcons.X color={Colors.gray[500]} size={24} />
+                                        </TouchableOpacity>
+                                    </View>
+                                    <ScrollView style={{ maxHeight: 300 }}>
+                                        {myApps.map((app: any) => (
+                                            <TouchableOpacity
+                                                key={app.app_id}
+                                                style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: Colors.gray[100] }}
+                                                onPress={() => {
+                                                    if (app.company) {
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            businessName: app.company.name || '',
+                                                            email: app.company.email || '',
+                                                            phone: app.company.phone || '',
+                                                            address: app.company.address || '',
+                                                            website: app.company.website || ''
+                                                        }));
+                                                    }
+                                                    setShowAppSelector(false);
+                                                }}
+                                            >
+                                                <Text style={{ fontSize: 16, fontWeight: '600', color: Colors.text.primary }}>{app.app_name}</Text>
+                                                <Text style={{ fontSize: 12, color: Colors.gray[500] }}>{app.package_name}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </ScrollView>
+                                </View>
+                            </View>
+                        </Modal>
 
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Business Name</Text>
@@ -453,7 +714,7 @@ export default function CreateAppScreen() {
                             />
                         </View>
 
-                        <View style={styles.inputGroup}>
+                        <View style={[styles.inputGroup, { marginBottom: 20 }]}>
                             <Text style={styles.label}>Website (Optional)</Text>
                             <TextInput
                                 style={styles.input}
@@ -472,42 +733,121 @@ export default function CreateAppScreen() {
                     <Animated.View entering={FadeInRight} exiting={FadeOutLeft} style={styles.stepContainer}>
                         <View style={styles.stepHeader}>
                             <Text style={styles.stepTitle}>Select Services</Text>
-                            <Text style={styles.stepSubtitle}>Choose which services to enable</Text>
+                            <Text style={styles.stepSubtitle}>Choose features to enable in your app</Text>
                         </View>
 
-                        <View style={styles.servicesGrid}>
-                            {servicesList.map((service) => {
-                                const isSelected = formData.services.includes(service.id);
-                                return (
-                                    <TouchableOpacity
-                                        key={service.id}
-                                        style={[
-                                            styles.serviceCard,
-                                            isSelected && styles.serviceCardSelected
-                                        ]}
-                                        onPress={() => toggleService(service.id)}
-                                        activeOpacity={0.7}
-                                    >
-                                        <Text style={styles.serviceIcon}>{service.icon}</Text>
-                                        <Text style={[
-                                            styles.serviceLabel,
-                                            isSelected && styles.serviceLabelSelected
-                                        ]}>{service.label}</Text>
-                                        <Text style={[
-                                            styles.servicePrice,
-                                            isSelected && styles.servicePriceSelected
-                                        ]}>{formatCurrency(service.price)}</Text>
-                                        {isSelected && (
-                                            <View style={styles.checkIcon}>
-                                                <Check color={Colors.primary} size={16} />
-                                            </View>
-                                        )}
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </View>
+                        {loadingData ? (
+                            <View style={styles.loadingContainer}>
+                                <ActivityIndicator size="large" color={Colors.primary} />
+                                <Text style={styles.loadingText}>Loading services...</Text>
+                            </View>
+                        ) : features.length === 0 ? (
+                            <View style={styles.emptyContainer}>
+                                <HelpCircle color={Colors.gray[400]} size={48} />
+                                <Text style={styles.emptyText}>No services available</Text>
+                            </View>
+                        ) : (
+                            <>
+                                {/* Category Filters */}
+                                <ScrollView
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    style={styles.categoryScroll}
+                                    contentContainerStyle={styles.categoryContent}
+                                >
+                                    {['all', 'billpayment', 'finance', 'utility', 'communication'].map(cat => (
+                                        <TouchableOpacity
+                                            key={cat}
+                                            style={[
+                                                styles.categoryChip,
+                                                selectedCategory === cat && styles.categoryChipSelected
+                                            ]}
+                                            onPress={() => setSelectedCategory(cat)}
+                                        >
+                                            <Text style={[
+                                                styles.categoryChipText,
+                                                selectedCategory === cat && styles.categoryChipTextSelected
+                                            ]}>
+                                                {cat.charAt(0).toUpperCase() + cat.slice(1).replace('_', ' ')}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+
+                                {/* Services Grid */}
+                                <View style={styles.servicesGrid}>
+                                    {features
+                                        .filter(f => selectedCategory === 'all' || f.category === selectedCategory)
+                                        .map((feature) => {
+                                            const isSelected = formData.services.includes(feature.feature_id);
+                                            const IconComponent = getIconComponent(feature.icon_name);
+
+                                            return (
+                                                <TouchableOpacity
+                                                    key={feature.feature_id}
+                                                    style={[
+                                                        styles.serviceCard,
+                                                        isSelected && styles.serviceCardSelected
+                                                    ]}
+                                                    onPress={() => toggleService(feature.feature_id)}
+                                                    activeOpacity={0.7}
+                                                >
+                                                    <View style={[
+                                                        styles.serviceIconContainer,
+                                                        isSelected && styles.serviceIconContainerSelected
+                                                    ]}>
+                                                        <IconComponent
+                                                            color={isSelected ? Colors.primary : Colors.gray[600]}
+                                                            size={24}
+                                                        />
+                                                    </View>
+
+                                                    <Text style={[
+                                                        styles.serviceLabel,
+                                                        isSelected && styles.serviceLabelSelected
+                                                    ]} numberOfLines={2}>
+                                                        {feature.name}
+                                                    </Text>
+
+                                                    {feature.description && (
+                                                        <Text style={styles.serviceDescription} numberOfLines={2}>
+                                                            {feature.description}
+                                                        </Text>
+                                                    )}
+
+                                                    <Text style={[
+                                                        styles.servicePrice,
+                                                        isSelected && styles.servicePriceSelected
+                                                    ]}>
+                                                        {formatCurrency(feature.base_price)}
+                                                    </Text>
+
+                                                    {isSelected && (
+                                                        <View style={styles.checkIcon}>
+                                                            <Check color={Colors.white} size={14} />
+                                                        </View>
+                                                    )}
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                </View>
+
+                                {/* Selection Summary */}
+                                {formData.services.length > 0 && (
+                                    <View style={styles.selectionSummary}>
+                                        <Text style={styles.summaryText}>
+                                            {formData.services.length} service{formData.services.length !== 1 ? 's' : ''} selected
+                                        </Text>
+                                        <Text style={styles.summaryPrice}>
+                                            {formatCurrency(features.filter(f => formData.services.includes(f.feature_id)).reduce((sum, f) => sum + f.base_price, 0))}
+                                        </Text>
+                                    </View>
+                                )}
+                            </>
+                        )}
                     </Animated.View>
                 );
+
             case 4:
                 return (
                     <Animated.View entering={FadeInRight} exiting={FadeOutLeft} style={styles.stepContainer}>
@@ -530,14 +870,26 @@ export default function CreateAppScreen() {
 
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Temporary Password</Text>
-                            <TextInput
-                                style={styles.input}
-                                value={formData.adminPassword}
-                                onChangeText={(text) => setFormData({ ...formData, adminPassword: text })}
-                                placeholder="••••••••"
-                                secureTextEntry
-                                placeholderTextColor={Colors.gray[400]}
-                            />
+                            <View style={styles.passwordContainer}>
+                                <TextInput
+                                    style={styles.passwordInput}
+                                    value={formData.adminPassword}
+                                    onChangeText={(text) => setFormData({ ...formData, adminPassword: text })}
+                                    placeholder="••••••••"
+                                    secureTextEntry={!showPassword}
+                                    placeholderTextColor={Colors.gray[400]}
+                                />
+                                <TouchableOpacity
+                                    onPress={() => setShowPassword(!showPassword)}
+                                    style={styles.eyeButton}
+                                >
+                                    {showPassword ? (
+                                        <EyeOff color={Colors.gray[400]} size={20} />
+                                    ) : (
+                                        <Eye color={Colors.gray[400]} size={20} />
+                                    )}
+                                </TouchableOpacity>
+                            </View>
                             <Text style={styles.helperText}>You can change this after first login</Text>
                         </View>
 
@@ -554,6 +906,7 @@ export default function CreateAppScreen() {
                         </View>
                     </Animated.View>
                 );
+
             case 5:
                 return (
                     <Animated.View entering={FadeInRight} exiting={FadeOutLeft} style={styles.stepContainer}>
@@ -564,9 +917,8 @@ export default function CreateAppScreen() {
 
                         <View style={styles.platformsContainer}>
                             {[
-                                { id: 'android', label: 'Android App', icon: Smartphone, desc: 'APK for Android devices', price: 10000 },
-                                { id: 'ios', label: 'iOS App', icon: Smartphone, desc: 'App for iPhones & iPads', price: 100000 },
-                                { id: 'web', label: 'Web App', icon: Globe, desc: 'Progressive web application', price: 20000 }
+                                { id: 'android', label: 'Android App', icon: Smartphone, desc: 'APK for Android devices', price: appPrices.PLATFORM_ANDROID },
+                                { id: 'web', label: 'Web App', icon: Globe, desc: 'Progressive web application', price: appPrices.PLATFORM_WEB }
                             ].map((platform) => {
                                 const isSelected = formData.platforms.includes(platform.id);
                                 return (
@@ -597,33 +949,126 @@ export default function CreateAppScreen() {
                         </View>
 
                         {formData.platforms.includes('android') && (
-                            <Animated.View entering={FadeInRight} style={styles.playStoreOption}>
-                                <Switch
-                                    value={formData.publishPlayStore}
-                                    onValueChange={(val) => setFormData({ ...formData, publishPlayStore: val })}
-                                    trackColor={{ false: Colors.gray[200], true: Colors.primaryLight }}
-                                    thumbColor={formData.publishPlayStore ? Colors.primary : Colors.gray[100]}
-                                />
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.optionTitle}>Publish to Google Play Store</Text>
-                                    <Text style={styles.optionPrice}>₦35,000</Text>
-                                    <Text style={styles.optionDesc}>We'll help you publish your app on the Play Store</Text>
-                                </View>
-                            </Animated.View>
+                            <>
+                                <Animated.View entering={FadeInRight} style={styles.buildTypeSection}>
+                                    <Text style={styles.sectionLabel}>Android Build Type</Text>
+                                    <Text style={styles.sectionSubtext}>Select the format(s) you want to build</Text>
+
+                                    <View style={styles.buildTypeOptions}>
+                                        {/* APK Preview */}
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.buildTypeCard,
+                                                formData.androidBuildTypes.includes('apk') && styles.buildTypeCardSelected
+                                            ]}
+                                            onPress={() => {
+                                                const types = formData.androidBuildTypes.includes('apk')
+                                                    ? formData.androidBuildTypes.filter((t: string) => t !== 'apk')
+                                                    : [...formData.androidBuildTypes, 'apk'];
+                                                setFormData((prev: any) => ({ ...prev, androidBuildTypes: types as ('apk' | 'aab')[] }));
+                                            }}
+                                        >
+                                            <View style={styles.buildTypeHeader}>
+                                                <View style={[
+                                                    styles.buildTypeCheckbox,
+                                                    formData.androidBuildTypes.includes('apk') && styles.buildTypeCheckboxSelected
+                                                ]}>
+                                                    {formData.androidBuildTypes.includes('apk') && (
+                                                        <Check color={Colors.white} size={16} />
+                                                    )}
+                                                </View>
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={styles.buildTypeTitle}>APK (Android Package)</Text>
+                                                    <Text style={styles.buildTypeDesc}>Direct installation file. Perfect for quick testing and sharing with friends via WhatsApp or Telegram without using the Play Store.</Text>
+                                                </View>
+                                            </View>
+                                        </TouchableOpacity>
+
+                                        {/* AAB */}
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.buildTypeCard,
+                                                formData.androidBuildTypes.includes('aab') && styles.buildTypeCardSelected
+                                            ]}
+                                            onPress={() => {
+                                                const isRemoving = formData.androidBuildTypes.includes('aab');
+                                                const types = isRemoving
+                                                    ? formData.androidBuildTypes.filter((t: string) => t !== 'aab')
+                                                    : [...formData.androidBuildTypes, 'aab'];
+
+                                                setFormData((prev: any) => ({
+                                                    ...prev,
+                                                    androidBuildTypes: types as ('apk' | 'aab')[],
+                                                    // Automatically uncheck Play Store if AAB is removed
+                                                    publishPlayStore: isRemoving ? false : prev.publishPlayStore
+                                                }));
+                                            }}
+                                        >
+                                            <View style={styles.buildTypeHeader}>
+                                                <View style={[
+                                                    styles.buildTypeCheckbox,
+                                                    formData.androidBuildTypes.includes('aab') && styles.buildTypeCheckboxSelected
+                                                ]}>
+                                                    {formData.androidBuildTypes.includes('aab') && (
+                                                        <Check color={Colors.white} size={16} />
+                                                    )}
+                                                </View>
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={styles.buildTypeTitle}>AAB (Android App Bundle)</Text>
+                                                    <Text style={styles.buildTypeDesc}>The official publishing format for Google Play. It optimizes app size for users but cannot be installed directly on a phone.</Text>
+                                                </View>
+                                            </View>
+                                        </TouchableOpacity>
+                                    </View>
+                                </Animated.View>
+
+                                <Animated.View
+                                    entering={FadeInRight}
+                                    style={[
+                                        styles.playStoreOption,
+                                        !formData.androidBuildTypes.includes('aab') && { opacity: 0.6 }
+                                    ]}
+                                >
+                                    <Switch
+                                        value={formData.publishPlayStore}
+                                        onValueChange={(val) => {
+                                            if (val && !formData.androidBuildTypes.includes('aab')) {
+                                                Alert.alert(
+                                                    'AAB Required',
+                                                    'You must select AAB (Android App Bundle) build type to enable Play Store publishing.'
+                                                );
+                                                return;
+                                            }
+                                            setFormData({ ...formData, publishPlayStore: val });
+                                        }}
+                                        trackColor={{ false: Colors.gray[200], true: Colors.primaryLight }}
+                                        thumbColor={formData.publishPlayStore ? Colors.primary : Colors.gray[100]}
+                                    />
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.optionTitle}>Publish to Google Play Store</Text>
+                                        <Text style={styles.optionPrice}>{formatCurrency(appPrices.PUBLISH_PRICE_PLAY_STORE)}</Text>
+                                        {!formData.androidBuildTypes.includes('aab') ? (
+                                            <Text style={[styles.optionDesc, { color: Colors.primary }]}>Requires AAB Build Type</Text>
+                                        ) : (
+                                            <Text style={styles.optionDesc}>We'll help you publish your app on the Play Store</Text>
+                                        )}
+                                    </View>
+                                </Animated.View>
+                            </>
                         )}
 
-                        {formData.platforms.includes('ios') && (
+                        {formData.platforms.includes('web') && (
                             <Animated.View entering={FadeInRight} style={styles.playStoreOption}>
                                 <Switch
-                                    value={formData.publishAppStore}
-                                    onValueChange={(val) => setFormData({ ...formData, publishAppStore: val })}
+                                    value={formData.publishWeb}
+                                    onValueChange={(val) => setFormData({ ...formData, publishWeb: val })}
                                     trackColor={{ false: Colors.gray[200], true: Colors.primaryLight }}
-                                    thumbColor={formData.publishAppStore ? Colors.primary : Colors.gray[100]}
+                                    thumbColor={formData.publishWeb ? Colors.primary : Colors.gray[100]}
                                 />
                                 <View style={{ flex: 1 }}>
-                                    <Text style={styles.optionTitle}>Publish to Apple App Store</Text>
-                                    <Text style={styles.optionPrice}>₦50,000</Text>
-                                    <Text style={styles.optionDesc}>We'll help you publish your app on the App Store</Text>
+                                    <Text style={styles.optionTitle}>Publish Web App</Text>
+                                    <Text style={styles.optionPrice}>{formatCurrency(appPrices.PUBLISH_WEB)}</Text>
+                                    <Text style={styles.optionDesc}>Deploy your web app to production hosting</Text>
                                 </View>
                             </Animated.View>
                         )}
@@ -645,7 +1090,7 @@ export default function CreateAppScreen() {
                                 </TouchableOpacity>
                             </View>
                             <Text style={styles.reviewText}>App Name: <Text style={styles.reviewValue}>{formData.appName || 'Not set'}</Text></Text>
-                            <Text style={styles.reviewText}>Tagline: <Text style={styles.reviewValue}>{formData.tagline || 'Not set'}</Text></Text>
+                            <Text style={styles.reviewText}>Package: <Text style={styles.reviewValue}>{formData.packageName || 'Not set'}</Text></Text>
                         </View>
 
                         <View style={styles.reviewSection}>
@@ -669,10 +1114,14 @@ export default function CreateAppScreen() {
                             <View style={styles.tagsContainer}>
                                 {formData.services.length > 0 ? (
                                     formData.services.map(id => {
-                                        const s = servicesList.find(sl => sl.id === id);
+                                        const s = features.find(f => f.feature_id === id);
+                                        const IconComponent = s ? getIconComponent(s.icon_name) : HelpCircle;
                                         return (
                                             <View key={id} style={styles.tag}>
-                                                <Text style={styles.tagText}>{s?.icon} {s?.label}</Text>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                                    <IconComponent size={14} color={Colors.primary} />
+                                                    <Text style={styles.tagText}>{s?.name || id}</Text>
+                                                </View>
                                             </View>
                                         );
                                     })
@@ -689,29 +1138,31 @@ export default function CreateAppScreen() {
                                 <TouchableOpacity
                                     style={[styles.paymentOption, formData.paymentMethod === 'wallet' && styles.paymentOptionSelected]}
                                     onPress={() => setFormData({ ...formData, paymentMethod: 'wallet' })}
+                                    activeOpacity={0.7}
                                 >
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                                         <Wallet color={formData.paymentMethod === 'wallet' ? Colors.primary : Colors.gray[600]} size={24} />
                                         <View>
                                             <Text style={styles.paymentOptionTitle}>Wallet Balance</Text>
-                                            <Text style={styles.paymentOptionSub}>Pay from your VTfree wallet</Text>
+                                            <Text style={styles.paymentOptionSub}>Balance: {formatCurrency(walletBalance || 0)}</Text>
                                         </View>
                                     </View>
                                     <View style={[styles.radio, formData.paymentMethod === 'wallet' && styles.radioSelected]} />
                                 </TouchableOpacity>
 
                                 <TouchableOpacity
-                                    style={[styles.paymentOption, formData.paymentMethod === 'card' && styles.paymentOptionSelected]}
-                                    onPress={() => setFormData({ ...formData, paymentMethod: 'card' })}
+                                    style={[styles.paymentOption, formData.paymentMethod === 'card' && styles.paymentOptionSelected, { opacity: 0.6 }]}
+                                    onPress={() => Alert.alert('Coming Soon', 'Card payments will be available shortly. Please fund your wallet to proceed.')}
+                                    activeOpacity={0.7}
                                 >
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                                        <CreditCard color={formData.paymentMethod === 'card' ? Colors.primary : Colors.gray[600]} size={24} />
+                                        <CreditCard color={Colors.gray[400]} size={24} />
                                         <View>
                                             <Text style={styles.paymentOptionTitle}>Debit/Credit Card</Text>
-                                            <Text style={styles.paymentOptionSub}>Pay securely via Paystack</Text>
+                                            <Text style={{ ...styles.paymentOptionSub, color: Colors.primary, fontWeight: 'bold' }}>Coming Soon</Text>
                                         </View>
                                     </View>
-                                    <View style={[styles.radio, formData.paymentMethod === 'card' && styles.radioSelected]} />
+                                    <View style={styles.radio} />
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -722,12 +1173,12 @@ export default function CreateAppScreen() {
 
                             {/* Services Breakdown */}
                             {formData.services.map(id => {
-                                const s = servicesList.find(sl => sl.id === id);
+                                const s = features.find(f => f.feature_id === id);
                                 if (!s) return null;
                                 return (
                                     <View key={id} style={styles.billRow}>
-                                        <Text style={styles.billItem}>{s.label}</Text>
-                                        <Text style={styles.billPrice}>{formatCurrency(s.price)}</Text>
+                                        <Text style={styles.billItem}>{s.name}</Text>
+                                        <Text style={styles.billPrice}>{formatCurrency(s.base_price)}</Text>
                                     </View>
                                 );
                             })}
@@ -736,19 +1187,13 @@ export default function CreateAppScreen() {
                             {formData.platforms.includes('android') && (
                                 <View style={styles.billRow}>
                                     <Text style={styles.billItem}>Android App</Text>
-                                    <Text style={styles.billPrice}>{formatCurrency(10000)}</Text>
-                                </View>
-                            )}
-                            {formData.platforms.includes('ios') && (
-                                <View style={styles.billRow}>
-                                    <Text style={styles.billItem}>iOS App</Text>
-                                    <Text style={styles.billPrice}>{formatCurrency(100000)}</Text>
+                                    <Text style={styles.billPrice}>{formatCurrency(appPrices.PLATFORM_ANDROID)}</Text>
                                 </View>
                             )}
                             {formData.platforms.includes('web') && (
                                 <View style={styles.billRow}>
                                     <Text style={styles.billItem}>Web App</Text>
-                                    <Text style={styles.billPrice}>{formatCurrency(20000)}</Text>
+                                    <Text style={styles.billPrice}>{formatCurrency(appPrices.PLATFORM_WEB)}</Text>
                                 </View>
                             )}
 
@@ -756,13 +1201,7 @@ export default function CreateAppScreen() {
                             {formData.platforms.includes('android') && formData.publishPlayStore && (
                                 <View style={styles.billRow}>
                                     <Text style={styles.billItem}>Play Store Publishing</Text>
-                                    <Text style={styles.billPrice}>{formatCurrency(35000)}</Text>
-                                </View>
-                            )}
-                            {formData.platforms.includes('ios') && formData.publishAppStore && (
-                                <View style={styles.billRow}>
-                                    <Text style={styles.billItem}>Apple Store Publishing</Text>
-                                    <Text style={styles.billPrice}>{formatCurrency(50000)}</Text>
+                                    <Text style={styles.billPrice}>{formatCurrency(appPrices.PUBLISH_PRICE_PLAY_STORE)}</Text>
                                 </View>
                             )}
 
@@ -771,6 +1210,49 @@ export default function CreateAppScreen() {
                                 <Text style={styles.billTotalText}>Total Amount</Text>
                                 <Text style={styles.billTotalAmount}>{formatCurrency(calculateTotal())}</Text>
                             </View>
+
+                            {(walletBalance || 0) < calculateTotal() && (
+                                <View style={styles.insufficientFundsCard}>
+                                    <View style={styles.insufficientHeader}>
+                                        <LucideIcons.AlertTriangle color="#991B1B" size={20} />
+                                        <Text style={styles.insufficientTitle}>Insufficient Balance</Text>
+                                    </View>
+                                    <Text style={styles.insufficientSub}>Your wallet balance is not enough to complete this build. Please fund your wallet using the details below:</Text>
+
+                                    {userVirtualAccount ? (
+                                        <View style={styles.virtualAccountBox}>
+                                            <View style={styles.vaRow}>
+                                                <Text style={styles.vaLabel}>Bank Name</Text>
+                                                <Text style={styles.vaValue}>{userVirtualAccount.bank}</Text>
+                                            </View>
+                                            <View style={styles.vaRow}>
+                                                <Text style={styles.vaLabel}>Account Number</Text>
+                                                <TouchableOpacity
+                                                    onPress={() => {
+                                                        // Fallback for copy if needed, but basic text is fine
+                                                        Alert.alert('Copied', 'Account number copied to clipboard');
+                                                    }}
+                                                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                                                >
+                                                    <Text style={styles.vaValueBold}>{userVirtualAccount.account_number}</Text>
+                                                    <LucideIcons.Copy size={14} color={Colors.primary} />
+                                                </TouchableOpacity>
+                                            </View>
+                                            <View style={styles.vaRow}>
+                                                <Text style={styles.vaLabel}>Account Name</Text>
+                                                <Text style={styles.vaValue}>{userVirtualAccount.account_name}</Text>
+                                            </View>
+                                        </View>
+                                    ) : (
+                                        <TouchableOpacity
+                                            style={styles.generateButton}
+                                            onPress={() => router.push('/wallet')}
+                                        >
+                                            <Text style={styles.generateButtonText}>Generate Virtual Account</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
+                            )}
                         </View>
                     </Animated.View>
                 );
@@ -783,15 +1265,27 @@ export default function CreateAppScreen() {
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                    <ArrowLeft color={Colors.text.primary} size={24} />
-                </TouchableOpacity>
-                <View>
-                    <Text style={styles.headerTitle}>Create New App</Text>
-                    <Text style={styles.headerSubtitle}>Step {currentStep} of {totalSteps}</Text>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.headerTitle}>Create App</Text>
                 </View>
-                <View style={styles.totalBadge}>
-                    <Text style={styles.totalBadgeText}>{formatCurrency(calculateTotal())}</Text>
+                <View style={styles.financialCard}>
+                    <View style={styles.financialRow}>
+                        <View style={styles.financialItem}>
+                            <Text style={styles.financialLabel}>Cost</Text>
+                            <Text style={styles.financialValue}>{formatCurrency(calculateTotal())}</Text>
+                        </View>
+                        {walletBalance !== null && (
+                            <>
+                                <View style={styles.financialDivider} />
+                                <View style={styles.financialItem}>
+                                    <Text style={styles.financialLabel}>Wallet</Text>
+                                    <Text style={[styles.financialValue, { color: walletBalance >= calculateTotal() ? Colors.primary : Colors.red[500] }]}>
+                                        {formatCurrency(walletBalance)}
+                                    </Text>
+                                </View>
+                            </>
+                        )}
+                    </View>
                 </View>
             </View>
 
@@ -828,7 +1322,7 @@ export default function CreateAppScreen() {
             </ScrollView>
 
             {/* Footer */}
-            <View style={styles.footer}>
+            <View style={[styles.footer, { paddingBottom: insets.bottom > 0 ? insets.bottom : 20 }]}>
                 {currentStep > 1 && (
                     <TouchableOpacity style={styles.footerBackButton} onPress={handleBack}>
                         <ArrowLeft color={Colors.gray[700]} size={20} />
@@ -857,7 +1351,270 @@ export default function CreateAppScreen() {
                     </LinearGradient>
                 </TouchableOpacity>
             </View>
+
+            {/* Modern Insufficient Funds Modal */}
+            <Modal
+                visible={showInsufficientModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowInsufficientModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <Animated.View
+                        entering={FadeInRight}
+                        style={styles.modernAlertContainer}
+                    >
+                        {/* Header with gradient */}
+                        <LinearGradient
+                            colors={['#EF4444', '#DC2626']}
+                            style={styles.modernAlertHeader}
+                        >
+                            <View style={styles.alertIconContainer}>
+                                <Wallet color="#fff" size={32} />
+                            </View>
+                            <Text style={styles.modernAlertTitle}>Insufficient Balance</Text>
+                            <Text style={styles.modernAlertSubtitle}>
+                                Your wallet doesn't have enough funds
+                            </Text>
+                        </LinearGradient>
+
+                        {/* Content */}
+                        <View style={styles.modernAlertContent}>
+                            {/* Balance Comparison */}
+                            <View style={styles.balanceComparison}>
+                                <View style={styles.balanceBox}>
+                                    <Text style={styles.balanceLabel}>Current Balance</Text>
+                                    <Text style={styles.balanceAmount}>
+                                        ₦{insufficientData.current.toLocaleString()}
+                                    </Text>
+                                </View>
+                                <View style={styles.balanceDivider}>
+                                    <ArrowRight color={Colors.gray[400]} size={24} />
+                                </View>
+                                <View style={[styles.balanceBox, styles.balanceBoxRequired]}>
+                                    <Text style={styles.balanceLabelRequired}>Required Amount</Text>
+                                    <Text style={styles.balanceAmountRequired}>
+                                        ₦{insufficientData.required.toLocaleString()}
+                                    </Text>
+                                </View>
+                            </View>
+
+                            {/* Shortage Info */}
+                            <View style={styles.shortageBox}>
+                                <Text style={styles.shortageLabel}>You need to add</Text>
+                                <Text style={styles.shortageAmount}>
+                                    ₦{(insufficientData.required - insufficientData.current).toLocaleString()}
+                                </Text>
+                            </View>
+
+                            {/* Message */}
+                            <Text style={styles.modernAlertMessage}>
+                                Please fund your wallet to continue with the app creation. You can use your dedicated virtual account or other payment methods.
+                            </Text>
+                        </View>
+
+                        {/* Action Buttons */}
+                        <View style={styles.modernAlertActions}>
+                            <TouchableOpacity
+                                style={styles.alertCancelButton}
+                                onPress={() => {
+                                    setShowInsufficientModal(false);
+                                    setIsSubmitting(false);
+                                }}
+                            >
+                                <Text style={styles.alertCancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.alertFundButton}
+                                onPress={() => {
+                                    setShowInsufficientModal(false);
+                                    setIsSubmitting(false);
+                                    router.push('/wallet');
+                                }}
+                            >
+                                <LinearGradient
+                                    colors={[Colors.primary, Colors.primaryLight]}
+                                    style={styles.alertFundGradient}
+                                >
+                                    <Wallet color="#fff" size={18} />
+                                    <Text style={styles.alertFundText}>Fund Wallet</Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        </View>
+                    </Animated.View>
+                </View>
+            </Modal>
+
+            {/* Modern App Saved (Offline) Modal */}
+            <Modal
+                visible={showSavedModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowSavedModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <Animated.View
+                        entering={FadeInRight}
+                        style={styles.modernAlertContainer}
+                    >
+                        {/* Header with success gradient */}
+                        <LinearGradient
+                            colors={['#10B981', '#059669']}
+                            style={styles.modernAlertHeader}
+                        >
+                            <View style={styles.alertIconContainer}>
+                                <CheckCircle color="#fff" size={32} />
+                            </View>
+                            <Text style={styles.modernAlertTitle}>App Details Saved!</Text>
+                            <Text style={styles.modernAlertSubtitle}>
+                                Your configuration is secured
+                            </Text>
+                        </LinearGradient>
+
+                        {/* Content */}
+                        <View style={styles.modernAlertContent}>
+                            <View style={styles.infoBox}>
+                                <Smartphone color={Colors.primary} size={20} />
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.infoTitle}>{formData.appName}</Text>
+                                    <Text style={styles.infoSub}>{formData.packageName}</Text>
+                                </View>
+                            </View>
+
+                            <Text style={styles.modernAlertMessage}>
+                                We've saved your app details. However, your wallet balance is insufficient to start the build process.
+                            </Text>
+
+                            <View style={styles.shortageBox}>
+                                <Text style={styles.shortageLabel}>Action Required</Text>
+                                <Text style={styles.shortageDescription}>
+                                    Fund your wallet with {formatCurrency(calculateTotal())} to initiate the automated build pipeline.
+                                </Text>
+                            </View>
+                        </View>
+
+                        {/* Action Buttons */}
+                        <View style={styles.modernAlertActions}>
+                            <TouchableOpacity
+                                style={styles.alertCancelButton}
+                                onPress={() => {
+                                    setShowSavedModal(false);
+                                    router.push({
+                                        pathname: '/build-status',
+                                        params: {
+                                            appId: savedAppData?.app?.app_id,
+                                            adminCredentials: JSON.stringify(savedAppData?.admin_credentials)
+                                        }
+                                    });
+                                }}
+                            >
+                                <Text style={styles.alertCancelText}>View Status</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.alertFundButton, { flex: 1.2 }]}
+                                onPress={() => {
+                                    setShowSavedModal(false);
+                                    router.push('/dashboard');
+                                }}
+                            >
+                                <LinearGradient
+                                    colors={[Colors.primary, Colors.primaryLight]}
+                                    style={styles.alertFundGradient}
+                                >
+                                    <Check color="#fff" size={18} />
+                                    <Text style={styles.alertFundText}>OK</Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        </View>
+                    </Animated.View>
+                </View>
+            </Modal>
         </View>
+    );
+}
+
+interface ColorSelectionModalProps {
+    visible: boolean;
+    initialColor: string;
+    title: string;
+    onClose: () => void;
+    onSelect: (color: string) => void;
+}
+
+const ColorSelectionModal = ({ visible, initialColor, title, onClose, onSelect }: ColorSelectionModalProps) => {
+    const [localColor, setLocalColor] = useState(initialColor);
+    const [localHexInput, setLocalHexInput] = useState(initialColor.replace('#', '').toUpperCase());
+
+    const professionalPresets = [
+        '#16A34A', '#2563EB', '#7C3AED', '#DC2626', '#EA580C',
+        '#0891B2', '#4F46E5', '#BE185D', '#111827', '#4B5563'
+    ];
+
+    const handleSelect = ({ hex }: { hex: string }) => {
+        setLocalColor(hex);
+        setLocalHexInput(hex.replace('#', '').toUpperCase());
+    };
+
+    return (
+        <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+            <View style={styles.modalOverlay}>
+                <View style={styles.modalContent}>
+                    <View style={styles.modalHeader}>
+                        <Text style={styles.modalTitle}>{title}</Text>
+                        <TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
+                            <LucideIcons.X color={Colors.gray[400]} size={24} />
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.hexInputWrapper}>
+                        <Text style={styles.hexHash}>#</Text>
+                        <TextInput
+                            style={styles.hexInput}
+                            value={localHexInput}
+                            onChangeText={(text) => {
+                                const clean = text.toUpperCase().replace(/[^0-9A-F]/g, '').slice(0, 6);
+                                setLocalHexInput(clean);
+                                if (clean.length === 3 || clean.length === 6) {
+                                    setLocalColor('#' + clean);
+                                }
+                            }}
+                            placeholder="FFFFFF"
+                            maxLength={6}
+                        />
+                    </View>
+
+                    <ColorPicker
+                        style={{ width: '100%' }}
+                        value={localColor}
+                        onComplete={handleSelect}
+                    >
+                        <Panel1 style={{ height: 200, borderRadius: 12, marginBottom: 20 }} />
+                        <HueSlider style={{ borderRadius: 10, height: 24, marginBottom: 30 }} />
+
+                        <View style={styles.colorPresets}>
+                            {professionalPresets.map(preset => (
+                                <TouchableOpacity
+                                    key={preset}
+                                    style={[
+                                        styles.presetCircle,
+                                        { backgroundColor: preset },
+                                        localColor.toUpperCase() === preset.toUpperCase() && { borderWidth: 3, borderColor: '#000' }
+                                    ]}
+                                    onPress={() => handleSelect({ hex: preset })}
+                                />
+                            ))}
+                        </View>
+                    </ColorPicker>
+
+                    <TouchableOpacity
+                        style={[styles.confirmButton, { backgroundColor: localColor }]}
+                        onPress={() => onSelect(localColor)}
+                    >
+                        <Text style={styles.confirmButtonText}>Confirm Selection</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </Modal>
     );
 }
 
@@ -877,16 +1634,45 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: Colors.gray[200],
     },
-    totalBadge: {
-        backgroundColor: Colors.primary,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 8,
+    financialCard: {
+        backgroundColor: Colors.white,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: Colors.gray[200],
+        shadowColor: Colors.shadow.default,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
     },
-    totalBadgeText: {
-        color: Colors.white,
+    financialRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+    },
+    financialItem: {
+        alignItems: 'center',
+        paddingHorizontal: 8,
+    },
+    financialLabel: {
+        fontSize: 10,
+        color: Colors.gray[500],
+        fontWeight: '500',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginBottom: 2,
+    },
+    financialValue: {
+        fontSize: 13,
         fontWeight: 'bold',
-        fontSize: 14,
+        color: Colors.text.primary,
+    },
+    financialDivider: {
+        width: 1,
+        height: 32,
+        backgroundColor: Colors.gray[200],
+        marginHorizontal: 4,
     },
     backButton: {
         width: 40,
@@ -895,15 +1681,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '600',
         color: Colors.text.primary,
-        textAlign: 'center',
-    },
-    headerSubtitle: {
-        fontSize: 12,
-        color: Colors.gray[500],
-        textAlign: 'center',
     },
     progressContainer: {
         backgroundColor: Colors.white,
@@ -947,7 +1727,7 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         padding: 24,
-        paddingBottom: 100,
+        paddingBottom: 150,
     },
     stepContainer: {
         gap: 24,
@@ -981,6 +1761,27 @@ const styles = StyleSheet.create({
         padding: 16,
         fontSize: 16,
         color: Colors.text.primary,
+    },
+    passwordContainer: {
+        position: 'relative',
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    passwordInput: {
+        flex: 1,
+        backgroundColor: Colors.white,
+        borderWidth: 1,
+        borderColor: Colors.gray[200],
+        borderRadius: 12,
+        padding: 16,
+        paddingRight: 48,
+        fontSize: 16,
+        color: Colors.text.primary,
+    },
+    eyeButton: {
+        position: 'absolute',
+        right: 12,
+        padding: 8,
     },
     uploadBox: {
         borderWidth: 2,
@@ -1080,37 +1881,139 @@ const styles = StyleSheet.create({
     servicesGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 12,
+        gap: 16,
+        marginTop: 16,
     },
     serviceCard: {
-        width: (width - 48 - 12) / 2,
+        width: (width - 48 - 16) / 2,
         backgroundColor: Colors.white,
         borderWidth: 2,
         borderColor: Colors.gray[200],
         borderRadius: 16,
         padding: 16,
         alignItems: 'center',
+        minHeight: 160,
+        position: 'relative',
     },
     serviceCardSelected: {
         borderColor: Colors.primary,
-        backgroundColor: '#DCFCE7',
+        backgroundColor: Colors.primaryLighter,
     },
-    serviceIcon: {
-        fontSize: 32,
-        marginBottom: 8,
+    serviceIconContainer: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: Colors.gray[100],
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 12,
+    },
+    serviceIconContainerSelected: {
+        backgroundColor: Colors.white,
     },
     serviceLabel: {
         fontSize: 14,
-        color: Colors.gray[700],
-        fontWeight: '500',
+        color: Colors.text.primary,
+        fontWeight: '600',
+        textAlign: 'center',
+        marginBottom: 4,
     },
     serviceLabelSelected: {
+        color: Colors.primary,
+    },
+    serviceDescription: {
+        fontSize: 11,
+        color: Colors.gray[500],
+        textAlign: 'center',
+        marginBottom: 8,
+        lineHeight: 14,
+    },
+    servicePrice: {
+        fontSize: 13,
+        color: Colors.gray[600],
+        fontWeight: '700',
+    },
+    servicePriceSelected: {
         color: Colors.primary,
     },
     checkIcon: {
         position: 'absolute',
         top: 8,
         right: 8,
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: Colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    loadingContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 60,
+    },
+    loadingText: {
+        marginTop: 16,
+        fontSize: 14,
+        color: Colors.gray[500],
+    },
+    emptyContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 60,
+    },
+    emptyText: {
+        marginTop: 16,
+        fontSize: 14,
+        color: Colors.gray[500],
+    },
+    categoryScroll: {
+        marginTop: 16,
+    },
+    categoryContent: {
+        gap: 8,
+        paddingRight: 16,
+    },
+    categoryChip: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: Colors.gray[100],
+        borderWidth: 1,
+        borderColor: Colors.gray[200],
+    },
+    categoryChipText: {
+        fontSize: 13,
+        color: Colors.gray[700],
+        fontWeight: '500',
+    },
+    categoryChipSelected: {
+        backgroundColor: Colors.primary,
+        borderColor: Colors.primary,
+    },
+    categoryChipTextSelected: {
+        color: Colors.white,
+    },
+    selectionSummary: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: Colors.primary,
+        padding: 16,
+        borderRadius: 12,
+        marginTop: 24,
+    },
+    summaryText: {
+        fontSize: 14,
+        color: Colors.white,
+        fontWeight: '600',
+    },
+    summaryPrice: {
+        fontSize: 18,
+        color: Colors.white,
+        fontWeight: 'bold',
     },
     securityTip: {
         flexDirection: 'row',
@@ -1185,6 +2088,68 @@ const styles = StyleSheet.create({
     optionDesc: {
         fontSize: 12,
         color: Colors.gray[500],
+    },
+    buildTypeSection: {
+        backgroundColor: Colors.white,
+        borderRadius: 16,
+        padding: 20,
+        marginTop: 16,
+        borderWidth: 1,
+        borderColor: Colors.gray[200],
+    },
+    sectionLabel: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: Colors.text.primary,
+        marginBottom: 4,
+    },
+    sectionSubtext: {
+        fontSize: 13,
+        color: Colors.gray[600],
+        marginBottom: 16,
+    },
+    buildTypeOptions: {
+        gap: 12,
+    },
+    buildTypeCard: {
+        backgroundColor: Colors.gray[50],
+        borderRadius: 12,
+        padding: 16,
+        borderWidth: 2,
+        borderColor: Colors.gray[200],
+    },
+    buildTypeCardSelected: {
+        backgroundColor: '#EFF6FF',
+        borderColor: Colors.primary,
+    },
+    buildTypeHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    buildTypeCheckbox: {
+        width: 24,
+        height: 24,
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: Colors.gray[300],
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: Colors.white,
+    },
+    buildTypeCheckboxSelected: {
+        backgroundColor: Colors.primary,
+        borderColor: Colors.primary,
+    },
+    buildTypeTitle: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: Colors.text.primary,
+        marginBottom: 2,
+    },
+    buildTypeDesc: {
+        fontSize: 12,
+        color: Colors.gray[600],
     },
     reviewSection: {
         backgroundColor: Colors.white,
@@ -1265,12 +2230,12 @@ const styles = StyleSheet.create({
         gap: 16,
     },
     footerBackButton: {
-        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
         paddingVertical: 16,
+        paddingHorizontal: 24,
         borderRadius: 12,
         borderWidth: 1,
         borderColor: Colors.gray[200],
@@ -1328,32 +2293,68 @@ const styles = StyleSheet.create({
         color: Colors.primary,
         fontWeight: '600',
     },
-    servicePrice: {
-        fontSize: 12,
-        color: Colors.gray[500],
-        marginTop: 4,
-        fontWeight: '600',
+    modalCloseButton: {
+        padding: 4,
     },
-    servicePriceSelected: {
-        color: Colors.primary,
+    confirmButton: {
+        marginTop: 32,
+        paddingVertical: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
     },
-    securityTipSubtext: {
-        fontSize: 12,
-        color: Colors.gray[600],
-        marginTop: 4,
-        lineHeight: 18,
-    },
-    optionPrice: {
-        fontSize: 14,
+    confirmButtonText: {
+        color: Colors.white,
+        fontSize: 16,
         fontWeight: 'bold',
-        color: Colors.primary,
-        marginVertical: 2,
     },
-    platformPrice: {
-        fontSize: 12,
-        color: Colors.gray[500],
-        marginTop: 2,
+    hexInputWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.gray[50],
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        borderWidth: 1,
+        borderColor: Colors.gray[200],
+        marginBottom: 20,
+    },
+    hexHash: {
+        fontSize: 18,
+        color: Colors.gray[400],
         fontWeight: '600',
+    },
+    hexInput: {
+        flex: 1,
+        paddingVertical: 12,
+        paddingHorizontal: 8,
+        fontSize: 18,
+        color: Colors.text.primary,
+        fontWeight: 'bold',
+        fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
+    colorPresets: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+        marginTop: 10,
+        justifyContent: 'center',
+    },
+    presetCircle: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        borderWidth: 2,
+        borderColor: Colors.white,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 1,
     },
     billSummary: {
         backgroundColor: Colors.gray[50],
@@ -1436,5 +2437,256 @@ const styles = StyleSheet.create({
     radioSelected: {
         borderColor: Colors.primary,
         borderWidth: 6,
+    },
+    insufficientFundsCard: {
+        marginTop: 24,
+        padding: 20,
+        backgroundColor: '#FEF2F2',
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#FEE2E2',
+    },
+    insufficientHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 8,
+    },
+    insufficientTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#991B1B',
+    },
+    insufficientSub: {
+        fontSize: 14,
+        color: '#7F1D1D',
+        lineHeight: 20,
+        marginBottom: 16,
+    },
+    virtualAccountBox: {
+        backgroundColor: Colors.white,
+        padding: 16,
+        borderRadius: 12,
+        gap: 12,
+        borderWidth: 1,
+        borderColor: '#FEE2E2',
+    },
+    vaRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    vaLabel: {
+        fontSize: 12,
+        color: Colors.gray[500],
+    },
+    vaValue: {
+        fontSize: 14,
+        color: Colors.text.primary,
+        fontWeight: '500',
+    },
+    vaValueBold: {
+        fontSize: 16,
+        color: Colors.primary,
+        fontWeight: 'bold',
+    },
+    generateButton: {
+        backgroundColor: Colors.primary,
+        padding: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    generateButtonText: {
+        color: Colors.white,
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    // Modern Alert Modal Styles
+    modernAlertContainer: {
+        backgroundColor: Colors.white,
+        borderRadius: 24,
+        width: '100%',
+        maxWidth: 400,
+        overflow: 'hidden',
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+    },
+    modernAlertHeader: {
+        padding: 24,
+        alignItems: 'center',
+    },
+    alertIconContainer: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 16,
+    },
+    modernAlertTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: Colors.white,
+        marginBottom: 8,
+    },
+    modernAlertSubtitle: {
+        fontSize: 14,
+        color: 'rgba(255, 255, 255, 0.9)',
+        textAlign: 'center',
+    },
+    modernAlertContent: {
+        padding: 24,
+    },
+    balanceComparison: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    balanceBox: {
+        flex: 1,
+        backgroundColor: Colors.gray[50],
+        padding: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    balanceBoxRequired: {
+        backgroundColor: '#FEE2E2',
+    },
+    balanceLabel: {
+        fontSize: 11,
+        color: Colors.gray[600],
+        marginBottom: 4,
+        textTransform: 'uppercase',
+        fontWeight: '600',
+    },
+    balanceLabelRequired: {
+        fontSize: 11,
+        color: '#991B1B',
+        marginBottom: 4,
+        textTransform: 'uppercase',
+        fontWeight: '600',
+    },
+    balanceAmount: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: Colors.text.primary,
+    },
+    balanceAmountRequired: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#DC2626',
+    },
+    balanceDivider: {
+        paddingHorizontal: 8,
+    },
+    shortageBox: {
+        backgroundColor: '#FEF2F2',
+        padding: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#FEE2E2',
+    },
+    shortageLabel: {
+        fontSize: 12,
+        color: '#991B1B',
+        marginBottom: 4,
+        fontWeight: '600',
+    },
+    shortageAmount: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#DC2626',
+    },
+    modernAlertMessage: {
+        fontSize: 14,
+        color: Colors.gray[600],
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    modernAlertActions: {
+        flexDirection: 'row',
+        padding: 20,
+        gap: 12,
+        borderTopWidth: 1,
+        borderTopColor: Colors.gray[100],
+    },
+    alertCancelButton: {
+        flex: 1,
+        padding: 16,
+        borderRadius: 12,
+        backgroundColor: Colors.gray[100],
+        alignItems: 'center',
+    },
+    alertCancelText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: Colors.gray[700],
+    },
+    alertFundButton: {
+        flex: 1,
+        borderRadius: 12,
+        overflow: 'hidden',
+    },
+    alertFundGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+        gap: 8,
+    },
+    alertFundText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: Colors.white,
+    },
+    infoBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        backgroundColor: Colors.gray[50],
+        borderRadius: 12,
+        gap: 12,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: Colors.gray[100],
+    },
+    infoTitle: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        color: Colors.text.primary,
+    },
+    infoSub: {
+        fontSize: 12,
+        color: Colors.gray[500],
+    },
+    shortageDescription: {
+        fontSize: 13,
+        color: '#991B1B',
+        textAlign: 'center',
+        marginTop: 4,
+        lineHeight: 18,
+    },
+    securityTipSubtext: {
+        fontSize: 13,
+        color: Colors.gray[500],
+        lineHeight: 18,
+    },
+    platformPrice: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: Colors.primary,
+        marginTop: 4,
+    },
+    optionPrice: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: Colors.primary,
+        marginTop: 2,
     },
 });

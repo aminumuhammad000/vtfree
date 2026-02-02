@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, FlatList, Image } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAuth } from '../context/AuthContext';
 import { Smartphone, Zap, Shield, TrendingUp, ArrowRight, Check } from 'lucide-react-native';
 import Animated, {
     useSharedValue,
@@ -141,6 +142,7 @@ const Paginator = ({ data, scrollX }: { data: any[], scrollX: SharedValue<number
 
 export default function OnboardingScreen() {
     const router = useRouter();
+    const { completeOnboarding } = useAuth();
     const [currentIndex, setCurrentIndex] = useState(0);
     const scrollX = useSharedValue(0);
     const slidesRef = useRef<FlatList>(null);
@@ -157,16 +159,18 @@ export default function OnboardingScreen() {
         scrollX.value = event.contentOffset.x;
     });
 
-    const scrollToNext = () => {
+    const scrollToNext = async () => {
         if (currentIndex < slides.length - 1) {
             slidesRef.current?.scrollToIndex({ index: currentIndex + 1 });
         } else {
-            router.push('/register');
+            await completeOnboarding();
+            router.push('/login');
         }
     };
 
-    const skip = () => {
-        router.push('/register');
+    const skip = async () => {
+        await completeOnboarding();
+        router.push('/login');
     };
 
     return (

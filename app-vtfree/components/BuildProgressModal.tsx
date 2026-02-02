@@ -37,7 +37,7 @@ export const BuildProgressModal: React.FC<BuildProgressModalProps> = ({
                 <View style={styles.card}>
                     <View style={styles.header}>
                         <Text style={styles.title}>
-                            {isCompleted ? 'Build Successful!' : isFailed ? 'Build Failed' : 'Building App...'}
+                            {isCompleted ? 'Build Successful!' : isFailed ? 'Build Failed' : (stage.includes('Queue') ? 'In Queue' : 'Building App...')}
                         </Text>
                         {(isCompleted || isFailed) && (
                             <TouchableOpacity onPress={onClose}>

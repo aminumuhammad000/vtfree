@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
-import { TouchableOpacity, StyleSheet, View, Text } from 'react-native';
+import { TouchableOpacity, StyleSheet, View, Text, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
-import { MessageCircle } from 'lucide-react-native';
+import { FontAwesome } from '@expo/vector-icons';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSpring, withSequence, withDelay } from 'react-native-reanimated';
 import Colors from '../constants/Colors';
 
@@ -37,15 +37,20 @@ export default function FloatingChatButton() {
     return (
         <Animated.View style={[styles.container, animatedStyle]}>
             <TouchableOpacity
-                style={styles.button}
+                style={[styles.button, { backgroundColor: '#25D366' }]} // WhatsApp Green
                 activeOpacity={0.8}
-                onPress={() => router.push('/chat')}
+                onPress={() => {
+                    const phone = '+2348100015498';
+                    const url = `whatsapp://send?phone=${phone}`;
+                    Linking.openURL(url).catch(() => {
+                        // Fallback for web or if whatsapp is missing
+                        Linking.openURL(`https://wa.me/${phone.replace('+', '')}`);
+                    });
+                }}
             >
-                <MessageCircle color={Colors.white} size={28} fill={Colors.white} />
+                <FontAwesome name="whatsapp" size={32} color="white" />
             </TouchableOpacity>
-            <View style={styles.badge}>
-                <Text style={styles.badgeText}>1</Text>
-            </View>
+
         </Animated.View>
     );
 }

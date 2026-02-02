@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Dimensions, ActivityIndicator, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { CheckCircle, Download, Globe, Monitor, Rocket, Smartphone, ArrowLeft, Lock, Copy, Eye, EyeOff } from 'lucide-react-native';
+import { CheckCircle, Download, Globe, Monitor, Rocket, Smartphone, ArrowLeft, Lock, Copy, Eye, EyeOff, Wallet } from 'lucide-react-native';
 import Colors from '../constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -16,6 +16,7 @@ import Animated, {
     useAnimatedProps,
     interpolate
 } from 'react-native-reanimated';
+import { AppService } from '../services/app.service';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
@@ -23,11 +24,16 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export default function BuildStatusScreen() {
     const router = useRouter();
-    const { adminCredentials } = useLocalSearchParams();
+    const { adminCredentials, appId } = useLocalSearchParams();
     const [progress, setProgress] = useState(0);
     const [currentPhase, setCurrentPhase] = useState(0);
     const [parsedCredentials, setParsedCredentials] = useState<any>(null);
     const [showPassword, setShowPassword] = useState(false);
+    const [currentStage, setCurrentStage] = useState('Fetching status...');
+    const [isBuildFailed, setIsBuildFailed] = useState(false);
+    const [buildError, setBuildError] = useState('');
+    const [paymentStatus, setPaymentStatus] = useState<string>('loading');
+    const [isPaying, setIsPaying] = useState(false);
 
     useEffect(() => {
         if (adminCredentials) {
@@ -63,18 +69,38 @@ export default function BuildStatusScreen() {
         scale.value = withSpring(1, { damping: 12 });
         rotation.value = withRepeat(withTiming(360, { duration: 2000, easing: Easing.linear }), -1);
 
-        const interval = setInterval(() => {
-            setProgress((prev) => {
-                if (prev >= 100) {
-                    clearInterval(interval);
-                    return 100;
+        let interval: any;
+
+        const checkStatus = async () => {
+            if (!appId) return;
+            try {
+                const response = await AppService.getBuildStatus(appId as string);
+                if (response.success) {
+                    const data = response.data;
+                    setProgress(data.progress || 0);
+                    setCurrentStage(data.stage || 'Processing...');
+                    setPaymentStatus(data.payment_status || 'paid');
+
+                    if (data.status === 'live' || data.status === 'completed') {
+                        setProgress(100);
+                        clearInterval(interval);
+                    } else if (data.status === 'failed') {
+                        setIsBuildFailed(true);
+                        setBuildError(data.error || 'Unknown build error');
+                        clearInterval(interval);
+                    }
                 }
-                return prev + 1;
-            });
-        }, 150);
+            } catch (error) {
+                console.error('Error fetching build status:', error);
+            }
+        };
+
+        // Poll every 3 seconds
+        checkStatus();
+        interval = setInterval(checkStatus, 3000);
 
         return () => clearInterval(interval);
-    }, []);
+    }, [appId]);
 
     useEffect(() => {
         progressValue.value = withTiming(progress, { duration: 150 });
@@ -122,6 +148,25 @@ export default function BuildStatusScreen() {
         };
     });
 
+    const handlePayAndStart = async () => {
+        if (!appId) return;
+        try {
+            setIsPaying(true);
+            const response = await AppService.payAndStartBuild(appId as string);
+            if (response.success) {
+                setPaymentStatus('paid');
+                // Status will be updated by the next poll
+            } else {
+                Alert.alert('Payment Failed', response.message || 'Please check your balance.');
+            }
+        } catch (error: any) {
+            console.error('Pay and start build error:', error);
+            Alert.alert('Error', error.message || 'An error occurred while processing payment.');
+        } finally {
+            setIsPaying(false);
+        }
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -144,6 +189,22 @@ export default function BuildStatusScreen() {
                                 <CheckCircle color={Colors.white} size={64} />
                             </LinearGradient>
                         </Animated.View>
+                    ) : paymentStatus === 'loading' ? (
+                        <View style={styles.buildingIcon}>
+                            <ActivityIndicator color={Colors.primary} size="large" />
+                        </View>
+                    ) : paymentStatus === 'pending' ? (
+                        <View style={styles.pausedIconContainer}>
+                            <LinearGradient
+                                colors={[Colors.gray[100], Colors.gray[200]]}
+                                style={styles.pausedGradient}
+                            >
+                                <Wallet color={Colors.primary} size={64} />
+                            </LinearGradient>
+                            <View style={styles.pausedBadge}>
+                                <Lock color={Colors.white} size={16} />
+                            </View>
+                        </View>
                     ) : (
                         <View style={styles.buildingIcon}>
                             <Animated.View style={[styles.spinnerContainer, rotationStyle]}>
@@ -182,23 +243,53 @@ export default function BuildStatusScreen() {
                     )}
 
                     <Text style={styles.statusTitle}>
-                        {isComplete ? 'Build Complete!' : 'Building Your App'}
+                        {isBuildFailed ? 'Build Failed' : (isComplete ? 'Build Complete!' : (paymentStatus === 'pending' ? 'Payment Required' : 'Building Your App'))}
                     </Text>
-                    <Text style={styles.statusSubtitle}>
-                        {isComplete
-                            ? 'Your app is ready to download and deploy'
-                            : phases[currentPhase]?.label || 'Processing...'}
+                    <Text style={[styles.statusSubtitle, isBuildFailed && { color: '#EF4444' }]}>
+                        {isBuildFailed ? buildError : (isComplete ? 'Your app is ready to download and deploy' : (paymentStatus === 'pending' ? 'Fund your wallet to start building' : currentStage))}
                     </Text>
                 </Animated.View>
 
+                {/* Pending Payment Action */}
+                {paymentStatus === 'pending' && (
+                    <Animated.View entering={FadeInDown.delay(200)} style={[styles.card, { borderColor: Colors.primary, borderWidth: 1 }]}>
+                        <View style={styles.pendingHeader}>
+                            <Wallet color={Colors.primary} size={24} />
+                            <Text style={styles.pendingTitle}>Start Automation</Text>
+                        </View>
+                        <Text style={styles.pendingDesc}>
+                            Your app details are saved. Fund your wallet and click below to initiate the automated build & deployment process.
+                        </Text>
+                        <TouchableOpacity
+                            style={[styles.payButton, isPaying && { opacity: 0.7 }]}
+                            onPress={handlePayAndStart}
+                            disabled={isPaying}
+                        >
+                            <LinearGradient
+                                colors={[Colors.primary, Colors.primaryLight]}
+                                style={styles.payButtonGradient}
+                            >
+                                {isPaying ? (
+                                    <ActivityIndicator color={Colors.white} />
+                                ) : (
+                                    <>
+                                        <Rocket color={Colors.white} size={20} />
+                                        <Text style={styles.payButtonText}>Pay & Start Build</Text>
+                                    </>
+                                )}
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </Animated.View>
+                )}
+
                 {/* Progress Bar */}
-                <Animated.View entering={FadeInDown.delay(300)} style={styles.card}>
+                <Animated.View entering={FadeInDown.delay(300)} style={[styles.card, paymentStatus === 'pending' && { opacity: 0.6 }]}>
                     <View style={styles.progressHeader}>
                         <Text style={styles.cardLabel}>Progress</Text>
-                        <Text style={styles.progressText}>{progress}%</Text>
+                        <Text style={styles.progressText}>{paymentStatus === 'pending' ? '0' : progress}%</Text>
                     </View>
                     <View style={styles.progressBarBg}>
-                        <Animated.View style={[styles.progressBarFill, progressBarStyle]}>
+                        <Animated.View style={[styles.progressBarFill, paymentStatus === 'pending' ? { width: '0%' } : progressBarStyle]}>
                             <LinearGradient
                                 colors={[Colors.primary, Colors.primaryLight]}
                                 style={StyleSheet.absoluteFill}
@@ -209,7 +300,9 @@ export default function BuildStatusScreen() {
                     </View>
                     {!isComplete && (
                         <Text style={styles.etaText}>
-                            Estimated time remaining: {Math.max(1, Math.ceil((100 - progress) / 20))} minutes
+                            {paymentStatus === 'pending'
+                                ? 'Build will start immediately after payment'
+                                : `Estimated time remaining: ${Math.max(1, Math.ceil((100 - progress) / 20))} minutes`}
                         </Text>
                     )}
                 </Animated.View>
@@ -467,6 +560,34 @@ const styles = StyleSheet.create({
         color: Colors.gray[600],
         textAlign: 'center',
     },
+    pausedIconContainer: {
+        width: 128,
+        height: 128,
+        marginBottom: 24,
+        position: 'relative',
+    },
+    pausedGradient: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 64,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: Colors.gray[200],
+    },
+    pausedBadge: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: Colors.primary,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 3,
+        borderColor: Colors.white,
+    },
     card: {
         backgroundColor: Colors.white,
         borderRadius: 16,
@@ -677,6 +798,39 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: Colors.gray[700],
         lineHeight: 20,
+    },
+    pendingHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginBottom: 12,
+    },
+    pendingTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: Colors.primary,
+    },
+    pendingDesc: {
+        fontSize: 14,
+        color: Colors.gray[600],
+        marginBottom: 20,
+        lineHeight: 20,
+    },
+    payButton: {
+        borderRadius: 12,
+        overflow: 'hidden',
+    },
+    payButtonGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 14,
+        gap: 8,
+    },
+    payButtonText: {
+        color: Colors.white,
+        fontSize: 16,
+        fontWeight: '700',
     },
     credentialsCard: {
         backgroundColor: Colors.white,

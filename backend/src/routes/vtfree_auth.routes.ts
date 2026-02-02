@@ -7,9 +7,16 @@ const router = express.Router();
 // Public routes
 router.post('/register', VTfreeAuthController.register);
 router.post('/login', VTfreeAuthController.login);
+router.post('/forgot-password', VTfreeAuthController.forgotPassword);
+router.post('/reset-password', VTfreeAuthController.resetPassword);
 
 // Protected routes
-router.get('/profile', authenticateVTfreeUser, VTfreeAuthController.getProfile);
-router.put('/profile', authenticateVTfreeUser, VTfreeAuthController.updateProfile);
+router.use(authenticateVTfreeUser);
+router.get('/profile', VTfreeAuthController.getProfile);
+router.put('/profile', VTfreeAuthController.updateProfile);
+router.post('/create-virtual-account', VTfreeAuthController.createVirtualAccount);
+
+import { profilePictureUpload } from '../middleware/upload.middleware.js';
+router.post('/profile/upload', profilePictureUpload.single('image'), VTfreeAuthController.uploadProfilePicture);
 
 export default router;

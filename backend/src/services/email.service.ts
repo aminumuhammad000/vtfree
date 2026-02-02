@@ -123,4 +123,51 @@ export class EmailService {
         `;
         return await this.sendEmail(email, subject, html);
     }
+    static async sendAppBuildSuccess(email: string, appName: string, downloadLinks: { android?: string, web?: string }) {
+        const subject = `Build Complete: ${appName} is ready!`;
+
+        let linksHtml = '';
+        if (downloadLinks.android) {
+            linksHtml += `<a href="${downloadLinks.android}" class="btn" style="margin-right: 10px;">Download Android APK</a>`;
+        }
+        if (downloadLinks.web) {
+            linksHtml += `<a href="${downloadLinks.web}" class="btn" style="background-color: #4b5563;">Download Web Bundle</a>`;
+        }
+
+        const html = `
+            <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                <h2 style="color: #10B981;">Build Successful!</h2>
+                <p>Good news! Your app <strong>${appName}</strong> has been successfully built and is ready for download.</p>
+                <div style="margin: 30px 0;">
+                    ${linksHtml}
+                </div>
+                <p>You can also access these downloads from your dashboard at any time.</p>
+                <p>Thank you for using our platform.</p>
+            </div>
+            <style>
+                .btn { display: inline-block; background-color: #10B981; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; margin-bottom: 10px; }
+            </style>
+        `;
+        return await this.sendEmail(email, subject, html);
+    }
+
+    static async sendAppBuildFailure(email: string, appName: string, errorMsg: string) {
+        const subject = `Build Failed: ${appName}`;
+        const html = `
+            <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                <h2 style="color: #EF4444;">Build Failed</h2>
+                <p>Unfortunately, the build for your app <strong>${appName}</strong> encountered an error.</p>
+                <div style="background-color: #FEF2F2; color: #B91C1C; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                    <strong>Error Details:</strong><br/>
+                    ${errorMsg}
+                </div>
+                <p>Please review your app configurations or contact support for assistance.</p>
+                <a href="#" class="btn">Go to Dashboard</a>
+            </div>
+            <style>
+                .btn { display: inline-block; background-color: #4b5563; color: #ffffff; padding: 10px 20px; border-radius: 6px; text-decoration: none; }
+            </style>
+        `;
+        return await this.sendEmail(email, subject, html);
+    }
 }

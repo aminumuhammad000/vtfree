@@ -10,7 +10,8 @@ import {
     Eye,
     Bell,
     Wallet,
-    TrendingUp
+    TrendingUp,
+    ArrowRight
 } from 'lucide-react-native';
 import Colors from '../constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -24,12 +25,12 @@ const { width } = Dimensions.get('window');
 
 export default function DashboardScreen() {
     const router = useRouter();
-    const { signOut } = useAuth();
-    const [user, setUser] = useState<any>(null);
-    const [apps, setApps] = useState<any[]>([]);
-    const [walletBalance, setWalletBalance] = useState(0);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const { token, user: authUser, signOut } = useAuth();
+    const [user, setUser] = useState<any>(authUser);
+    const [apps, setApps] = useState<any[]>([]);
+    const [walletBalance, setWalletBalance] = useState(0);
     const [sessionExpired, setSessionExpired] = useState(false);
     const isLoadingRef = React.useRef(false);
 
@@ -67,67 +68,66 @@ export default function DashboardScreen() {
 
         try {
             // Ensure token exists before making API calls
-            const token = await AsyncStorage.getItem('vtfree_token');
             if (!token) {
-                await handleSessionExpired();
+                // If context loading is done and still no token, it's expired
+                if (loading === false) {
+                    await handleSessionExpired();
+                }
                 return;
             }
 
             // 1. Get User Info
-            const userStr = await AsyncStorage.getItem('vtfree_user');
-            if (userStr) {
-                setUser(JSON.parse(userStr));
-            } else {
-                // Fallback fetch if not in storage
-                const profile = await AuthService.getProfile();
-                if (profile.success) setUser(profile.data.user);
+            try {
+                const userStr = await AsyncStorage.getItem('vtfree_user');
+                if (userStr) {
+                    setUser(JSON.parse(userStr));
+                } else {
+                    // Fallback fetch if not in storage
+                    const profile = await AuthService.getProfile();
+                    if (profile.success) setUser(profile.data.user);
+                }
+            } catch (e) {
+                console.warn('User fetch failed:', e);
             }
 
             // 2. Get Wallet
-            const walletRes = await WalletService.getWallet();
-            if (walletRes.success) {
-                setWalletBalance(walletRes.data.balance || 0);
+            try {
+                const walletRes = await WalletService.getWallet();
+                if (walletRes.success) {
+                    setWalletBalance(walletRes.data.balance || 0);
+                }
+            } catch (error: any) {
+                console.error('Wallet fetch failed:', error);
+                // Don't kill the whole dashboard for wallet failure
             }
 
             // 3. Get Apps
-            const appsRes = await AppService.getMyApps();
-            if (appsRes.success) {
-                const fetchedApps = appsRes.data.apps || [];
-                setApps(fetchedApps);
+            try {
+                const appsRes = await AppService.getMyApps();
+                if (appsRes.success) {
+                    const fetchedApps = appsRes.data.apps || [];
+                    setApps(fetchedApps);
 
-                // Stats
-                setStats({
-                    total: fetchedApps.length,
-                    active: fetchedApps.filter((app: any) => app.status === 'live').length,
-                    building: fetchedApps.filter((app: any) => app.status === 'building' || app.status === 'pending').length
-                });
+                    // Stats
+                    setStats({
+                        total: fetchedApps.length,
+                        active: fetchedApps.filter((app: any) => app.status === 'live').length,
+                        building: fetchedApps.filter((app: any) => app.status === 'building' || app.status === 'pending').length
+                    });
+                }
+            } catch (e) {
+                console.warn('Apps fetch failed:', e);
             }
 
         } catch (error: any) {
             const status = error.response?.status;
-            const msg = error.message?.toLowerCase() || '';
-            const serverMsg = error.response?.data?.message?.toLowerCase() || '';
-
-            // Check for various forms of auth errors
-            const isAuthError =
-                error.isAuthError || // Flag from axios interceptor
-                status === 401 ||
-                msg.includes('invalid token') ||
-                msg.includes('jwt') ||
-                msg.includes('unauthorized') ||
-                msg.includes('session') ||
-                msg.includes('no token') ||
-                serverMsg.includes('invalid token') ||
-                serverMsg.includes('unauthorized') ||
-                serverMsg.includes('session') ||
-                serverMsg.includes('no token');
+            // Global error handler if token itself is invalid
+            const isAuthError = status === 401;
 
             if (isAuthError) {
                 await handleSessionExpired();
-                return;
             } else {
-                // Only log as error if it's NOT an auth error
-                console.error('Dashboard load failed:', error);
+                console.error('Dashboard general load error:', error);
             }
         } finally {
             isLoadingRef.current = false;
@@ -163,23 +163,49 @@ export default function DashboardScreen() {
         return `₦${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     };
 
+
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
 
-            {/* Custom Header (No Hamburger) */}
-            <View style={styles.header}>
+            {/* Premium Header */}
+            <LinearGradient
+                colors={['#FFFFFF', '#F9FAFB']}
+                style={styles.header}
+            >
                 <View>
-                    <Text style={styles.greeting}>Hello, {user?.first_name || 'Creator'} 👋</Text>
-                    <Text style={styles.subtitle}>Welcome back to VTfree</Text>
+                    <Text style={styles.greeting}>
+                        <Text style={styles.greetingLight}>Hello, </Text>
+                        <Text style={styles.greetingBold}>{user?.first_name || 'Creator'}</Text>
+                    </Text>
+                    <Text style={styles.subtitle}>Your dashboard is ready</Text>
                 </View>
-                <TouchableOpacity style={styles.profileButton} onPress={() => router.push('/profile')}>
-                    <Image
-                        source={require('../assets/images/logo.png')}
-                        style={styles.profileAvatar}
-                    />
-                </TouchableOpacity>
-            </View>
+                <View style={{ flexDirection: 'row', gap: 12 }}>
+
+                    <TouchableOpacity
+                        style={styles.profileButton}
+                        onPress={() => router.push('/profile')}
+                        activeOpacity={0.8}
+                    >
+                        <LinearGradient
+                            colors={[Colors.primaryLighter, '#FFFFFF']}
+                            style={styles.profileAvatarWrapper}
+                        >
+                            {user?.profile_picture ? (
+                                <Image
+                                    source={{ uri: user.profile_picture }}
+                                    style={styles.profileAvatar}
+                                />
+                            ) : (
+                                <Image
+                                    source={require('../assets/images/logo.png')}
+                                    style={styles.profileAvatar}
+                                />
+                            )}
+                        </LinearGradient>
+                    </TouchableOpacity>
+                </View>
+            </LinearGradient>
 
             <ScrollView
                 style={styles.content}
@@ -187,28 +213,37 @@ export default function DashboardScreen() {
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[Colors.primary]} />}
             >
                 {/* Wallet Card */}
-                <LinearGradient
-                    colors={[Colors.primary, Colors.primary]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.walletCard}
+                {/* Wallet Card - Pressable */}
+                <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPress={() => router.push('/wallet')}
+                    style={styles.walletCardWrapper}
                 >
-                    <View style={styles.walletInfo}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                            <Wallet color="rgba(255,255,255,0.8)" size={20} />
-                            <Text style={styles.walletLabel}>Wallet Balance</Text>
-                        </View>
-                        <Text style={styles.walletAmount}>{formatCurrency(walletBalance)}</Text>
-                    </View>
-                    <TouchableOpacity
-                        style={styles.fundButton}
-                        activeOpacity={0.8}
-                        onPress={() => router.push('/wallet')}
+                    <LinearGradient
+                        colors={[Colors.primary, Colors.primary]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.walletCard}
                     >
-                        <Plus color={Colors.primary} size={20} />
-                        <Text style={styles.fundButtonText}>Add Money</Text>
-                    </TouchableOpacity>
-                </LinearGradient>
+                        <View style={styles.walletInfo}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                                <Wallet color="#FFFFFF" size={20} />
+                                <Text style={styles.walletLabel}>Wallet Balance</Text>
+                            </View>
+                            <Text
+                                style={styles.walletAmount}
+                                adjustsFontSizeToFit
+                                numberOfLines={1}
+                            >
+                                {formatCurrency(walletBalance)}
+                            </Text>
+                        </View>
+                        <View style={styles.walletArrow}>
+                            <TrendingUp color="#FFFFFF" size={24} />
+                        </View>
+                    </LinearGradient>
+                </TouchableOpacity>
+
 
                 {/* Quick Stats Row */}
                 <View style={styles.statsRow}>
@@ -218,12 +253,12 @@ export default function DashboardScreen() {
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
-                        <Text style={[styles.statValue, { color: Colors.green[600] }]}>{stats.active}</Text>
+                        <Text style={[styles.statValue, { color: Colors.green[700] }]}>{stats.active}</Text>
                         <Text style={styles.statLabel}>Live</Text>
                     </View>
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
-                        <Text style={[styles.statValue, { color: Colors.yellow[600] }]}>{stats.building}</Text>
+                        <Text style={[styles.statValue, { color: Colors.yellow[700] }]}>{stats.building}</Text>
                         <Text style={styles.statLabel}>Building</Text>
                     </View>
                 </View>
@@ -281,7 +316,18 @@ export default function DashboardScreen() {
                                 key={app._id}
                                 style={styles.appCard}
                                 activeOpacity={0.7}
-                                onPress={() => router.push({ pathname: '/app-details', params: { appId: app.app_id } })}
+                                onPress={() => router.push({
+                                    pathname: '/app-details',
+                                    params: {
+                                        appId: app.app_id,
+                                        name: app.app_name,
+                                        package: app.package_name,
+                                        status: app.status,
+                                        color: app.branding?.primary_color,
+                                        logo: app.branding?.logo_url,
+                                        type: 'Android' // Default or derive from app data if available
+                                    }
+                                })}
                             >
                                 <View style={styles.appCardHeader}>
                                     {app.branding?.logo_url ? (
@@ -299,12 +345,50 @@ export default function DashboardScreen() {
                                         <Text style={styles.appName} numberOfLines={1}>{app.app_name}</Text>
                                         <Text style={styles.appPackage} numberOfLines={1}>{app.package_name}</Text>
                                     </View>
-                                    <View style={[styles.statusBadge, app.status === 'live' ? styles.statusLive : styles.statusBuilding]}>
-                                        <Text style={[styles.statusText, app.status === 'live' ? styles.statusTextLive : styles.statusTextBuilding]}>
-                                            {app.status === 'live' ? 'Live' : 'Building'}
+                                    <View style={[
+                                        styles.statusBadge,
+                                        app.status === 'live' ? styles.statusLive :
+                                            (app.status === 'failed' ? styles.statusFailed :
+                                                (app.status === 'pending' ? styles.statusPending : styles.statusBuilding))
+                                    ]}>
+                                        <Text style={[
+                                            styles.statusText,
+                                            app.status === 'live' ? styles.statusTextLive :
+                                                (app.status === 'failed' ? styles.statusTextFailed :
+                                                    (app.status === 'pending' ? styles.statusTextPending : styles.statusTextBuilding))
+                                        ]}>
+                                            {app.status === 'live' ? 'Live' :
+                                                (app.status === 'failed' ? 'Failed' :
+                                                    (app.status === 'pending' ? 'Pending' : 'Building'))}
                                         </Text>
                                     </View>
                                 </View>
+
+                                {(app.status === 'live' || app.status === 'pending') && (
+                                    <TouchableOpacity
+                                        style={styles.upgradeButton}
+                                        onPress={(e) => {
+                                            e.stopPropagation();
+                                            router.push({ pathname: '/build-app', params: { appId: app.app_id } });
+                                        }}
+                                    >
+                                        <Text style={styles.upgradeButtonText}>Upgrade / Build</Text>
+                                        <ArrowRight size={14} color={Colors.primary} />
+                                    </TouchableOpacity>
+                                )}
+
+                                {app.status === 'failed' && (
+                                    <TouchableOpacity
+                                        style={styles.upgradeButton}
+                                        onPress={(e) => {
+                                            e.stopPropagation();
+                                            router.push({ pathname: '/build-status', params: { appId: app.app_id } });
+                                        }}
+                                    >
+                                        <Text style={[styles.upgradeButtonText, { color: Colors.red[600] }]}>Retry Build</Text>
+                                        <ArrowRight size={14} color={Colors.red[600]} />
+                                    </TouchableOpacity>
+                                )}
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -323,34 +407,49 @@ const styles = StyleSheet.create({
     },
     header: {
         paddingHorizontal: 20,
-        paddingTop: 60,
-        paddingBottom: 20,
+        paddingTop: 54,
+        paddingBottom: 16,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         backgroundColor: Colors.background,
     },
     greeting: {
-        fontSize: 24,
-        fontWeight: 'bold',
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        marginBottom: 2,
+    },
+    greetingLight: {
+        fontSize: 18,
+        fontWeight: '400',
+        color: Colors.gray[600],
+    },
+    greetingBold: {
+        fontSize: 18,
+        fontWeight: '700',
         color: Colors.text.primary,
-        marginBottom: 4,
     },
     subtitle: {
-        fontSize: 14,
-        color: Colors.gray[500],
+        fontSize: 13,
+        fontWeight: '500',
+        color: Colors.gray[400],
+        letterSpacing: 0.3,
     },
     profileButton: {
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 4,
+    },
+    profileAvatarWrapper: {
         width: 48,
         height: 48,
         borderRadius: 24,
+        padding: 2,
+        alignItems: 'center',
+        justifyContent: 'center',
         backgroundColor: Colors.white,
-        padding: 4,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
     },
     profileAvatar: {
         width: '100%',
@@ -363,7 +462,17 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: 20,
-        paddingBottom: 40,
+        paddingBottom: 120, // Increased for floating TabBar
+    },
+    walletCardWrapper: {
+        marginBottom: 24,
+        borderRadius: 24,
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 16,
+        elevation: 10,
+        backgroundColor: Colors.white, // backdrop
     },
     walletCard: {
         borderRadius: 24,
@@ -371,39 +480,40 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 24,
-        shadowColor: Colors.primary,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 16,
-        elevation: 10,
     },
     walletInfo: {
         flex: 1,
     },
+    walletAmount: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+    },
     walletLabel: {
-        color: 'rgba(255,255,255,0.9)',
+        color: '#FFFFFF',
         fontSize: 14,
         fontWeight: '500',
     },
-    walletAmount: {
-        color: Colors.white,
-        fontSize: 28,
-        fontWeight: 'bold',
-    },
-    fundButton: {
-        backgroundColor: Colors.white,
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 12,
-        flexDirection: 'row',
+    walletArrow: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: 'rgba(255,255,255,0.15)',
         alignItems: 'center',
-        gap: 6,
+        justifyContent: 'center',
     },
-    fundButtonText: {
-        color: Colors.primary,
-        fontWeight: '700',
-        fontSize: 14,
+    iconButton: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: Colors.white,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
     },
     statsRow: {
         flexDirection: 'row',
@@ -564,6 +674,9 @@ const styles = StyleSheet.create({
     statusBuilding: {
         backgroundColor: Colors.yellow[100],
     },
+    statusPending: {
+        backgroundColor: '#FFEDD5',
+    },
     statusText: {
         fontSize: 12,
         fontWeight: '600',
@@ -573,6 +686,30 @@ const styles = StyleSheet.create({
     },
     statusTextBuilding: {
         color: Colors.yellow[700],
+    },
+    statusTextPending: {
+        color: '#EA580C',
+    },
+    statusTextFailed: {
+        color: Colors.red[700],
+    },
+    statusFailed: {
+        backgroundColor: Colors.red[100],
+    },
+    upgradeButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        paddingTop: 12,
+        marginTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: Colors.gray[100],
+    },
+    upgradeButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: Colors.primary,
     },
     emptyState: {
         alignItems: 'center',
@@ -595,5 +732,101 @@ const styles = StyleSheet.create({
         color: Colors.gray[500],
         textAlign: 'center',
         maxWidth: 240,
+    },
+    virtualAccountCard: {
+        backgroundColor: '#F0FDF4',
+        borderRadius: 20,
+        padding: 16,
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: '#DCFCE7',
+    },
+    vaHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 16,
+    },
+    vaTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#166534',
+    },
+    vaContent: {
+        gap: 12,
+    },
+    vaItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    vaLabel: {
+        fontSize: 13,
+        color: '#166534',
+        opacity: 0.7,
+    },
+    vaValue: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#166534',
+    },
+    vaAccountRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    vaAccountNumber: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#166534',
+        letterSpacing: 1,
+    },
+    copyButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: Colors.white,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        borderWidth: 0.5,
+        borderColor: '#DCFCE7',
+    },
+    copyText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: Colors.primary,
+    },
+    vaFooter: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginTop: 16,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: '#DCFCE7',
+    },
+    vaNote: {
+        fontSize: 11,
+        color: '#166534',
+        opacity: 0.6,
+        fontStyle: 'italic',
+    },
+    noAccountBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        backgroundColor: '#F5F3FF',
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: '#EDE9FE',
+    },
+    noAccountText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: Colors.primary,
+        flex: 1,
     },
 });

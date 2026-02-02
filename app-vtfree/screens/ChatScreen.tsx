@@ -6,6 +6,7 @@ import Colors from '../constants/Colors';
 import { useAuth } from '../context/AuthContext';
 import io from 'socket.io-client';
 import * as ImagePicker from 'expo-image-picker';
+
 import * as DocumentPicker from 'expo-document-picker';
 import { Audio } from 'expo-av';
 
@@ -74,7 +75,7 @@ export default function ChatScreen() {
 
     const pickImage = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: 'images',
             allowsEditing: true,
             quality: 1,
         });

@@ -3,6 +3,62 @@ import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import VTfreeUser from '../models/vtfree_user.model.js';
+import { logger } from '../config/bootstrap.js';
+import { VTPayService } from '../services/vtpay.service.js';
+
+export const createVirtualAccount = async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).user.id; // Corrected to use req.user.id
+        const user = await VTfreeUser.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        if (user.virtual_account && user.virtual_account.account_number) {
+            return res.status(400).json({ success: false, message: 'Virtual account already exists' });
+        }
+
+        const { bankType } = req.body;
+        if (!bankType) {
+            return res.status(400).json({ success: false, message: 'Bank type is required' });
+        }
+
+        const vtpayData = {
+            bankType,
+            accountName: `${user.first_name} ${user.last_name || ''}`.trim(),
+            email: user.email,
+            phone: user.phone_number,
+            reference: `VTF_${user._id}_${Date.now()}`
+        };
+
+        const result = await VTPayService.createVirtualAccount(vtpayData);
+
+        if (result.success) {
+            user.virtual_account = {
+                bank: result.data.bankName,
+                account_number: result.data.accountNumber,
+                account_name: result.data.accountName
+            };
+            await user.save();
+
+            res.json({
+                success: true,
+                message: 'Virtual account created successfully',
+                data: user.virtual_account
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                message: result.message || 'Failed to create virtual account'
+            });
+        }
+    } catch (error: any) {
+        logger.error('Create virtual account error:', error);
+        res.status(500).json({ success: false, message: error.message || 'Server error' });
+    }
+};
+
 
 export const register = async (req: Request, res: Response) => {
     try {
@@ -59,8 +115,18 @@ export const register = async (req: Request, res: Response) => {
                 token,
             },
         });
-    } catch (error) {
-        console.error('Registration error:', error);
+    } catch (error: any) {
+        logger.error('Registration error:', error);
+
+        // Handle Mongoose validation errors
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map((err: any) => err.message);
+            return res.status(400).json({
+                success: false,
+                message: messages[0] || 'Validation error'
+            });
+        }
+
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
@@ -74,29 +140,29 @@ export const login = async (req: Request, res: Response) => {
 
         // Detailed Debug Logging
         console.log('=== LOGIN ATTEMPT ===');
-        console.log(`📧 Email: '${email}'`);
-        console.log(`🔑 Password length: ${password?.length}`);
+        console.log(`Email: '${email}'`);
+        console.log(`Password length: ${password?.length} `);
 
         // Find user
         const user = await VTfreeUser.findOne({ email });
         if (!user) {
-            console.log(`❌ [Login] User not found for email: '${email}'`);
+            console.log(`[Login] User not found for email: '${email}'`);
             // Check if it exists in users collection just to be helpful
             const mongoose = require('mongoose');
             const otherUser = await mongoose.connection.collection('users').findOne({ email });
-            if (otherUser) console.log(`⚠️ Note: User found in 'users' collection but not 'vtfreeusers'`);
+            if (otherUser) console.log(`Note: User found in 'users' collection but not 'vtfreeusers'`);
 
             return res.status(400).json({ success: false, message: 'Invalid credentials (User)' });
         }
 
-        console.log(`✅ [Login] User found: ${user._id} | Hash: ${user.password?.substring(0, 10)}...`);
+        console.log(`[Login] User found: ${user._id} | Hash: ${user.password?.substring(0, 10)}...`);
 
         // Check password
         const isMatch = await bcrypt.compare(password, user.password);
-        console.log(`🔐 [Login] Password match result: ${isMatch}`);
+        console.log(`[Login] Password match result: ${isMatch} `);
 
         if (!isMatch) {
-            console.log(`❌ [Login] Password mismatch!`);
+            console.log(`[Login] Password mismatch!`);
             return res.status(400).json({ success: false, message: 'Invalid credentials (Password)' });
         }
 
@@ -128,7 +194,7 @@ export const login = async (req: Request, res: Response) => {
             },
         });
     } catch (error) {
-        console.error('Login error:', error);
+        logger.error('Login error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
@@ -145,14 +211,14 @@ export const getProfile = async (req: Request, res: Response) => {
             data: { user },
         });
     } catch (error) {
-        console.error('Profile error:', error);
+        logger.error('Profile error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
 
 export const updateProfile = async (req: Request, res: Response) => {
     try {
-        const { first_name, last_name, email } = req.body;
+        const { first_name, last_name, email, profile_picture } = req.body;
         const user_id = (req as any).user.id;
 
         const user = await VTfreeUser.findById(user_id);
@@ -162,6 +228,7 @@ export const updateProfile = async (req: Request, res: Response) => {
 
         if (first_name) user.first_name = first_name;
         if (last_name) user.last_name = last_name;
+        if (profile_picture) user.profile_picture = profile_picture;
         // Email update might require verification in a real app, keeping it simple for now
         if (email) user.email = email;
 
@@ -178,11 +245,109 @@ export const updateProfile = async (req: Request, res: Response) => {
                     last_name: user.last_name,
                     status: user.status,
                     wallet_balance: user.wallet_balance,
+                    profile_picture: user.profile_picture
                 }
             }
         });
     } catch (error) {
-        console.error('Update profile error:', error);
+        logger.error('Update profile error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+export const forgotPassword = async (req: Request, res: Response) => {
+    try {
+        const { email } = req.body;
+        const user = await VTfreeUser.findOne({ email });
+
+        if (!user) {
+            // For security, return success even if user not found
+            return res.json({ success: true, message: 'If your email is registered, you will receive a reset code.' });
+        }
+
+        // Generate 4-digit OTP
+        const otp = Math.floor(1000 + Math.random() * 9000).toString();
+        user.reset_password_token = otp;
+        user.reset_password_expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        await user.save();
+
+        // Send email
+        const { EmailService } = await import('../services/email.service.js');
+        await EmailService.sendOTP(email, otp);
+
+        res.json({ success: true, message: 'Reset code sent to your email' });
+    } catch (error) {
+        logger.error('Forgot password error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+    try {
+        const { email, code, newPassword } = req.body;
+        const user = await VTfreeUser.findOne({
+            email,
+            reset_password_token: code,
+            reset_password_expires: { $gt: new Date() }
+        });
+
+        if (!user) {
+            return res.status(400).json({ success: false, message: 'Invalid or expired reset code' });
+        }
+
+        // Hash new password
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        user.reset_password_token = undefined;
+        user.reset_password_expires = undefined;
+
+        await user.save();
+
+        res.json({ success: true, message: 'Password reset successful. You can now login with your new password.' });
+    } catch (error) {
+        logger.error('Reset password error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const uploadProfilePicture = async (req: Request, res: Response) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No file uploaded' });
+        }
+
+        const userId = (req as any).user.id;
+        const { cloudinaryService } = await import('../services/cloudinary.service.js');
+        const fs = await import('fs');
+
+        // Upload to Cloudinary
+        const uploadResult = await cloudinaryService.uploadImage(req.file.path, `vtfree/profiles/${userId}`);
+
+        // Clean up local file
+        if (fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+
+        res.json({
+            success: true,
+            message: 'Image uploaded successfully',
+            url: uploadResult.secure_url
+        });
+    } catch (error: any) {
+        console.error('Upload profile picture error:', error);
+
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            const logPath = path.join(process.cwd(), 'upload_debug.log');
+            const timestamp = new Date().toISOString();
+            const logMsg = `\n[${timestamp}] Error: ${error.message}\nStack: ${error.stack}\nDetails: ${JSON.stringify(error)}\n`;
+            fs.appendFileSync(logPath, logMsg);
+        } catch (e) { console.error('Failed to write log', e); }
+
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Server error'
+        });
     }
 };
