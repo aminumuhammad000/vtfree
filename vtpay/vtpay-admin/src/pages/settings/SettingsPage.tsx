@@ -52,11 +52,11 @@ const SettingsPage: React.FC = () => {
             type: 'PRIMARY' as 'PRIMARY' | 'SECONDARY',
             status: 'ACTIVE' as 'ACTIVE' | 'INACTIVE',
         },
-        zainpaySettlement: {
-            zainboxCode: '',
-            scheduleType: 'T1' as 'T1' | 'T0',
-            schedulePeriod: 'Daily' as 'Daily' | 'Weekly' | 'Monthly',
+        globalSettlement: {
             status: false,
+            scheduleType: 'T1' as 'T1' | 'T7' | 'T30',
+            schedulePeriod: 'Daily',
+            settlementAccounts: [] as Array<{ accountNumber: string; bankCode: string; percentage: string; accountName?: string }>
         },
         payout: {
             minAmount: 10000,
@@ -142,7 +142,18 @@ const SettingsPage: React.FC = () => {
     const handleSave = async () => {
         setLoading(true);
         try {
-            await adminApi.updateSystemSettings(settings);
+            // Prepare settings for save - sync Parent Account to Global Settlement if enabled
+            const finalSettings = { ...settings };
+
+            if (finalSettings.parentAccount && finalSettings.parentAccount.accountNumber && finalSettings.parentAccount.bankCode) {
+                finalSettings.globalSettlement.settlementAccounts = [{
+                    accountNumber: finalSettings.parentAccount.accountNumber,
+                    bankCode: finalSettings.parentAccount.bankCode,
+                    percentage: "100"
+                }];
+            }
+
+            await adminApi.updateSystemSettings(finalSettings);
             toast.success('Settings saved successfully!');
             await fetchBanks();
         } catch (error) {
@@ -381,31 +392,9 @@ const SettingsPage: React.FC = () => {
                         </div>
                     </div>
                     <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 w-full sm:w-auto justify-between sm:justify-start">
-                        <span className={`text-sm font-medium ${settings.integrations.zainpay.isLive ? 'text-green-600' : 'text-yellow-600'}`}>
-                            {settings.integrations.zainpay.isLive ? 'Live Mode' : 'Test Mode'}
+                        <span className="text-sm font-medium text-green-600">
+                            Live Mode
                         </span>
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={settings.integrations.zainpay.isLive}
-                                onChange={(e) => {
-                                    const isLive = e.target.checked;
-                                    setSettings({
-                                        ...settings,
-                                        integrations: {
-                                            ...settings.integrations,
-                                            zainpay: {
-                                                ...settings.integrations.zainpay,
-                                                isLive,
-                                                baseUrl: isLive ? 'https://api.zainpay.ng' : 'https://sandbox.zainpay.ng'
-                                            }
-                                        }
-                                    });
-                                }}
-                                className="sr-only peer"
-                            />
-                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
-                        </label>
                     </div>
                 </div>
 
@@ -426,9 +415,7 @@ const SettingsPage: React.FC = () => {
                             placeholder="https://api.zainpay.ng"
                         />
                         <p className="text-xs text-slate-500 mt-1">
-                            {settings.integrations.zainpay.isLive
-                                ? 'Live URL: https://api.zainpay.ng'
-                                : 'Sandbox URL: https://sandbox.zainpay.ng'}
+                            Live URL: https://api.zainpay.ng
                         </p>
                     </div>
                     <div>
@@ -576,9 +563,9 @@ const SettingsPage: React.FC = () => {
                             className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                         >
                             <option value="">Select a bank</option>
-                            {banks.map((bank) => (
-                                <option key={bank.bankCode} value={bank.bankCode}>
-                                    {bank.bankName}
+                            {banks.map((bank: any) => (
+                                <option key={bank.code} value={bank.code}>
+                                    {bank.name}
                                 </option>
                             ))}
                         </select>
@@ -643,15 +630,15 @@ const SettingsPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* Zainpay Settlement Configuration */}
+            {/* Global Settlement Configuration */}
             <div className="bg-white p-6 rounded-lg border border-slate-200">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="w-10 h-10 bg-amber-100 rounded-lg flex-shrink-0 flex items-center justify-center text-amber-600 font-bold">
-                        ZS
+                        GS
                     </div>
                     <div>
                         <h3 className="text-base md:text-lg font-medium text-slate-900">Global Settlement Configuration</h3>
-                        <p className="text-xs md:text-sm text-slate-500">Configure automatic T1 settlement for <strong>ALL</strong> Zainboxes to the Parent Account</p>
+                        <p className="text-xs md:text-sm text-slate-500">Configure automatic settlement for <strong>newly created</strong> Zainboxes. Money will be settled to the Parent Account.</p>
                     </div>
                 </div>
 
@@ -659,15 +646,16 @@ const SettingsPage: React.FC = () => {
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Schedule Type</label>
                         <select
-                            value={settings.zainpaySettlement?.scheduleType || 'T1'}
+                            value={settings.globalSettlement?.scheduleType || 'T1'}
                             onChange={(e) => setSettings({
                                 ...settings,
-                                zainpaySettlement: { ...settings.zainpaySettlement, scheduleType: e.target.value as 'T1' | 'T0' }
+                                globalSettlement: { ...settings.globalSettlement, scheduleType: e.target.value as 'T1' | 'T7' | 'T30' }
                             })}
                             className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                         >
                             <option value="T1">T+1 (Next Day)</option>
-                            <option value="T0">T+0 (Same Day)</option>
+                            <option value="T7">T+7 (Weekly)</option>
+                            <option value="T30">T+30 (Monthly)</option>
                         </select>
                     </div>
                     <div>
@@ -675,14 +663,98 @@ const SettingsPage: React.FC = () => {
                         <div className="flex items-center gap-3 p-2">
                             <input
                                 type="checkbox"
-                                checked={settings.zainpaySettlement?.status || false}
+                                checked={settings.globalSettlement?.status || false}
                                 onChange={(e) => setSettings({
                                     ...settings,
-                                    zainpaySettlement: { ...settings.zainpaySettlement, status: e.target.checked }
+                                    globalSettlement: { ...settings.globalSettlement, status: e.target.checked }
                                 })}
                                 className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
                             />
                             <span className="text-sm text-slate-600">Enable Automatic Settlement</span>
+                        </div>
+                    </div>
+
+                    {/* Explicit Settlement Account Inputs */}
+                    <div className="md:col-span-2 border-t border-slate-100 pt-4 mt-2">
+                        <h4 className="text-sm font-medium text-slate-900 mb-4">Settlement Destination Account</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Select Bank</label>
+                                <select
+                                    value={settings.globalSettlement?.settlementAccounts?.[0]?.bankCode || ''}
+                                    onChange={(e) => {
+                                        const newAccounts = [...(settings.globalSettlement.settlementAccounts || [])];
+                                        if (newAccounts.length === 0) newAccounts.push({ accountNumber: '', bankCode: '', percentage: '100' });
+                                        newAccounts[0].bankCode = e.target.value;
+                                        setSettings({
+                                            ...settings,
+                                            globalSettlement: { ...settings.globalSettlement, settlementAccounts: newAccounts }
+                                        });
+                                    }}
+                                    className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                >
+                                    <option value="">Select a bank</option>
+                                    {banks.map((bank: any) => (
+                                        <option key={bank.code} value={bank.code}>
+                                            {bank.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Account Number</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={settings.globalSettlement?.settlementAccounts?.[0]?.accountNumber || ''}
+                                        onChange={(e) => {
+                                            const newAccounts = [...(settings.globalSettlement.settlementAccounts || [])];
+                                            if (newAccounts.length === 0) newAccounts.push({ accountNumber: '', bankCode: '', percentage: '100' });
+                                            newAccounts[0].accountNumber = e.target.value;
+                                            setSettings({
+                                                ...settings,
+                                                globalSettlement: { ...settings.globalSettlement, settlementAccounts: newAccounts }
+                                            });
+                                        }}
+                                        className="flex-1 px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                        placeholder="10-digit account number"
+                                        maxLength={10}
+                                    />
+                                    <button
+                                        onClick={async () => {
+                                            const acc = settings.globalSettlement.settlementAccounts?.[0];
+                                            if (!acc?.bankCode || !acc?.accountNumber) {
+                                                toast.error('Please enter details');
+                                                return;
+                                            }
+                                            try {
+                                                const data = await adminApi.verifyAccount(acc.bankCode, acc.accountNumber);
+                                                if (data?.accountName) {
+                                                    const newAccounts = [...(settings.globalSettlement.settlementAccounts || [])];
+                                                    newAccounts[0].accountName = data.accountName;
+                                                    setSettings({
+                                                        ...settings,
+                                                        globalSettlement: { ...settings.globalSettlement, settlementAccounts: newAccounts }
+                                                    });
+                                                    toast.success(`Verified: ${data.accountName}`);
+                                                }
+                                            } catch (e: any) {
+                                                toast.error('Verification failed');
+                                            }
+                                        }}
+                                        type="button"
+                                        className="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 text-sm font-medium"
+                                    >
+                                        Verify
+                                    </button>
+                                </div>
+                                {settings.globalSettlement?.settlementAccounts?.[0]?.accountName && (
+                                    <div className="mt-2 text-sm text-green-600 bg-green-50 px-3 py-2 rounded-lg flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-green-600"></div>
+                                        {settings.globalSettlement.settlementAccounts[0].accountName}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

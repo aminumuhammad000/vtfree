@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const baseUrl = process.env.ZAINPAY_BASE_URL || 'https://sandbox.zainpay.ng';
+const baseUrl = process.env.ZAINPAY_BASE_URL || 'https://api.zainpay.ng';
 const publicKey = process.env.ZAINPAY_PUBLIC_KEY;
 
 console.log('Testing Zainpay Connection...');

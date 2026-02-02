@@ -1,25 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { adminApi } from '../../api/client';
+import { DashboardSkeleton } from '../../components/common/Skeleton';
+import BarChart from '../../components/charts/BarChart';
+
+import Badge from '../../components/common/Badge';
 
 const Dashboard: React.FC = () => {
-    const [stats, setStats] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        fetchStats();
-    }, []);
-
-    const fetchStats = async () => {
-        try {
-            setLoading(true);
-            const data = await adminApi.getStats();
-            setStats(data);
-        } catch (error) {
-            console.error('Failed to fetch dashboard stats:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { data: stats, isLoading: loading, refetch } = useQuery({
+        queryKey: ['dashboard-stats'],
+        queryFn: adminApi.getStats,
+        refetchInterval: 30000,
+        staleTime: 10000,
+    });
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-NG', {
@@ -30,12 +23,7 @@ const Dashboard: React.FC = () => {
     };
 
     if (loading) {
-        return (
-            <div className="p-8 text-center">
-                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-green-600 border-r-transparent"></div>
-                <p className="mt-2 text-slate-500">Loading dashboard metrics...</p>
-            </div>
-        );
+        return <DashboardSkeleton />;
     }
 
     return (
@@ -47,7 +35,7 @@ const Dashboard: React.FC = () => {
                     <p className="text-xs md:text-sm text-slate-500 mt-1">Real-time financial monitoring and control</p>
                 </div>
                 <button
-                    onClick={fetchStats}
+                    onClick={() => refetch()}
                     className="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium shadow-sm active:scale-95"
                 >
                     Refresh Data
@@ -128,9 +116,34 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
             </div>
+            {/* Analytics Section */}
+            <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-200 mb-6">
+                <BarChart
+                    title="Total Transactions (All Time)"
+                    data={{
+                        labels: ['Successful', 'Pending', 'Failed'],
+                        datasets: [
+                            {
+                                label: 'Transaction Count',
+                                data: [
+                                    stats?.transactions?.successCount || 0,
+                                    stats?.transactions?.pendingCount || 0,
+                                    stats?.transactions?.failedCount || 0
+                                ],
+                                backgroundColor: [
+                                    '#22c55e', // Success - Green
+                                    '#eab308', // Pending - Yellow
+                                    '#ef4444', // Failed - Red
+                                ],
+                            }
+                        ]
+                    }}
+                />
+            </div>
+
 
             {/* System Health Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 md:gap-6">
                 {/* Active Tenants */}
                 <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
                     <h3 className="text-base md:text-lg font-semibold text-slate-900 mb-4">Tenants Overview</h3>
@@ -178,29 +191,6 @@ const Dashboard: React.FC = () => {
                         </div>
                     </div>
                 </div>
-
-                {/* Webhook & Event Monitoring */}
-                <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow md:col-span-2 lg:col-span-1">
-                    <h3 className="text-base md:text-lg font-semibold text-slate-900 mb-4">Webhook Monitoring</h3>
-                    <div className="space-y-3">
-                        <div className="flex justify-between">
-                            <span className="text-xs md:text-sm text-slate-600">Total (24h)</span>
-                            <span className="text-xs md:text-sm font-semibold text-slate-900">{stats?.webhooks?.total || 0}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-xs md:text-sm text-slate-600">Success</span>
-                            <span className="text-xs md:text-sm font-semibold text-green-600">{stats?.webhooks?.success || 0}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-xs md:text-sm text-slate-600">Failed</span>
-                            <span className="text-xs md:text-sm font-semibold text-red-600">{stats?.webhooks?.failed || 0}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-xs md:text-sm text-slate-600">Pending Retry</span>
-                            <span className="text-xs md:text-sm font-semibold text-yellow-600">{stats?.webhooks?.pending || 0}</span>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             {/* Recent Activity Table (DF Table) */}
@@ -233,11 +223,12 @@ const Dashboard: React.FC = () => {
                                         <td className="px-4 md:px-6 py-4 text-sm text-slate-600 capitalize">{txn.category}</td>
                                         <td className="px-4 md:px-6 py-4 text-sm font-semibold text-slate-900">{formatCurrency(txn.amount)}</td>
                                         <td className="px-4 md:px-6 py-4">
-                                            <span className={`px-2 py-1 rounded-full text-[10px] md:text-xs font-medium ${txn.status === 'success' ? 'bg-green-100 text-green-800' :
-                                                txn.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
-                                                }`}>
+                                            <Badge variant={
+                                                txn.status === 'success' ? 'success' :
+                                                    txn.status === 'pending' ? 'warning' : 'error'
+                                            }>
                                                 {txn.status.toUpperCase()}
-                                            </span>
+                                            </Badge>
                                         </td>
                                         <td className="px-4 md:px-6 py-4 text-sm text-slate-500">
                                             {new Date(txn.createdAt).toLocaleDateString()}

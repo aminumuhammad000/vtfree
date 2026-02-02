@@ -1,70 +1,52 @@
-import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
-import { User, Wallet } from '../models';
 import { connectDatabase } from '../config/database';
+import { User } from '../models';
+import bcrypt from 'bcryptjs';
 
 const createAdmin = async () => {
     try {
-        console.log('🚀 Starting admin creation script...');
         await connectDatabase();
+        console.log('✅ Connected to database');
 
-        const email = process.argv[2] || 'admin@vtfree.com';
-        const password = process.argv[3] || 'password123';
+        // Admin credentials
+        const adminEmail = 'admin@vtpay.com';
+        const adminPassword = 'Admin@123';
 
-        // Check if user exists
-        let user = await User.findOne({ email: email.toLowerCase() });
-
-        if (user) {
-            console.log(`ℹ️ User ${email} already exists. Updating password and role...`);
-            const salt = await bcrypt.genSalt(10);
-            user.passwordHash = await bcrypt.hash(password, salt);
-            user.status = 'active';
-            user.role = 'admin';
-            user.kycLevel = 3;
-            user.kyc_status = 'verified';
-            await user.save();
-            console.log('✅ User updated successfully.');
-        } else {
-            console.log(`📝 Creating new admin user: ${email}...`);
-            const salt = await bcrypt.genSalt(10);
-            const passwordHash = await bcrypt.hash(password, salt);
-
-            user = new User({
-                email: email.toLowerCase(),
-                passwordHash,
-                firstName: 'Admin',
-                lastName: 'User',
-                fullName: 'Admin User',
-                phone: '08012345678',
-                status: 'active',
-                kycLevel: 3,
-                kyc_status: 'verified',
-                businessName: 'VTFree Admin',
-                role: 'admin',
-            });
-
-            await user.save();
-            console.log('✅ Admin user created successfully.');
+        // Check if admin already exists
+        const existingAdmin = await User.findOne({ email: adminEmail });
+        if (existingAdmin) {
+            console.log('⚠️  Admin user already exists with email:', adminEmail);
+            console.log('Email:', adminEmail);
+            console.log('You can use this email to login');
+            process.exit(0);
         }
 
-        // Ensure wallet exists
-        let wallet = await Wallet.findOne({ userId: user._id });
-        if (!wallet) {
-            console.log('💰 Creating wallet for admin...');
-            await Wallet.create({
-                userId: user._id,
-                balance: 0,
-                currency: 'NGN',
-            });
-            console.log('✅ Wallet created successfully.');
-        } else {
-            console.log('ℹ️ Wallet already exists for this admin.');
-        }
+        // Hash password
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
-        console.log('\n🔐 Credentials:');
-        console.log(`📧 Email: ${email}`);
-        console.log(`🔑 Password: ${password}`);
-        console.log('\nYou can now login to the admin dashboard.');
+        // Create admin user
+        const admin = await User.create({
+            email: adminEmail,
+            passwordHash: hashedPassword,
+            firstName: 'Admin',
+            lastName: 'User',
+            phone: '+2348000000000',
+            role: 'admin',
+            status: 'active',
+            kyc_status: 'verified',
+            kycLevel: 3,
+            businessName: 'VTPay Admin',
+        });
+
+        console.log('✅ Admin user created successfully!');
+        console.log('');
+        console.log('=================================');
+        console.log('Admin Login Credentials:');
+        console.log('=================================');
+        console.log('Email:', adminEmail);
+        console.log('Password:', adminPassword);
+        console.log('=================================');
+        console.log('');
+        console.log('⚠️  IMPORTANT: Please change this password after first login!');
 
         process.exit(0);
     } catch (error) {

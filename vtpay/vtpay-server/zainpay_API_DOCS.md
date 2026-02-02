@@ -204,7 +204,7 @@ Learn how to accept bank payments, manage accounts, and integrate products in yo
 Authentication
 A test public/private key pair will be provided to you once you sign up. Similar keys will be provided to you for your live transactions once your account has been verified and approved. You must include the public key as a bearer authorization header for each request. An example is given below when fetching zainboxes list using axios.
 Zainpay Base URLs
-BASE_URL(Sandbox): https://sandbox.zainpay.ng
+BASE_URL(Sandbox): https://api.zainpay.ng
 BASE_URL(Live): https://api.zainpay.ng
 
 Request Payload
@@ -224,7 +224,7 @@ axios.get('https://api.zainpay.ng/zainbox/list', {
 Create Zainbox
 USE: Create a zainbox. A zainbox is a virtual bucket that allows a merchant to create unlimited multiple virtual accounts.
 URL : host/zainbox /virtual-account/create/request
-Sandbox Query : https://sandbox.zainpay.ng/zainbox/create/request
+Sandbox Query : https://api.zainpay.ng/zainbox/create/request
 Live Query : https://api.zainpay.ng/zainbox/create/request
 Required Payload Properties: name, callbackUrl
 Optional Payload Properties: emailNotification, description, tags, codeNamePrefix, allowAutoInternalTransfer
@@ -296,7 +296,7 @@ Get all Zainboxes
 USE: Get all your created zainboxes
 Call Method: GET
 URL : host/zainbox/list
-Sandbox Query : https://sandbox.zainpay.ng/zainbox/list
+Sandbox Query : https://api.zainpay.ng/zainbox/list
 Live Query : https://api.zainpay.ng/zainbox/list
 Parameter:
 
@@ -331,7 +331,7 @@ JSON Response :
 Update Zainbox
 USE: This endpoint is used to update a Zainbox.
 URL : host/zainbox/update
-Sandbox Query : https://sandbox.zainpay.ng/zainbox/update
+Sandbox Query : https://api.zainpay.ng/zainbox/update
 Live Query : https://api.zainpay.ng/zainbox/update
 Parameter : ZainboxCode(Required), callbackUrl(optional), name(Required), emailNotification(optional)
 
@@ -368,7 +368,7 @@ Get all Zainbox Accounts
 USE: Get all virtual accounts linked to a zainbox
 Call Method: GET
 URL : host/zainbox/virtual-accounts/{zainboxCodeName}
-Sandbox Query : https://sandbox.zainpay.ng/zainbox/virtual-accounts/{zainboxCodeName}
+Sandbox Query : https://api.zainpay.ng/zainbox/virtual-accounts/{zainboxCodeName}
 Live Query : https://api.zainpay.ng/zainbox/virtual-accounts/{zainboxCodeName}
 Parameter : zainboxCodeName (required)
 
@@ -397,7 +397,7 @@ All Virtual Account Balance of a Zainbox
 USE: This endpoint fetches all current account balances for all virtual accounts in a zainbox.
 Call Method: GET
 URL : host/zainbox/accounts/balance/{zainboxCode}
-Sandbox Query : https://sandbox.zainpay.ng/zainbox/accounts/balance/THbfnDvK5o
+Sandbox Query : https://api.zainpay.ng/zainbox/accounts/balance/THbfnDvK5o
 Live Query : https://api.zainpay.ng/zainbox/accounts/balance/THbfnDvK5o
 Parameter: zainboxCode(Required)
 
@@ -439,7 +439,7 @@ Zainbox Transactions History
 USE: Get a list of transactions from a particular zainbox
 Call Method: GET
 URL : host/zainbox/transactions/{zainboxCode}
-Sandbox Query : https://sandbox.zainpay.ng/zainbox/transactions/THbfnDvK5o
+Sandbox Query : https://api.zainpay.ng/zainbox/transactions/THbfnDvK5o
 Live Query : https://api.zainpay.ng/zainbox/transactions/THbfnDvK5o
 Parameter: zainboxCode(Required)
 
@@ -479,7 +479,7 @@ Total Payment Collected By Zainbox
 USE: Get the sum of total amount collected by all virtual accounts for a particular zainbox in a particular period, for both transfer and deposit transactions
 Call Method: GET
 URL : host/zainbox/transfer/deposit/summary/{zainboxCode}
-Sandbox Query : https://sandbox.zainpay.ng/zainbox/transfer/deposit/summary/THbfnDvK5o?dateFrom=2022-02&dateTo=2022-03
+Sandbox Query : https://api.zainpay.ng/zainbox/transfer/deposit/summary/THbfnDvK5o?dateFrom=2022-02&dateTo=2022-03
 Live Query : https://api.zainpay.ng/zainbox/transfer/deposit/summary/THbfnDvK5o?dateFrom=2022-02&dateTo=2022-03
 Parameter: zainboxCode (Required), dateFrom (optional, if not provided, the system returns the data of the current month), dateTo (optional)
 
@@ -517,7 +517,7 @@ Zainbox Profile and Current Billing Plan
 USE: Get the complete profile of a Zainbox, including the Current Billing Plan for account to account and interBank transfers respectively
 Call Method: GET
 URL : host/zainbox/profile/{zainboxCode}
-Sandbox Query : https://sandbox.zainpay.ng/zainbox/profile/THbfnDvK5o
+Sandbox Query : https://api.zainpay.ng/zainbox/profile/THbfnDvK5o
 Live Query : https://api.zainpay.ng/zainbox/profile/THbfnDvK5o
 Parameter : zainboxCode (required)
 
@@ -600,7 +600,7 @@ Let's say you have a zainbox with three virtual accounts, and you want to set it
 
 Call Method: POST
 URL : host/zainbox/settlement
-Sandbox Query : https://sandbox.zainpay.ng/zainbox/settlement
+Sandbox Query : https://api.zainpay.ng/zainbox/settlement
 Live Query : https://api.zainpay.ng/zainbox/settlement
 Token: Required
 
@@ -665,7 +665,7 @@ Get Settlement
 USE: For getting settlement(s) tied to a zainbox
 Call Method: GET
 URL : host/zainbox/settlement?{zainboxCode}
-Sandbox Query : https://sandbox.zainpay.ng/zainbox/settlement?zainboxCode=THbfnDvK5o
+Sandbox Query : https://api.zainpay.ng/zainbox/settlement?zainboxCode=THbfnDvK5o
 Live Query : https://api.zainpay.ng/zainbox/settlement?zainboxCode=THbfnDvK5o
 Parameter : zainboxCode (required)
 
@@ -705,7 +705,7 @@ USE: Create a virtual account. Map a virtual account to a zainbox. A zainbox can
 Note: Replace Bank type String with the desired Bank type. Available Banks are FidelityBank, FCMB and GT Bank
 Call Method: POST
 URL : host/zainbox/virtual-account/create/request
-Sandbox Query : https://sandbox.zainpay.ng/virtual-account/create/request
+Sandbox Query : https://api.zainpay.ng/virtual-account/create/request
 Live Query : https://api.zainpay.ng/virtual-account/create/request
 Parameter:
 
@@ -755,7 +755,7 @@ Virtual Account Balance
 Use : Get the current wallet balance of a virtual account number
 Call Method: GET
 URL : host/zainbox/virtual-account/wallet/balance/{accountNumber}
-Sandbox Query : https://sandbox.zainpay.ng/virtual-account/wallet/balance/7965332109
+Sandbox Query : https://api.zainpay.ng/virtual-account/wallet/balance/7965332109
 Live Query : https://api.zainpay.ng/virtual-account/wallet/balance/7965332109
 Parameter : accountNumber (required)
 
@@ -783,7 +783,7 @@ Update Virtual Account Status
 Use : Activate or deactivate virtual account
 Call Method: PATCH
 URL : host/virtual-account/change/account/status
-Sandbox Query : https://sandbox.zainpay.ng/virtual-account/change/account/status
+Sandbox Query : https://api.zainpay.ng/virtual-account/change/account/status
 Live Query : https://api.zainpay.ng/virtual-account/change/account/status
 Parameter :
 
@@ -835,7 +835,7 @@ Virtual Account Transactions
 USE: Get all transactions of an account
 Call Method: GET
 URL : host/zainbox/virtual-account/wallet/transactions/{accountNumber}
-Sandbox Query : https://sandbox.zainpay.ng/virtual-account/wallet/transactions/7965332109
+Sandbox Query : https://api.zainpay.ng/virtual-account/wallet/transactions/7965332109
 Live Query : https://api.zainpay.ng/virtual-account/wallet/transactions/7965332109
 Parameter : accountNumber (required)
 
@@ -879,7 +879,7 @@ Get Bank List
 USE: Get the list of available banks.
 Call Method: GET
 URL : host/zainbox/bank/list
-Sandbox Query : https://sandbox.zainpay.ng/bank/list
+Sandbox Query : https://api.zainpay.ng/bank/list
 Live Query : https://api.zainpay.ng/bank/list
 Parameter:
 
@@ -914,7 +914,7 @@ Name Enquiry
 USE: Use the bankCode acquired from the get bank list to validate a bank account number.
 Call Method: GET
 URL : host/zainbox/bank/name-enquiry?{bankCode}&{accountNumber}
-Sandbox Query : https://sandbox.zainpay.ng/bank/name-enquiry?bankCode=000013&accountNumber=0011242735
+Sandbox Query : https://api.zainpay.ng/bank/name-enquiry?bankCode=000013&accountNumber=0011242735
 Live Query : https://api.zainpay.ng/bank/name-enquiry?bankCode=000013&accountNumber=0011242735
 Parameter: bankCode(Required), accountNumber(Required)
 
@@ -951,7 +951,7 @@ Zainpay infers your fund transfer type, so you don't have to specify it. The cha
 
 Call Method: POST
 URL : host/zainbox/bank/transfer/v2
-Sandbox Query : https://sandbox.zainpay.ng/bank/transfer/v2
+Sandbox Query : https://api.zainpay.ng/bank/transfer/v2
 Live Query : https://api.zainpay.ng/bank/transfer/v2
 
  Important Note
@@ -1035,7 +1035,7 @@ Transfer Verification
 USE: The endpoint can be used to verify a posted transfer by its txnRef acquired after successful Funds Transfer
 Call Method: GET
 URL : host/virtual-account/wallet/transaction/verify/{txnRef}
-Sandbox Query : https://sandbox.zainpay.ng/virtual-account/wallet/transaction/verify/svxgdtyGDHt67
+Sandbox Query : https://api.zainpay.ng/virtual-account/wallet/transaction/verify/svxgdtyGDHt67
 Live Query : https://api.zainpay.ng/virtual-account/wallet/transaction/verify/hJDHtyr8874
 Parameter: txnRef (Required)
 
@@ -1080,7 +1080,7 @@ Deposit Verification
 USE: The endpoint can be used to verify a funds deposit notification received via our Deposit WebHook notification event
 Call Method: GET
 URL : host/virtual-account/wallet/deposit/verify/v2/{txnRef}
-Sandbox Query : https://sandbox.zainpay.ng/virtual-account/wallet/deposit/verify/v2/{txnRef}
+Sandbox Query : https://api.zainpay.ng/virtual-account/wallet/deposit/verify/v2/{txnRef}
 Live Query : https://api.zainpay.ng/virtual-account/wallet/deposit/verify/v2/{txnRef}
 Parameter: txnRef(required). The txnRef sent in the webhoook notificatoin payload.
 
@@ -1131,7 +1131,7 @@ Merchant Transactions
 USE: Get the list of first 50 transactions of a merchant
 Call Method: GET
 URL : host/zainbox/transactions?count=10
-Sandbox Query : https://sandbox.zainpay.ng/zainbox/transactions?count=10
+Sandbox Query : https://api.zainpay.ng/zainbox/transactions?count=10
 Live Query : https://api.zainpay.ng/zainbox/transactions?count=10
 Parameter: count is an optional parameter with a default value of 20
 
@@ -1173,7 +1173,7 @@ Bank Deposit Reconciliation
 USE: This endpoint helps our merchant repush all hanging deposits made in a virtual account.
 Call Method: GET
 URL : host/virtual-account/wallet/transaction/reconcile/bank-deposit
-Sandbox Query : https://sandbox.zainpay.ng/virtual- account/wallet/transaction/reconcile/bank-deposit
+Sandbox Query : https://api.zainpay.ng/virtual- account/wallet/transaction/reconcile/bank-deposit
 Live Query : https://api.zainpay.ng/virtual-account/wallet/transaction/reconcile/bank- deposit
 Parameter: sessionId, verificationType, bankType, accountNumber
 
@@ -1229,7 +1229,7 @@ Create a temporary virtual account for a specific transaction. The account is va
 Note: Amount must be in kobo. Duration must be between 300 seconds (5 minutes) and 72 hours. Account Name is fixed as "Zainpay Checkout".
 Call Method: POST
 Live Query: https://api.zainpay.ng/virtual-account/dynamic/create/request
-Sandbox Query: https://sandbox.zainpay.ng/virtual-account/dynamic/create/request
+Sandbox Query: https://api.zainpay.ng/virtual-account/dynamic/create/request
 Required Parameters: bankType, email, amount, zainboxCode, txnRef, duration, accountName, callBackUrl
 
 Request Payload
@@ -1342,7 +1342,7 @@ Use the following endpoint to check the status of your DVA payment:
 
 Call Method: GET
 Live Query: https://api.zainpay.ng/virtual-account/dynamic/deposit/status/{txnRef}
-Sandbox Query: https://sandbox.zainpay.ng/virtual-account/dynamic/deposit/status/{txnRef}
+Sandbox Query: https://api.zainpay.ng/virtual-account/dynamic/deposit/status/{txnRef}
 Where txnRef is the reference used when creating the DVA.
 
 DVA Status Query Response

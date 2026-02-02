@@ -104,6 +104,61 @@ router.post('/calculate-fees', async (req: AuthenticatedRequest, res: Response):
 });
 
 /**
+ * Verify Bank Account
+ * POST /api/payout/verify-account
+ */
+router.post('/verify-account', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { accountNumber, bankCode } = req.body;
+
+        if (!accountNumber || !bankCode) {
+            res.status(400).json({
+                success: false,
+                message: 'Account number and bank code are required',
+            });
+            return;
+        }
+
+        // Validate account number format (should be 10 digits for Nigerian banks)
+        if (!/^\d{10}$/.test(accountNumber)) {
+            res.status(400).json({
+                success: false,
+                message: 'Account number must be exactly 10 digits',
+            });
+            return;
+        }
+
+        // Use Payrant service to verify the account
+        const payrantService = require('../services/PayrantService').payrantService;
+        const accountDetails = await payrantService.validateAccount(bankCode, accountNumber);
+
+        if (!accountDetails || !accountDetails.account_name) {
+            res.status(404).json({
+                success: false,
+                message: 'Could not verify account. Please check the account number and bank.',
+            });
+            return;
+        }
+
+        res.json({
+            success: true,
+            data: {
+                accountName: accountDetails.account_name,
+                accountNumber: accountDetails.account_number,
+                bankCode: accountDetails.bank_code,
+                verified: accountDetails.verified
+            }
+        });
+    } catch (error: any) {
+        logger.error('Account verification error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to verify account',
+        });
+    }
+});
+
+/**
  * Get Payout History
  * GET /api/payout/history
  */

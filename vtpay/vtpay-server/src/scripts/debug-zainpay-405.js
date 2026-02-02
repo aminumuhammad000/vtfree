@@ -41,8 +41,8 @@ async function runTests() {
     // 3. POST instead of GET
     await testScenario('POST Method', `${baseUrl}/bank/list`, 'post');
 
-    // 4. Sandbox URL
-    await testScenario('Sandbox URL', `https://sandbox.zainpay.ng/bank/list`);
+    // 4. Live URL
+    await testScenario('Live URL', `https://api.zainpay.ng/bank/list`);
     // 5. Double Slash
     await testScenario('Double Slash', `https://api.zainpay.ng//bank/list`);
 }

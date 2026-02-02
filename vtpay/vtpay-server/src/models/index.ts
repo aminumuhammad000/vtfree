@@ -13,3 +13,5 @@ export * from './SystemSetting';
 export { Payout, IPayoutDocument } from './Payout';
 export { JobLock, IJobLockDocument } from './JobLock';
 export { Communication, ICommunication } from './Communication';
+export { SettlementDispute, ISettlementDispute } from './SettlementDispute';
+export { AuditLog, IAuditLogDocument } from './AuditLog';

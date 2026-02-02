@@ -44,17 +44,38 @@ export interface Tenant {
     updatedAt: string;
 }
 
+export interface Admin {
+    _id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    status: 'active' | 'inactive' | 'suspended';
+    role: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
 // Zainbox types
 export interface Zainbox {
     _id: string;
-    userId: string;
+    userId: {
+        _id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+        businessName?: string;
+        role: string;
+    } | string;
     name: string;
     emailNotification: string;
     tags: string;
     callbackUrl: string;
     codeName: string;
     zainboxCode: string;
+    isActive: boolean;
     isLive: boolean;
+    currentBalance: number;
     createdAt: string;
     updatedAt: string;
 }
@@ -65,12 +86,12 @@ export const adminApi = {
         const response = await api.get<ApiResponse<Tenant[]>>('/admin/tenants');
         return response.data.data || [];
     },
-    getAllAdmins: async (): Promise<Tenant[]> => {
-        const response = await api.get<ApiResponse<Tenant[]>>('/admin/admins');
+    getAllAdmins: async (): Promise<Admin[]> => {
+        const response = await api.get<ApiResponse<Admin[]>>('/admin/admins');
         return response.data.data || [];
     },
-    createAdmin: async (data: any): Promise<Tenant> => {
-        const response = await api.post<ApiResponse<Tenant>>('/admin/admins', data);
+    createAdmin: async (data: any): Promise<Admin> => {
+        const response = await api.post<ApiResponse<Admin>>('/admin/admins', data);
         return response.data.data!;
     },
 
@@ -102,7 +123,7 @@ export const adminApi = {
     },
 
     syncZainboxes: async (): Promise<any> => {
-        const response = await api.post<ApiResponse<any>>('/admin/zainboxes/sync');
+        const response = await api.post<ApiResponse<any>>('/admin/zainboxes/actions/sync');
         return response.data;
     },
 
@@ -126,8 +147,8 @@ export const adminApi = {
         return response.data;
     },
 
-    getSettlements: async (): Promise<any[]> => {
-        const response = await api.get<ApiResponse<any[]>>('/admin/settlements');
+    getSettlements: async (params?: any): Promise<any> => {
+        const response = await api.get<ApiResponse<any>>('/admin/settlements', { params });
         return response.data.data || [];
     },
     processSettlement: async (id: string): Promise<any> => {
@@ -138,8 +159,57 @@ export const adminApi = {
         const response = await api.post<ApiResponse<any>>(`/admin/settlements/${id}/retry`);
         return response.data;
     },
+    // Disputes
+    getDisputes: async (): Promise<any[]> => {
+        const response = await api.get<ApiResponse<any[]>>('/admin/disputes');
+        return response.data.data || [];
+    },
+
+    createDispute: async (data: any): Promise<any> => {
+        const response = await api.post<ApiResponse<any>>('/admin/dispute', data);
+        return response.data.data;
+    },
+
+    updateDispute: async (id: string, data: any): Promise<any> => {
+        const response = await api.patch<ApiResponse<any>>(`/admin/dispute/${id}`, data);
+        return response.data;
+    },
+
+
     manualTriggerSettlement: async (data: any): Promise<any> => {
         const response = await api.post<ApiResponse<any>>('/admin/settlements/manual-trigger', data);
+        return response.data;
+    },
+
+    // Settlement Schedule Management
+    getSettlementSchedule: async (zainboxCode: string): Promise<any> => {
+        const response = await api.get<ApiResponse<any>>(`/admin/settlements/${zainboxCode}/schedule`);
+        return response.data.data;
+    },
+
+    createSettlementSchedule: async (zainboxCode: string, data: any): Promise<any> => {
+        const response = await api.post<ApiResponse<any>>(`/admin/settlements/${zainboxCode}/schedule`, data);
+        return response.data;
+    },
+
+    deactivateSettlementSchedule: async (zainboxCode: string): Promise<any> => {
+        const response = await api.delete<ApiResponse<any>>(`/admin/settlements/${zainboxCode}/schedule`);
+        return response.data;
+    },
+
+    // Global settlement configuration
+    getGlobalSettlementConfig: async (): Promise<any> => {
+        const response = await api.get<ApiResponse<any>>('/admin/settlements/global-config');
+        return response.data.data;
+    },
+
+    updateGlobalSettlementConfig: async (data: any): Promise<any> => {
+        const response = await api.put<ApiResponse<any>>('/admin/settlements/global-config', data);
+        return response.data;
+    },
+
+    bulkConfigureSettlements: async (force: boolean = false): Promise<any> => {
+        const response = await api.post<ApiResponse<any>>('/admin/settlements/bulk-configure', { force });
         return response.data;
     },
 
@@ -249,6 +319,10 @@ export const adminApi = {
         const response = await api.patch<ApiResponse<any>>('/admin/settings', data);
         return response.data.data;
     },
+    getSystemStatus: async (): Promise<any> => {
+        const response = await api.get<ApiResponse<any>>('/admin/system/cron-status');
+        return response.data.data;
+    },
 
     // Admin Profile
     updateAdminProfile: (data: any) => api.put('/admin/profile', data),
@@ -274,6 +348,11 @@ export const adminApi = {
         const response = await api.get<ApiResponse<any>>('/banks/verify', {
             params: { bankCode, accountNumber }
         });
+        return response.data.data;
+    },
+    // Audit Logs
+    getAuditLogs: async (params?: any): Promise<{ logs: any[]; pagination: any }> => {
+        const response = await api.get<ApiResponse<any>>('/admin/audit-logs', { params });
         return response.data.data;
     },
 };

@@ -1,14 +1,174 @@
 import { Router, Response, Request } from 'express';
-import { User, Zainbox, VirtualAccount, Wallet, Transaction, WebhookLog, FeeRule, RiskRule, SystemSetting, Communication } from '../models';
-import { authenticate, AuthenticatedRequest, generateToken } from '../middleware';
+import { User, Zainbox, VirtualAccount, Wallet, Transaction, WebhookLog, FeeRule, RiskRule, SystemSetting, Communication, SettlementDispute } from '../models';
+import { authenticate, AuthenticatedRequest, generateToken, requireAdmin, auditMiddleware } from '../middleware';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { emailService } from '../services/EmailService';
-import { zainpayService } from '../services/ZainpayService';
+import { cronService } from '../services/CronService';
+import { zainpayService, ZainpayService } from '../services/ZainpayService';
 import { webhookService } from '../services/WebhookService';
+import { auditService } from '../services/AuditService';
 import config from '../config';
 
 const router = Router();
+
+// Moved sync route to top to avoid conflicts
+router.post('/zainboxes/actions/sync', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const response = await zainpayService.listZainboxes();
+
+        if (response.code === '00' && response.data) {
+            const defaultUser = await User.findOne({ status: 'active' });
+            if (!defaultUser) {
+                res.status(400).json({ success: false, message: 'No active user found to associate Zainboxes with' });
+                return;
+            }
+
+            let syncedCount = 0;
+            for (const zData of response.data) {
+                const existing = await Zainbox.findOne({ codeName: zData.codeName });
+                if (!existing) {
+                    // Try to find a user with this email
+                    let targetUserId = defaultUser._id;
+                    if (zData.emailNotification) {
+                        const matchedUser = await User.findOne({ email: zData.emailNotification.toLowerCase() });
+                        if (matchedUser) {
+                            targetUserId = matchedUser._id;
+                        }
+                    }
+
+                    await Zainbox.create({
+                        userId: targetUserId,
+                        name: zData.name,
+                        emailNotification: zData.emailNotification,
+                        tags: zData.tags || 'synced',
+                        callbackUrl: zData.callbackUrl,
+                        codeName: zData.codeName,
+                        zainboxCode: zData.zainboxCode || zData.codeName,
+                        isActive: zData.isActive !== false,
+                        isLive: zData.isLive || false,
+                    });
+                    syncedCount++;
+                } else {
+                    existing.isActive = zData.isActive !== false;
+                    existing.name = zData.name;
+                    existing.emailNotification = zData.emailNotification || existing.emailNotification;
+                    existing.tags = zData.tags || existing.tags;
+                    existing.callbackUrl = zData.callbackUrl;
+
+                    // If it was assigned to default user, try to re-assign if we find a better match
+                    if (existing.userId.toString() === defaultUser._id.toString() && zData.emailNotification) {
+                        const matchedUser = await User.findOne({ email: zData.emailNotification.toLowerCase() });
+                        if (matchedUser && matchedUser._id.toString() !== defaultUser._id.toString()) {
+                            existing.userId = matchedUser._id;
+                        }
+                    }
+
+                    await existing.save();
+                }
+            }
+
+            // --- Updated Step: Fetch Balances for ALL Zainboxes (New & Existing) ---
+            const allZainboxes = await Zainbox.find({});
+            console.log(`Fetching balances for ${allZainboxes.length} Zainboxes...`);
+
+            for (const zBox of allZainboxes) {
+                try {
+                    const balRes = await zainpayService.getZainboxBalance(zBox.zainboxCode);
+                    // balRes returns { totalBalance, balances[] }
+                    if (balRes) {
+                        zBox.currentBalance = balRes.totalBalance || 0;
+                        await zBox.save();
+                    }
+                } catch (err) {
+                    console.error(`Failed to fetch balance for ${zBox.zainboxCode}`, err);
+                    // Continue syncing others even if one fails
+                }
+            }
+
+            // --- NEW: Auto-configure Settlement Schedules ---
+            const systemSettings = await SystemSetting.findOne();
+            let settlementConfiguredCount = 0;
+            let settlementSkippedCount = 0;
+
+            if (systemSettings?.globalSettlement?.status && systemSettings.globalSettlement.settlementAccounts?.length > 0) {
+                console.log('Auto-configuring settlement schedules for all zainboxes...');
+
+                for (const zBox of allZainboxes) {
+                    try {
+                        // Check if settlement already exists
+                        const existingSettlement = await zainpayService.getSettlement(zBox.zainboxCode);
+
+                        if (existingSettlement?.data) {
+                            console.log(`Settlement already configured for ${zBox.zainboxCode}, skipping...`);
+                            settlementSkippedCount++;
+                            continue;
+                        }
+                    } catch (error: any) {
+                        // If 404 or not found, settlement doesn't exist, proceed to create
+                        if (!error.message.includes('404') && !error.message.includes('not found') && !error.message.includes('406')) {
+                            console.error(`Error checking settlement for ${zBox.zainboxCode}:`, error.message);
+                            continue;
+                        }
+                    }
+
+                    // Create T1 settlement schedule
+                    try {
+                        const settlementPayload = {
+                            name: `auto-settlement-${zBox.zainboxCode}`,
+                            zainboxCode: zBox.zainboxCode,
+                            scheduleType: systemSettings.globalSettlement.scheduleType || 'T1',
+                            schedulePeriod: systemSettings.globalSettlement.schedulePeriod || 'Daily',
+                            settlementAccountList: systemSettings.globalSettlement.settlementAccounts,
+                            status: true
+                        };
+
+                        await zainpayService.createSettlement(settlementPayload);
+                        settlementConfiguredCount++;
+                        console.log(`✅ Settlement configured for ${zBox.zainboxCode}`);
+                    } catch (error: any) {
+                        console.error(`Failed to configure settlement for ${zBox.zainboxCode}:`, error.message);
+                    }
+                }
+            } else {
+                console.log('⚠️  Global settlement not configured in system settings. Skipping auto-settlement configuration.');
+            }
+
+            res.json({
+                success: true,
+                message: `Sync completed. ${syncedCount} new Zainboxes. Balances updated. Settlement configured: ${settlementConfiguredCount}, Skipped: ${settlementSkippedCount}`,
+                data: {
+                    syncedCount,
+                    settlementConfiguredCount,
+                    settlementSkippedCount
+                }
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                message: response.description || 'Failed to fetch from Zainpay',
+            });
+        }
+    } catch (error: any) {
+        console.error('Sync zainboxes error:', error);
+        res.status(500).json({
+            success: false,
+            message: `Failed to sync zainboxes: ${error.message}`,
+            stack: error.stack
+        });
+    }
+});
+
+// Public Debug Routes (No Auth for easy debugging)
+router.get('/debug/zainpay-logs', async (req: Request, res: Response): Promise<void> => {
+    res.json({ success: true, logs: ZainpayService.lastLogs });
+});
+
+router.get('/debug/ping', (req: Request, res: Response) => {
+    res.json({ success: true, message: 'Admin router reachable' });
+});
+
+
 
 /**
  * Admin Login
@@ -132,7 +292,8 @@ const activateUserAccount = async (user: any) => {
                 name: zainboxName,
                 callbackUrl: callbackUrl,
                 emailNotification: user.email,
-                tags: 'vtpay_user_auto_assign'
+                tags: 'vtpay_user_auto_assign',
+                allowAutoInternalTransfer: true // Enable auto-internal transfer for settlement
             });
 
             if (zResponse.code === '00' && zResponse.data) {
@@ -165,6 +326,38 @@ const activateUserAccount = async (user: any) => {
                     console.log(`Successfully auto-created and assigned Zainbox ${zData.codeName} to ${user.email}`);
                 }
                 zainboxCreated = true;
+
+                // --- Apply Global Settlement if Enabled ---
+                try {
+                    const settings = await SystemSetting.findOne();
+                    if (settings && settings.globalSettlement?.status && settings.globalSettlement.settlementAccounts?.length > 0) {
+                        console.log(`Applying Global Settlement to new Zainbox ${zainboxCode}...`);
+
+                        const settlementPayload = {
+                            name: `Auto-Settlement-${zainboxCode}`,
+                            zainboxCode: zainboxCode,
+                            scheduleType: settings.globalSettlement.scheduleType,
+                            schedulePeriod: settings.globalSettlement.schedulePeriod,
+                            settlementAccountList: settings.globalSettlement.settlementAccounts.map((acc: any) => ({
+                                accountNumber: acc.accountNumber,
+                                bankCode: acc.bankCode,
+                                percentage: acc.percentage
+                            })),
+                            status: true
+                        };
+
+                        const settlementResponse = await zainpayService.createSettlement(settlementPayload);
+                        if (settlementResponse.code === '00') {
+                            console.log(`✅ Global Settlement applied successfully to ${zainboxCode}`);
+                        } else {
+                            console.error(`❌ Failed to apply Global Settlement to ${zainboxCode}:`, settlementResponse.description);
+                        }
+                    }
+                } catch (settlementError: any) {
+                    console.error(`Error applying global settlement to ${zainboxCode}:`, settlementError.message);
+                }
+                // ------------------------------------------
+
             } else {
                 console.error(`Zainpay error creating Zainbox for ${user.email}:`, zResponse.description);
             }
@@ -209,8 +402,34 @@ const activateUserAccount = async (user: any) => {
 };
 
 // All admin routes require authentication and admin role
-router.use(authenticate);
-router.use(isAdmin);
+router.use(authenticate, requireAdmin);
+
+// Apply audit middleware to log all admin actions
+router.use(auditMiddleware());
+
+/**
+ * Get audit logs
+ * GET /api/admin/audit-logs
+ */
+router.get('/audit-logs', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { page = 1, limit = 20, action, actorEmail, startDate, endDate } = req.query;
+        const result = await auditService.getLogs({
+            action, actorEmail, startDate, endDate
+        }, Number(page), Number(limit));
+
+        res.json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        console.error('Get audit logs error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get audit logs'
+        });
+    }
+});
 
 /**
  * Get admin dashboard statistics
@@ -664,12 +883,10 @@ router.get('/zainboxes', async (req: AuthenticatedRequest, res: Response): Promi
             .populate('userId', 'email firstName lastName businessName role')
             .sort({ createdAt: -1 });
 
-        // Filter out zainboxes owned by admins
-        const filteredZainboxes = zainboxes.filter((z: any) => z.userId && z.userId.role !== 'admin');
-
+        // Return ALL zainboxes (removed filter that hid admin zainboxes)
         res.json({
             success: true,
-            data: filteredZainboxes,
+            data: zainboxes,
         });
     } catch (error) {
         console.error('Get all zainboxes error:', error);
@@ -682,9 +899,10 @@ router.get('/zainboxes', async (req: AuthenticatedRequest, res: Response): Promi
 
 /**
  * Sync Zainboxes from Zainpay
- * POST /api/admin/zainboxes/sync
+ * POST /api/admin/zainboxes-sync
  */
-router.post('/zainboxes/sync', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.post('/sync-zainboxes', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    console.log('HIT /sync-zainboxes route');
     try {
         const response = await zainpayService.listZainboxes();
 
@@ -740,9 +958,26 @@ router.post('/zainboxes/sync', async (req: AuthenticatedRequest, res: Response):
                 }
             }
 
+            // --- Updated Step: Fetch Balances for ALL Zainboxes (New & Existing) ---
+            const allZainboxes = await Zainbox.find({});
+            console.log(`Fetching balances for ${allZainboxes.length} Zainboxes...`);
+
+            for (const zBox of allZainboxes) {
+                try {
+                    const balRes = await zainpayService.getZainboxBalance(zBox.zainboxCode);
+                    // balRes returns { totalBalance, balances[] }
+                    if (balRes) {
+                        zBox.currentBalance = balRes.totalBalance || 0;
+                        await zBox.save();
+                    }
+                } catch (err) {
+                    console.error(`Failed to fetch balance for ${zBox.zainboxCode}`, err);
+                }
+            }
+
             res.json({
                 success: true,
-                message: `Sync completed. ${syncedCount} new Zainboxes added.`,
+                message: `Sync completed. ${syncedCount} new Zainboxes. Balances updated.`,
             });
         } else {
             res.status(400).json({
@@ -1122,7 +1357,7 @@ router.get('/settlements', async (req: AuthenticatedRequest, res: Response): Pro
 
         const settlements = await Transaction.find({
             category: 'transfer',
-            status: 'success',
+            status: { $in: ['success', 'pending'] },
             userId: { $nin: adminIds }
         })
             .populate('userId', 'email firstName lastName businessName')
@@ -1722,27 +1957,37 @@ router.patch('/settings', async (req: AuthenticatedRequest, res: Response): Prom
             await payrantService.refreshConfig();
         }
 
-        // Update Global Settlement for all Zainboxes if settlement settings or parent account changed
-        if ((req.body.zainpaySettlement || req.body.parentAccount) && settings.zainpaySettlement?.status) {
-            const settlementSettings = settings.zainpaySettlement;
-            const parentAccount = settings.parentAccount;
+        // Update Global Settlement is handled by generic Object.assign above,
+        // but we might want to trigger updates for existing Zainboxes here if needed.
+        // For now, we only apply to new Zainboxes as requested.
 
-            if (parentAccount?.accountNumber && parentAccount?.bankCode) {
-                console.log('Updating global settlement configuration for all Zainboxes...');
+        // Refreshed configs above.
 
-                // Run in background to avoid blocking response
-                (async () => {
-                    try {
-                        const zainboxes = await Zainbox.find({ isActive: true });
-                        console.log(`Found ${zainboxes.length} active Zainboxes to update settlement.`);
+        const settlementSettings = req.body.globalSettlement;
 
-                        for (const zBox of zainboxes) {
+        if (settlementSettings?.settlementAccounts?.length > 0) {
+            console.log('Starting scalable global settlement update for all Zainboxes...');
+
+            // Run in background to avoid blocking response
+            (async () => {
+                try {
+                    const BATCH_SIZE = 20; // Concurrent requests limit
+                    let processedCount = 0;
+                    let successCount = 0;
+                    let errorCount = 0;
+
+                    // Use cursor to stream documents instead of loading all into memory
+                    const cursor = Zainbox.find({ isActive: true }).cursor();
+                    const processingAndPending: Promise<void>[] = [];
+
+                    for await (const zBox of cursor) {
+                        const task = async () => {
                             try {
                                 // Ensure scheduleType is valid for Zainpay API
                                 const validScheduleTypes = ['T1', 'T7', 'T30'];
                                 let scheduleType = settlementSettings.scheduleType;
                                 if (!validScheduleTypes.includes(scheduleType)) {
-                                    scheduleType = 'T1'; // Default to T1 if invalid or T0 (assuming T0 not supported by this endpoint)
+                                    scheduleType = 'T1';
                                 }
 
                                 await zainpayService.createSettlement({
@@ -1750,26 +1995,50 @@ router.patch('/settings', async (req: AuthenticatedRequest, res: Response): Prom
                                     zainboxCode: zBox.zainboxCode,
                                     scheduleType: scheduleType as any,
                                     schedulePeriod: settlementSettings.schedulePeriod,
-                                    settlementAccountList: [
-                                        {
-                                            accountNumber: parentAccount.accountNumber,
-                                            bankCode: parentAccount.bankCode,
-                                            percentage: "100"
-                                        }
-                                    ],
+                                    settlementAccountList: settlementSettings.settlementAccounts.map((acc: any) => ({
+                                        accountNumber: acc.accountNumber,
+                                        bankCode: acc.bankCode,
+                                        percentage: acc.percentage
+                                    })),
                                     status: true
                                 });
-                                console.log(`Settlement updated for Zainbox: ${zBox.zainboxCode}`);
+                                successCount++;
                             } catch (err: any) {
-                                console.error(`Failed to update settlement for Zainbox ${zBox.zainboxCode}:`, err.message || err);
+                                errorCount++;
+                                console.error(`Failed to update Zainbox ${zBox.zainboxCode}:`, err.message);
+                            } finally {
+                                processedCount++;
+                                if (processedCount % 100 === 0) {
+                                    console.log(`Global Settlement Progress: ${processedCount} processed (${successCount} success, ${errorCount} failed)`);
+                                }
                             }
+                        };
+
+                        // Add task to queue
+                        const p = task();
+                        processingAndPending.push(p);
+
+                        // If reached batch limit, wait for one to finish (simple sliding window)
+                        // Or better: await Promise.all if we want strict batches, but that's slower.
+                        // Let's stick to a strict batch for simplicity and safety against rate limits.
+                        if (processingAndPending.length >= BATCH_SIZE) {
+                            await Promise.all(processingAndPending);
+                            processingAndPending.length = 0; // Clear batch
                         }
-                    } catch (bgError) {
-                        console.error('Error in background settlement update:', bgError);
                     }
-                })();
-            }
+
+                    // Process remaining
+                    if (processingAndPending.length > 0) {
+                        await Promise.all(processingAndPending);
+                    }
+
+                    console.log(`Global Settlement Update Complete. Total: ${processedCount}, Success: ${successCount}, Errors: ${errorCount}`);
+                } catch (bgError) {
+                    console.error('CRITICAL ERROR in background settlement update:', bgError);
+                }
+            })();
         }
+
 
         res.json({
             success: true,
@@ -1883,13 +2152,13 @@ router.post('/zainboxes', async (req: AuthenticatedRequest, res: Response): Prom
         // Save to local DB
         const zainbox = new Zainbox({
             userId,
-            name: createdZainboxData.name,
-            emailNotification: createdZainboxData.emailNotification,
-            tags: createdZainboxData.tags,
-            callbackUrl: createdZainboxData.callbackUrl,
+            name: createdZainboxData.name || name,
+            emailNotification: createdZainboxData.emailNotification || emailNotification,
+            tags: createdZainboxData.tags || tags,
+            callbackUrl: createdZainboxData.callbackUrl || callbackUrl,
             codeName: createdZainboxData.codeName,
             zainboxCode: createdZainboxData.zainboxCode || createdZainboxData.codeName,
-            isLive: createdZainboxData.isLive,
+            isLive: createdZainboxData.isLive || false,
         });
 
         await zainbox.save();
@@ -1900,11 +2169,15 @@ router.post('/zainboxes', async (req: AuthenticatedRequest, res: Response): Prom
             data: zainbox,
         });
 
+
+
     } catch (error: any) {
         console.error('Create Zainbox error:', error);
         res.status(500).json({
             success: false,
             message: error.message || 'Failed to create Zainbox',
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+            details: error.response?.data || error
         });
     }
 });
@@ -2116,6 +2389,470 @@ router.put('/profile/password', async (req: AuthenticatedRequest, res: Response)
         res.status(500).json({
             success: false,
             message: 'Failed to change password',
+        });
+    }
+});
+
+
+
+/**
+ * GET /api/admin/disputes
+ * List all settlement disputes
+ */
+router.get('/disputes', isAdmin, async (req: Request, res: Response) => {
+    try {
+        const disputes = await SettlementDispute.find().sort({ createdAt: -1 });
+        res.json({
+            success: true,
+            data: disputes
+        });
+    } catch (error) {
+        console.error('Error fetching disputes:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch disputes' });
+    }
+});
+
+/**
+ * POST /api/admin/dispute
+ * Create a new dispute
+ */
+router.post('/dispute', isAdmin, async (req: Request, res: Response) => {
+    try {
+        const { settlementReference, reason, amount, priority, zainboxCode } = req.body;
+        const dispute = await SettlementDispute.create({
+            settlementReference,
+            reason,
+            amount,
+            priority,
+            zainboxCode,
+            status: 'OPEN',
+            adminNote: 'Created by admin',
+            createdAt: new Date()
+        });
+        res.json({
+            success: true,
+            data: dispute,
+            message: 'Dispute created successfully'
+        });
+    } catch (error) {
+        console.error('Error creating dispute:', error);
+        res.status(500).json({ success: false, message: 'Failed to create dispute' });
+    }
+});
+
+/**
+ * PATCH /api/admin/dispute/:id
+ * Update dispute status/note
+ */
+router.patch('/dispute/:id', isAdmin, async (req: Request, res: Response) => {
+    try {
+        const { status, adminNote } = req.body;
+        const dispute = await SettlementDispute.findByIdAndUpdate(
+            req.params.id,
+            {
+                status,
+                adminNote,
+                ...(status === 'RESOLVED' || status === 'REJECTED' ? { resolvedBy: (req as any).user._id } : {})
+            },
+            { new: true }
+        );
+        res.json({
+            success: true,
+            data: dispute,
+            message: 'Dispute updated successfully'
+        });
+    } catch (error) {
+        console.error('Error updating dispute:', error);
+        res.status(500).json({ success: false, message: 'Failed to update dispute' });
+    }
+});
+/**
+ * Manual Trigger Settlement
+ * POST /api/admin/settlements/manual-trigger
+ */
+router.post('/settlements/manual-trigger', isAdmin, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { userId, amount, reason } = req.body;
+
+        if (!userId || !amount || !reason) {
+            res.status(400).json({ success: false, message: 'Missing required fields' });
+            return;
+        }
+
+        // Check weekend restriction
+        const settings = await SystemSetting.findOne();
+        if (settings?.globalSettlement?.weekendSettlementEnabled === false) {
+            const today = new Date().getDay();
+            const isWeekend = today === 0 || today === 6; // 0 is Sunday, 6 is Saturday
+            if (isWeekend) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Settlements are disabled on weekends.'
+                });
+                return;
+            }
+        }
+
+        // Create a transaction to record this manual settlement
+        const transaction = await Transaction.create({
+            userId,
+            amount: -amount, // Debit user/Tenant
+            type: 'settlement',
+            status: 'pending', // Pending manual review or processing
+            reference: `MAN-SET-${Date.now()}`,
+            narration: reason,
+            metadata: {
+                manualTrigger: true,
+                triggeredBy: (req as any).user._id
+            }
+        });
+
+        res.json({
+            success: true,
+            message: 'Manual settlement triggered successfully',
+            data: transaction
+        });
+
+    } catch (error) {
+        console.error('Manual settlement trigger error:', error);
+        res.status(500).json({ success: false, message: 'Failed to trigger settlement' });
+    }
+});
+
+/**
+ * Get settlement schedule for a zainbox
+ * GET /api/admin/settlements/:zainboxCode/schedule
+ */
+router.get('/settlements/:zainboxCode/schedule', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { zainboxCode } = req.params;
+        const schedule = await zainpayService.getSettlement(zainboxCode);
+
+        res.json({
+            success: true,
+            data: schedule.data || null
+        });
+    } catch (error: any) {
+        console.error('Get settlement schedule error:', error);
+        // If 404 or no settlement configured, return null instead of error
+        if (error.message.includes('404') || error.message.includes('not found') || error.message.includes('406')) {
+            res.json({
+                success: true,
+                data: null,
+                message: 'No settlement schedule configured'
+            });
+        } else {
+            res.status(500).json({
+                success: false,
+                message: 'Failed to get settlement schedule'
+            });
+        }
+    }
+});
+
+/**
+ * Create or update settlement schedule for a zainbox
+ * POST /api/admin/settlements/:zainboxCode/schedule
+ */
+router.post('/settlements/:zainboxCode/schedule', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { zainboxCode } = req.params;
+        const { name, scheduleType, schedulePeriod, settlementAccountList, status } = req.body;
+
+        // Validation
+        if (!scheduleType || !schedulePeriod || !settlementAccountList || !Array.isArray(settlementAccountList)) {
+            res.status(400).json({
+                success: false,
+                message: 'Missing required fields: scheduleType, schedulePeriod, settlementAccountList'
+            });
+            return;
+        }
+
+        // Validate schedule type
+        if (!['T1', 'T7', 'T30'].includes(scheduleType)) {
+            res.status(400).json({
+                success: false,
+                message: 'Invalid scheduleType. Must be T1, T7, or T30'
+            });
+            return;
+        }
+
+        // Validate settlement accounts
+        if (settlementAccountList.length === 0) {
+            res.status(400).json({
+                success: false,
+                message: 'At least one settlement account is required'
+            });
+            return;
+        }
+
+        // Validate percentages sum to 100
+        const totalPercentage = settlementAccountList.reduce((sum: number, acc: any) => {
+            return sum + parseFloat(acc.percentage || '0');
+        }, 0);
+
+        if (Math.abs(totalPercentage - 100) > 0.01) {
+            res.status(400).json({
+                success: false,
+                message: `Settlement percentages must sum to 100%. Current total: ${totalPercentage}%`
+            });
+            return;
+        }
+
+        // Create settlement payload
+        const payload = {
+            name: name || `${scheduleType}-settlement-${Date.now()}`,
+            zainboxCode,
+            scheduleType,
+            schedulePeriod,
+            settlementAccountList,
+            status: status !== undefined ? status : true
+        };
+
+        const result = await zainpayService.createSettlement(payload);
+
+        res.json({
+            success: true,
+            data: result,
+            message: 'Settlement schedule configured successfully'
+        });
+    } catch (error: any) {
+        console.error('Create settlement schedule error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to create settlement schedule'
+        });
+    }
+});
+
+/**
+ * Deactivate settlement schedule for a zainbox
+ * DELETE /api/admin/settlements/:zainboxCode/schedule
+ */
+router.delete('/settlements/:zainboxCode/schedule', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { zainboxCode } = req.params;
+
+        // Get current settlement
+        const current = await zainpayService.getSettlement(zainboxCode);
+
+        if (!current.data) {
+            res.status(404).json({
+                success: false,
+                message: 'No settlement schedule found to deactivate'
+            });
+            return;
+        }
+
+        // Deactivate by setting status to false
+        const payload = {
+            name: current.data.name,
+            zainboxCode,
+            scheduleType: current.data.scheduleType,
+            schedulePeriod: current.data.schedulePeriod,
+            settlementAccountList: current.data.settlementAccounts,
+            status: false
+        };
+
+        const result = await zainpayService.createSettlement(payload);
+
+        res.json({
+            success: true,
+            data: result,
+            message: 'Settlement schedule deactivated successfully'
+        });
+    } catch (error: any) {
+        console.error('Deactivate settlement schedule error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to deactivate settlement schedule'
+        });
+    }
+});
+
+/**
+ * Update global settlement configuration
+ * PUT /api/admin/settlements/global-config
+ */
+router.put('/settlements/global-config', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { status, scheduleType, schedulePeriod, settlementAccounts } = req.body;
+
+        // Validation
+        if (!scheduleType || !schedulePeriod || !settlementAccounts || !Array.isArray(settlementAccounts)) {
+            res.status(400).json({
+                success: false,
+                message: 'Missing required fields: scheduleType, schedulePeriod, settlementAccounts'
+            });
+            return;
+        }
+
+        // Validate schedule type
+        if (!['T1', 'T7', 'T30'].includes(scheduleType)) {
+            res.status(400).json({
+                success: false,
+                message: 'Invalid scheduleType. Must be T1, T7, or T30'
+            });
+            return;
+        }
+
+        // Validate percentages sum to 100
+        const totalPercentage = settlementAccounts.reduce((sum: number, acc: any) => {
+            return sum + parseFloat(acc.percentage || '0');
+        }, 0);
+
+        if (Math.abs(totalPercentage - 100) > 0.01) {
+            res.status(400).json({
+                success: false,
+                message: `Settlement percentages must sum to 100%. Current total: ${totalPercentage}%`
+            });
+            return;
+        }
+
+        let systemSettings = await SystemSetting.findOne();
+        if (!systemSettings) {
+            systemSettings = new SystemSetting();
+        }
+
+        systemSettings.globalSettlement = {
+            status: status !== undefined ? status : true,
+            weekendSettlementEnabled: systemSettings.globalSettlement?.weekendSettlementEnabled ?? true,
+            scheduleType,
+            schedulePeriod,
+            settlementAccounts
+        };
+
+        await systemSettings.save();
+
+        res.json({
+            success: true,
+            message: 'Global settlement configuration updated successfully',
+            data: systemSettings.globalSettlement
+        });
+    } catch (error: any) {
+        console.error('Update global settlement config error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update global settlement configuration'
+        });
+    }
+});
+
+/**
+ * Get global settlement configuration
+ * GET /api/admin/settlements/global-config
+ */
+router.get('/settlements/global-config', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const systemSettings = await SystemSetting.findOne();
+
+        res.json({
+            success: true,
+            data: systemSettings?.globalSettlement || null
+        });
+    } catch (error: any) {
+        console.error('Get global settlement config error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to get global settlement configuration'
+        });
+    }
+});
+
+/**
+ * Bulk configure settlement schedules for all zainboxes
+ * POST /api/admin/settlements/bulk-configure
+ */
+router.post('/settlements/bulk-configure', async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { force } = req.body; // If true, reconfigure even if settlement exists
+
+        const systemSettings = await SystemSetting.findOne();
+
+        if (!systemSettings?.globalSettlement?.status || !systemSettings.globalSettlement.settlementAccounts?.length) {
+            res.status(400).json({
+                success: false,
+                message: 'Global settlement configuration not set. Please configure it first in Settings.'
+            });
+            return;
+        }
+
+        const allZainboxes = await Zainbox.find({});
+        let configuredCount = 0;
+        let skippedCount = 0;
+        let failedCount = 0;
+        const results: any[] = [];
+
+        for (const zBox of allZainboxes) {
+            try {
+                // Check if settlement already exists
+                let shouldConfigure = force;
+
+                if (!force) {
+                    try {
+                        const existingSettlement = await zainpayService.getSettlement(zBox.zainboxCode);
+                        if (existingSettlement?.data) {
+                            skippedCount++;
+                            results.push({
+                                zainboxCode: zBox.zainboxCode,
+                                status: 'skipped',
+                                message: 'Settlement already configured'
+                            });
+                            continue;
+                        }
+                    } catch (error: any) {
+                        // If 404 or not found, settlement doesn't exist
+                        if (error.message.includes('404') || error.message.includes('not found') || error.message.includes('406')) {
+                            shouldConfigure = true;
+                        } else {
+                            throw error;
+                        }
+                    }
+                }
+
+                // Create/Update settlement schedule
+                const settlementPayload = {
+                    name: `auto-settlement-${zBox.zainboxCode}`,
+                    zainboxCode: zBox.zainboxCode,
+                    scheduleType: systemSettings.globalSettlement.scheduleType,
+                    schedulePeriod: systemSettings.globalSettlement.schedulePeriod,
+                    settlementAccountList: systemSettings.globalSettlement.settlementAccounts,
+                    status: true
+                };
+
+                await zainpayService.createSettlement(settlementPayload);
+                configuredCount++;
+                results.push({
+                    zainboxCode: zBox.zainboxCode,
+                    status: 'success',
+                    message: 'Settlement configured successfully'
+                });
+            } catch (error: any) {
+                failedCount++;
+                results.push({
+                    zainboxCode: zBox.zainboxCode,
+                    status: 'failed',
+                    message: error.message
+                });
+            }
+        }
+
+        res.json({
+            success: true,
+            message: `Bulk configuration completed. Configured: ${configuredCount}, Skipped: ${skippedCount}, Failed: ${failedCount}`,
+            data: {
+                total: allZainboxes.length,
+                configured: configuredCount,
+                skipped: skippedCount,
+                failed: failedCount,
+                results
+            }
+        });
+    } catch (error: any) {
+        console.error('Bulk configure settlements error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to bulk configure settlements'
         });
     }
 });

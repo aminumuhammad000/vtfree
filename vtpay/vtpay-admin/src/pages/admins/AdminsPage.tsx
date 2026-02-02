@@ -1,20 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { adminApi, type Tenant } from '../../api/client';
+import { adminApi, type Admin } from '../../api/client';
 import toast from 'react-hot-toast';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, X, Shield, Mail, User, Phone, Lock, RefreshCw, Search } from 'lucide-react';
+import { createAdminSchema, type CreateAdminFormData } from '../../schemas/admin';
 
 const AdminsPage: React.FC = () => {
-    const [admins, setAdmins] = useState<Tenant[]>([]);
+    const [admins, setAdmins] = useState<Admin[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [showAddModal, setShowAddModal] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [formData, setFormData] = useState({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        password: ''
+
+
+    const {
+        register,
+        handleSubmit,
+        reset,
+        formState: { errors, isSubmitting }
+    } = useForm<CreateAdminFormData>({
+        resolver: zodResolver(createAdminSchema)
     });
 
     useEffect(() => {
@@ -34,23 +39,15 @@ const AdminsPage: React.FC = () => {
         }
     };
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSubmitting(true);
+    const onSubmit = async (data: CreateAdminFormData) => {
         try {
-            await adminApi.createAdmin(formData);
+            await adminApi.createAdmin(data);
             toast.success('Admin user created successfully');
             setShowAddModal(false);
-            setFormData({ firstName: '', lastName: '', email: '', phone: '', password: '' });
+            reset();
             fetchAdmins();
         } catch (error: any) {
             toast.error(error.response?.data?.message || 'Failed to create admin user');
-        } finally {
-            setIsSubmitting(false);
         }
     };
 
@@ -80,7 +77,10 @@ const AdminsPage: React.FC = () => {
                         <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
                     </button>
                     <button
-                        onClick={() => setShowAddModal(true)}
+                        onClick={() => {
+                            reset();
+                            setShowAddModal(true);
+                        }}
                         className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all shadow-md hover:shadow-lg flex items-center gap-2"
                     >
                         <Plus size={18} />
@@ -190,37 +190,33 @@ const AdminsPage: React.FC = () => {
                                 <X size={20} />
                             </button>
                         </div>
-                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">First Name</label>
                                     <div className="relative">
                                         <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                                         <input
-                                            required
+                                            {...register('firstName')}
                                             type="text"
-                                            name="firstName"
-                                            value={formData.firstName}
-                                            onChange={handleInputChange}
-                                            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-all text-sm"
+                                            className={`w-full pl-10 pr-4 py-2 border ${errors.firstName ? 'border-red-500' : 'border-slate-200'} rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-all text-sm`}
                                             placeholder="John"
                                         />
                                     </div>
+                                    {errors.firstName && <p className="text-red-500 text-xs">{errors.firstName.message}</p>}
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Last Name</label>
                                     <div className="relative">
                                         <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                                         <input
-                                            required
+                                            {...register('lastName')}
                                             type="text"
-                                            name="lastName"
-                                            value={formData.lastName}
-                                            onChange={handleInputChange}
-                                            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-all text-sm"
+                                            className={`w-full pl-10 pr-4 py-2 border ${errors.lastName ? 'border-red-500' : 'border-slate-200'} rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-all text-sm`}
                                             placeholder="Doe"
                                         />
                                     </div>
+                                    {errors.lastName && <p className="text-red-500 text-xs">{errors.lastName.message}</p>}
                                 </div>
                             </div>
 
@@ -229,15 +225,13 @@ const AdminsPage: React.FC = () => {
                                 <div className="relative">
                                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                                     <input
-                                        required
+                                        {...register('email')}
                                         type="email"
-                                        name="email"
-                                        value={formData.email}
-                                        onChange={handleInputChange}
-                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-all text-sm"
+                                        className={`w-full pl-10 pr-4 py-2 border ${errors.email ? 'border-red-500' : 'border-slate-200'} rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-all text-sm`}
                                         placeholder="admin@example.com"
                                     />
                                 </div>
+                                {errors.email && <p className="text-red-500 text-xs">{errors.email.message}</p>}
                             </div>
 
                             <div className="space-y-1">
@@ -245,15 +239,13 @@ const AdminsPage: React.FC = () => {
                                 <div className="relative">
                                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                                     <input
-                                        required
+                                        {...register('phone')}
                                         type="tel"
-                                        name="phone"
-                                        value={formData.phone}
-                                        onChange={handleInputChange}
-                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-all text-sm"
+                                        className={`w-full pl-10 pr-4 py-2 border ${errors.phone ? 'border-red-500' : 'border-slate-200'} rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-all text-sm`}
                                         placeholder="+234..."
                                     />
                                 </div>
+                                {errors.phone && <p className="text-red-500 text-xs">{errors.phone.message}</p>}
                             </div>
 
                             <div className="space-y-1">
@@ -261,15 +253,13 @@ const AdminsPage: React.FC = () => {
                                 <div className="relative">
                                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                                     <input
-                                        required
+                                        {...register('password')}
                                         type="password"
-                                        name="password"
-                                        value={formData.password}
-                                        onChange={handleInputChange}
-                                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-all text-sm"
+                                        className={`w-full pl-10 pr-4 py-2 border ${errors.password ? 'border-red-500' : 'border-slate-200'} rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-all text-sm`}
                                         placeholder="••••••••"
                                     />
                                 </div>
+                                {errors.password && <p className="text-red-500 text-xs">{errors.password.message}</p>}
                             </div>
 
                             <div className="pt-4">

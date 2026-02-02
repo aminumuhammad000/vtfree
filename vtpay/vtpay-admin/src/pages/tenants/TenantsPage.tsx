@@ -1,19 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { adminApi, type Tenant } from '../../api/client';
 import toast from 'react-hot-toast';
+import { PageSkeleton } from '../../components/common/Skeleton';
+import Pagination from '../../components/common/Pagination';
+import SearchBar from '../../components/common/SearchBar';
+import FilterPanel, { type FilterConfig } from '../../components/common/FilterPanel';
+import { exportToCSV } from '../../utils/exportUtils';
+import Badge from '../../components/common/Badge';
+import TenantDetailModal from '../../components/tenants/TenantDetailModal';
 
 const TenantsPage: React.FC = () => {
     const [tenants, setTenants] = useState<Tenant[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
-    const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [activeFilters, setActiveFilters] = useState<Record<string, any>>({ status: 'all' });
     const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
     const [showDetails, setShowDetails] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [tenantToDelete, setTenantToDelete] = useState<string | null>(null);
     const [showSendMessage, setShowSendMessage] = useState(false);
     const [messageData, setMessageData] = useState({ subject: '', message: '' });
     const [isSending, setIsSending] = useState(false);
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(25);
 
     useEffect(() => {
         fetchTenants();
@@ -109,52 +122,113 @@ const TenantsPage: React.FC = () => {
         }
     };
 
+
+
+    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.checked) {
+            const allIds = new Set(filteredTenants.map(t => t._id));
+            setSelectedIds(allIds);
+        } else {
+            setSelectedIds(new Set());
+        }
+    };
+
+    const handleSelectRow = (id: string) => {
+        const newSelected = new Set(selectedIds);
+        if (newSelected.has(id)) {
+            newSelected.delete(id);
+        } else {
+            newSelected.add(id);
+        }
+        setSelectedIds(newSelected);
+    };
+
+    const handleBulkStatusChange = async (status: 'active' | 'suspended') => {
+        if (selectedIds.size === 0) return;
+        if (!window.confirm(`Are you sure you want to mark ${selectedIds.size} tenants as ${status}?`)) return;
+
+        try {
+            setIsBulkActionLoading(true);
+            const promises = Array.from(selectedIds).map(id => adminApi.updateTenantStatus(id, status));
+            await Promise.all(promises);
+
+            toast.success(`Successfully updated ${selectedIds.size} tenants to ${status}`);
+            setSelectedIds(new Set());
+            fetchTenants();
+        } catch (error) {
+            console.error('Bulk update error:', error);
+            toast.error('Failed to update some tenants');
+        } finally {
+            setIsBulkActionLoading(false);
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.size === 0) return;
+        if (!window.confirm(`Are you sure you want to PERMANENTLY DELETE ${selectedIds.size} tenants? This action cannot be undone.`)) return;
+
+        try {
+            setIsBulkActionLoading(true);
+            const promises = Array.from(selectedIds).map(id => adminApi.deleteTenant(id));
+            await Promise.all(promises);
+
+            toast.success(`Successfully deleted ${selectedIds.size} tenants`);
+            setSelectedIds(new Set());
+            fetchTenants();
+        } catch (error) {
+            console.error('Bulk delete error:', error);
+            toast.error('Failed to delete some tenants');
+        } finally {
+            setIsBulkActionLoading(false);
+        }
+    };
+
+
+
     const handleExport = () => {
+        const dataToExport = selectedIds.size > 0
+            ? filteredTenants.filter(t => selectedIds.has(t._id))
+            : filteredTenants;
+
         const headers = ['First Name', 'Last Name', 'Email', 'Phone', 'Business Name', 'KYC Status', 'Status', 'Created At'];
-        const csvData = filteredTenants.map(t => [
-            t.firstName,
-            t.lastName,
-            t.email,
-            t.phone,
-            t.businessName || 'N/A',
-            t.kyc_status,
-            t.status,
-            new Date(t.createdAt).toLocaleDateString()
-        ]);
 
-        const csvContent = [
-            headers.join(','),
-            ...csvData.map(row => row.map(cell => `"${cell}"`).join(','))
-        ].join('\n');
-
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `tenants_export_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        exportToCSV(
+            dataToExport,
+            headers,
+            `tenants_export_${new Date().toISOString().split('T')[0]}.csv`,
+            (t) => [
+                t.firstName,
+                t.lastName,
+                t.email,
+                t.phone,
+                t.businessName || 'N/A',
+                t.kyc_status,
+                t.status,
+                new Date(t.createdAt).toLocaleDateString()
+            ]
+        );
     };
 
     const getKycStatusBadge = (status: string) => {
-        const badges = {
-            pending: { text: 'Pending', color: 'bg-yellow-100 text-yellow-800' },
-            verified: { text: 'Verified', color: 'bg-green-100 text-green-800' },
-            rejected: { text: 'Rejected', color: 'bg-red-100 text-red-800' },
+        const variants: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
+            verified: 'success',
+            pending: 'warning',
+            rejected: 'error'
         };
-        const badge = badges[status as keyof typeof badges] || { text: status, color: 'bg-gray-100 text-gray-800' };
-        return <span className={`px-2 py-1 text-xs font-medium rounded-full ${badge.color}`}>{badge.text}</span>;
+        const variant = variants[status] || 'neutral';
+        const label = status === 'verified' ? 'Verified' : status === 'pending' ? 'Pending' : status === 'rejected' ? 'Rejected' : status;
+
+        return <Badge variant={variant}>{label}</Badge>;
     };
 
     const getStatusBadge = (status: string) => {
-        const badges = {
-            active: 'bg-green-100 text-green-800',
-            suspended: 'bg-red-100 text-red-800',
-            inactive: 'bg-gray-100 text-gray-800',
+        const variants: Record<string, 'success' | 'error' | 'neutral'> = {
+            active: 'success',
+            suspended: 'error',
+            inactive: 'neutral'
         };
-        return <span className={`px-2 py-1 text-xs font-medium rounded-full ${badges[status as keyof typeof badges] || 'bg-gray-100 text-gray-800'}`}>{status.toUpperCase()}</span>;
+        const variant = variants[status] || 'neutral';
+        return <Badge variant={variant}>{status.toUpperCase()}</Badge>;
     };
 
     const filteredTenants = tenants.filter(tenant => {
@@ -162,9 +236,44 @@ const TenantsPage: React.FC = () => {
             (tenant.firstName?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
             (tenant.lastName?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
             (tenant.businessName?.toLowerCase() || '').includes(searchQuery.toLowerCase());
-        const matchesStatus = statusFilter === 'all' || tenant.status === statusFilter;
+        const matchesStatus = activeFilters.status === 'all' || tenant.status === activeFilters.status;
         return matchesSearch && matchesStatus;
     });
+
+    // Pagination calculations
+    const totalPages = Math.ceil(filteredTenants.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedTenants = filteredTenants.slice(startIndex, endIndex);
+
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+        setSelectedIds(new Set()); // Clear selection on filter change
+    }, [searchQuery, activeFilters]);
+
+    // Filter configurations
+    const filterConfigs: FilterConfig[] = [
+        {
+            key: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+                { label: 'All Status', value: 'all' },
+                { label: 'Active', value: 'active' },
+                { label: 'Suspended', value: 'suspended' },
+                { label: 'Inactive', value: 'inactive' },
+            ],
+        },
+    ];
+
+    const handleFilterChange = (key: string, value: any) => {
+        setActiveFilters(prev => ({ ...prev, [key]: value }));
+    };
+
+    const handleClearFilters = () => {
+        setActiveFilters({ status: 'all' });
+    };
 
     return (
         <div className="p-4 md:p-6 space-y-6">
@@ -179,7 +288,7 @@ const TenantsPage: React.FC = () => {
                         onClick={handleExport}
                         className="w-full sm:w-auto px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium shadow-sm active:scale-95"
                     >
-                        Export Data
+                        {selectedIds.size > 0 ? `Export Selected (${selectedIds.size})` : 'Export CSV'}
                     </button>
                 </div>
             </div>
@@ -210,45 +319,92 @@ const TenantsPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* Filters and Search */}
+            {/* Search and Filters */}
             <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                 <div className="flex flex-col sm:flex-row gap-4">
                     <div className="flex-1">
-                        <input
-                            type="text"
+                        <SearchBar
                             placeholder="Search by email, name, or business..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                            onSearch={setSearchQuery}
+                            initialValue={searchQuery}
                         />
                     </div>
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="w-full sm:w-auto px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
-                    >
-                        <option value="all">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="suspended">Suspended</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
+                    <FilterPanel
+                        filters={filterConfigs}
+                        activeFilters={activeFilters}
+                        onFilterChange={handleFilterChange}
+                        onClearFilters={handleClearFilters}
+                    />
                 </div>
             </div>
+
+
+            {/* Bulk Action Bar */}
+            {
+                selectedIds.size > 0 && (
+                    <div className="bg-green-50 px-6 py-4 rounded-xl shadow-sm border border-green-200 flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in-down">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-green-100 p-2 rounded-lg text-green-700">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                            <span className="font-semibold text-green-900">
+                                {selectedIds.size} {selectedIds.size === 1 ? 'tenant' : 'tenants'} selected
+                            </span>
+                            <button
+                                onClick={() => setSelectedIds(new Set())}
+                                className="text-sm text-green-700 hover:text-green-800 underline ml-2"
+                            >
+                                Clear Selection
+                            </button>
+                        </div>
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                            <button
+                                onClick={() => handleBulkStatusChange('active')}
+                                disabled={isBulkActionLoading}
+                                className="flex-1 sm:flex-none px-4 py-2 bg-white border border-green-300 text-green-700 rounded-lg hover:bg-green-50 font-medium text-sm transition-colors"
+                            >
+                                Mark Active
+                            </button>
+                            <button
+                                onClick={() => handleBulkStatusChange('suspended')}
+                                disabled={isBulkActionLoading}
+                                className="flex-1 sm:flex-none px-4 py-2 bg-white border border-yellow-300 text-yellow-700 rounded-lg hover:bg-yellow-50 font-medium text-sm transition-colors"
+                            >
+                                Suspend
+                            </button>
+                            <button
+                                onClick={handleBulkDelete}
+                                disabled={isBulkActionLoading}
+                                className="flex-1 sm:flex-none px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium text-sm shadow-sm transition-colors"
+                            >
+                                {isBulkActionLoading ? 'Processing...' : 'Delete Selected'}
+                            </button>
+                        </div>
+                    </div >
+                )
+            }
 
             {/* Tenants Table */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 {loading ? (
-                    <div className="p-8 text-center">
-                        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-green-600 border-r-transparent"></div>
-                        <p className="mt-2 text-slate-500">Loading tenants...</p>
-                    </div>
+                    <PageSkeleton />
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[800px] md:min-w-full">
+                        <table className="w-full min-w-[1000px] md:min-w-full">
                             <thead className="bg-slate-50 border-b border-slate-200">
                                 <tr>
+                                    <th className="px-4 py-3 w-12">
+                                        <input
+                                            type="checkbox"
+                                            className="rounded border-slate-300 text-green-600 focus:ring-green-500 w-4 h-4 cursor-pointer"
+                                            checked={filteredTenants.length > 0 && selectedIds.size === filteredTenants.length}
+                                            onChange={handleSelectAll}
+                                        />
+                                    </th>
                                     <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                                        Tenant
+                                        User
                                     </th>
                                     <th className="hidden lg:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Business
@@ -268,8 +424,20 @@ const TenantsPage: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-slate-200">
-                                {filteredTenants.map((tenant) => (
-                                    <tr key={tenant._id} className="hover:bg-slate-50 transition-colors">
+                                {paginatedTenants.map((tenant) => (
+                                    <tr
+                                        key={tenant._id}
+                                        className={`hover:bg-slate-50 transition-colors ${selectedIds.has(tenant._id) ? 'bg-green-50/50' : ''}`}
+                                    >
+                                        <td className="px-4 py-4">
+                                            <input
+                                                type="checkbox"
+                                                className="rounded border-slate-300 text-green-600 focus:ring-green-500 w-4 h-4 cursor-pointer"
+                                                checked={selectedIds.has(tenant._id)}
+                                                onChange={() => handleSelectRow(tenant._id)}
+                                                onClick={(e) => e.stopPropagation()}
+                                            />
+                                        </td>
                                         <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                                             <div>
                                                 <div className="text-sm font-medium text-slate-900">{tenant.firstName} {tenant.lastName}</div>
@@ -313,260 +481,135 @@ const TenantsPage: React.FC = () => {
                         </table>
                     </div>
                 )}
+
+                {/* Pagination */}
+                {!loading && filteredTenants.length > 0 && (
+                    <div className="p-4 border-t border-slate-200">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            totalItems={filteredTenants.length}
+                            itemsPerPage={itemsPerPage}
+                            onPageChange={setCurrentPage}
+                            onItemsPerPageChange={setItemsPerPage}
+                        />
+                    </div>
+                )}
             </div>
 
             {/* Details Modal */}
-            {showDetails && selectedTenant && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                        <div className="p-6 border-b border-slate-200">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <h2 className="text-xl font-bold text-slate-900">{selectedTenant.firstName} {selectedTenant.lastName}</h2>
-                                    <p className="text-sm text-slate-500">{selectedTenant.email}</p>
-                                </div>
-                                <button
-                                    onClick={() => setShowDetails(false)}
-                                    className="text-slate-400 hover:text-slate-600"
-                                >
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                        <div className="p-6 space-y-4">
-                            <div>
-                                <h3 className="text-sm font-medium text-slate-500 mb-2">Business Information</h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="text-xs text-slate-500">Business Name</p>
-                                        <p className="text-sm font-medium text-slate-900">{selectedTenant.businessName || 'N/A'}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-slate-500">Phone</p>
-                                        <p className="text-sm font-medium text-slate-900">{selectedTenant.phone}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div>
-                                <h3 className="text-sm font-medium text-slate-500 mb-2">Account Details</h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="text-xs text-slate-500">KYC Status</p>
-                                        {getKycStatusBadge(selectedTenant.kyc_status)}
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-slate-500">Status</p>
-                                        {getStatusBadge(selectedTenant.status)}
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-slate-500">Created</p>
-                                        <p className="text-sm text-slate-900">{new Date(selectedTenant.createdAt).toLocaleDateString()}</p>
-                                    </div>
-                                    {selectedTenant.webhookUrl && (
-                                        <div className="sm:col-span-2">
-                                            <p className="text-xs text-slate-500">Webhook URL</p>
-                                            <p className="text-sm font-mono text-purple-600 break-all">{selectedTenant.webhookUrl}</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            {selectedTenant.kycLevel >= 2 && (
-                                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                                    <h3 className="text-sm font-bold text-slate-900 mb-3">KYC Verification Documents</h3>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                                        <div>
-                                            <p className="text-xs text-slate-500">NIN</p>
-                                            <p className="text-sm font-mono font-medium text-slate-900">{selectedTenant.nin || 'Not provided'}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-slate-500">BVN</p>
-                                            <p className="text-sm font-mono font-medium text-slate-900">{selectedTenant.bvn || 'Not provided'}</p>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-slate-500 mb-2">Identity Document</p>
-                                        {selectedTenant.idCardPath ? (
-                                            <div className="flex flex-col sm:flex-row items-start sm:items-center p-3 bg-white rounded-lg border border-slate-200 shadow-sm gap-3">
-                                                <div className="w-10 h-10 bg-blue-100 rounded flex items-center justify-center text-blue-600 flex-shrink-0">
-                                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                    </svg>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-slate-900 truncate">{selectedTenant.idCardPath}</p>
-                                                    <p className="text-[10px] text-slate-500 uppercase">Uploaded Document</p>
-                                                </div>
-                                                <button
-                                                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-700 rounded hover:bg-blue-50 hover:text-blue-600 transition-colors text-xs font-medium"
-                                                    onClick={() => alert('Document download would happen here in production.')}
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                                    </svg>
-                                                    Download
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <p className="text-sm text-slate-500 italic">No document uploaded</p>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4 border-t border-slate-200">
-                                {selectedTenant.status !== 'active' && (
-                                    <button
-                                        onClick={() => handleStatusChange(selectedTenant._id, 'active')}
-                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                                    >
-                                        Approve / Activate
-                                    </button>
-                                )}
-                                {selectedTenant.status !== 'suspended' && (
-                                    <button
-                                        onClick={() => handleStatusChange(selectedTenant._id, 'suspended')}
-                                        className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium"
-                                    >
-                                        Suspend
-                                    </button>
-                                )}
-
-                                {selectedTenant.kyc_status !== 'verified' && (
-                                    <button
-                                        onClick={() => handleKycStatusChange(selectedTenant._id, 'verified')}
-                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                                    >
-                                        Approve KYC
-                                    </button>
-                                )}
-                                {selectedTenant.kyc_status !== 'rejected' && (
-                                    <button
-                                        onClick={() => handleKycStatusChange(selectedTenant._id, 'rejected')}
-                                        className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
-                                    >
-                                        Reject KYC
-                                    </button>
-                                )}
-
-                                <button
-                                    onClick={() => setShowSendMessage(true)}
-                                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
-                                >
-                                    Send Message
-                                </button>
-
-                                <button
-                                    onClick={() => handleDeleteTenant(selectedTenant._id)}
-                                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-                                >
-                                    Delete User
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            {selectedTenant && (
+                <TenantDetailModal
+                    isOpen={showDetails}
+                    onClose={() => setShowDetails(false)}
+                    tenant={selectedTenant}
+                    onStatusChange={handleStatusChange}
+                    onKycStatusChange={handleKycStatusChange}
+                    onDelete={handleDeleteTenant}
+                    onSendMessage={() => setShowSendMessage(true)}
+                />
             )}
 
             {/* Delete Confirmation Modal */}
-            {showDeleteConfirm && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-                        <div className="text-center">
-                            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-                                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                </svg>
-                            </div>
-                            <h3 className="text-lg font-bold text-slate-900 mb-2">Delete Tenant</h3>
-                            <p className="text-sm text-slate-500 mb-6">
-                                Are you sure you want to delete this tenant? This action cannot be undone and will delete all associated data including wallets and transactions.
-                            </p>
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => {
-                                        setShowDeleteConfirm(false);
-                                        setTenantToDelete(null);
-                                    }}
-                                    className="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium"
-                                >
-                                    No, Cancel
-                                </button>
-                                <button
-                                    onClick={confirmDelete}
-                                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
-                                >
-                                    Yes, Delete
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-            {/* Send Message Modal */}
-            {showSendMessage && selectedTenant && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full">
-                        <div className="p-6 border-b border-slate-200">
-                            <div className="flex justify-between items-start">
-                                <h2 className="text-xl font-bold text-slate-900">Send Message to {selectedTenant.firstName}</h2>
-                                <button
-                                    onClick={() => setShowSendMessage(false)}
-                                    className="text-slate-400 hover:text-slate-600"
-                                >
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            {
+                showDeleteConfirm && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex items-center justify-center p-4">
+                        <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+                            <div className="text-center">
+                                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                                    <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                     </svg>
-                                </button>
+                                </div>
+                                <h3 className="text-lg font-bold text-slate-900 mb-2">Delete Tenant</h3>
+                                <p className="text-sm text-slate-500 mb-6">
+                                    Are you sure you want to delete this tenant? This action cannot be undone and will delete all associated data including wallets and transactions.
+                                </p>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => {
+                                            setShowDeleteConfirm(false);
+                                            setTenantToDelete(null);
+                                        }}
+                                        className="flex-1 px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium"
+                                    >
+                                        No, Cancel
+                                    </button>
+                                    <button
+                                        onClick={confirmDelete}
+                                        className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                                    >
+                                        Yes, Delete
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <form onSubmit={handleSendMessage} className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Subject</label>
-                                <input
-                                    type="text"
-                                    required
-                                    className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    placeholder="Enter subject"
-                                    value={messageData.subject}
-                                    onChange={(e) => setMessageData({ ...messageData, subject: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Message</label>
-                                <textarea
-                                    required
-                                    rows={6}
-                                    className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                    placeholder="Type your message here..."
-                                    value={messageData.message}
-                                    onChange={(e) => setMessageData({ ...messageData, message: e.target.value })}
-                                />
-                            </div>
-                            <div className="flex gap-3 pt-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowSendMessage(false)}
-                                    className="flex-1 px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors"
-                                    disabled={isSending}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
-                                    disabled={isSending}
-                                >
-                                    {isSending ? 'Sending...' : 'Send Message'}
-                                </button>
-                            </div>
-                        </form>
                     </div>
-                </div>
-            )}
+                )
+            }
+            {/* Send Message Modal */}
+            {
+                showSendMessage && selectedTenant && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center p-4">
+                        <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full">
+                            <div className="p-6 border-b border-slate-200">
+                                <div className="flex justify-between items-start">
+                                    <h2 className="text-xl font-bold text-slate-900">Send Message to {selectedTenant.firstName}</h2>
+                                    <button
+                                        onClick={() => setShowSendMessage(false)}
+                                        className="text-slate-400 hover:text-slate-600"
+                                    >
+                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <form onSubmit={handleSendMessage} className="p-6 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Subject</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                        placeholder="Enter subject"
+                                        value={messageData.subject}
+                                        onChange={(e) => setMessageData({ ...messageData, subject: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Message</label>
+                                    <textarea
+                                        required
+                                        rows={6}
+                                        className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                        placeholder="Type your message here..."
+                                        value={messageData.message}
+                                        onChange={(e) => setMessageData({ ...messageData, message: e.target.value })}
+                                    />
+                                </div>
+                                <div className="flex gap-3 pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowSendMessage(false)}
+                                        className="flex-1 px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors"
+                                        disabled={isSending}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                                        disabled={isSending}
+                                    >
+                                        {isSending ? 'Sending...' : 'Send Message'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )
+            }
         </div>
     );
 };

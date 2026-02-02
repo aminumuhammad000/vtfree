@@ -27,6 +27,7 @@ const WebhooksPage: React.FC = () => {
     const [showDetails, setShowDetails] = useState(false);
     const [filterSource, setFilterSource] = useState<string>('all');
     const [filterStatus, setFilterStatus] = useState<string>('all');
+    const [filterEventType, setFilterEventType] = useState<string>('');
     const [activeTab, setActiveTab] = useState<'logs' | 'configs'>('logs');
     const [tenants, setTenants] = useState<any[]>([]);
     const [isRetrying, setIsRetrying] = useState(false);
@@ -37,7 +38,7 @@ const WebhooksPage: React.FC = () => {
         } else {
             fetchTenants();
         }
-    }, [filterSource, filterStatus, activeTab]);
+    }, [filterSource, filterStatus, filterEventType, activeTab]);
 
     const fetchWebhooks = async () => {
         try {
@@ -45,6 +46,7 @@ const WebhooksPage: React.FC = () => {
             const params: any = {};
             if (filterSource !== 'all') params.source = filterSource;
             if (filterStatus !== 'all') params.status = filterStatus;
+            if (filterEventType) params.eventType = filterEventType;
 
             const data = await adminApi.getWebhooks(params);
             setWebhooks(data.webhooks || []);
@@ -210,6 +212,13 @@ const WebhooksPage: React.FC = () => {
                     {/* Filters */}
                     <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                         <div className="flex flex-col sm:flex-row gap-4">
+                            <input
+                                type="text"
+                                placeholder="Filter by Event Type..."
+                                value={filterEventType}
+                                onChange={(e) => setFilterEventType(e.target.value)}
+                                className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                            />
                             <select
                                 value={filterSource}
                                 onChange={(e) => setFilterSource(e.target.value)}
