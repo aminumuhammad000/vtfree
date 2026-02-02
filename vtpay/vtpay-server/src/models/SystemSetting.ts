@@ -39,11 +39,17 @@ export interface ISystemSettingDocument extends Document {
         type: 'PRIMARY' | 'SECONDARY';
         status: 'ACTIVE' | 'INACTIVE';
     };
-    zainpaySettlement: {
-        zainboxCode: string;
-        scheduleType: 'T1' | 'T0';
-        schedulePeriod: 'Daily' | 'Weekly' | 'Monthly';
+    globalSettlement: {
         status: boolean;
+        weekendSettlementEnabled: boolean;
+        scheduleType: 'T1' | 'T7' | 'T30';
+        schedulePeriod: string;
+        settlementAccounts: Array<{
+            accountName: string;
+            accountNumber: string;
+            bankCode: string;
+            percentage: string;
+        }>;
     };
     emailConfig: {
         provider: 'gmail' | 'other';
@@ -113,11 +119,19 @@ const SystemSettingSchema = new Schema<ISystemSettingDocument>(
             type: { type: String, enum: ['PRIMARY', 'SECONDARY'], default: 'PRIMARY' },
             status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' },
         },
-        zainpaySettlement: {
-            zainboxCode: { type: String, default: '' },
-            scheduleType: { type: String, enum: ['T1', 'T0'], default: 'T1' },
-            schedulePeriod: { type: String, enum: ['Daily', 'Weekly', 'Monthly'], default: 'Daily' },
+        globalSettlement: {
             status: { type: Boolean, default: false },
+            weekendSettlementEnabled: { type: Boolean, default: true },
+            scheduleType: { type: String, enum: ['T1', 'T7', 'T30'], default: 'T1' },
+            schedulePeriod: { type: String, default: 'Daily' },
+            settlementAccounts: [
+                {
+                    accountName: String,
+                    accountNumber: String,
+                    bankCode: String,
+                    percentage: String,
+                }
+            ]
         },
         emailConfig: {
             provider: { type: String, enum: ['gmail', 'other'], default: 'gmail' },

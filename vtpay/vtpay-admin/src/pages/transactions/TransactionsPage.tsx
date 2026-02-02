@@ -1,6 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { adminApi } from '../../api/client';
 import toast from 'react-hot-toast';
+import SearchBar from '../../components/common/SearchBar';
+import FilterPanel, { type FilterConfig } from '../../components/common/FilterPanel';
+import Modal from '../../components/common/Modal';
+import { exportToCSV } from '../../utils/exportUtils';
+import Badge from '../../components/common/Badge';
 
 // Transaction types
 interface Transaction {
@@ -20,48 +26,87 @@ interface Transaction {
     externalRef?: string;
     narration: string;
     flagged: boolean;
+    isCleared?: boolean;
+    clearedAt?: string;
     createdAt: string;
     updatedAt: string;
 }
 
+const CountdownTimer = ({ createdAt, isCleared }: { createdAt: string; isCleared?: boolean }) => {
+    const [timeLeft, setTimeLeft] = useState<string>('');
+
+    React.useEffect(() => {
+        if (isCleared) return;
+
+        const calculateTimeLeft = () => {
+            const created = new Date(createdAt).getTime();
+            const settlementTime = created + (24 * 60 * 60 * 1000) + (5 * 60 * 1000); // 24h 5m
+            const now = new Date().getTime();
+            const difference = settlementTime - now;
+
+            if (difference <= 0) {
+                return 'Processing...';
+            }
+
+            const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
+            const minutes = Math.floor((difference / 1000 / 60) % 60);
+            const seconds = Math.floor((difference / 1000) % 60);
+
+            return `${hours}h ${minutes}m ${seconds}s`;
+        };
+
+        const timer = setInterval(() => {
+            setTimeLeft(calculateTimeLeft());
+        }, 1000);
+
+        setTimeLeft(calculateTimeLeft()); // Initial call
+
+        return () => clearInterval(timer);
+    }, [createdAt, isCleared]);
+
+    if (isCleared) {
+        return <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">Settled</span>;
+    }
+
+    if (timeLeft === 'Processing...') {
+        return <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full animate-pulse">Processing...</span>;
+    }
+
+    return <span className="text-xs font-mono font-medium text-slate-600 bg-slate-100 px-2 py-1 rounded">{timeLeft}</span>;
+};
+
 const TransactionsPage: React.FC = () => {
-    const [transactions, setTransactions] = useState<Transaction[]>([]);
-    const [loading, setLoading] = useState(true);
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [showDetails, setShowDetails] = useState(false);
     const [isActionLoading, setIsActionLoading] = useState(false);
 
     // Filters
     const [searchQuery, setSearchQuery] = useState('');
-    const [typeFilter, setTypeFilter] = useState<string>('all');
-    const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [activeFilters, setActiveFilters] = useState<Record<string, any>>({
+        type: 'all',
+        status: 'all'
+    });
 
-    useEffect(() => {
-        fetchTransactions();
-    }, [typeFilter, statusFilter]);
-
-    const fetchTransactions = async () => {
-        try {
-            setLoading(true);
+    const { data: transactionData, isLoading: loading, refetch } = useQuery({
+        queryKey: ['transactions', activeFilters],
+        queryFn: async () => {
             const params: any = {};
-            if (typeFilter !== 'all') params.type = typeFilter;
-            if (statusFilter !== 'all') params.status = statusFilter;
+            if (activeFilters.type !== 'all') params.type = activeFilters.type;
+            if (activeFilters.status !== 'all') params.status = activeFilters.status;
+            return await adminApi.getTransactions(params);
+        },
+        refetchInterval: 15000,
+        staleTime: 5000,
+    });
 
-            const data = await adminApi.getTransactions(params);
-            setTransactions(data.transactions || []);
-        } catch (error) {
-            console.error('Failed to fetch transactions:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const transactions: Transaction[] = transactionData?.transactions || [];
 
     const handleFlag = async (id: string, currentFlagged: boolean) => {
         try {
             setIsActionLoading(true);
             await adminApi.flagTransaction(id, !currentFlagged);
             toast.success(`Transaction ${!currentFlagged ? 'flagged' : 'unflagged'} successfully`);
-            fetchTransactions();
+            refetch();
             setShowDetails(false);
         } catch (error: any) {
             toast.error(error.response?.data?.message || 'Failed to update transaction flag');
@@ -75,7 +120,7 @@ const TransactionsPage: React.FC = () => {
             setIsActionLoading(true);
             await adminApi.verifyTransaction(id);
             toast.success('Transaction verified manually');
-            fetchTransactions();
+            refetch();
             setShowDetails(false);
         } catch (error: any) {
             toast.error(error.response?.data?.message || 'Failed to verify transaction');
@@ -85,28 +130,29 @@ const TransactionsPage: React.FC = () => {
     };
 
     const getStatusBadge = (status: string) => {
-        const badges = {
-            success: 'bg-green-100 text-green-800',
-            pending: 'bg-yellow-100 text-yellow-800',
-            failed: 'bg-red-100 text-red-800',
+        const variants: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
+            success: 'success',
+            pending: 'warning',
+            failed: 'error'
         };
+        const variant = variants[status] || 'neutral';
         return (
-            <span className={`px-2 py-1 text-xs font-medium rounded-full ${badges[status as keyof typeof badges]}`}>
+            <Badge variant={variant}>
                 {status.toUpperCase()}
-            </span>
+            </Badge>
         );
     };
 
     const getTypeBadge = (category: string) => {
-        const badges = {
-            deposit: { text: 'DEPOSIT', color: 'bg-blue-100 text-blue-800' },
-            transfer: { text: 'TRANSFER', color: 'bg-purple-100 text-purple-800' },
-            withdrawal: { text: 'WITHDRAWAL', color: 'bg-orange-100 text-orange-800' },
-            refund: { text: 'REFUND', color: 'bg-pink-100 text-pink-800' },
-            fee: { text: 'FEE', color: 'bg-gray-100 text-gray-800' },
+        const variants: Record<string, 'info' | 'warning' | 'error' | 'neutral' | 'success'> = {
+            deposit: 'info',
+            transfer: 'info', // Using info (blue) for transfer
+            withdrawal: 'warning',
+            refund: 'error',
+            fee: 'neutral'
         };
-        const badge = badges[category as keyof typeof badges] || { text: category.toUpperCase(), color: 'bg-slate-100 text-slate-800' };
-        return <span className={`px-2 py-1 text-xs font-medium rounded-full ${badge.color}`}>{badge.text}</span>;
+        const variant = variants[category] || 'neutral';
+        return <Badge variant={variant}>{category.toUpperCase()}</Badge>;
     };
 
     const formatAmount = (amount: number) => {
@@ -119,48 +165,68 @@ const TransactionsPage: React.FC = () => {
             txn.userId.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (txn.userId.businessName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
             txn.narration.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesType = typeFilter === 'all' || txn.type === typeFilter;
-        const matchesStatus = statusFilter === 'all' || txn.status === statusFilter;
+        const matchesType = activeFilters.type === 'all' || txn.type === activeFilters.type;
+        const matchesStatus = activeFilters.status === 'all' || txn.status === activeFilters.status;
         return matchesSearch && matchesType && matchesStatus;
     });
 
+    const filterConfigs: FilterConfig[] = [
+        {
+            key: 'type',
+            label: 'Type',
+            type: 'select',
+            options: [
+                { label: 'All Types', value: 'all' },
+                { label: 'Deposit', value: 'deposit' },
+                { label: 'Transfer', value: 'transfer' },
+                { label: 'DVA', value: 'dva' },
+                { label: 'Withdrawal', value: 'withdrawal' },
+            ],
+        },
+        {
+            key: 'status',
+            label: 'Status',
+            type: 'select',
+            options: [
+                { label: 'All Status', value: 'all' },
+                { label: 'Success', value: 'success' },
+                { label: 'Pending', value: 'pending' },
+                { label: 'Failed', value: 'failed' },
+            ],
+        },
+    ];
+
+    const handleFilterChange = (key: string, value: any) => {
+        setActiveFilters(prev => ({ ...prev, [key]: value }));
+    };
+
+    const handleClearFilters = () => {
+        setActiveFilters({ type: 'all', status: 'all' });
+    };
+
+
+
     const handleExportCSV = () => {
-        // Prepare CSV headers
         const headers = ['Reference', 'External Ref', 'Tenant', 'Email', 'Type', 'Category', 'Amount', 'Status', 'Flagged', 'Narration', 'Date'];
 
-        // Prepare CSV rows
-        const rows = filteredTransactions.map(txn => [
-            txn.reference,
-            txn.externalRef || 'N/A',
-            txn.userId.businessName || `${txn.userId.firstName} ${txn.userId.lastName}`,
-            txn.userId.email,
-            txn.type.toUpperCase(),
-            txn.category.toUpperCase(),
-            (txn.amount / 100).toFixed(2),
-            txn.status.toUpperCase(),
-            txn.flagged ? 'Yes' : 'No',
-            txn.narration,
-            new Date(txn.createdAt).toLocaleString()
-        ]);
-
-        // Combine headers and rows
-        const csvContent = [
-            headers.join(','),
-            ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-        ].join('\n');
-
-        // Create blob and download
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-
-        link.setAttribute('href', url);
-        link.setAttribute('download', `transactions_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        exportToCSV(
+            filteredTransactions,
+            headers,
+            `transactions_${new Date().toISOString().split('T')[0]}.csv`,
+            (txn) => [
+                txn.reference,
+                txn.externalRef || 'N/A',
+                txn.userId.businessName || `${txn.userId.firstName} ${txn.userId.lastName}`,
+                txn.userId.email,
+                txn.type.toUpperCase(),
+                txn.category.toUpperCase(),
+                (txn.amount / 100).toFixed(2),
+                txn.status.toUpperCase(),
+                txn.flagged ? 'Yes' : 'No',
+                txn.narration,
+                new Date(txn.createdAt).toLocaleString()
+            ]
+        );
     };
 
     return (
@@ -179,7 +245,7 @@ const TransactionsPage: React.FC = () => {
                         Export CSV
                     </button>
                     <button
-                        onClick={fetchTransactions}
+                        onClick={() => refetch()}
                         className="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium shadow-sm active:scale-95"
                     >
                         Refresh
@@ -219,38 +285,20 @@ const TransactionsPage: React.FC = () => {
             <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                     <div className="sm:col-span-2 lg:col-span-2">
-                        <input
-                            type="text"
+                        <SearchBar
                             placeholder="Search by reference, tenant, or description..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full px-4 py-2 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                            onSearch={setSearchQuery}
+                            initialValue={searchQuery}
                         />
                     </div>
-                    <select
-                        value={typeFilter}
-                        onChange={(e) => setTypeFilter(e.target.value)}
-                        className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
-                    >
-                        <option value="all">All Types</option>
-                        <option value="deposit">Deposit</option>
-                        <option value="transfer">Transfer</option>
-                        <option value="dva">DVA</option>
-                        <option value="withdrawal">Withdrawal</option>
-                    </select>
-                    <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
-                    >
-                        <option value="all">All Status</option>
-                        <option value="success">Success</option>
-                        <option value="pending">Pending</option>
-                        <option value="failed">Failed</option>
-                    </select>
-                    <button className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium">
-                        Date Range
-                    </button>
+                    <div className="sm:col-span-3 lg:col-span-3">
+                        <FilterPanel
+                            filters={filterConfigs}
+                            activeFilters={activeFilters}
+                            onFilterChange={handleFilterChange}
+                            onClearFilters={handleClearFilters}
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -280,6 +328,9 @@ const TransactionsPage: React.FC = () => {
                                     </th>
                                     <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Status
+                                    </th>
+                                    <th className="hidden lg:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                        Settlement
                                     </th>
                                     <th className="hidden sm:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                                         Date
@@ -321,6 +372,13 @@ const TransactionsPage: React.FC = () => {
                                             <div className="text-sm font-semibold text-slate-900">{formatAmount(txn.amount)}</div>
                                         </td>
                                         <td className="px-4 md:px-6 py-4 whitespace-nowrap">{getStatusBadge(txn.status)}</td>
+                                        <td className="hidden lg:table-cell px-4 md:px-6 py-4 whitespace-nowrap">
+                                            {(txn.category === 'deposit' || txn.category === 'transfer') && txn.type === 'credit' ? (
+                                                <CountdownTimer createdAt={txn.createdAt} isCleared={txn.isCleared} />
+                                            ) : (
+                                                <span className="text-xs text-slate-400">-</span>
+                                            )}
+                                        </td>
                                         <td className="hidden sm:table-cell px-4 md:px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                             {new Date(txn.createdAt).toLocaleString()}
                                         </td>
@@ -345,114 +403,104 @@ const TransactionsPage: React.FC = () => {
             </div>
 
             {/* Transaction Details Modal */}
-            {showDetails && selectedTransaction && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                        <div className="p-6 border-b border-slate-200">
-                            <div className="flex justify-between items-start">
+            {/* Transaction Details Modal */}
+            <Modal
+                isOpen={showDetails}
+                onClose={() => setShowDetails(false)}
+                title="Transaction Details"
+                maxWidth="2xl"
+            >
+                {selectedTransaction && (
+                    <div className="p-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Left Column */}
+                            <div className="space-y-6">
+                                {/* Basic Info */}
                                 <div>
-                                    <h2 className="text-xl font-bold text-slate-900">Transaction Details</h2>
-                                    <p className="text-sm text-slate-500 font-mono mt-1">{selectedTransaction.reference}</p>
-                                </div>
-                                <button onClick={() => setShowDetails(false)} className="text-slate-400 hover:text-slate-600">
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="p-6">
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                {/* Left Column */}
-                                <div className="space-y-6">
-                                    {/* Basic Info */}
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-slate-900 mb-3">Transaction Information</h3>
-                                        <div className="space-y-3">
-                                            <div className="flex justify-between">
-                                                <span className="text-sm text-slate-500">Category</span>
-                                                {getTypeBadge(selectedTransaction.category)}
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-sm text-slate-500">Status</span>
-                                                {getStatusBadge(selectedTransaction.status)}
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-sm text-slate-500">Amount</span>
-                                                <span className="text-sm font-semibold text-slate-900">
-                                                    {formatAmount(selectedTransaction.amount)}
-                                                </span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-sm text-slate-500">Tenant</span>
-                                                <span className="text-sm text-slate-900">{selectedTransaction.userId.businessName || `${selectedTransaction.userId.firstName} ${selectedTransaction.userId.lastName}`}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-sm text-slate-500">Email</span>
-                                                <span className="text-sm text-slate-900">{selectedTransaction.userId.email}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-sm text-slate-500">External Ref</span>
-                                                <span className="text-sm font-mono text-slate-900">{selectedTransaction.externalRef || 'N/A'}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-sm text-slate-500">Flagged</span>
-                                                <span className={`text-sm font-medium ${selectedTransaction.flagged ? 'text-red-600' : 'text-green-600'}`}>
-                                                    {selectedTransaction.flagged ? 'Yes' : 'No'}
-                                                </span>
+                                    <h3 className="text-sm font-semibold text-slate-900 mb-3">Transaction Information</h3>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-slate-500">Category</span>
+                                            {getTypeBadge(selectedTransaction.category)}
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-slate-500">Status</span>
+                                            {getStatusBadge(selectedTransaction.status)}
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-slate-500">Amount</span>
+                                            <span className="text-sm font-semibold text-slate-900">
+                                                {formatAmount(selectedTransaction.amount)}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-slate-500">Tenant</span>
+                                            <div className="text-right">
+                                                <div className="text-sm text-slate-900">{selectedTransaction.userId.businessName || `${selectedTransaction.userId.firstName} ${selectedTransaction.userId.lastName}`}</div>
                                             </div>
                                         </div>
-                                    </div>
-
-                                    {/* Narration */}
-                                    <div>
-                                        <h3 className="text-sm font-semibold text-slate-900 mb-2">Narration</h3>
-                                        <p className="text-sm text-slate-600">{selectedTransaction.narration}</p>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-slate-500">Email</span>
+                                            <span className="text-sm text-slate-900">{selectedTransaction.userId.email}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-slate-500">External Ref</span>
+                                            <span className="text-sm font-mono text-slate-900">{selectedTransaction.externalRef || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-slate-500">Flagged</span>
+                                            <span className={`text-sm font-medium ${selectedTransaction.flagged ? 'text-red-600' : 'text-green-600'}`}>
+                                                {selectedTransaction.flagged ? 'Yes' : 'No'}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-sm text-slate-500">Date</span>
+                                            <span className="text-sm text-slate-900">{new Date(selectedTransaction.createdAt).toLocaleString()}</span>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Right Column - Raw Data (Placeholder) */}
+                                {/* Narration */}
                                 <div>
-                                    <h3 className="text-sm font-semibold text-slate-900 mb-3">Raw Data</h3>
-                                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 overflow-x-auto">
-                                        <pre className="text-xs text-slate-700">
-                                            {JSON.stringify(selectedTransaction, null, 2)}
-                                        </pre>
-                                    </div>
+                                    <h3 className="text-sm font-semibold text-slate-900 mb-2">Narration</h3>
+                                    <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100">{selectedTransaction.narration}</p>
                                 </div>
                             </div>
 
-                            {/* Action Buttons */}
-                            <div className="mt-6 pt-6 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                <button
-                                    onClick={() => {
-                                        console.log('Raw Payload:', selectedTransaction);
-                                        toast.success('Raw payload logged to console');
-                                    }}
-                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                                >
-                                    View Raw Payload
-                                </button>
-                                <button
-                                    onClick={() => handleFlag(selectedTransaction._id, selectedTransaction.flagged)}
-                                    disabled={isActionLoading}
-                                    className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium disabled:opacity-50"
-                                >
-                                    {selectedTransaction.flagged ? 'Unflag' : 'Flag for Review'}
-                                </button>
-                                <button
-                                    onClick={() => handleVerify(selectedTransaction._id)}
-                                    disabled={isActionLoading || selectedTransaction.status === 'success'}
-                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50"
-                                >
-                                    Verify Manually
-                                </button>
+                            {/* Right Column - Raw Data */}
+                            <div>
+                                <h3 className="text-sm font-semibold text-slate-900 mb-3">Technical Details</h3>
+                                <div className="bg-slate-900 p-4 rounded-lg overflow-x-auto h-full max-h-[300px]">
+                                    <pre className="text-xs text-green-400 font-mono">
+                                        {JSON.stringify(selectedTransaction, null, 2)}
+                                    </pre>
+                                </div>
                             </div>
                         </div>
+
+                        {/* Action Buttons */}
+                        <div className="mt-8 pt-6 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <button
+                                onClick={() => handleFlag(selectedTransaction._id, selectedTransaction.flagged)}
+                                disabled={isActionLoading}
+                                className={`px-4 py-2 border rounded-lg transition-colors text-sm font-medium disabled:opacity-50 ${selectedTransaction.flagged
+                                    ? 'border-slate-300 text-slate-700 hover:bg-slate-50'
+                                    : 'border-yellow-600 text-yellow-600 hover:bg-yellow-50'
+                                    }`}
+                            >
+                                {selectedTransaction.flagged ? 'Remove Flag' : 'Flag Transaction'}
+                            </button>
+                            <button
+                                onClick={() => handleVerify(selectedTransaction._id)}
+                                disabled={isActionLoading || selectedTransaction.status === 'success'}
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50"
+                            >
+                                Verify Manually
+                            </button>
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
+            </Modal>
         </div>
     );
 };

@@ -1,21 +1,27 @@
+import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
-import Dashboard from './pages/dashboard/Dashboard';
-import TenantsPage from './pages/tenants/TenantsPage';
-import ZainboxPage from './pages/zainbox/ZainboxPage';
-import TransactionsPage from './pages/transactions/TransactionsPage';
-import WebhooksPage from './pages/webhooks/WebhooksPage';
-import SettlementsPage from './pages/settlements/SettlementsPage';
-import FeesPage from './pages/fees/FeesPage';
-import RiskPage from './pages/risk/RiskPage';
-import SettingsPage from './pages/settings/SettingsPage';
-import ApiKeysPage from './pages/api-keys/ApiKeysPage';
-import CommunicationsPage from './pages/communications/CommunicationsPage';
-import ProfilePage from './pages/profile/ProfilePage';
-import HelpMessages from './pages/help/HelpMessages';
-
-import Login from './pages/auth/Login';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import ErrorBoundary from './components/common/ErrorBoundary';
+import { PageSkeleton } from './components/common/Skeleton';
+
+// Lazy load pages
+const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'));
+const TenantsPage = lazy(() => import('./pages/tenants/TenantsPage'));
+const ZainboxPage = lazy(() => import('./pages/zainbox/ZainboxPage'));
+const TransactionsPage = lazy(() => import('./pages/transactions/TransactionsPage'));
+const WebhooksPage = lazy(() => import('./pages/webhooks/WebhooksPage'));
+const SettlementsPage = lazy(() => import('./pages/settlements/SettlementsPage'));
+const FeesPage = lazy(() => import('./pages/fees/FeesPage'));
+const RiskPage = lazy(() => import('./pages/risk/RiskPage'));
+const SettingsPage = lazy(() => import('./pages/settings/SettingsPage'));
+const ApiKeysPage = lazy(() => import('./pages/api-keys/ApiKeysPage'));
+const CommunicationsPage = lazy(() => import('./pages/communications/CommunicationsPage'));
+const ProfilePage = lazy(() => import('./pages/profile/ProfilePage'));
+const HelpMessages = lazy(() => import('./pages/help/HelpMessages'));
+const AdminsPage = lazy(() => import('./pages/admins/AdminsPage'));
+const AuditLogsPage = lazy(() => import('./pages/audit/AuditLogsPage'));
+const Login = lazy(() => import('./pages/auth/Login'));
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, user, loading } = useAuth();
@@ -48,27 +54,30 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 function AppRoutes() {
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
+    <Suspense fallback={<PageSkeleton />}>
+      <Routes>
+        <Route path="/login" element={<Login />} />
 
-      <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
-      <Route path="/communications" element={<ProtectedRoute><Layout><CommunicationsPage /></Layout></ProtectedRoute>} />
-      <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
-      <Route path="/tenants" element={<ProtectedRoute><Layout><TenantsPage /></Layout></ProtectedRoute>} />
-      <Route path="/zainbox" element={<ProtectedRoute><Layout><ZainboxPage /></Layout></ProtectedRoute>} />
-      <Route path="/transactions" element={<ProtectedRoute><Layout><TransactionsPage /></Layout></ProtectedRoute>} />
-      <Route path="/settlements" element={<ProtectedRoute><Layout><SettlementsPage /></Layout></ProtectedRoute>} />
-      <Route path="/webhooks" element={<ProtectedRoute><Layout><WebhooksPage /></Layout></ProtectedRoute>} />
-      <Route path="/api-keys" element={<ProtectedRoute><Layout><ApiKeysPage /></Layout></ProtectedRoute>} />
-      <Route path="/fees" element={<ProtectedRoute><Layout><FeesPage /></Layout></ProtectedRoute>} />
-      <Route path="/risk" element={<ProtectedRoute><Layout><RiskPage /></Layout></ProtectedRoute>} />
-      <Route path="/settings" element={<ProtectedRoute><Layout><SettingsPage /></Layout></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute><Layout><ProfilePage /></Layout></ProtectedRoute>} />
-      <Route path="/help" element={<ProtectedRoute><Layout><HelpMessages /></Layout></ProtectedRoute>} />
+        <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+        <Route path="/communications" element={<ProtectedRoute><Layout><CommunicationsPage /></Layout></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+        <Route path="/tenants" element={<ProtectedRoute><Layout><TenantsPage /></Layout></ProtectedRoute>} />
+        <Route path="/zainbox" element={<ProtectedRoute><Layout><ZainboxPage /></Layout></ProtectedRoute>} />
+        <Route path="/transactions" element={<ProtectedRoute><Layout><TransactionsPage /></Layout></ProtectedRoute>} />
+        <Route path="/settlements" element={<ProtectedRoute><Layout><SettlementsPage /></Layout></ProtectedRoute>} />
+        <Route path="/webhooks" element={<ProtectedRoute><Layout><WebhooksPage /></Layout></ProtectedRoute>} />
+        <Route path="/api-keys" element={<ProtectedRoute><Layout><ApiKeysPage /></Layout></ProtectedRoute>} />
+        <Route path="/fees" element={<ProtectedRoute><Layout><FeesPage /></Layout></ProtectedRoute>} />
+        <Route path="/risk" element={<ProtectedRoute><Layout><RiskPage /></Layout></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Layout><SettingsPage /></Layout></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Layout><ProfilePage /></Layout></ProtectedRoute>} />
+        <Route path="/help" element={<ProtectedRoute><Layout><HelpMessages /></Layout></ProtectedRoute>} />
+        <Route path="/admins" element={<ProtectedRoute><Layout><AdminsPage /></Layout></ProtectedRoute>} />
+        <Route path="/audit-logs" element={<ProtectedRoute><Layout><AuditLogsPage /></Layout></ProtectedRoute>} />
 
-
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </Suspense>
   );
 }
 
@@ -78,8 +87,10 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Toaster position="top-right" />
-        <AppRoutes />
+        <ErrorBoundary>
+          <Toaster position="top-right" />
+          <AppRoutes />
+        </ErrorBoundary>
       </BrowserRouter>
     </AuthProvider>
   );

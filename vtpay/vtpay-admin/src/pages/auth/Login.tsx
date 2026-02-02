@@ -1,31 +1,32 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '../../contexts/AuthContext';
 import { authApi } from '../../api/client';
+import { loginSchema, type LoginFormData } from '../../schemas/auth';
 
 const Login: React.FC = () => {
     const navigate = useNavigate();
     const { login } = useAuth();
-    const [formData, setFormData] = useState({
-        email: '',
-        password: '',
+
+    const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
+        resolver: zodResolver(loginSchema)
     });
+
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-        setError('');
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const onSubmit = async (data: LoginFormData) => {
         setIsLoading(true);
         setError('');
 
         try {
-            const data = await authApi.login(formData);
-            login(data.token, data.user);
+            const response = await authApi.login({
+                email: data.email,
+                password: data.password
+            });
+            login(response.token, response.user);
             navigate('/dashboard');
         } catch (err: any) {
             console.error('Login error:', err);
@@ -65,34 +66,34 @@ const Login: React.FC = () => {
                         </div>
                     )}
 
-                    <form className="space-y-6" onSubmit={handleSubmit}>
+                    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
                         <div>
                             <label className="block text-sm font-semibold text-slate-700 mb-2">
                                 Email Address
                             </label>
                             <input
-                                name="email"
+                                {...register('email')}
                                 type="email"
-                                required
-                                className="w-full px-4 py-3 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-900 focus:border-transparent transition-all"
+                                className={`w-full px-4 py-3 border ${errors.email ? 'border-red-500' : 'border-slate-300'} bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-900 focus:border-transparent transition-all`}
                                 placeholder="admin@vtuapp.com"
-                                value={formData.email}
-                                onChange={handleChange}
                             />
+                            {errors.email && (
+                                <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
+                            )}
                         </div>
                         <div>
                             <label className="block text-sm font-semibold text-slate-700 mb-2">
                                 Password
                             </label>
                             <input
-                                name="password"
+                                {...register('password')}
                                 type="password"
-                                required
-                                className="w-full px-4 py-3 border border-slate-300 bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-900 focus:border-transparent transition-all"
+                                className={`w-full px-4 py-3 border ${errors.password ? 'border-red-500' : 'border-slate-300'} bg-white text-slate-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-900 focus:border-transparent transition-all`}
                                 placeholder="••••••••"
-                                value={formData.password}
-                                onChange={handleChange}
                             />
+                            {errors.password && (
+                                <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
+                            )}
                         </div>
 
                         <div className="flex items-center justify-between">

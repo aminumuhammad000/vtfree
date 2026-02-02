@@ -22,7 +22,8 @@ export const verifyWebhookSignature = (
         }
 
         // Get raw body as string for signature verification
-        const payload = JSON.stringify(req.body);
+        // Use rawBody if available (captured by express.json verify callback), otherwise fallback to JSON.stringify
+        const payload = req.rawBody || JSON.stringify(req.body);
 
         const isValid = webhookService.verifySignature(payload, signature);
 

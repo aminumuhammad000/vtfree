@@ -51,7 +51,12 @@ app.use(cors({
 // });
 
 // Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+    limit: '10mb',
+    verify: (req: Request, res: Response, buf: Buffer) => {
+        req.rawBody = buf.toString();
+    }
+}));
 app.use(express.urlencoded({ extended: true }));
 
 // Request logging middleware

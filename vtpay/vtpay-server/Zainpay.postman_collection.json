@@ -24,7 +24,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "https://sandbox.zainpay.ng/zainbox/list",
+							"raw": "https://api.zainpay.ng/zainbox/list",
 							"protocol": "https",
 							"host": [
 								"sandbox",
@@ -72,7 +72,7 @@
 							}
 						},
 						"url": {
-							"raw": "https://sandbox.zainpay.ng/zainbox/create/request",
+							"raw": "https://api.zainpay.ng/zainbox/create/request",
 							"protocol": "https",
 							"host": [
 								"sandbox",
@@ -120,7 +120,7 @@
 							}
 						},
 						"url": {
-							"raw": "https://sandbox.zainpay.ng/zainbox/update",
+							"raw": "https://api.zainpay.ng/zainbox/update",
 							"protocol": "https",
 							"host": [
 								"sandbox",
@@ -151,7 +151,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "https://sandbox.zainpay.ng/zainbox/transactions/THbfnDvK5o",
+							"raw": "https://api.zainpay.ng/zainbox/transactions/THbfnDvK5o",
 							"protocol": "https",
 							"host": [
 								"sandbox",
@@ -183,7 +183,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "https://sandbox.zainpay.ng/zainbox/virtual-accounts/THbfnDvK5o",
+							"raw": "https://api.zainpay.ng/zainbox/virtual-accounts/THbfnDvK5o",
 							"protocol": "https",
 							"host": [
 								"sandbox",
@@ -215,7 +215,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "https://sandbox.zainpay.ng/zainbox/transactions",
+							"raw": "https://api.zainpay.ng/zainbox/transactions",
 							"protocol": "https",
 							"host": [
 								"sandbox",
@@ -246,7 +246,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "https://sandbox.zainpay.ng/zainbox/transfer/deposit/summary/THbfnDvK5o?dateFrom=2022-02&dateTo=2022-03",
+							"raw": "https://api.zainpay.ng/zainbox/transfer/deposit/summary/THbfnDvK5o?dateFrom=2022-02&dateTo=2022-03",
 							"protocol": "https",
 							"host": [
 								"sandbox",
@@ -306,7 +306,7 @@
 							}
 						},
 						"url": {
-							"raw": "https://sandbox.zainpay.ng/zainbox/settlement",
+							"raw": "https://api.zainpay.ng/zainbox/settlement",
 							"protocol": "https",
 							"host": [
 								"sandbox",
@@ -337,7 +337,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "https://sandbox.zainpay.ng/zainbox/settlement?zainboxCode=7eOQfvaVHvcds05eWH4t",
+							"raw": "https://api.zainpay.ng/zainbox/settlement?zainboxCode=7eOQfvaVHvcds05eWH4t",
 							"protocol": "https",
 							"host": [
 								"sandbox",
@@ -390,7 +390,7 @@
 							}
 						},
 						"url": {
-							"raw": "https://sandbox.zainpay.ng/zainbox/create/request",
+							"raw": "https://api.zainpay.ng/zainbox/create/request",
 							"protocol": "https",
 							"host": [
 								"sandbox",
@@ -441,7 +441,7 @@
 							}
 						},
 						"url": {
-							"raw": "https://sandbox.zainpay.ng/zainbox/profile/THbfnDvK5o",
+							"raw": "https://api.zainpay.ng/zainbox/profile/THbfnDvK5o",
 							"protocol": "https",
 							"host": [
 								"sandbox",
@@ -478,7 +478,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "https://sandbox.zainpay.ng/virtual-account/wallet/transaction/verify/YimyfnnWm1axj6996",
+							"raw": "https://api.zainpay.ng/virtual-account/wallet/transaction/verify/YimyfnnWm1axj6996",
 							"protocol": "https",
 							"host": [
 								"sandbox",
@@ -512,7 +512,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "https://sandbox.zainpay.ng/virtual-account/wallet/deposit/verify/Fc9Xms9UmSentSY",
+							"raw": "https://api.zainpay.ng/virtual-account/wallet/deposit/verify/Fc9Xms9UmSentSY",
 							"protocol": "https",
 							"host": [
 								"sandbox",
@@ -546,7 +546,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "https://sandbox.zainpay.ng//virtual-account/wallet/balance/7967286380",
+							"raw": "https://api.zainpay.ng//virtual-account/wallet/balance/7967286380",
 							"protocol": "https",
 							"host": [
 								"sandbox",
@@ -596,7 +596,7 @@
 							}
 						},
 						"url": {
-							"raw": "https://sandbox.zainpay.ng/virtual-account/create/request",
+							"raw": "https://api.zainpay.ng/virtual-account/create/request",
 							"protocol": "https",
 							"host": [
 								"sandbox",
@@ -628,7 +628,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "https://sandbox.zainpay.ng/bank/list",
+							"raw": "https://api.zainpay.ng/bank/list",
 							"protocol": "https",
 							"host": [
 								"sandbox",
@@ -659,7 +659,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "https://sandbox.zainpay.ng/bank/name-enquiry?bankCode=000013&accountNumber=0011242735",
+							"raw": "https://api.zainpay.ng/bank/name-enquiry?bankCode=000013&accountNumber=0011242735",
 							"protocol": "https",
 							"host": [
 								"sandbox",
@@ -716,7 +716,7 @@
 							}
 						},
 						"url": {
-							"raw": "https://sandbox.zainpay.ng/bank/transfer/",
+							"raw": "https://api.zainpay.ng/bank/transfer/",
 							"protocol": "https",
 							"host": [
 								"sandbox",
@@ -769,7 +769,7 @@
 							}
 						},
 						"url": {
-							"raw": "https://sandbox.zainpay.ng/zainbox/card/other-card/validate/otp",
+							"raw": "https://api.zainpay.ng/zainbox/card/other-card/validate/otp",
 							"protocol": "https",
 							"host": [
 								"sandbox",
@@ -819,7 +819,7 @@
 							}
 						},
 						"url": {
-							"raw": "https://sandbox.zainpay.ng/zainbox/card/initialize/payment",
+							"raw": "https://api.zainpay.ng/zainbox/card/initialize/payment",
 							"protocol": "https",
 							"host": [
 								"sandbox",
@@ -868,7 +868,7 @@
 							}
 						},
 						"url": {
-							"raw": "https://sandbox.zainpay.ng/zainbox/card/validate/card",
+							"raw": "https://api.zainpay.ng/zainbox/card/validate/card",
 							"protocol": "https",
 							"host": [
 								"sandbox",
@@ -917,7 +917,7 @@
 							}
 						},
 						"url": {
-							"raw": "https://sandbox.zainpay.ng/zainbox/card/validate/card",
+							"raw": "https://api.zainpay.ng/zainbox/card/validate/card",
 							"protocol": "https",
 							"host": [
 								"sandbox",
@@ -958,7 +958,7 @@
 					}
 				},
 				"url": {
-					"raw": "https://sandbox.zainpay.ng/merchant/auth/token/request",
+					"raw": "https://api.zainpay.ng/merchant/auth/token/request",
 					"protocol": "https",
 					"host": [
 						"sandbox",
@@ -1007,7 +1007,7 @@
 					}
 				},
 				"url": {
-					"raw": "https://sandbox.zainpay.ng/merchant/auth/token/request",
+					"raw": "https://api.zainpay.ng/merchant/auth/token/request",
 					"protocol": "https",
 					"host": [
 						"sandbox",

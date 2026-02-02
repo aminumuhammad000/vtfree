@@ -4,15 +4,30 @@ import { Wallet } from '../models/Wallet';
 import { logger } from '../utils/logger';
 
 export class CronService {
+    private isRunning: boolean = false;
+    private lastRun: Date | null = null;
+    private lastError: string | null = null;
+
+    public getStatus() {
+        return {
+            isRunning: this.isRunning,
+            lastRun: this.lastRun,
+            lastError: this.lastError,
+            cronSchedule: 'Every Minute'
+        };
+    }
+
     /**
      * Start the deposit clearance job
      * Checks every minute for transactions that have matured (24h)
      */
     public startDepositClearanceJob() {
+        this.isRunning = true;
         // Run every minute
         cron.schedule('* * * * *', async () => {
             try {
-                // logger.info('Running Deposit Clearance Job...');
+                this.lastRun = new Date();
+                logger.info('Running Deposit Clearance Job...');
 
                 // 24 Hours Ago (plus small buffer if needed, e.g. 1 minute to avoid race conditions with exact ms)
                 // User asked for "24 hour and 5 minute"
@@ -26,37 +41,39 @@ export class CronService {
                     createdAt: { $lte: clearanceThreshold } // Older than 24h 5m
                 }).limit(50); // Process in batches of 50 to avoid locking
 
-                if (transactionsToClear.length === 0) return;
+                if (transactionsToClear.length > 0) {
+                    logger.info(`Found ${transactionsToClear.length} pending deposits to clear.`);
 
-                logger.info(`Found ${transactionsToClear.length} pending deposits to clear.`);
+                    for (const txn of transactionsToClear) {
+                        try {
+                            // 1. Mark Transaction as Cleared
+                            txn.isCleared = true;
+                            txn.clearedAt = new Date();
+                            await txn.save();
 
-                for (const txn of transactionsToClear) {
-                    try {
-                        // 1. Mark Transaction as Cleared
-                        txn.isCleared = true;
-                        txn.clearedAt = new Date();
-                        await txn.save();
+                            // 2. Credit the Wallet's Cleared Balance
+                            const result = await Wallet.findOneAndUpdate(
+                                { _id: txn.walletId },
+                                { $inc: { clearedBalance: txn.amount } },
+                                { new: true }
+                            );
 
-                        // 2. Credit the Wallet's Cleared Balance
-                        const result = await Wallet.findOneAndUpdate(
-                            { _id: txn.walletId },
-                            { $inc: { clearedBalance: txn.amount } },
-                            { new: true }
-                        );
+                            if (result) {
+                                logger.info(`Cleared Deposit ${txn.reference}: ₦${txn.amount / 100} released to wallet.`);
+                            } else {
+                                logger.error(`Critical: Wallet not found for transaction ${txn.reference}`);
+                            }
 
-                        if (result) {
-                            logger.info(`Cleared Deposit ${txn.reference}: ₦${txn.amount / 100} released to wallet.`);
-                        } else {
-                            logger.error(`Critical: Wallet not found for transaction ${txn.reference}`);
+                        } catch (err: any) {
+                            logger.error(`Failed to clear transaction ${txn.reference}`, err);
+                            this.lastError = `Txn ${txn.reference}: ${err.message}`;
                         }
-
-                    } catch (err) {
-                        logger.error(`Failed to clear transaction ${txn.reference}`, err);
                     }
                 }
 
-            } catch (error) {
+            } catch (error: any) {
                 logger.error('Error in Deposit Clearance Job', error);
+                this.lastError = error.message;
             }
         });
 

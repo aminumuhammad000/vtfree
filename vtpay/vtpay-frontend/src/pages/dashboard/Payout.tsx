@@ -37,6 +37,8 @@ export const Payout: React.FC = () => {
 
     // Verification State
     const [recipientName, setRecipientName] = useState('');
+    const [isVerifying, setIsVerifying] = useState(false);
+    const [verificationError, setVerificationError] = useState('');
 
     // Saved Account State
     const [savedAccount, setSavedAccount] = useState<any>(null);
@@ -228,10 +230,59 @@ export const Payout: React.FC = () => {
         }
     };
 
-    // Verify Account function removed (unused)
+    // Auto-verify account when account number and bank code are entered
+    useEffect(() => {
+        const verifyAccount = async () => {
+            // Only verify if we have both account number (10 digits) and bank code
+            if (transferData.accountNumber.length === 10 && transferData.bankCode) {
+                setIsVerifying(true);
+                setVerificationError('');
+                setRecipientName('');
+
+                try {
+                    const response = await api.post('/payout/verify-account', {
+                        accountNumber: transferData.accountNumber,
+                        bankCode: transferData.bankCode
+                    });
+
+                    if (response.data.success && response.data.data.accountName) {
+                        setRecipientName(response.data.data.accountName);
+                        setVerificationError('');
+                    } else {
+                        setVerificationError('Could not verify account');
+                    }
+                } catch (error: any) {
+                    console.error('Account verification error:', error);
+                    setVerificationError(error.response?.data?.message || 'Failed to verify account');
+                    setRecipientName('');
+                } finally {
+                    setIsVerifying(false);
+                }
+            } else {
+                // Reset verification state if inputs are incomplete
+                setRecipientName('');
+                setVerificationError('');
+            }
+        };
+
+        // Debounce the verification call
+        const timer = setTimeout(() => {
+            verifyAccount();
+        }, 800); // Wait 800ms after user stops typing
+
+        return () => clearTimeout(timer);
+    }, [transferData.accountNumber, transferData.bankCode]);
 
     const handleTransferChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        setTransferData({ ...transferData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+
+        // Only allow digits for account number and limit to 10 characters
+        if (name === 'accountNumber') {
+            const digitsOnly = value.replace(/\D/g, '').slice(0, 10);
+            setTransferData({ ...transferData, [name]: digitsOnly });
+        } else {
+            setTransferData({ ...transferData, [name]: value });
+        }
     };
 
     const handleTransfer = (e: React.FormEvent | React.MouseEvent) => {
@@ -858,15 +909,36 @@ export const Payout: React.FC = () => {
                                             <div className="relative">
                                                 <input
                                                     type="text"
-                                                    value={recipientName}
+                                                    value={isVerifying ? 'Verifying account...' : recipientName}
                                                     readOnly
                                                     placeholder="Account name will appear here"
-                                                    className={`w-full px-5 md:px-6 py-3.5 md:py-4 rounded-xl md:rounded-2xl border-2 border-gray-100 bg-gray-50 font-black outline-none transition-all text-sm md:text-base ${recipientName ? 'text-green-700 border-green-200' : 'text-gray-400'}`}
+                                                    className={`w-full px-5 md:px-6 py-3.5 md:py-4 rounded-xl md:rounded-2xl border-2 border-gray-100 bg-gray-50 font-black outline-none transition-all text-sm md:text-base ${recipientName ? 'text-green-700 border-green-200' :
+                                                            verificationError ? 'text-red-600 border-red-200' :
+                                                                'text-gray-400'
+                                                        }`}
                                                 />
-                                                {recipientName && (
+                                                {isVerifying && (
+                                                    <Loader2 className="absolute right-5 md:right-6 top-1/2 -translate-y-1/2 text-green-500 animate-spin" size={22} />
+                                                )}
+                                                {recipientName && !isVerifying && (
                                                     <CheckCircle2 className="absolute right-5 md:right-6 top-1/2 -translate-y-1/2 text-green-500" size={22} />
                                                 )}
+                                                {verificationError && !isVerifying && (
+                                                    <AlertCircle className="absolute right-5 md:right-6 top-1/2 -translate-y-1/2 text-red-500" size={22} />
+                                                )}
                                             </div>
+                                            {verificationError && !isVerifying && (
+                                                <p className="text-xs text-red-600 mt-2 font-medium flex items-center gap-1">
+                                                    <AlertCircle size={14} />
+                                                    {verificationError}
+                                                </p>
+                                            )}
+                                            {recipientName && !isVerifying && (
+                                                <p className="text-xs text-green-600 mt-2 font-medium flex items-center gap-1">
+                                                    <CheckCircle2 size={14} />
+                                                    Account verified successfully
+                                                </p>
+                                            )}
                                         </div>
 
                                         <button

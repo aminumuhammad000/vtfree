@@ -18,7 +18,7 @@ export const config = {
 
     // Zainpay
     zainpay: {
-        baseUrl: process.env.ZAINPAY_BASE_URL || 'https://sandbox.zainpay.ng',
+        baseUrl: process.env.ZAINPAY_BASE_URL || 'https://api.zainpay.ng',
         publicKey: process.env.ZAINPAY_PUBLIC_KEY || '',
         secretKey: process.env.ZAINPAY_SECRET_KEY || '',
         zainboxCode: process.env.ZAINPAY_ZAINBOX_CODE || '',
