@@ -22,10 +22,7 @@ const Transactions = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
-<<<<<<< HEAD
   const [source, setSource] = useState<'local' | 'vtpay'>('local');
-=======
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 
   useEffect(() => {
     fetchTransactions();
@@ -34,11 +31,7 @@ const Transactions = () => {
   const fetchTransactions = async () => {
     setLoading(true);
     try {
-<<<<<<< HEAD
       const response = await getTransactions({ source });
-=======
-      const response = await getTransactions();
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
       if (response.data.success) {
         setTransactions(response.data.data.transactions);
       }
@@ -87,7 +80,6 @@ const Transactions = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-<<<<<<< HEAD
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Transactions</h1>
@@ -107,11 +99,6 @@ const Transactions = () => {
             VTPay Transactions
           </button>
         </div>
-=======
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">Transactions</h1>
-        <p className="text-slate-500 mt-1">Monitor all platform transactions</p>
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
       </div>
 
       {/* Stats Cards */}

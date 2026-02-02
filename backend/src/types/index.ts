@@ -41,6 +41,8 @@ export interface IUser extends Document {
   nin?: string;
   bvn?: string;
   transaction_pin?: string;
+  profile_picture_url?: string;
+  referral_bonus_claimed: boolean;
 }
 
 export interface IWallet extends Document {

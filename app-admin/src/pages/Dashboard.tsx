@@ -55,9 +55,6 @@ const Dashboard: React.FC = () => {
       } else if (gateway === 'vtpay') {
         const apiKey = configs.find((c: any) => c.key === 'VTPAY_API_KEY')?.value;
         if (!apiKey) missing.push('VTPay API Key is missing');
-      } else if (gateway === 'payrant') {
-        const apiKey = configs.find((c: any) => c.key === 'PAYRANT_API_KEY')?.value;
-        if (!apiKey) missing.push('Payrant API Key is missing');
       }
 
       const mailUser = configs.find((c: any) => c.key === 'MAIL_USER')?.value;

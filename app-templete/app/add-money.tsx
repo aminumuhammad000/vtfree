@@ -1,303 +1,438 @@
-import { useAlert } from '@/components/AlertContext';
-import { authService } from '@/services/auth.service';
-import { payrantService, VirtualAccountResponse } from '@/services/payrant.service';
-import { Ionicons } from '@expo/vector-icons';
-import * as Clipboard from 'expo-clipboard';
-import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useColorScheme,
   View,
-  Animated,
-  StatusBar,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Modal,
+  ActivityIndicator,
+  Platform,
   Dimensions,
+  Pressable,
+  Image,
+  Share,
+  Alert,
+  StatusBar
 } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
+import * as Haptics from 'expo-haptics';
+import { vtpayService, VTPayAccount } from '@/services/vtpay.service';
+import { useAlert } from '@/components/AlertContext';
+import { useTheme } from '@/components/ThemeContext';
+import { useProfile } from '@/components/ProfileContext';
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  SlideInDown,
+  ZoomIn,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+  Layout
+} from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
 
-const theme = {
-  primary: "#00ADFF", // Snapchat Blue
-  backgroundLight: "#FFFFFF",
-  backgroundDark: "#000000",
-  inputLight: "#F2F2F2",
-  inputDark: "#1E1E1E",
-  textLight: "#000000",
-  textDark: "#FFFFFF",
-  textSecondaryLight: "#757575",
-  textSecondaryDark: "#A0A0A0",
-};
+const BANKS = [
+  {
+    id: 'moniepoint',
+    name: 'Moniepoint',
+    logo: 'https://cdn.worldvectorlogo.com/logos/moniepoint.svg',
+    color: '#00ADFF',
+    isRecommended: true,
+    icon: 'account-balance',
+    description: 'Lightning-fast settlement and highly reliable network performance.'
+  },
+  {
+    id: 'fcmb',
+    name: 'FCMB',
+    logo: 'https://upload.wikimedia.org/wikipedia/en/5/52/FCMB_Logo.svg',
+    color: '#FFD700',
+    icon: 'account-balance-wallet',
+    description: 'Premium banking experience with automated transfer clearing.'
+  },
+  {
+    id: 'fidelity',
+    name: 'Fidelity',
+    logo: 'https://upload.wikimedia.org/wikipedia/en/4/4b/Fidelity_Bank_Nigeria_logo.svg',
+    color: '#004A99',
+    icon: 'bank',
+    description: 'Secure and trusted retail banking partner with 24/7 support.'
+  },
+];
 
 export default function AddMoneyScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const { showSuccess, showError, showInfo } = useAlert();
+  const { isDark, theme } = useTheme();
+  const { profileData, refreshProfile } = useProfile();
+  const { showSuccess, showError, showInfo, showWarning } = useAlert();
 
-  const [virtualAccounts, setVirtualAccounts] = useState<VirtualAccountResponse[]>([]);
-  const [isLoadingVirtualAccount, setIsLoadingVirtualAccount] = useState(true);
-  const [isCreatingVirtualAccount, setIsCreatingVirtualAccount] = useState(false);
+  const [virtualAccounts, setVirtualAccounts] = useState<VTPayAccount[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStep, setGenerationStep] = useState('');
+  const [showBankModal, setShowBankModal] = useState(false);
+  const [selectedBankId, setSelectedBankId] = useState<string | null>(null);
 
-  const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
-  const textColor = isDark ? theme.textDark : theme.textLight;
-  const textSecondaryColor = isDark ? theme.textSecondaryDark : theme.textSecondaryLight;
-  const cardBg = isDark ? theme.inputDark : theme.inputLight;
+  const bgColor = theme.background;
+  const textColor = theme.text;
+  const textSecondaryColor = theme.textSecondary;
+  const cardBg = theme.surface;
   const brandColor = theme.primary;
 
-  // Animation values
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [isLoadingVirtualAccount]);
+  const modalScale = useSharedValue(0);
 
   useEffect(() => {
     loadVirtualAccounts();
   }, []);
 
-  const loadVirtualAccounts = useCallback(async () => {
+  const loadVirtualAccounts = async () => {
     try {
-      setIsLoadingVirtualAccount(true);
-      const response = await payrantService.getVirtualAccount();
-
-      if (Array.isArray(response)) {
-        setVirtualAccounts(response);
-      } else if (response && 'exists' in response && !response.exists) {
-        setVirtualAccounts([]);
-      } else {
-        setVirtualAccounts([]);
+      setIsLoading(true);
+      const res = await vtpayService.getVirtualAccounts();
+      if (res.success) {
+        setVirtualAccounts(res.data);
       }
     } catch (error: any) {
-      console.error('Error loading virtual accounts:', error);
-      setVirtualAccounts([]);
+      console.error('Error loading accounts:', error);
     } finally {
-      setIsLoadingVirtualAccount(false);
+      setIsLoading(false);
     }
-  }, []);
+  };
 
-  const handleCreateVirtualAccount = async (recreate: boolean = false) => {
+  const closeBankModal = () => {
+    setShowBankModal(false);
+    setSelectedBankId(null);
+  };
+
+  const confirmGenerateAccount = (bank: any) => {
+    setSelectedBankId(bank.id);
+    Haptics.selectionAsync();
+  };
+
+  const handleGenerateAccount = async (bankType: string) => {
+    if (profileData.kyc_status !== 'verified') {
+      showWarning('Identity verification is required before generating a bank account.');
+      router.push('/kyc');
+      return;
+    }
+
+    if (!profileData.bvn) {
+      showError('Your BVN is required for virtual account generation. Please update it in your profile.');
+      router.push('/edit-profile');
+      return;
+    }
+
     try {
-      setIsCreatingVirtualAccount(true);
-      showInfo('Generating your virtual account...');
+      closeBankModal();
+      setIsGenerating(true);
+      setGenerationStep('Validating identity...');
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
 
-      const user = await authService.getCurrentUser();
-      if (!user) {
-        showError('Please login again to continue');
-        return;
-      }
+      await new Promise(resolve => setTimeout(resolve, 800));
+      setGenerationStep('Contacting Bank Network...');
 
-      const accountReference = `${user._id}-${Date.now().toString(36)}`;
-      const accountData = {
-        documentType: 'nin',
-        documentNumber: user.phone_number,
-        virtualAccountName: `${user.first_name} ${user.last_name}`,
-        customerName: `${user.first_name} ${user.last_name}`,
-        email: user.email,
-        accountReference,
-        recreate,
-      };
+      const res = await vtpayService.createVirtualAccount({ bankType: bankType as any });
 
-      await payrantService.createVirtualAccount(accountData);
-      showSuccess('Virtual account generated successfully!');
+      await new Promise(resolve => setTimeout(resolve, 800));
+      setGenerationStep('Securing Account Details...');
 
-      // Reload accounts
-      setTimeout(() => {
+      if (res.success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showSuccess(`Great! Your ${bankType.toUpperCase()} account has been linked to your wallet.`);
         loadVirtualAccounts();
-      }, 2000);
+        refreshProfile();
+      } else {
+        showError(res.message || 'The bank network is currently busy. Please try another provider.');
+      }
     } catch (error: any) {
-      showError(error.message || 'Failed to generate virtual account');
+      console.error('Generation Error:', error);
+      showError(error.message || 'An unexpected error occurred. Please try again later.');
     } finally {
-      setIsCreatingVirtualAccount(false);
+      setIsGenerating(false);
+      setGenerationStep('');
     }
   };
 
-  const copyToClipboard = async (text: string, label: string) => {
-    await Clipboard.setStringAsync(text);
-    showInfo(`${label} copied!`);
+  const copyToClipboard = (text: string, label: string) => {
+    Clipboard.setStringAsync(text);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
-  const shareAccountDetails = (account: VirtualAccountResponse) => {
-    const message = `My ${account.bank_name || 'Bank'} Account Details:\n\n` +
-      `Account Number: ${account.account_number}\n` +
-      `Account Name: ${account.account_name}\n` +
-      `Bank: ${account.bank_name || 'Bank'}`;
+  const shareAccountDetails = (account: VTPayAccount) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const message = `Fund my wallet via Bank Transfer:\n\nBank: ${account.bankName}\nAccount: ${account.accountNumber}\nName: ${account.accountName}`;
+    Share.share({ message });
+  };
 
-    try {
-      Share.share({ message, title: 'My Account Details' });
-    } catch (error) {
-      showError('Failed to share details');
+  const openBankModal = () => {
+    // Set Moniepoint (or the first available bank) as default selection
+    const availableBanks = BANKS.filter(b => !virtualAccounts.some(acc => acc.metadata?.bankType === b.id));
+    if (availableBanks.length > 0) {
+      const moniepoint = availableBanks.find(b => b.id === 'moniepoint');
+      setSelectedBankId(moniepoint ? 'moniepoint' : availableBanks[0].id);
     }
+
+    setShowBankModal(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    modalScale.value = withSpring(1);
   };
 
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: bgColor }]}>
+      <View style={styles.header}>
         <TouchableOpacity
-          style={[styles.backButton, { backgroundColor: cardBg }]}
+          style={[styles.backBtn, { backgroundColor: cardBg }]}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={20} color={textColor} />
+          <Ionicons name="chevron-back" size={24} color={textColor} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: textColor }]}>Add Money</Text>
-        <View style={{ width: 40 }} />
+        <Text style={[styles.title, { color: textColor }]}>Add Money</Text>
+        <TouchableOpacity
+          style={[styles.backBtn, { backgroundColor: cardBg }]}
+          onPress={loadVirtualAccounts}
+        >
+          <Ionicons name="refresh" size={20} color={brandColor} />
+        </TouchableOpacity>
       </View>
 
-      {isLoadingVirtualAccount ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={brandColor} />
-          <Text style={[styles.loadingText, { color: textSecondaryColor }]}>Fetching account details...</Text>
-        </View>
-      ) : (
-        <ScrollView
-          style={styles.scrollView}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Animated.View entering={FadeInDown.duration(600).springify()}>
+          <View style={styles.heroSection}>
+            <Text style={[styles.heroText, { color: textColor }]}>Fund Wallet</Text>
+            <Text style={[styles.heroSub, { color: textSecondaryColor }]}>
+              Receive instant transfers into any of your dedicated bank accounts below.
+            </Text>
+          </View>
 
-            <View style={styles.infoSection}>
-              <Text style={[styles.sectionTitle, { color: textColor }]}>Bank Transfer</Text>
-              <Text style={[styles.sectionSubtitle, { color: textSecondaryColor }]}>
-                Transfer money to any of your dedicated accounts below to fund your wallet instantly.
-              </Text>
+          {isLoading ? (
+            <View style={styles.loadingWrapper}>
+              <ActivityIndicator color={brandColor} size="large" />
+              <Text style={[styles.loadingTxt, { color: textSecondaryColor }]}>Loading your accounts...</Text>
             </View>
+          ) : virtualAccounts.length > 0 ? (
+            <View style={styles.accountList}>
+              {virtualAccounts.map((account, index) => {
+                // Find bank config for color/icon
+                const bankId = account.metadata?.bankType || account.bankName.toLowerCase();
+                const bankConfig = BANKS.find(b => b.id === bankId) || BANKS.find(b => b.name.toLowerCase() === account.bankName.toLowerCase()) || BANKS[0];
+                const bankColor = bankConfig?.color || brandColor;
 
-            {virtualAccounts.length > 0 ? (
-              <View style={styles.accountList}>
-                {virtualAccounts.map((account, index) => (
-                  <View key={index} style={[styles.accountCard, { backgroundColor: cardBg }]}>
-                    <View style={styles.cardHeader}>
-                      <View style={[styles.bankLogo, { backgroundColor: index === 0 ? brandColor : index === 1 ? '#FFFC00' : '#00D166' }]}>
-                        <Ionicons name="business" size={24} color={index === 1 ? "#000" : "#FFF"} />
-                      </View>
-                      <View style={styles.bankInfo}>
-                        <Text style={[styles.bankName, { color: textColor }]}>{account.bank_name || 'Bank'}</Text>
-                        <Text style={[styles.accountName, { color: textSecondaryColor }]}>{account.account_name}</Text>
-                      </View>
-                      <TouchableOpacity
-                        style={styles.shareButton}
-                        onPress={() => shareAccountDetails(account)}
-                      >
-                        <Ionicons name="share-outline" size={20} color={brandColor} />
-                      </TouchableOpacity>
-                    </View>
-
-                    <View style={[styles.numberContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
-                      <Text style={[styles.accountNumber, { color: textColor }]}>{account.account_number}</Text>
-                      <TouchableOpacity
-                        style={[styles.copyBtn, { backgroundColor: brandColor }]}
-                        onPress={() => copyToClipboard(account.account_number, 'Account number')}
-                      >
-                        <Text style={styles.copyBtnText}>Copy</Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    <View style={styles.cardFooter}>
-                      <View style={styles.statusBadge}>
-                        <View style={[styles.statusDot, { backgroundColor: '#00D166' }]} />
-                        <Text style={[styles.statusText, { color: '#00D166' }]}>Active & Instant</Text>
-                      </View>
-                      <TouchableOpacity
-                        onPress={() => {
-                          Alert.alert(
-                            'Refresh Account',
-                            'Do you want to regenerate this virtual account?',
-                            [
-                              { text: 'Cancel', style: 'cancel' },
-                              { text: 'Regenerate', onPress: () => handleCreateVirtualAccount(true) }
-                            ]
-                          );
-                        }}
-                      >
-                        <Text style={[styles.refreshText, { color: brandColor }]}>Refresh</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))}
-
-                {virtualAccounts.length < 3 && (
-                  <TouchableOpacity
-                    style={[styles.addAnotherBtn, { borderColor: brandColor }]}
-                    onPress={() => handleCreateVirtualAccount()}
-                    disabled={isCreatingVirtualAccount}
+                return (
+                  <Animated.View
+                    key={account.id}
+                    entering={FadeInUp.delay(index * 100).springify()}
                   >
-                    {isCreatingVirtualAccount ? (
-                      <ActivityIndicator color={brandColor} />
-                    ) : (
-                      <>
-                        <Ionicons name="add-circle-outline" size={24} color={brandColor} />
-                        <Text style={[styles.addAnotherText, { color: brandColor }]}>Generate Another Bank Account</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                )}
-              </View>
-            ) : (
-              <View style={[styles.emptyState, { backgroundColor: cardBg }]}>
-                <View style={[styles.emptyIconCircle, { backgroundColor: brandColor + '15' }]}>
-                  <Ionicons name="wallet-outline" size={40} color={brandColor} />
+                    <View style={[styles.accountCard, { backgroundColor: cardBg, borderColor: bankColor + '30' }]}>
+                      {/* Decorative Background Element */}
+                      <View style={[styles.cardDecor, { backgroundColor: bankColor }]} />
+
+                      <View style={styles.cardHeader}>
+                        <View style={styles.bankIdentity}>
+                          <View style={[styles.bankIconCircle, { backgroundColor: bankColor + '15', width: 40, height: 40 }]}>
+                            <MaterialCommunityIcons name={bankConfig?.icon as any || 'bank'} size={20} color={bankColor} />
+                          </View>
+                          <View>
+                            <Text style={[styles.bankNameHeader, { color: textColor }]}>{account.bankName}</Text>
+                            <Text style={[styles.accountLabelSmall, { color: textSecondaryColor }]}>Savings Account</Text>
+                          </View>
+                        </View>
+                        <TouchableOpacity
+                          style={[styles.shareBtn, { backgroundColor: theme.background }]}
+                          onPress={() => shareAccountDetails(account)}
+                        >
+                          <Ionicons name="share-social" size={18} color={textColor} />
+                        </TouchableOpacity>
+                      </View>
+
+                      <View style={styles.accountMain}>
+                        <Text style={[styles.accountLabel, { color: textSecondaryColor, marginBottom: 4 }]}>ACCOUNT NUMBER</Text>
+                        <View style={styles.numberRow}>
+                          <Text style={[styles.accountNum, { color: textColor }]}>
+                            {account.accountNumber.match(/.{1,4}/g)?.join(' ')}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.cardFooter}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.accountLabel, { color: textSecondaryColor, marginBottom: 2 }]}>BENEFICIARY</Text>
+                          <Text
+                            style={[styles.accountName, { color: textColor }]}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                          >
+                            {account.accountName}
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          style={[styles.copyBtn, { backgroundColor: bankColor }]}
+                          onPress={() => copyToClipboard(account.accountNumber, 'Account Number')}
+                        >
+                          <Ionicons name="copy" size={14} color="#FFF" />
+                          <Text style={styles.copyBtnText}>Copy</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </Animated.View>
+                );
+              })}
+
+              {virtualAccounts.length < BANKS.length && (
+                <TouchableOpacity style={styles.addMoreBtn} onPress={openBankModal}>
+                  <View style={[styles.addMoreIcon, { backgroundColor: brandColor + '15' }]}>
+                    <Ionicons name="add" size={24} color={brandColor} />
+                  </View>
+                  <Text style={[styles.addMoreText, { color: textColor }]}>Generate another bank account</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : (
+            <Animated.View
+              entering={ZoomIn.duration(500)}
+              style={[styles.emptyContainer, { backgroundColor: cardBg }]}
+            >
+              <View style={styles.emptyContent}>
+                <View style={[styles.emptyIconBox, { backgroundColor: brandColor + '10' }]}>
+                  <MaterialCommunityIcons
+                    name="bank-plus"
+                    size={60}
+                    color={brandColor}
+                  />
                 </View>
-                <Text style={[styles.emptyTitle, { color: textColor }]}>No Virtual Account Yet</Text>
+                <Text style={[styles.emptyTitle, { color: textColor }]}>Ready to Fund?</Text>
                 <Text style={[styles.emptyDesc, { color: textSecondaryColor }]}>
-                  Generate a dedicated virtual account to receive instant payments from any bank.
+                  Generate a professional virtual account unique to you and receive payments instantly from across Nigeria.
                 </Text>
-                <TouchableOpacity
-                  style={[styles.generateBtn, { backgroundColor: brandColor }]}
-                  onPress={() => handleCreateVirtualAccount()}
-                  disabled={isCreatingVirtualAccount}
-                >
-                  {isCreatingVirtualAccount ? (
-                    <ActivityIndicator color="#FFF" />
-                  ) : (
-                    <>
-                      <Ionicons name="flash" size={20} color="#FFF" />
-                      <Text style={styles.generateBtnText}>Generate Account</Text>
-                    </>
-                  )}
+                <TouchableOpacity style={[styles.ctaBtn, { backgroundColor: brandColor }]} onPress={openBankModal}>
+                  <Text style={styles.ctaBtnText}>Generate My Account</Text>
+                  <Ionicons name="flash" size={18} color="#FFF" />
                 </TouchableOpacity>
               </View>
-            )}
+            </Animated.View>
+          )}
 
-            <View style={[styles.tipBox, { backgroundColor: brandColor + '10' }]}>
-              <Ionicons name="information-circle" size={20} color={brandColor} />
-              <Text style={[styles.tipText, { color: textColor }]}>
-                Funds transferred to any of these accounts will reflect in your wallet within seconds.
+          <View style={[styles.hintCard, { backgroundColor: brandColor + '08' }]}>
+            <View style={[styles.hintIcon, { backgroundColor: brandColor }]}>
+              <Ionicons name="bulb-outline" size={20} color="#FFF" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.hintTitle, { color: textColor }]}>Quick Tip</Text>
+              <Text style={[styles.hintDesc, { color: textColor, opacity: 0.7 }]}>
+                All bank transfers are processed automatically. Please ensure you use the exact account details shown above.
               </Text>
             </View>
+          </View>
+        </Animated.View>
+      </ScrollView>
 
+      <Modal visible={showBankModal} transparent animationType="none">
+        <View style={styles.modalOverlay}>
+          <Pressable style={styles.modalDismiss} onPress={closeBankModal} />
+          <Animated.View
+            entering={SlideInDown.duration(400).springify()}
+            style={[styles.modalBox, { backgroundColor: theme.surface, maxHeight: '85%' }]}
+          >
+            <View style={styles.modalIndi} />
+            <ScrollView showsVerticalScrollIndicator={false} bounces={false} contentContainerStyle={{ paddingBottom: 40 }}>
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: textColor }]}>Choose Your Bank</Text>
+                <Text style={[styles.modalSub, { color: textSecondaryColor }]}>Select your preferred bank provider for virtual account generation.</Text>
+              </View>
+
+              <View style={styles.bankGrid}>
+                {BANKS.filter(b => !virtualAccounts.some(acc => acc.metadata?.bankType === b.id)).map((bank) => (
+                  <TouchableOpacity
+                    key={bank.id}
+                    style={[
+                      styles.bankGridItem,
+                      { backgroundColor: cardBg },
+                      selectedBankId === bank.id && { borderColor: brandColor, borderWidth: 2, backgroundColor: brandColor + '10' }
+                    ]}
+                    onPress={() => confirmGenerateAccount(bank)}
+                  >
+                    <View style={[
+                      styles.bankIconCircle,
+                      { backgroundColor: selectedBankId === bank.id ? brandColor : (isDark ? '#222' : '#F5F5F5'), width: 64, height: 64, borderRadius: 32 }
+                    ]}>
+                      <MaterialCommunityIcons
+                        name={bank.icon as any}
+                        size={32}
+                        color={selectedBankId === bank.id ? '#FFF' : brandColor}
+                      />
+                    </View>
+                    <Text style={[styles.bankGridName, { color: selectedBankId === bank.id ? brandColor : textColor }]}>{bank.name}</Text>
+                    {bank.isRecommended && (
+                      <View style={[styles.recBadge, { backgroundColor: theme.primary + '20', position: 'absolute', top: 5, right: 5, marginLeft: 0 }]}>
+                        <Text style={[styles.recBadgeText, { color: theme.primary, fontSize: 8 }]}>BEST</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {selectedBankId && (
+                <View style={[styles.bankDetailBox, { backgroundColor: theme.background }]}>
+                  <Text style={[styles.bankDetailTitle, { color: textColor }]}>
+                    {BANKS.find(b => b.id === selectedBankId)?.name}
+                  </Text>
+                  <Text style={[styles.bankDetailDesc, { color: textSecondaryColor }]}>
+                    {BANKS.find(b => b.id === selectedBankId)?.description}
+                  </Text>
+
+                  <TouchableOpacity
+                    style={[styles.modalGenerateBtn, { backgroundColor: brandColor }]}
+                    onPress={() => handleGenerateAccount(selectedBankId!)}
+                  >
+                    <Text style={styles.modalGenerateText}>Generate Account</Text>
+                    <Ionicons name="flash" size={18} color="#FFF" />
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {!selectedBankId && BANKS.filter(b => !virtualAccounts.some(acc => acc.metadata?.bankType === b.id)).length > 0 && (
+                <Text style={[styles.modalHint, { color: textSecondaryColor }]}>Select a bank to see more details</Text>
+              )}
+
+              {BANKS.filter(b => !virtualAccounts.some(acc => acc.metadata?.bankType === b.id)).length === 0 && (
+                <View style={styles.completedState}>
+                  <Ionicons name="checkmark-circle" size={50} color={theme.success} />
+                  <Text style={[styles.completedText, { color: textColor }]}>All available banks linked!</Text>
+                </View>
+              )}
+
+              <TouchableOpacity style={[styles.closeBtn, { backgroundColor: cardBg }]} onPress={closeBankModal}>
+                <Text style={[styles.closeBtnText, { color: textColor }]}>Maybe Later</Text>
+              </TouchableOpacity>
+            </ScrollView>
           </Animated.View>
-        </ScrollView>
+        </View>
+      </Modal>
+
+      {isGenerating && (
+        <View style={[styles.genOverlay, { backgroundColor: 'rgba(0,0,0,0.8)' }]}>
+          <Animated.View entering={ZoomIn.duration(400)} style={[styles.genContent, { backgroundColor: theme.surface }]}>
+            <ActivityIndicator color={brandColor} size="large" />
+            <View style={styles.genTextContainer}>
+              <Text style={[styles.genTxt, { color: textColor }]}>{generationStep}</Text>
+              <Text style={[styles.genSub, { color: textSecondaryColor }]}>Please do not close this screen</Text>
+            </View>
+          </Animated.View>
+        </View>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -306,207 +441,225 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
     paddingBottom: 20,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  backBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  infoSection: {
-    marginTop: 12,
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-  },
-  sectionSubtitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginTop: 8,
-    lineHeight: 20,
-  },
-  accountList: {
-    gap: 16,
-  },
+  title: { fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
+  scrollContent: { paddingHorizontal: 24, paddingBottom: 60 },
+  heroSection: { marginTop: 15, marginBottom: 35 },
+  heroText: { fontSize: 32, fontWeight: '900', letterSpacing: -1.5 },
+  heroSub: { fontSize: 15, marginTop: 12, lineHeight: 24, opacity: 0.8 },
+  loadingWrapper: { paddingVertical: 50, alignItems: 'center' },
+  loadingTxt: { marginTop: 15, fontWeight: '700', fontSize: 13 },
+  accountList: { gap: 20 },
   accountCard: {
     borderRadius: 24,
     padding: 20,
+    borderWidth: 1,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
-    shadowRadius: 12,
+    shadowRadius: 10,
     elevation: 3,
+    marginBottom: 5,
+  },
+  cardDecor: {
+    position: 'absolute',
+    top: -50,
+    right: -50,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    opacity: 0.05,
   },
   cardHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 20,
   },
-  bankLogo: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  bankInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  bankName: {
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  accountName: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  shareButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  numberContainer: {
+  bankIdentity: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 20,
+    gap: 12,
   },
-  accountNumber: {
-    fontSize: 24,
+  bankIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bankNameHeader: {
+    fontSize: 16,
+    fontWeight: '900',
+    marginBottom: 2,
+  },
+  accountLabelSmall: {
+    fontSize: 10,
+    fontWeight: '600',
+    opacity: 0.7,
+  },
+  shareBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  accountMain: {
+    marginBottom: 24,
+    paddingLeft: 4,
+  },
+  accountLabel: {
+    fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1,
+    opacity: 0.5,
+  },
+  numberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  accountNum: {
+    fontSize: 24,
+    fontWeight: '900',
+    letterSpacing: 2,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+  accountName: {
+    fontSize: 14,
+    fontWeight: '700',
+    width: '90%',
   },
   copyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: 20,
   },
   copyBtnText: {
     color: '#FFF',
     fontSize: 12,
     fontWeight: '700',
   },
-  cardFooter: {
+  addMoreBtn: { flexDirection: 'row', alignItems: 'center', gap: 15, padding: 20, borderRadius: 25, borderStyle: 'dashed', borderWidth: 2, borderColor: 'rgba(0,173,255,0.2)', marginTop: 10 },
+  addMoreIcon: { width: 44, height: 44, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
+  addMoreText: { fontSize: 15, fontWeight: '700' },
+  emptyContainer: { borderRadius: 40, padding: 30, alignItems: 'center' },
+  emptyContainer: { borderRadius: 40, padding: 30, alignItems: 'center' },
+  emptyContent: { alignItems: 'center', gap: 15 },
+  emptyIconBox: { width: 120, height: 120, borderRadius: 60, justifyContent: 'center', alignItems: 'center' },
+  emptyIllustration: { width: 60, height: 60 },
+  emptyTitle: { fontSize: 24, fontWeight: '900' },
+  emptyDesc: { textAlign: 'center', fontSize: 14, lineHeight: 22, opacity: 0.7 },
+  ctaBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 25, paddingVertical: 18, borderRadius: 20, marginTop: 10 },
+  ctaBtnText: { color: '#FFF', fontSize: 16, fontWeight: '800' },
+  hintCard: { flexDirection: 'row', gap: 15, padding: 20, borderRadius: 25, marginTop: 40 },
+  hintIcon: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  hintTitle: { fontSize: 15, fontWeight: '800', marginBottom: 4 },
+  hintDesc: { fontSize: 13, lineHeight: 20 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  modalDismiss: { ...StyleSheet.absoluteFillObject },
+  modalBox: { borderTopLeftRadius: 40, borderTopRightRadius: 40, padding: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24 },
+  modalIndi: { width: 40, height: 5, backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: 10, alignSelf: 'center', marginBottom: 20 },
+  modalHeader: { marginBottom: 25 },
+  modalTitle: { fontSize: 24, fontWeight: '900', marginBottom: 8 },
+  modalSub: { fontSize: 14, lineHeight: 22 },
+  bankOptions: { gap: 12 },
+  bankRow: { flexDirection: 'row', alignItems: 'center', padding: 18, borderRadius: 22, gap: 15 },
+  bankIconCircle: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
+  bankLogoImage: { width: 28, height: 28 },
+  bankRowName: { fontSize: 16, fontWeight: '800' },
+  bankRowDesc: { fontSize: 12, opacity: 0.7 },
+  recBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, marginLeft: 8 },
+  recBadgeText: { fontSize: 10, fontWeight: '900' },
+  completedState: { alignItems: 'center', paddingVertical: 30, gap: 15 },
+  completedText: { fontSize: 16, fontWeight: '700' },
+  closeBtn: { padding: 20, borderRadius: 20, alignItems: 'center', marginTop: 20 },
+  closeBtnText: { fontSize: 15, fontWeight: '700', opacity: 0.6 },
+  genOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', padding: 40 },
+  genContent: { width: '100%', padding: 40, borderRadius: 35, alignItems: 'center', gap: 20 },
+  genTextContainer: { alignItems: 'center', gap: 8 },
+  genTxt: { fontSize: 18, fontWeight: '900', textAlign: 'center' },
+  genSub: { fontSize: 14, opacity: 0.7, textAlign: 'center' },
+  bankNameRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
   },
-  statusBadge: {
+  bankGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  refreshText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  addAnotherBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderStyle: 'dashed',
+    flexWrap: 'wrap',
     gap: 12,
-    marginTop: 8,
-  },
-  addAnotherText: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  emptyState: {
-    padding: 32,
-    borderRadius: 32,
-    alignItems: 'center',
-    gap: 16,
-  },
-  emptyIconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
     justifyContent: 'center',
+    marginBottom: 20,
+  },
+  bankGridItem: {
+    width: (width - 48 - 24) / 3, // padding: 24 each side, gap: 12
+    padding: 15,
+    borderRadius: 20,
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
-  emptyTitle: {
-    fontSize: 20,
+  bankGridName: {
+    fontSize: 12,
     fontWeight: '800',
-  },
-  emptyDesc: {
-    fontSize: 14,
     textAlign: 'center',
-    lineHeight: 22,
-    fontWeight: '500',
   },
-  generateBtn: {
+  bankDetailBox: {
+    padding: 20,
+    borderRadius: 25,
+    marginTop: 10,
+    gap: 12,
+  },
+  bankDetailTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  bankDetailDesc: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  modalGenerateBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+    justifyContent: 'center',
+    padding: 18,
     borderRadius: 20,
-    gap: 8,
-    marginTop: 8,
+    gap: 10,
+    marginTop: 10,
   },
-  generateBtnText: {
+  modalGenerateText: {
     color: '#FFF',
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '900',
   },
-  tipBox: {
-    marginTop: 32,
-    padding: 20,
-    borderRadius: 20,
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-  },
-  tipText: {
-    flex: 1,
+  modalHint: {
+    textAlign: 'center',
     fontSize: 13,
-    fontWeight: '500',
-    lineHeight: 18,
-  },
+    marginTop: 10,
+  }
 });

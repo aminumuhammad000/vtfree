@@ -93,7 +93,7 @@ router.post('/funding/virtual-account', authenticateAppAdmin, AppAdminFundingCon
 router.get('/funding/ibdata-balance', authenticateAppAdmin, AppAdminFundingController.getIBDataBalance);
 router.get('/funding/vtpay-accounts', authenticateAppAdmin, AppAdminFundingController.getVTPayAccounts);
 
-// Payout & Payment Gateway (VTPay/Payrant)
+// Payout & Payment Gateway (VTPay)
 import { PayoutController } from '../controllers/payout.controller.js';
 router.get('/payout/banks', authenticateAppAdmin, PayoutController.getBanksList);
 router.post('/payout/validate-account', authenticateAppAdmin, PayoutController.validateAccount);

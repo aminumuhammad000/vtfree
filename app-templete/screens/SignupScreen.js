@@ -1,6 +1,4 @@
-import { MaterialIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -9,19 +7,33 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
-  Animated,
   Dimensions,
 } from "react-native";
+import { useRouter } from "expo-router";
+import * as Haptics from 'expo-haptics';
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  FadeOut,
+  SlideInRight,
+  SlideOutLeft,
+  ZoomIn,
+  Layout
+} from 'react-native-reanimated';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
 import { useTheme } from "../components/ThemeContext";
 import { authService } from "../services/auth.service";
 import { useAlert } from "../components/AlertContext";
 import { Config } from "../constants/Config";
 import { appService } from "../services/api";
+import { PremiumInput, PremiumButton } from "../components/PremiumUI";
+import { PremiumBackground } from "../components/PremiumBackground";
+import { ConnectionIndicator } from "../components/ConnectionIndicator";
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const SignupScreen = () => {
   const [fullName, setFullName] = useState("");
@@ -39,15 +51,9 @@ const SignupScreen = () => {
   const [branding, setBranding] = useState(null);
 
   const router = useRouter();
-  const { isDark } = useTheme();
+  const { isDark, theme } = useTheme();
   const { showSuccess, showError, showWarning } = useAlert();
 
-  // Animation values
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
-  const logoScale = useRef(new Animated.Value(0.8)).current;
-
-  // Fetch branding and animate on mount
   useEffect(() => {
     const fetchBranding = async () => {
       try {
@@ -60,69 +66,11 @@ const SignupScreen = () => {
       }
     };
     fetchBranding();
-
-    // Start entrance animations
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.spring(logoScale, {
-        toValue: 1,
-        friction: 5,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-    ]).start();
   }, []);
 
-  const theme = {
-    primary: "#00ADFF", // Snapchat Blue
-    backgroundLight: "#FFFFFF",
-    backgroundDark: "#000000",
-    inputLight: "#F2F2F2",
-    inputDark: "#1E1E1E",
-    textLight: "#000000",
-    textDark: "#FFFFFF",
-    textSecondaryLight: "#757575",
-    textSecondaryDark: "#A0A0A0",
-  };
-
-  const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
-  const textColor = isDark ? theme.textDark : theme.textLight;
-  const textSecondaryColor = isDark ? theme.textSecondaryDark : theme.textSecondaryLight;
-  const inputBg = isDark ? theme.inputDark : theme.inputLight;
-  const brandColor = branding?.primary_color || theme.primary;
-
   const handleSignup = async () => {
-    // Validate all fields at once
     if (!fullName || !email || !phone_number || !password || !pin) {
       showWarning("Please fill in all required fields");
-      return;
-    }
-
-    let formattedPhone = phone_number.trim().replace(/\D/g, '');
-    if (formattedPhone.length === 10) {
-      formattedPhone = '0' + formattedPhone;
-    }
-
-    if (formattedPhone.length !== 11 || !formattedPhone.startsWith('0')) {
-      showWarning("Please enter a valid 11-digit phone number starting with 0");
-      return;
-    }
-
-    if (password.length < 6) {
-      showWarning("Password must be at least 6 characters");
-      return;
-    }
-    if (!/^\d{4}$/.test(pin)) {
-      showWarning("PIN must be exactly 4 digits");
       return;
     }
 
@@ -132,10 +80,9 @@ const SignupScreen = () => {
     const last_name = names.slice(1).join(" ") || names[0];
 
     try {
-      // Direct Register without OTP
       const response = await authService.register({
         email: email.trim().toLowerCase(),
-        phone_number: formattedPhone,
+        phone_number: phone_number.replace(/\D/g, ''),
         password,
         first_name,
         last_name,
@@ -146,36 +93,27 @@ const SignupScreen = () => {
 
       if (response.success) {
         showSuccess(`Welcome ${first_name}! Your account is ready.`);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setTimeout(() => {
           router.replace("/(tabs)");
         }, 1500);
       }
     } catch (error) {
-      showError(error.message || "Registration failed. Please try again.");
+      showError(error.message || "Registration failed");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsLoading(false);
     }
   };
 
   const nextStep = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (currentStep === 1) {
-      if (!fullName || !email) {
-        showWarning("Please fill in your name and email");
-        return;
-      }
-      if (!email.includes('@')) {
-        showWarning("Please enter a valid email address");
-        return;
-      }
+      if (!fullName || !email) return showWarning("Please fill in your name and email");
+      if (!email.includes('@')) return showWarning("Please enter a valid email");
     } else if (currentStep === 2) {
-      if (!phone_number || !password) {
-        showWarning("Please fill in your phone and password");
-        return;
-      }
-      if (password.length < 6) {
-        showWarning("Password must be at least 6 characters");
-        return;
-      }
+      if (!phone_number || !password) return showWarning("Please fill in your phone and password");
+      if (password.length < 6) return showWarning("Password must be at least 6 characters");
     }
 
     if (currentStep < totalSteps) {
@@ -186,6 +124,7 @@ const SignupScreen = () => {
   };
 
   const prevStep = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     } else {
@@ -193,38 +132,36 @@ const SignupScreen = () => {
     }
   };
 
-  const renderProgressBar = () => {
-    return (
-      <View style={styles.progressContainer}>
-        {[1, 2, 3].map((s) => (
-          <View
-            key={s}
-            style={[
-              styles.progressSegment,
-              {
-                backgroundColor: s <= currentStep ? brandColor : isDark ? "#333" : "#E0E0E0",
-                flex: 1,
-                marginHorizontal: 2,
-              }
-            ]}
-          />
-        ))}
-      </View>
-    );
-  };
+  const brandColor = theme.primary;
+  const textColor = theme.text;
+  const textSecondaryColor = theme.textSecondary;
 
   return (
-    <View style={[styles.container, { backgroundColor: bgColor }]}>
+    <PremiumBackground isDark={isDark} brandColor={brandColor}>
+      <ConnectionIndicator />
       <KeyboardAvoidingView
-        style={styles.keyboardView}
+        style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <View style={styles.header}>
-          <TouchableOpacity onPress={prevStep} style={styles.backButton}>
-            <MaterialIcons name="arrow-back" size={24} color={textColor} />
+          <TouchableOpacity onPress={prevStep} style={styles.backBtn}>
+            <MaterialCommunityIcons name="chevron-left" size={32} color={textColor} />
           </TouchableOpacity>
-          {renderProgressBar()}
-          <View style={{ width: 40 }} />
+          <View style={styles.progressTrack}>
+            <Animated.View
+              style={[
+                styles.progressFill,
+                {
+                  backgroundColor: brandColor,
+                  width: `${(currentStep / totalSteps) * 100}%`
+                }
+              ]}
+              layout={Layout.springify()}
+            />
+          </View>
+          <Text style={[styles.stepText, { color: textSecondaryColor }]}>
+            {currentStep}/{totalSteps}
+          </Text>
         </View>
 
         <ScrollView
@@ -233,343 +170,184 @@ const SignupScreen = () => {
           showsVerticalScrollIndicator={false}
         >
           <Animated.View
-            style={[
-              styles.logoContainer,
-              {
-                opacity: fadeAnim,
-                transform: [
-                  { translateY: slideAnim },
-                  { scale: logoScale }
-                ]
-              }
-            ]}
+            key={currentStep}
+            entering={SlideInRight.duration(400)}
+            exiting={SlideOutLeft.duration(400)}
+            style={styles.stepContainer}
           >
-            <View style={styles.logoWrapper}>
-              <Image
-                source={branding?.logo_url ? { uri: branding.logo_url } : require("../assets/images/logo.png")}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-            </View>
             <Text style={[styles.title, { color: textColor }]}>
               {currentStep === 1 ? "What's your name?" :
-                currentStep === 2 ? "Security Check" :
-                  "Almost there!"}
+                currentStep === 2 ? "Security setup" :
+                  "Final touch"}
             </Text>
-          </Animated.View>
+            <Text style={[styles.subtitle, { color: isDark ? '#AAA' : '#666' }]}>
+              {currentStep === 1 ? "Let's start with the basics" :
+                currentStep === 2 ? "Keep your account safe" :
+                  "Set your transaction PIN"}
+            </Text>
 
-          <Animated.View
-            style={[
-              styles.formContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }]
-              }
-            ]}
-          >
-            <View style={styles.formContent}>
+            <View style={styles.form}>
               {currentStep === 1 && (
                 <>
-                  {/* Full Name */}
-                  <View style={styles.inputContainer}>
-                    <Text style={[styles.inputLabel, { color: textSecondaryColor }]}>FULL NAME</Text>
-                    <View style={[styles.inputWrapper, { backgroundColor: inputBg }]}>
-                      <TextInput
-                        style={[styles.input, { color: textColor }]}
-                        placeholder=""
-                        value={fullName}
-                        onChangeText={setFullName}
-                        autoCapitalize="words"
-                        selectionColor={brandColor}
-                      />
-                    </View>
-                  </View>
-
-                  {/* Email */}
-                  <View style={styles.inputContainer}>
-                    <Text style={[styles.inputLabel, { color: textSecondaryColor }]}>EMAIL ADDRESS</Text>
-                    <View style={[styles.inputWrapper, { backgroundColor: inputBg }]}>
-                      <TextInput
-                        style={[styles.input, { color: textColor }]}
-                        placeholder=""
-                        value={email}
-                        onChangeText={setEmail}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        selectionColor={brandColor}
-                      />
-                    </View>
-                  </View>
+                  <PremiumInput
+                    label="Full Name"
+                    icon="account-outline"
+                    value={fullName}
+                    onChangeText={setFullName}
+                    isDark={isDark}
+                    placeholder="John Doe"
+                  />
+                  <PremiumInput
+                    label="Email Address"
+                    icon="email-outline"
+                    value={email}
+                    onChangeText={setEmail}
+                    isDark={isDark}
+                    placeholder="john@example.com"
+                    keyboardType="email-address"
+                  />
                 </>
               )}
 
               {currentStep === 2 && (
                 <>
-                  {/* Phone */}
-                  <View style={styles.inputContainer}>
-                    <Text style={[styles.inputLabel, { color: textSecondaryColor }]}>PHONE NUMBER</Text>
-                    <View style={[styles.inputWrapper, { backgroundColor: inputBg }]}>
-                      <Text style={[styles.countryCode, { color: textColor }]}>+234</Text>
-                      <TextInput
-                        style={[styles.input, { marginLeft: 8, color: textColor }]}
-                        placeholder=""
-                        value={phone_number}
-                        onChangeText={setPhoneNumber}
-                        keyboardType="phone-pad"
-                        maxLength={15}
-                        selectionColor={brandColor}
-                      />
-                    </View>
-                  </View>
-
-                  {/* Password */}
-                  <View style={styles.inputContainer}>
-                    <Text style={[styles.inputLabel, { color: textSecondaryColor }]}>PASSWORD</Text>
-                    <View style={[styles.inputWrapper, { backgroundColor: inputBg }]}>
-                      <TextInput
-                        style={[styles.input, { color: textColor }]}
-                        placeholder=""
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry={!showPassword}
-                        selectionColor={brandColor}
-                      />
-                      <TouchableOpacity
-                        style={styles.eyeIcon}
-                        onPress={() => setShowPassword(!showPassword)}
-                        activeOpacity={0.7}
-                      >
-                        <MaterialIcons
-                          name={showPassword ? "visibility-off" : "visibility"}
-                          size={20}
-                          color={textSecondaryColor}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
+                  <PremiumInput
+                    label="Phone Number"
+                    icon="phone-outline"
+                    value={phone_number}
+                    onChangeText={setPhoneNumber}
+                    isDark={isDark}
+                    placeholder="08012345678"
+                    keyboardType="phone-pad"
+                  />
+                  <PremiumInput
+                    label="Create Password"
+                    icon="lock-outline"
+                    value={password}
+                    onChangeText={setPassword}
+                    isDark={isDark}
+                    placeholder="Min. 6 characters"
+                    secureTextEntry={!showPassword}
+                  />
                 </>
               )}
 
               {currentStep === 3 && (
                 <>
-                  {/* PIN */}
-                  <View style={styles.inputContainer}>
-                    <Text style={[styles.inputLabel, { color: textSecondaryColor }]}>TRANSACTION PIN (4 DIGITS)</Text>
-                    <View style={[styles.inputWrapper, { backgroundColor: inputBg }]}>
-                      <TextInput
-                        style={[styles.input, { color: textColor }]}
-                        placeholder=""
-                        value={pin}
-                        onChangeText={(t) => setPin(t.replace(/\D/g, '').slice(0, 4))}
-                        keyboardType="number-pad"
-                        secureTextEntry={!showPin}
-                        maxLength={4}
-                        selectionColor={brandColor}
-                      />
-                      <TouchableOpacity
-                        style={styles.eyeIcon}
-                        onPress={() => setShowPin(!showPin)}
-                        activeOpacity={0.7}
-                      >
-                        <MaterialIcons
-                          name={showPin ? "visibility-off" : "visibility"}
-                          size={20}
-                          color={textSecondaryColor}
-                        />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-
-                  {/* Referral (Optional) */}
-                  <View style={styles.inputContainer}>
-                    <Text style={[styles.inputLabel, { color: textSecondaryColor }]}>REFERRAL CODE (OPTIONAL)</Text>
-                    <View style={[styles.inputWrapper, { backgroundColor: inputBg }]}>
-                      <TextInput
-                        style={[styles.input, { color: textColor }]}
-                        placeholder=""
-                        value={referral_code}
-                        onChangeText={setReferralCode}
-                        autoCapitalize="characters"
-                        selectionColor={brandColor}
-                      />
-                    </View>
-                  </View>
+                  <PremiumInput
+                    label="Transaction PIN"
+                    icon="numeric"
+                    value={pin}
+                    onChangeText={(t) => setPin(t.replace(/\D/g, '').slice(0, 4))}
+                    isDark={isDark}
+                    placeholder="****"
+                    keyboardType="number-pad"
+                    secureTextEntry={!showPin}
+                  />
+                  <PremiumInput
+                    label="Referral Code (Optional)"
+                    icon="ticket-outline"
+                    value={referral_code}
+                    onChangeText={setReferralCode}
+                    isDark={isDark}
+                    placeholder="Enter code if any"
+                    autoCapitalize="characters"
+                  />
                 </>
               )}
 
-              {/* Action Button */}
-              <TouchableOpacity
-                style={[
-                  styles.primaryButton,
-                  { backgroundColor: brandColor },
-                  isLoading && styles.buttonDisabled,
-                ]}
+              <PremiumButton
+                title={currentStep === totalSteps ? "Finish & Sign Up" : "Continue"}
                 onPress={nextStep}
-                disabled={isLoading}
-                activeOpacity={0.85}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.buttonText}>
-                    {currentStep === totalSteps ? "Sign Up & Accept" : "Continue"}
-                  </Text>
-                )}
-              </TouchableOpacity>
+                loading={isLoading}
+                brandColor={brandColor}
+                style={{ marginTop: 20 }}
+              />
             </View>
           </Animated.View>
 
-          {/* Login Link */}
           {currentStep === 1 && (
-            <View style={styles.loginContainer}>
-              <Text style={[styles.loginText, { color: textSecondaryColor }]}>
+            <Animated.View entering={FadeInDown.delay(600)} style={styles.footer}>
+              <Text style={[styles.footerText, { color: textSecondaryColor }]}>
                 Already have an account?{" "}
               </Text>
-              <TouchableOpacity onPress={() => router.push("/login")} activeOpacity={0.7}>
-                <Text style={[styles.loginLink, { color: brandColor }]}>
-                  Log In
-                </Text>
+              <TouchableOpacity onPress={() => router.push("/login")}>
+                <Text style={[styles.loginText, { color: brandColor }]}>Log In</Text>
               </TouchableOpacity>
-            </View>
+            </Animated.View>
           )}
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </PremiumBackground>
   );
 };
 
-export default SignupScreen;
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  keyboardView: {
-    flex: 1,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 70 : 50,
     paddingBottom: 10,
   },
-  backButton: {
+  backBtn: {
     padding: 8,
   },
-  progressContainer: {
+  progressTrack: {
     flex: 1,
-    flexDirection: 'row',
-    height: 4,
-    marginHorizontal: 10,
+    height: 6,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 3,
+    marginHorizontal: 15,
+    overflow: 'hidden',
   },
-  progressSegment: {
+  progressFill: {
     height: '100%',
-    borderRadius: 2,
+    borderRadius: 3,
+  },
+  stepText: {
+    fontSize: 13,
+    fontWeight: '700',
+    width: 35,
   },
   scrollContainer: {
     flexGrow: 1,
-    padding: 32,
-    paddingTop: 20,
+    paddingHorizontal: 24,
+    paddingTop: 40,
     paddingBottom: 40,
   },
-  logoContainer: {
-    alignItems: "center",
-    marginBottom: 40,
-  },
-  logoWrapper: {
-    width: 80,
-    height: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  logo: {
-    width: 70,
-    height: 70,
+  stepContainer: {
+    width: '100%',
   },
   title: {
-    fontSize: 24,
-    fontWeight: "700",
-    textAlign: "center",
+    fontSize: 28,
+    fontWeight: '800',
     letterSpacing: -0.5,
   },
-  formContainer: {
-    width: "100%",
-  },
-  formContent: {
-    width: "100%",
-  },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  inputLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    marginBottom: 8,
-    letterSpacing: 1,
-    paddingLeft: 4,
-  },
-  inputWrapper: {
-    borderRadius: 12,
-    height: 52,
-    justifyContent: "center",
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  countryCode: {
+  subtitle: {
     fontSize: 16,
-    fontWeight: "600",
-  },
-  input: {
-    fontSize: 16,
-    height: "100%",
-    flex: 1,
+    marginTop: 8,
     fontWeight: '500',
+    marginBottom: 40,
   },
-  eyeIcon: {
-    width: 32,
-    height: 32,
-    justifyContent: "center",
-    alignItems: "center",
+  form: {
+    width: '100%',
   },
-  primaryButton: {
-    width: "100%",
-    height: 52,
-    borderRadius: 26,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 24,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  buttonDisabled: {
-    // Removed opacity to maintain full color
-  },
-  loginContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
     marginTop: 'auto',
-    paddingBottom: 20,
+    paddingTop: 40,
   },
-  loginText: {
-    fontSize: 14,
+  footerText: {
+    fontSize: 15,
     fontWeight: '500',
   },
-  loginLink: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
+  loginText: {
+    fontSize: 15,
+    fontWeight: '800',
+  }
 });
+
+export default SignupScreen;

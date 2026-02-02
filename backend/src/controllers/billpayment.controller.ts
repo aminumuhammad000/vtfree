@@ -107,9 +107,18 @@ export class BillPaymentController {
       const { network, phone, amount, airtime_type = 'VTU', ported_number = true, pin } = req.body;
       const userId = req.user?.id;
 
-      // Enforce transaction PIN
+      // Enforce transaction PIN and KYC
       const user = await User.findById(userId);
       if (!user) return ApiResponse.error(res, 'User not found', 404);
+
+      if (user.kyc_status !== 'verified') {
+        return res.status(403).json({
+          success: false,
+          message: 'KYC verification required. Please complete your profile verification to perform transactions.',
+          requiresKyc: true
+        });
+      }
+
       if (!pin || !/^\d{4}$/.test(String(pin))) {
         return ApiResponse.error(res, 'Valid 4-digit transaction PIN is required', 400);
       }
@@ -187,6 +196,11 @@ export class BillPaymentController {
             status: 'successful',
             updated_at: new Date()
           });
+
+          // Process referral bonus if this is user's first successful transaction
+          const { ReferralService } = await import('../services/referral.service.js');
+          await ReferralService.processFirstTransactionReferral(userId);
+
           return ApiResponse.success(res, 'Airtime purchase successful', {
             transaction,
             provider_response: result,
@@ -225,9 +239,18 @@ export class BillPaymentController {
       const { network, phone, plan, ported_number = true, pin } = req.body;
       const userId = req.user?.id;
 
-      // Enforce transaction PIN
+      // Enforce transaction PIN and KYC
       const user = await User.findById(userId);
       if (!user) return ApiResponse.error(res, 'User not found', 404);
+
+      if (user.kyc_status !== 'verified') {
+        return res.status(403).json({
+          success: false,
+          message: 'KYC verification required. Please complete your profile verification to perform transactions.',
+          requiresKyc: true
+        });
+      }
+
       if (!user.transaction_pin) {
         return ApiResponse.error(res, 'Please set your 4-digit transaction PIN before making purchases', 400);
       }
@@ -308,6 +331,11 @@ export class BillPaymentController {
             status: 'successful',
             updated_at: new Date()
           });
+
+          // Process referral bonus if this is user's first successful transaction
+          const { ReferralService } = await import('../services/referral.service.js');
+          await ReferralService.processFirstTransactionReferral(userId);
+
           return ApiResponse.success(res, 'Data purchase successful', {
             transaction,
             provider_response: result,
@@ -365,6 +393,14 @@ export class BillPaymentController {
     try {
       const { provider, iucnumber, plan, subtype = 'renew', phone } = req.body;
       const userId = req.user?.id;
+      const user = await User.findById(userId);
+      if (user?.kyc_status !== 'verified') {
+        return res.status(403).json({
+          success: false,
+          message: 'KYC verification required. Please complete your profile verification to perform transactions.',
+          requiresKyc: true
+        });
+      }
 
       // Get plan details
       const plans = await topupmateService.getCableTVPlans();
@@ -466,6 +502,14 @@ export class BillPaymentController {
     try {
       const { provider, meternumber, amount, metertype, phone } = req.body;
       const userId = req.user?.id;
+      const user = await User.findById(userId);
+      if (user?.kyc_status !== 'verified') {
+        return res.status(403).json({
+          success: false,
+          message: 'KYC verification required. Please complete your profile verification to perform transactions.',
+          requiresKyc: true
+        });
+      }
 
       // Validate user balance
       const wallet = await WalletService.getWalletByUserId(userId);
@@ -535,6 +579,14 @@ export class BillPaymentController {
     try {
       const { provider, quantity } = req.body;
       const userId = req.user?.id;
+      const user = await User.findById(userId);
+      if (user?.kyc_status !== 'verified') {
+        return res.status(403).json({
+          success: false,
+          message: 'KYC verification required. Please complete your profile verification to perform transactions.',
+          requiresKyc: true
+        });
+      }
 
       // Get provider details
       const providers = await topupmateService.getExamPinProviders();

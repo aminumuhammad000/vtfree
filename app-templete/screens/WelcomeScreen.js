@@ -1,41 +1,55 @@
-import { MaterialIcons } from '@expo/vector-icons';
+import React, { useRef, useState, useEffect } from 'react';
+import {
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  Image,
+  Platform
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { useRef, useState, useEffect } from 'react';
-import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View, Image } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import Animated, { FadeInDown, FadeInUp, ZoomIn } from 'react-native-reanimated';
+
 import { appService } from "../services/api";
+import { Config } from "../constants/Config";
+import { PremiumBackground } from "../components/PremiumBackground";
+import { PremiumButton } from "../components/PremiumUI";
+import { useTheme } from "../components/ThemeContext";
 
 const { width } = Dimensions.get('window');
 
 const slides = [
   {
     id: '1',
-    icon: 'phone-iphone',
-    title: 'Instant Airtime Top-Up',
-    description: 'Easily and quickly recharge any mobile network.',
+    icon: 'cellphone-wireless',
+    title: 'Instant Airtime',
+    description: 'Easily and quickly recharge any mobile network in seconds.',
   },
   {
     id: '2',
-    icon: 'signal-cellular-alt',
-    title: 'Affordable Data Bundles',
-    description: 'Get the best prices on a wide range of data plans.',
+    icon: 'database-check',
+    title: 'Data Bundles',
+    description: 'Get the best prices on a wide range of data plans for all networks.',
   },
   {
     id: '3',
-    icon: 'receipt',
-    title: 'Pay Bills Seamlessly',
+    icon: 'flash-circle',
+    title: 'Utility Bills',
     description: 'Conveniently pay your electricity, TV, and other bills in one place.',
   },
 ];
-
-import { Config } from "../constants/Config";
 
 const WelcomeScreen = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollViewRef = useRef();
   const router = useRouter();
   const [branding, setBranding] = useState(null);
+  const { isDark } = useTheme();
 
-  // Fetch branding
   useEffect(() => {
     const fetchBranding = async () => {
       try {
@@ -56,123 +70,103 @@ const WelcomeScreen = () => {
     setCurrentIndex(index);
   };
 
-  const scrollToNext = () => {
-    if (currentIndex < slides.length - 1) {
-      scrollViewRef.current.scrollTo({ x: width * (currentIndex + 1), animated: true });
-      setCurrentIndex(currentIndex + 1);
-    }
-  };
-
-  // Default theme colors
-  const theme = {
-    primary: "#0A2540",
-    accent: "#FF9F43",
-    background: "#fff",
-    text: "#1E293B",
-    textSecondary: "#475569",
-  };
-
-  const brandColor = branding?.primary_color || theme.primary;
-  const accentColor = branding?.secondary_color || theme.accent;
-  const bgColor = branding?.background_color || theme.background;
+  const brandColor = branding?.primary_color || "#00ADFF";
+  const textColor = isDark ? "#FFF" : "#000";
 
   return (
-    <View style={[styles.container, { backgroundColor: bgColor }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.logoContainer}>
+    <PremiumBackground isDark={isDark} brandColor={brandColor}>
+      <View style={styles.container}>
+        <Animated.View entering={FadeInUp.duration(1000)} style={styles.header}>
           <Image
             source={branding?.logo_url ? { uri: branding.logo_url } : require("../assets/images/logo.png")}
             style={styles.logo}
+            resizeMode="contain"
           />
-          <Text style={[styles.logoText, { color: theme.text }]}>
-            {branding?.app_display_name || 'VTFree App'}
+          <Text style={[styles.brandName, { color: textColor }]}>
+            {branding?.app_display_name || 'VTFree'}
           </Text>
+        </Animated.View>
+
+        <ScrollView
+          ref={scrollViewRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          style={styles.slider}
+        >
+          {slides.map((slide, index) => (
+            <View key={slide.id} style={styles.slide}>
+              <Animated.View entering={ZoomIn.delay(300 + index * 100).springify()} style={styles.iconContainer}>
+                <View style={[styles.iconBlob, { backgroundColor: brandColor + '15' }]}>
+                  <MaterialCommunityIcons name={slide.icon} size={80} color={brandColor} />
+                </View>
+              </Animated.View>
+              <Animated.Text entering={FadeInDown.delay(400 + index * 100)} style={[styles.title, { color: textColor }]}>
+                {slide.title}
+              </Animated.Text>
+              <Animated.Text entering={FadeInDown.delay(500 + index * 100)} style={[styles.description, { color: isDark ? '#AAA' : '#666' }]}>
+                {slide.description}
+              </Animated.Text>
+            </View>
+          ))}
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <View style={styles.pagination}>
+            {slides.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.dot,
+                  index === currentIndex ? { backgroundColor: brandColor, width: 24 } : { backgroundColor: isDark ? '#333' : '#DDD' },
+                ]}
+              />
+            ))}
+          </View>
+
+          <PremiumButton
+            title="Get Started"
+            onPress={() => {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              router.push('/signup');
+            }}
+            brandColor={brandColor}
+          />
+
+          <TouchableOpacity
+            style={styles.loginBtn}
+            onPress={() => {
+              Haptics.selectionAsync();
+              router.push('/login');
+            }}
+          >
+            <Text style={[styles.loginText, { color: brandColor }]}>Already have an account? Log In</Text>
+          </TouchableOpacity>
         </View>
       </View>
-
-      {/* Slider */}
-      <ScrollView
-        ref={scrollViewRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        style={styles.slider}
-      >
-        {slides.map((slide) => (
-          <View key={slide.id} style={styles.slide}>
-            <View style={styles.iconContainer}>
-              <View style={[styles.iconBackground, { backgroundColor: '#F0F9FF' }]}>
-                <MaterialIcons name={slide.icon} size={80} color={brandColor} />
-              </View>
-            </View>
-            <Text style={[styles.title, { color: brandColor }]}>{slide.title}</Text>
-            <Text style={[styles.description, { color: theme.textSecondary }]}>{slide.description}</Text>
-          </View>
-        ))}
-      </ScrollView>
-
-      {/* Pagination */}
-      <View style={styles.pagination}>
-        {slides.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.paginationDot,
-              index === currentIndex ? { backgroundColor: brandColor, width: 32 } : { backgroundColor: '#CBD5E1' },
-            ]}
-          />
-        ))}
-      </View>
-
-      {/* Footer */}
-      <View style={styles.footer}>
-        <Text style={[styles.trustText, { color: theme.textSecondary }]}>Trusted & Secure with Minimal Fees.</Text>
-
-        <TouchableOpacity
-          style={[styles.primaryButton, { backgroundColor: brandColor }]}
-          onPress={() => router.push('/signup')}
-        >
-          <Text style={styles.primaryButtonText}>Get Started</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.secondaryButton, { borderColor: brandColor }]}
-          onPress={() => router.push('/login')}
-        >
-          <Text style={[styles.secondaryButtonText, { color: brandColor }]}>Log In</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    </PremiumBackground>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   header: {
     alignItems: 'center',
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
+    paddingTop: Platform.OS === 'ios' ? 70 : 50,
   },
   logo: {
-    width: 96,
-    height: 96,
-    resizeMode: 'contain',
+    width: 60,
+    height: 60,
   },
-  logoText: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  brandName: {
+    fontSize: 22,
+    fontWeight: '800',
     marginTop: 10,
-    fontFamily: 'Inter-Bold',
+    letterSpacing: -0.5,
   },
   slider: {
     flex: 1,
@@ -181,75 +175,54 @@ const styles = StyleSheet.create({
     width: width,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingBottom: 40,
+    paddingHorizontal: 40,
   },
   iconContainer: {
-    marginBottom: 20,
+    marginBottom: 30,
   },
-  iconBackground: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
+  iconBlob: {
+    width: 160,
+    height: 160,
+    borderRadius: 80,
     justifyContent: 'center',
     alignItems: 'center',
   },
   title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 12,
+    fontSize: 26,
+    fontWeight: '800',
+    marginBottom: 15,
     textAlign: 'center',
+    letterSpacing: -0.5,
   },
   description: {
     fontSize: 16,
     textAlign: 'center',
-    paddingHorizontal: 40,
     lineHeight: 24,
+    fontWeight: '500',
+  },
+  footer: {
+    padding: 30,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 30,
   },
   pagination: {
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
+    marginBottom: 30,
+  },
+  dot: {
+    height: 6,
+    borderRadius: 3,
+    marginHorizontal: 3,
+    width: 6,
+  },
+  loginBtn: {
     marginTop: 20,
-    marginBottom: 40,
-  },
-  paginationDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginHorizontal: 4,
-  },
-  footer: {
-    padding: 24,
-    paddingBottom: 40,
-  },
-  trustText: {
-    textAlign: 'center',
-    marginBottom: 20,
-    fontSize: 14,
-  },
-  primaryButton: {
-    borderRadius: 12,
-    height: 56,
-    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    padding: 10,
   },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  secondaryButton: {
-    backgroundColor: 'transparent',
-    borderRadius: 12,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  secondaryButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  loginText: {
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
 

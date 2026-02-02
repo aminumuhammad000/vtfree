@@ -5,6 +5,7 @@ import { Request, Response } from 'express';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { config } from '../config/bootstrap.js';
 import { User } from '../models/index.js';
+import CreatedApp from '../models/created_app.model.js';
 import { configService } from '../services/config.service.js';
 import { OTPService } from '../services/otp.service.js';
 import { WalletService } from '../services/wallet.service.js';
@@ -35,6 +36,15 @@ export class AuthController {
         referred_by = referrer?._id;
       }
 
+      let status = 'active';
+      let appData = null;
+      if (app_id) {
+        appData = await CreatedApp.findOne({ app_id });
+        if (appData?.require_approval) {
+          status = 'inactive';
+        }
+      }
+
       const user = await User.create({
         email,
         phone_number,
@@ -45,13 +55,19 @@ export class AuthController {
         referred_by,
         country: 'Nigeria',
         kyc_status: 'pending',
-        status: 'active',
+        status,
         app_id, // Save the app_id
-        transaction_pin: pin ? await bcrypt.hash(String(pin), 10) : undefined
+        transaction_pin: pin ? await bcrypt.hash(String(pin), 10) : undefined,
+        profile_picture_url: `https://i.pravatar.cc/300?u=${email}`
       });
 
       await WalletService.createWallet(user._id);
+
       await OTPService.createOTP(phone_number, email, user._id.toString());
+
+      if (status !== 'active') {
+        return ApiResponse.success(res, { user }, 'Registration successful. Your account is pending approval by the administrator.', 201);
+      }
 
       const token = jwt.sign({ id: user._id }, configService.getSync('JWT_SECRET') || config.jwtSecret, { expiresIn: configService.getSync('JWT_EXPIRY') || config.jwtExpiry } as SignOptions);
 

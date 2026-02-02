@@ -3,7 +3,11 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#16A34A">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>VTfree - Build Your VTU App Instantly</title>
     <link rel="icon" type="image/png" href="./logo.png">
 
@@ -767,22 +771,64 @@
 
         /* Mobile Responsive */
         @media (max-width: 768px) {
+            :root {
+                --nav-height: 70px;
+            }
+
+            body {
+                padding-bottom: var(--nav-height);
+                /* Space for bottom nav */
+            }
+
+            nav {
+                padding: 1rem 5%;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
             .hero {
                 flex-direction: column;
                 text-align: center;
-                padding-top: 6rem;
+                padding: 6rem 5% 3rem;
+                min-height: auto;
             }
 
             .hero h1 {
-                font-size: 2.5rem;
+                font-size: 2.2rem;
+                line-height: 1.2;
             }
 
             .hero-btns {
+                flex-direction: column;
+                gap: 0.75rem;
+                width: 100%;
+            }
+
+            .hero-btns .btn {
+                width: 100%;
                 justify-content: center;
+                padding: 1rem;
             }
 
             .hero-image {
-                margin-top: 4rem;
+                margin-top: 3rem;
+                width: 100%;
+            }
+
+            .phone-mockup {
+                width: 260px;
+                height: 520px;
+            }
+
+            .floating-card {
+                padding: 0.75rem;
+                font-size: 0.9rem;
+            }
+
+            .section-header h2 {
+                font-size: 2rem;
             }
 
             .pricing-card.popular {
@@ -794,7 +840,78 @@
                 gap: 2rem;
             }
 
-            .nav-links {
+            /* Bottom Navigation for Mobile */
+            .bottom-nav {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                height: var(--nav-height);
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(15px);
+                display: flex;
+                justify-content: space-around;
+                align-items: center;
+                padding: 0 1rem calc(env(safe-area-inset-bottom, 0px) / 2);
+                box-shadow: 0 -2px 15px rgba(0, 0, 0, 0.05);
+                z-index: 1000;
+                border-top: 1px solid rgba(0, 0, 0, 0.05);
+            }
+
+            .bottom-nav-item {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 0.25rem;
+                text-decoration: none;
+                color: var(--gray);
+                font-size: 0.75rem;
+                font-weight: 500;
+                flex: 1;
+                transition: color 0.3s;
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            .bottom-nav-item i {
+                width: 24px;
+                height: 24px;
+            }
+
+            .bottom-nav-item.active {
+                color: var(--primary);
+            }
+
+            .bottom-nav-item:active {
+                transform: scale(0.95);
+            }
+
+            /* Native interactions */
+            .btn:active {
+                transform: scale(0.98);
+                opacity: 0.9;
+            }
+
+            section {
+                padding: 4rem 5%;
+            }
+
+            .feature-card {
+                padding: 1.5rem;
+            }
+
+            .cta-box {
+                padding: 3rem 1.5rem;
+            }
+
+            .cta-box h2 {
+                font-size: 2rem;
+            }
+        }
+
+        /* Desktop specific - Hide bottom nav */
+        @media (min-width: 769px) {
+            .bottom-nav {
                 display: none;
             }
         }
@@ -813,9 +930,30 @@
             <li><a href="#how-it-works">How it Works</a></li>
             <li><a href="#features">Features</a></li>
             <li><a href="#pricing">Pricing</a></li>
+            <li><a href="https://app.vtfree.com.ng/login" style="color: var(--dark);">Login</a></li>
         </ul>
-        <a href="#" class="btn btn-primary">Build Your App</a>
+        <a href="https://app.vtfree.com.ng/register" class="btn btn-primary">Get Started</a>
     </nav>
+
+    <!-- Bottom Navigation (Mobile Only) -->
+    <div class="bottom-nav">
+        <a href="#" class="bottom-nav-item active">
+            <i data-lucide="home"></i>
+            <span>Home</span>
+        </a>
+        <a href="#features" class="bottom-nav-item">
+            <i data-lucide="zap"></i>
+            <span>Features</span>
+        </a>
+        <a href="https://app.vtfree.com.ng/login" class="bottom-nav-item">
+            <i data-lucide="log-in"></i>
+            <span>Login</span>
+        </a>
+        <a href="https://app.vtfree.com.ng/register" class="bottom-nav-item">
+            <i data-lucide="user-plus"></i>
+            <span>Register</span>
+        </a>
+    </div>
 
     <!-- Hero Section -->
     <section class="hero">
@@ -824,8 +962,9 @@
             <p>The easiest way to build, deploy, and manage your own Virtual Top-Up mobile application. No coding skills
                 required.</p>
             <div class="hero-btns">
-                <a href="#" class="btn btn-primary">Build Your App <i data-lucide="arrow-right"></i></a>
-                <a href="#" class="btn btn-outline">View Demo</a>
+                <a href="https://app.vtfree.com.ng/register" class="btn btn-primary">Build Your App <i
+                        data-lucide="arrow-right"></i></a>
+                <a href="https://app.vtfree.com.ng/login" class="btn btn-outline">Vendor Login</a>
             </div>
         </div>
         <div class="hero-image" data-aos="fade-left">
@@ -958,7 +1097,7 @@
                     <li><i data-lucide="check" class="check-icon"></i> Push Notifications</li>
                     <li><i data-lucide="check" class="check-icon"></i> Lifetime Updates</li>
                 </ul>
-                <a href="#" class="btn btn-outline" style="width: 100%">Purchase</a>
+                <a href="https://app.vtfree.com.ng/register" class="btn btn-outline" style="width: 100%">Purchase</a>
             </div>
 
             <!-- iOS Build -->
@@ -973,7 +1112,7 @@
                     <li><i data-lucide="check" class="check-icon"></i> TestFlight Support</li>
                     <li><i data-lucide="check" class="check-icon"></i> Lifetime Updates</li>
                 </ul>
-                <a href="#" class="btn btn-primary"
+                <a href="https://app.vtfree.com.ng/register" class="btn btn-primary"
                     style="width: 100%; background: white; color: var(--primary);">Purchase</a>
             </div>
 
@@ -998,7 +1137,7 @@
         <div class="cta-box" data-aos="flip-up">
             <h2>Ready to Build Your App?</h2>
             <p>Join thousands of entrepreneurs who are building the future of digital payments with VTfree.</p>
-            <a href="#" class="btn btn-white">Build Your App</a>
+            <a href="https://app.vtfree.com.ng/register" class="btn btn-white">Get Started Free</a>
         </div>
     </section>
 
@@ -1109,23 +1248,20 @@
 
         // Modal Logic
         const modal = document.getElementById('waitlistModal');
-        const btns = document.querySelectorAll('.btn-primary, .btn-outline, .btn-white');
+        const waitlistBtn = document.querySelector('.open-waitlist');
         const closeBtn = document.querySelector('.close-modal');
         const closeSuccessBtn = document.querySelector('.close-modal-btn');
         const form = document.getElementById('joinForm');
         const formContainer = document.getElementById('waitlistForm');
         const successMessage = document.getElementById('successMessage');
 
-        // Open Modal on any CTA click (except newsletter)
-        btns.forEach(btn => {
-            // Skip newsletter submit button
-            if (btn.closest('.newsletter-form')) return;
-
-            btn.addEventListener('click', (e) => {
-               
+        // Open Waitlist Modal only for the specific button
+        if (waitlistBtn) {
+            waitlistBtn.addEventListener('click', (e) => {
+                e.preventDefault();
                 modal.classList.add('active');
             });
-        });
+        }
 
         // Close Modal
         const closeModal = () => {
@@ -1181,6 +1317,31 @@
                 }, 3000);
             });
         }
+
+        // Active Bottom Nav on Scroll
+        const sections = document.querySelectorAll('section[id]');
+        const navItems = document.querySelectorAll('.bottom-nav-item');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (window.pageYOffset >= (sectionTop - 200)) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navItems.forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('href') === `#${current}`) {
+                    item.classList.add('active');
+                }
+                if (current === '' && item.getAttribute('href') === '#') {
+                    item.classList.add('active');
+                }
+            });
+        });
     </script>
 </body>
 

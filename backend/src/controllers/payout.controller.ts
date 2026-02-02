@@ -1,6 +1,5 @@
 import { Response } from 'express';
 import { VTPayService } from '../services/vtpay.service.js';
-import { payrantService } from '../services/payrant.service.js';
 import { configService } from '../services/config.service.js';
 import { AuthRequest } from '../types/index.js';
 import { ApiResponse } from '../utils/response.js';
@@ -9,12 +8,24 @@ export class PayoutController {
     /**
      * Get active payout service
      */
-    private static async getActiveService() {
-        const defaultGateway = await configService.get('DEFAULT_PAYMENT_GATEWAY') || 'vtpay';
-        if (defaultGateway === 'payrant') {
-            return payrantService;
-        }
+    private static async getActiveService(app_id?: string) {
+        // Default to VTPayService as strictly requested
         return VTPayService;
+    }
+
+    /**
+     * Helper to get App API Key
+     */
+    private static async getAppApiKey(app_id?: string): Promise<string | undefined> {
+        if (!app_id) return undefined;
+        try {
+            const CreatedApp = (await import('../models/created_app.model.js')).default;
+            const app = await CreatedApp.findOne({ app_id });
+            // Prefer secret key, fallback to api key
+            return app?.payment_settings?.vtpay_secret_key || app?.payment_settings?.vtpay_api_key;
+        } catch (e) {
+            return undefined;
+        }
     }
 
     /**
@@ -22,11 +33,13 @@ export class PayoutController {
      */
     static async getBanksList(req: AuthRequest, res: Response) {
         try {
-            const service = await this.getActiveService();
-            const result = await service.getBanksList();
+            const app_id = req.user?.app_id;
+            const service = await this.getActiveService(app_id);
+            const apiKey = await this.getAppApiKey(app_id);
+
+            const result = await service.getBanksList(apiKey);
 
             // VTPay returns { status, data: { banks } }
-            // Payrant returns banks array directly
             const banks = Array.isArray(result) ? result : (result.data?.banks || result.banks || []);
 
             return ApiResponse.success(res, banks, 'Banks list retrieved successfully');
@@ -41,13 +54,15 @@ export class PayoutController {
     static async validateAccount(req: AuthRequest, res: Response) {
         try {
             const { bank_code, account_number } = req.body;
+            const app_id = req.user?.app_id;
 
             if (!bank_code || !account_number) {
                 return ApiResponse.error(res, 'Bank code and account number are required', 400);
             }
 
-            const service = await this.getActiveService();
-            const result = await service.validateAccount(bank_code, account_number);
+            const service = await this.getActiveService(app_id);
+            const apiKey = await this.getAppApiKey(app_id);
+            const result = await service.validateAccount(bank_code, account_number, apiKey);
 
             // Normalize response
             const accountName = result.account_name || result.data?.account_name || result.data?.accountName || result.accountName;
@@ -70,16 +85,18 @@ export class PayoutController {
      */
     static async getVTPayBalance(req: AuthRequest, res: Response) {
         try {
-            const service = await this.getActiveService();
+            const app_id = req.user?.app_id;
+            const service = await this.getActiveService(app_id);
+            const apiKey = await this.getAppApiKey(app_id);
 
             // Check if service has getBalance method
             if (typeof (service as any).getBalance !== 'function') {
                 return ApiResponse.success(res, { balance: 0, currency: 'NGN' }, 'Balance not supported for this gateway');
             }
 
-            const result = await (service as any).getBalance();
+            const result = await (service as any).getBalance(apiKey);
 
-            if (result.status === 'success') {
+            if (result.status === 'success' || result.success) { // VTPay returns {success: true...}
                 return ApiResponse.success(res, result.data, 'Balance retrieved successfully');
             }
 

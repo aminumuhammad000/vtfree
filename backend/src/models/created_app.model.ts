@@ -56,6 +56,13 @@ export interface ICreatedApp extends Document {
         web?: string;
     };
 
+    // GitHub Details
+    github_repo?: string;
+    last_commit?: string;
+    build_status_full?: 'queued' | 'building' | 'completed' | 'failed';
+    build_error?: string;
+    last_build_id?: string;
+
     // Payment
     payment_status: 'pending' | 'paid' | 'refunded';
     total_paid: number;
@@ -81,8 +88,6 @@ export interface ICreatedApp extends Document {
         vtpay_api_key?: string;
         vtpay_secret_key?: string;
         vtpay_public_key?: string;
-        payrant_api_key?: string;
-        payrant_webhook_secret?: string;
         paystack_secret_key?: string;
         paystack_public_key?: string;
         monnify_api_key?: string;
@@ -90,11 +95,18 @@ export interface ICreatedApp extends Document {
         monnify_contract_code?: string;
     };
 
+    // Referral Settings
+    referral_settings: {
+        enabled: boolean;
+        amount: number;
+    };
+
     // Timestamps
     created_at: Date;
     updated_at: Date;
     launched_at?: Date;
     version: string;
+    require_approval: boolean;
 }
 
 const CreatedAppSchema: Schema = new Schema({
@@ -107,6 +119,10 @@ const CreatedAppSchema: Schema = new Schema({
     version: {
         type: String,
         default: '1.0.0',
+    },
+    require_approval: {
+        type: Boolean,
+        default: false,
     },
     owner_id: {
         type: Schema.Types.ObjectId,
@@ -240,6 +256,16 @@ const CreatedAppSchema: Schema = new Schema({
         web: { type: String },
     },
 
+    // GitHub & Expanded Build Status
+    github_repo: { type: String },
+    last_commit: { type: String },
+    build_status_full: {
+        type: String,
+        enum: ['queued', 'building', 'completed', 'failed'],
+    },
+    build_error: { type: String },
+    last_build_id: { type: String },
+
     // Payment
     payment_status: {
         type: String,
@@ -278,13 +304,17 @@ const CreatedAppSchema: Schema = new Schema({
         vtpay_api_key: { type: String },
         vtpay_secret_key: { type: String },
         vtpay_public_key: { type: String },
-        payrant_api_key: { type: String },
-        payrant_webhook_secret: { type: String },
         paystack_secret_key: { type: String },
         paystack_public_key: { type: String },
         monnify_api_key: { type: String },
         monnify_secret_key: { type: String },
         monnify_contract_code: { type: String },
+    },
+
+    // Referral Settings
+    referral_settings: {
+        enabled: { type: Boolean, default: false },
+        amount: { type: Number, default: 0 },
     },
 
     // Timestamps

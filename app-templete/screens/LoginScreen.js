@@ -1,9 +1,4 @@
-import { MaterialIcons, Ionicons } from "@expo/vector-icons";
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as LocalAuthentication from 'expo-local-authentication';
-import { useRouter } from "expo-router";
-import { Config } from "../constants/Config";
-import { useCallback, useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -12,23 +7,37 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
-  Animated,
   Dimensions,
 } from "react-native";
-import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from "expo-router";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as LocalAuthentication from 'expo-local-authentication';
+import * as Haptics from 'expo-haptics';
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  ZoomIn,
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring
+} from 'react-native-reanimated';
+
+import { Config } from "../constants/Config";
 import CustomAlert from "../components/CustomAlert";
 import { useTheme } from "../components/ThemeContext";
 import { appService } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { PremiumInput, PremiumButton } from "../components/PremiumUI";
+import { PremiumBackground } from "../components/PremiumBackground";
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const LoginScreen = () => {
   const { login, isAuthenticated } = useAuth();
-  const { isDark } = useTheme();
+  const { isDark, theme } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -43,20 +52,11 @@ const LoginScreen = () => {
   const [branding, setBranding] = useState(null);
   const router = useRouter();
 
-  // Animation values
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
-  const logoScale = useRef(new Animated.Value(0.8)).current;
-  const emailFocusAnim = useRef(new Animated.Value(0)).current;
-  const passwordFocusAnim = useRef(new Animated.Value(0)).current;
-
-  // Fetch branding and animate on mount
   useEffect(() => {
     const fetchBranding = async () => {
       try {
         const response = await appService.getPublicDetails(Config.APP_ID);
         if (response.data.success) {
-          console.log('Branding fetched:', response.data.data.app.branding);
           setBranding(response.data.data.app.branding);
         }
       } catch (error) {
@@ -65,29 +65,6 @@ const LoginScreen = () => {
     };
     fetchBranding();
 
-    // Start entrance animations
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.spring(logoScale, {
-        toValue: 1,
-        friction: 5,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
-  // Check for biometrics and saved credentials
-  useEffect(() => {
     const checkBiometrics = async () => {
       try {
         const compatible = await LocalAuthentication.hasHardwareAsync();
@@ -100,11 +77,9 @@ const LoginScreen = () => {
         console.log('Biometric check failed:', error);
       }
     };
-
     checkBiometrics();
   }, []);
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
       router.replace("/(tabs)");
@@ -112,66 +87,22 @@ const LoginScreen = () => {
   }, [isAuthenticated]);
 
   const showAlert = useCallback((message, type = "info") => {
-    setAlert({
-      visible: true,
-      message,
-      type,
-    });
+    setAlert({ visible: true, message, type });
+    if (type === 'error') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    else Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }, []);
 
   const hideAlert = useCallback(() => {
     setAlert((prev) => ({ ...prev, visible: false }));
   }, []);
 
-  const handleBiometricLogin = async () => {
-    try {
-      const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Login with Biometrics',
-        fallbackLabel: 'Use Password',
-      });
-
-      if (result.success) {
-        setIsLoggingIn(true);
-        const credentials = await AsyncStorage.getItem('biometric_credentials');
-
-        if (credentials) {
-          const { email: savedEmail, password: savedPassword } = JSON.parse(credentials);
-
-          const response = await login({
-            email: savedEmail,
-            password: savedPassword,
-          });
-
-          if (response.success) {
-            showAlert("Login successful!", "success");
-            router.replace("/(tabs)");
-          } else {
-            showAlert("Login failed. Please enter password.", "error");
-          }
-        }
-      }
-    } catch (error) {
-      console.log('Biometric login error:', error);
-      showAlert("Biometric login failed", "error");
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
-
   const handleLogin = async () => {
-    // Validation
     if (!email || !password) {
       showAlert("Please enter both email and password", "error");
       return;
     }
 
-    if (password.length < 6) {
-      showAlert("Password must be at least 6 characters", "error");
-      return;
-    }
-
     setIsLoggingIn(true);
-
     try {
       const response = await login({
         email: email.trim().toLowerCase(),
@@ -179,71 +110,63 @@ const LoginScreen = () => {
       });
 
       if (response.success) {
-        // Save credentials for biometric login
         await AsyncStorage.setItem('biometric_credentials', JSON.stringify({
           email: email.trim().toLowerCase(),
           password
         }));
-
-        showAlert("Login successful! Biometrics enabled for next time.", "success");
+        showAlert("Login successful!", "success");
         router.replace("/(tabs)");
       } else {
-        showAlert(
-          response.message || "Invalid email or password. Please try again.",
-          "error"
-        );
+        showAlert(response.message || "Invalid credentials", "error");
       }
     } catch (error) {
-      console.error("❌ Login error:", error);
-      let errorMessage = "An unexpected error occurred. Please try again.";
-
-      if (
-        error.message &&
-        (error.message.includes("Network Error") ||
-          error.message.includes("timeout"))
-      ) {
-        errorMessage =
-          "Unable to connect to the server. Please check your internet connection.";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      showAlert(errorMessage, "error");
+      showAlert(error.message || "An unexpected error occurred", "error");
     } finally {
       setIsLoggingIn(false);
     }
   };
 
-  const theme = {
-    primary: "#00ADFF", // Snapchat Blue
-    backgroundLight: "#FFFFFF",
-    backgroundDark: "#000000",
-    inputLight: "#F2F2F2",
-    inputDark: "#1E1E1E",
-    textLight: "#000000",
-    textDark: "#FFFFFF",
-    textSecondaryLight: "#757575",
-    textSecondaryDark: "#A0A0A0",
+  const handleBiometricLogin = async () => {
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Login with Biometrics',
+      });
+
+      if (result.success) {
+        const credentials = await AsyncStorage.getItem('biometric_credentials');
+        if (credentials) {
+          setIsLoggingIn(true);
+          const { email: savedEmail, password: savedPassword } = JSON.parse(credentials);
+          const response = await login({ email: savedEmail, password: savedPassword });
+          if (response.success) {
+            router.replace("/(tabs)");
+          } else {
+            showAlert("Biometric login failed", "error");
+          }
+        }
+      }
+    } catch (error) {
+      showAlert("Biometric login error", "error");
+    } finally {
+      setIsLoggingIn(false);
+    }
   };
 
-  const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
-  const textColor = isDark ? theme.textDark : theme.textLight;
-  const textSecondaryColor = isDark ? theme.textSecondaryDark : theme.textSecondaryLight;
-  const inputBg = isDark ? theme.inputDark : theme.inputLight;
-  const brandColor = branding?.primary_color || theme.primary;
+  const brandColor = theme.primary;
+  const textColor = theme.text;
+  const textSecondaryColor = theme.textSecondary;
 
   return (
-    <View style={[styles.container, { backgroundColor: bgColor }]}>
+    <PremiumBackground isDark={isDark} brandColor={brandColor}>
       <CustomAlert
         visible={alert.visible}
         message={alert.message}
         type={alert.type}
         onClose={hideAlert}
-        duration={5000}
       />
 
       <KeyboardAvoidingView
-        style={styles.keyboardView}
+        style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
@@ -251,263 +174,163 @@ const LoginScreen = () => {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Animated.View
-            style={[
-              styles.logoContainer,
-              {
-                opacity: fadeAnim,
-                transform: [
-                  { translateY: slideAnim },
-                  { scale: logoScale }
-                ]
-              }
-            ]}
-          >
-            <View style={styles.logoWrapper}>
-              <Image
-                source={branding?.logo_url ? { uri: branding.logo_url } : require("../assets/images/logo.png")}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-            </View>
-            <Text style={[styles.title, { color: textColor }]}>Log In</Text>
-          </Animated.View>
-
-          <Animated.View
-            style={[
-              styles.formContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }]
-              }
-            ]}
-          >
-            <View style={styles.formContent}>
-              {/* Email Input */}
-              <View style={styles.inputContainer}>
-                <Text style={[styles.inputLabel, { color: textSecondaryColor }]}>USERNAME OR EMAIL</Text>
-                <View style={[styles.inputWrapper, { backgroundColor: inputBg }]}>
-                  <TextInput
-                    style={[styles.input, { color: textColor }]}
-                    placeholder=""
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    selectionColor={brandColor}
-                    onFocus={() => Animated.spring(emailFocusAnim, { toValue: 1, useNativeDriver: true }).start()}
-                    onBlur={() => Animated.spring(emailFocusAnim, { toValue: 0, useNativeDriver: true }).start()}
-                  />
-                </View>
+          <Animated.View entering={FadeInUp.delay(200).duration(800)} style={styles.header}>
+            <Animated.View entering={ZoomIn.delay(400).springify()}>
+              <View style={styles.logoContainer}>
+                <Image
+                  source={branding?.logo_url ? { uri: branding.logo_url } : require("../assets/images/logo.png")}
+                  style={styles.logo}
+                  resizeMode="contain"
+                />
               </View>
-
-              {/* Password Input */}
-              <View style={styles.inputContainer}>
-                <Text style={[styles.inputLabel, { color: textSecondaryColor }]}>PASSWORD</Text>
-                <View style={[styles.inputWrapper, { backgroundColor: inputBg }]}>
-                  <TextInput
-                    style={[styles.input, { color: textColor }]}
-                    placeholder=""
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                    selectionColor={brandColor}
-                    onFocus={() => Animated.spring(passwordFocusAnim, { toValue: 1, useNativeDriver: true }).start()}
-                    onBlur={() => Animated.spring(passwordFocusAnim, { toValue: 0, useNativeDriver: true }).start()}
-                  />
-                  <TouchableOpacity
-                    style={styles.eyeIcon}
-                    onPress={() => setShowPassword(!showPassword)}
-                    activeOpacity={0.7}
-                  >
-                    <MaterialIcons
-                      name={showPassword ? "visibility-off" : "visibility"}
-                      size={20}
-                      color={textSecondaryColor}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Forgot Password */}
-              <TouchableOpacity
-                style={styles.forgotPasswordContainer}
-                onPress={() => router.push("/forgot-password")}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.forgotPassword, { color: brandColor }]}>
-                  Forgot Password?
-                </Text>
-              </TouchableOpacity>
-
-              {/* Login Button */}
-              <TouchableOpacity
-                style={[
-                  styles.primaryButton,
-                  { backgroundColor: brandColor },
-                  (isLoggingIn || !email || !password) && styles.buttonDisabled,
-                ]}
-                onPress={handleLogin}
-                disabled={isLoggingIn || !email || !password}
-                activeOpacity={0.85}
-              >
-                {isLoggingIn ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <Text style={styles.buttonText}>Log In</Text>
-                )}
-              </TouchableOpacity>
-
-              {/* Biometric Login */}
-              {isBiometricSupported && hasSavedCredentials && (
-                <TouchableOpacity
-                  style={styles.biometricButton}
-                  onPress={handleBiometricLogin}
-                  disabled={isLoggingIn}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="finger-print" size={32} color={brandColor} />
-                </TouchableOpacity>
-              )}
-            </View>
-          </Animated.View>
-
-          {/* Sign Up Link */}
-          <View style={styles.signupContainer}>
-            <Text style={[styles.signupText, { color: textSecondaryColor }]}>
-              New to the app?{" "}
+            </Animated.View>
+            <Text style={[styles.title, { color: textColor }]}>Welcome Back</Text>
+            <Text style={[styles.subtitle, { color: textSecondaryColor }]}>
+              Login to access your dashboard
             </Text>
-            <TouchableOpacity onPress={() => router.push("/signup")} activeOpacity={0.7}>
-              <Text style={[styles.signupLink, { color: brandColor }]}>
-                Sign Up
-              </Text>
+          </Animated.View>
+
+          <Animated.View entering={FadeInDown.delay(400).duration(800)} style={styles.form}>
+            <PremiumInput
+              label="Username or Email"
+              icon="email-outline"
+              value={email}
+              onChangeText={setEmail}
+              isDark={isDark}
+              placeholder="Enter your email"
+              keyboardType="email-address"
+            />
+
+            <PremiumInput
+              label="Password"
+              icon="lock-outline"
+              value={password}
+              onChangeText={setPassword}
+              isDark={isDark}
+              placeholder="Enter your password"
+              secureTextEntry={!showPassword}
+            />
+
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.selectionAsync();
+                router.push("/forgot-password");
+              }}
+              style={styles.forgotBtn}
+            >
+              <Text style={[styles.forgotText, { color: brandColor }]}>Forgot Password?</Text>
             </TouchableOpacity>
-          </View>
+
+            <PremiumButton
+              title="Sign In"
+              onPress={handleLogin}
+              loading={isLoggingIn}
+              disabled={!email || !password}
+              brandColor={brandColor}
+              style={{ marginTop: 10 }}
+            />
+
+            {isBiometricSupported && hasSavedCredentials && (
+              <TouchableOpacity
+                onPress={handleBiometricLogin}
+                style={styles.biometricBtn}
+              >
+                <MaterialCommunityIcons name="fingerprint" size={40} color={brandColor} />
+                <Text style={[styles.biometricText, { color: textColor }]}>Use Biometrics</Text>
+              </TouchableOpacity>
+            )}
+            <View style={styles.footer}>
+              <Text style={[styles.footerText, { color: textSecondaryColor }]}>
+                Don't have an account?{" "}
+              </Text>
+              <TouchableOpacity onPress={() => {
+                Haptics.selectionAsync();
+                router.push("/signup");
+              }}>
+                <Text style={[styles.signUpText, { color: brandColor }]}>Sign Up</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </PremiumBackground>
   );
 };
 
-export default LoginScreen;
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  keyboardView: {
-    flex: 1,
-  },
   scrollContainer: {
     flexGrow: 1,
-    padding: 32,
-    paddingTop: Platform.OS === 'ios' ? 80 : 60,
+    paddingHorizontal: 24,
+    paddingTop: Platform.OS === 'ios' ? 100 : 70,
+    paddingBottom: 40,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 40,
   },
   logoContainer: {
-    alignItems: "center",
-    marginBottom: 48,
-  },
-  logoWrapper: {
-    width: 80,
-    height: 80,
+    width: 100,
+    height: 100,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
-  },
-  logo: {
-    width: 70,
-    height: 70,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    textAlign: "center",
-    letterSpacing: -0.5,
-  },
-  formContainer: {
-    width: "100%",
-  },
-  formContent: {
-    width: "100%",
-  },
-  inputContainer: {
     marginBottom: 20,
   },
-  inputLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    marginBottom: 8,
-    letterSpacing: 1,
-    paddingLeft: 4,
+  logo: {
+    width: 60,
+    height: 60,
   },
-  inputWrapper: {
-    borderRadius: 12,
-    height: 52,
-    justifyContent: "center",
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
-  input: {
-    fontSize: 16,
-    height: "100%",
-    flex: 1,
+  subtitle: {
+    fontSize: 15,
+    marginTop: 8,
     fontWeight: '500',
   },
-  eyeIcon: {
-    width: 32,
-    height: 32,
-    justifyContent: "center",
-    alignItems: "center",
+  form: {
+    width: '100%',
   },
-  forgotPasswordContainer: {
-    alignSelf: 'center',
-    marginTop: 8,
-    marginBottom: 32,
+  forgotBtn: {
+    alignSelf: 'flex-end',
+    marginBottom: 25,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(0,173,255,0.08)',
+    borderRadius: 12,
   },
-  forgotPassword: {
-    fontSize: 14,
-    fontWeight: "600",
+  forgotText: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
-  primaryButton: {
-    width: "100%",
-    height: 52,
-    borderRadius: 26,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  biometricButton: {
-    alignSelf: 'center',
-    padding: 12,
-  },
-  buttonDisabled: {
-    // Removed opacity to maintain full color
-  },
-  signupContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
+  biometricBtn: {
     alignItems: 'center',
-    marginTop: 'auto',
+    marginTop: 30,
+    padding: 10,
+  },
+  biometricText: {
+    marginTop: 8,
+    fontSize: 12,
+    fontWeight: '600',
+    opacity: 0.8,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 40,
     paddingBottom: 20,
   },
-  signupText: {
-    fontSize: 14,
+  footerText: {
+    fontSize: 15,
     fontWeight: '500',
   },
-  signupLink: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
+  signUpText: {
+    fontSize: 15,
+    fontWeight: '800',
+  }
 });
+
+export default LoginScreen;

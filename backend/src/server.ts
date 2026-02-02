@@ -39,6 +39,16 @@ async function startServer() {
       // Initialize System Configs
       const { configService } = await import("./services/config.service.js");
       await configService.seedDefaults();
+
+      // Start Build Worker
+      try {
+        if (process.env.NODE_ENV !== 'test') {
+          await import("./workers/app_build.worker.js");
+          console.log('👷 Build Worker started successfully');
+        }
+      } catch (workerError) {
+        console.error('❌ Failed to start Build Worker:', workerError);
+      }
     } catch (dbError) {
       console.error('❌ MongoDB connection error:', dbError);
       throw dbError; // Re-throw to be caught by the outer catch

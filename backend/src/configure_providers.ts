@@ -34,19 +34,6 @@ const configureProviders = async () => {
         );
         console.log('✅ Topupmate configured: Active, Priority 2');
 
-        // 3. Configure Payrant (Active, No bill payment services)
-        // Payrant is for virtual accounts only, so supported_services should be empty or not include bill types
-        await ProviderConfig.findOneAndUpdate(
-            { code: 'payrant' },
-            {
-                active: true,
-                priority: 1,
-                supported_services: [] // No bill payment services
-            },
-            { upsert: true, new: true }
-        );
-        console.log('✅ Payrant configured: No bill payment services');
-
         // 4. VTpass (Inactive)
         await ProviderConfig.findOneAndUpdate(
             { code: 'vtpass' },

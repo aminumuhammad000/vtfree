@@ -7,7 +7,9 @@ import UserDeleteModal from '../components/UserDeleteModal';
 import UserEditModal from '../components/UserEditModal';
 import UserStatusModal from '../components/UserStatusModal';
 import UserViewModal from '../components/UserViewModal';
+import UserKycModal from '../components/UserKycModal';
 import { useToast } from '../hooks/ToastContext';
+
 
 const Users: React.FC = () => {
   const { showSuccess, showError } = useToast();
@@ -43,6 +45,8 @@ const Users: React.FC = () => {
   const [editUser, setEditUser] = useState<any | null>(null);
   const [statusUser, setStatusUser] = useState<any | null>(null);
   const [deleteUserObj, setDeleteUserObj] = useState<any | null>(null);
+  const [kycUser, setKycUser] = useState<any | null>(null);
+
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -85,6 +89,17 @@ const Users: React.FC = () => {
     },
     onError: (err: any) => showError(err.response?.data?.message || 'Failed to update user'),
   });
+
+  const kycMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string, status: string }) => updateUser(id, { kyc_status: status }).then((res: any) => res.data),
+    onSuccess: (_, variables) => {
+      setKycUser(null);
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      showSuccess(`KYC status updated to ${variables.status}`);
+    },
+    onError: (err: any) => showError(err.response?.data?.message || 'Failed to update KYC status'),
+  });
+
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -264,6 +279,16 @@ const Users: React.FC = () => {
                               >
                                 <FiTrash2 className="w-4 h-4" />
                               </button>
+                              {(user.kyc_status === 'pending' || (user.kyc_document_id_front_url || user.kyc_document_id_back_url)) && (
+                                <button
+                                  onClick={() => setKycUser(user)}
+                                  className={`p-2 rounded-xl transition-all ${user.kyc_status === 'pending' ? 'bg-blue-50 text-blue-600 animate-pulse' : 'text-slate-400 hover:bg-blue-50 hover:text-blue-600'}`}
+                                  title="Verify KYC"
+                                >
+                                  <FiCheckCircle className="w-4 h-4" />
+                                </button>
+                              )}
+
                             </div>
                           </td>
                         </tr>
@@ -332,6 +357,16 @@ const Users: React.FC = () => {
             isDeleting={deleteMutation.status === 'pending'}
           />
         )}
+        {kycUser && (
+          <UserKycModal
+            user={kycUser}
+            onClose={() => setKycUser(null)}
+            onApprove={(id) => kycMutation.mutate({ id, status: 'verified' })}
+            onReject={(id) => kycMutation.mutate({ id, status: 'rejected' })}
+            isSaving={kycMutation.status === 'pending'}
+          />
+        )}
+
       </div>
     </Layout>
   );

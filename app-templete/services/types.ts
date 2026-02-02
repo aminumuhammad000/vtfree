@@ -17,7 +17,7 @@ export interface User {
   first_name: string;
   last_name: string;
   referral_code: string;
-  kyc_status: 'pending' | 'verified' | 'rejected';
+  kyc_status: 'none' | 'pending' | 'verified' | 'rejected';
   status: 'active' | 'inactive' | 'suspended';
   created_at: string;
   updated_at: string;
@@ -25,7 +25,11 @@ export interface User {
   city?: string;
   state?: string;
   avatar?: string;
+  profile_picture_url?: string;
   role?: string;
+  bvn?: string;
+  nin?: string;
+  date_of_birth?: string;
 }
 
 export interface Wallet {

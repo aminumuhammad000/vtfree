@@ -16,68 +16,54 @@ const { width } = Dimensions.get('window');
 
 export default function PayBillsScreen() {
   const router = useRouter();
-  const { isDark } = useTheme();
+  const { isDark, theme } = useTheme();
 
-  const theme = {
-    primary: '#00ADFF',
-    backgroundLight: '#FFFFFF',
-    backgroundDark: '#000000',
-    cardLight: '#F2F2F2',
-    cardDark: '#1E1E1E',
-    textLight: '#000000',
-    textDark: '#FFFFFF',
-    textSecondaryLight: '#757575',
-    textSecondaryDark: '#A0A0A0',
-    success: '#00D166',
-    warning: '#F59E0B',
-  };
-
-  const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
-  const cardBg = isDark ? theme.cardDark : theme.cardLight;
-  const textColor = isDark ? theme.textDark : theme.textLight;
-  const textSecondaryColor = isDark ? theme.textSecondaryDark : theme.textSecondaryLight;
+  const bgColor = theme.background;
+  const cardBg = theme.surface;
+  const textColor = theme.text;
+  const textSecondaryColor = theme.textSecondary;
 
   const billCategories = [
     {
       id: 1,
       title: 'Electricity',
       icon: 'flash',
-      color: '#EAB308',
+      color: theme.warning,
       route: '/bills/electricity'
     },
     {
       id: 2,
       title: 'Cable TV',
       icon: 'tv',
-      color: '#9333EA',
+      color: theme.error,
       route: '/bills/tv'
     },
     {
       id: 3,
       title: 'Internet',
       icon: 'globe',
-      color: '#06B6D4',
+      color: theme.primary,
       route: '/bills/internet'
     },
     {
       id: 4,
       title: 'Water',
       icon: 'water',
-      color: '#0EA5E9',
+      color: theme.secondary,
       route: '/bills/water'
     },
     {
       id: 5,
       title: 'Waste',
       icon: 'trash',
-      color: '#10B981',
+      color: theme.success,
       route: '/bills/waste'
     },
     {
       id: 6,
       title: 'Betting',
       icon: 'game-controller',
-      color: '#F43F5E',
+      color: theme.accent,
       route: '/bills/betting'
     },
   ];
@@ -91,7 +77,7 @@ export default function PayBillsScreen() {
       date: 'Today, 10:23 AM',
       status: 'success',
       icon: 'tv',
-      color: '#9333EA'
+      color: theme.error
     },
     {
       id: 2,
@@ -101,7 +87,7 @@ export default function PayBillsScreen() {
       date: 'Yesterday, 4:15 PM',
       status: 'success',
       icon: 'flash',
-      color: '#EAB308'
+      color: theme.warning
     },
     {
       id: 3,
@@ -111,7 +97,7 @@ export default function PayBillsScreen() {
       date: 'Oct 24, 2025',
       status: 'failed',
       icon: 'globe',
-      color: '#06B6D4'
+      color: theme.primary
     },
   ];
 
@@ -245,10 +231,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 32,
-    shadowColor: '#00ADFF',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
     elevation: 8,
   },
   balanceLabel: {

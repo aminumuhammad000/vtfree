@@ -3,7 +3,7 @@ import AppAdmin from '../models/app_admin.model.js';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { AdminGenerationService } from './admin_generation.service.js';
-import { AppGeneratorService } from './app_generator.service.js';
+import { addBuildJob } from '../queues/app_build.queue.js';
 
 export class AppCreationService {
     static async createNewApp(data: {
@@ -66,23 +66,17 @@ export class AppCreationService {
             created_by: data.owner_id
         });
 
-        // 6. Trigger App Generation (Async)
-        // We don't await this to keep the API response fast, but we should log errors.
-        AppGeneratorService.generateSourceCode({
-            app_id,
-            app_name: data.app_name,
-            package_name: data.package_name,
-            branding: data.branding,
-            owner_id: data.owner_id
-        }).then(async () => {
-            console.log(`[AppCreation] App generated for ${app_id}`);
-            // Update status to live or provisioned
-            newApp.status = 'live'; // or 'provisioned'
-            await newApp.save();
-        }).catch(async (err) => {
-            console.error(`[AppCreation] Generation failed for ${app_id}:`, err);
-            newApp.status = 'suspended'; // failed state
-            await newApp.save();
+        // 6. Trigger App Generation via Queue
+        await addBuildJob(app_id, {
+            appId: app_id,
+            options: {
+                app_id,
+                app_name: data.app_name,
+                package_name: data.package_name,
+                branding: data.branding,
+                server_url: process.env.API_BASE_URL || 'https://vua.vtfree.com/api',
+                target: data.platforms.android ? 'android_apk' : (data.platforms.web ? 'web' : 'android_apk')
+            }
         });
 
         return {

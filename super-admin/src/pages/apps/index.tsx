@@ -10,17 +10,13 @@ interface App {
     first_name: string;
     last_name: string;
     email: string;
-<<<<<<< HEAD
     phone?: string;
-=======
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
   };
   status: string;
   created_at: string;
   package_name: string;
   total_revenue?: number;
   total_transactions?: number;
-<<<<<<< HEAD
   total_end_users?: number;
   download_url?: string;
   version?: string;
@@ -30,8 +26,6 @@ interface App {
     web: boolean;
   };
   services?: string[];
-=======
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 }
 
 const Apps = () => {
@@ -39,10 +33,7 @@ const Apps = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-<<<<<<< HEAD
   const [selectedApp, setSelectedApp] = useState<App | null>(null);
-=======
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
 
   const fetchApps = async () => {
     try {
@@ -154,34 +145,21 @@ const Apps = () => {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase">App Details</th>
-<<<<<<< HEAD
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase">Owner</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase">Package Name</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase">Status</th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase">Revenue</th>
-=======
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase">Package Name</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase">Status</th>
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase">Created</th>
                 <th className="px-6 py-4 text-right text-xs font-semibold text-slate-600 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-<<<<<<< HEAD
                 <tr><td colSpan={7} className="px-6 py-12 text-center">
                   <div className="flex justify-center"><div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>
                 </td></tr>
               ) : filteredApps.length === 0 ? (
                 <tr><td colSpan={7} className="px-6 py-12 text-center text-slate-500">No apps found</td></tr>
-=======
-                <tr><td colSpan={5} className="px-6 py-12 text-center">
-                  <div className="flex justify-center"><div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>
-                </td></tr>
-              ) : filteredApps.length === 0 ? (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-500">No apps found</td></tr>
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
               ) : (
                 filteredApps.map((app) => (
                   <tr key={app._id} className="hover:bg-slate-50/50 transition-colors">
@@ -196,41 +174,30 @@ const Apps = () => {
                         </div>
                       </div>
                     </td>
-<<<<<<< HEAD
                     <td className="px-6 py-4">
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-slate-900">{app.owner_id?.first_name} {app.owner_id?.last_name}</p>
                         <p className="text-xs text-slate-500 truncate">{app.owner_id?.email}</p>
                       </div>
                     </td>
-=======
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
                     <td className="px-6 py-4 text-sm text-slate-600 font-mono">{app.package_name}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(app.status)}`}>
                         {app.status.toUpperCase()}
                       </span>
                     </td>
-<<<<<<< HEAD
                     <td className="px-6 py-4 text-sm font-bold text-emerald-600">
                       ₦{(app.total_revenue || 0).toLocaleString()}
                     </td>
-=======
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
                     <td className="px-6 py-4 text-sm text-slate-500">
                       {new Date(app.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 text-right">
-<<<<<<< HEAD
                       <button
                         onClick={() => setSelectedApp(app)}
                         className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                       >
                         <Icon icon="solar:eye-bold" width="20" height="20" className="text-slate-400 hover:text-blue-600" />
-=======
-                      <button className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-                        <Icon icon="solar:menu-dots-bold" width="20" height="20" className="text-slate-400" />
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
                       </button>
                     </td>
                   </tr>
@@ -240,7 +207,6 @@ const Apps = () => {
           </table>
         </div>
       </div>
-<<<<<<< HEAD
 
       {/* App Details Modal */}
       {selectedApp && (
@@ -397,8 +363,6 @@ const Apps = () => {
           </div>
         </div>
       )}
-=======
->>>>>>> 405d039a6eb8513f04dd65c9ddf2219984df5baf
     </div>
   );
 };

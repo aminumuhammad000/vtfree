@@ -16,9 +16,10 @@ import {
   User,
   Wallet
 } from './types';
+import { Config } from '../constants/Config';
 
-// Local development - use computer's IP for physical devices
-const API_BASE_URL = 'http://192.168.43.204:5000/api';
+// Log the API URL being used
+export const API_BASE_URL = Config.API_URL;
 // export const API_BASE_URL = 'https://api.ibdata.com.ng/api'; // Production
 
 
@@ -122,11 +123,10 @@ api.interceptors.response.use(
           return Promise.reject(error);
         }
 
-        // Get current route before clearing storage
-        const currentRoute = window.location.pathname;
-        const isAuthPage = ['/login', '/register', '/forgot-password', '/auth/'].some(path =>
-          currentRoute.includes(path)
-        );
+        // Get current route - safely handle React Native
+        const isAuthPage = false; // We can't easily know in the interceptor without extra logic
+        // In React Native, we typically don't have window.location
+
 
         // Clear auth data
         await AsyncStorage.multiRemove(['authToken', 'user', 'walletData', 'transactions', 'profileData']);
@@ -153,7 +153,7 @@ api.interceptors.response.use(
         .filter(Boolean)
         .join('\n');
     } else if (status >= 500) {
-      errorMessage = 'Server error. Please try again later.';
+      errorMessage = data?.message || 'Server error. Please try again later.';
     }
 
     // Log error details in development
@@ -212,7 +212,8 @@ const authService = {
 
 // User Service
 const userService = {
-  getProfile: () => api.get<ApiResponse<{ user: User }>>('/users/profile'),
+  getProfile: () => api.get<ApiResponse<User>>('/users/profile'),
+
 
   updateProfile: (userData: {
     first_name?: string;

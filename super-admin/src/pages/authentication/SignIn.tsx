@@ -187,15 +187,7 @@ const SignIn = () => {
         </Button>
       </Box>
 
-      <Typography
-        mt={4}
-        pb={12}
-        variant="body2"
-        textAlign={{ xs: 'center', md: 'left' }}
-        letterSpacing={0.25}
-      >
-        Credentials: <b>superadmin@vtuapp.com</b> / <b>SuperAdmin@123</b>
-      </Typography>
+
     </Stack>
   );
 };

@@ -2,18 +2,10 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-// Use LAN IP for all devices to ensure connectivity (Physical & Emulator)
-// IOS Simulator might prefer localhost, but LAN IP usually works too.
-export const BASE_URL = 'http://192.168.1.116:5000/api/v1';
-
-// Alternative configuration if the above doesn't work for your specific setup:
-/*
-const BASE_URL = Platform.select({
-    ios: 'http://localhost:5000/api/v1',
-    android: 'http://10.0.2.2:5000/api/v1', // 10.0.2.2 for emulator only
-    default: 'http://172.20.10.3:5000/api/v1',
-});
-*/
+// DEVELOPMENT: Use local backend
+// Change this IP to match your computer's local IP address
+// Run "hostname -I" or "ipconfig" to find your local IP
+export const BASE_URL = 'http://api.vtfree.com.ng/api/v1';
 
 const api = axios.create({
     baseURL: BASE_URL,

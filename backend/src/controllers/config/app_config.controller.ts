@@ -31,13 +31,16 @@ export const getAppConfigs = async (req: Request, res: Response) => {
             { key: 'VTPAY_API_KEY', value: app.payment_settings?.vtpay_api_key || '', group: 'PAYMENT' },
             { key: 'VTPAY_SECRET_KEY', value: app.payment_settings?.vtpay_secret_key || '', group: 'PAYMENT' },
             { key: 'VTPAY_PUBLIC_KEY', value: app.payment_settings?.vtpay_public_key || '', group: 'PAYMENT' },
-            { key: 'PAYRANT_API_KEY', value: app.payment_settings?.payrant_api_key || '', group: 'PAYMENT' },
-            { key: 'PAYRANT_WEBHOOK_SECRET', value: app.payment_settings?.payrant_webhook_secret || '', group: 'PAYMENT' },
             { key: 'PAYSTACK_SECRET_KEY', value: app.payment_settings?.paystack_secret_key || '', group: 'PAYMENT' },
             { key: 'PAYSTACK_PUBLIC_KEY', value: app.payment_settings?.paystack_public_key || '', group: 'PAYMENT' },
             { key: 'MONNIFY_API_KEY', value: app.payment_settings?.monnify_api_key || '', group: 'PAYMENT' },
             { key: 'MONNIFY_SECRET_KEY', value: app.payment_settings?.monnify_secret_key || '', group: 'PAYMENT' },
             { key: 'MONNIFY_CONTRACT_CODE', value: app.payment_settings?.monnify_contract_code || '', group: 'PAYMENT' },
+            { key: 'MONNIFY_CONTRACT_CODE', value: app.payment_settings?.monnify_contract_code || '', group: 'PAYMENT' },
+
+            // Referral Settings
+            { key: 'REFERRAL_ENABLED', value: app.referral_settings?.enabled ? 'true' : 'false', group: 'REFERRAL' },
+            { key: 'REFERRAL_AMOUNT', value: app.referral_settings?.amount?.toString() || '0', group: 'REFERRAL' },
         ];
 
         res.json({
@@ -81,13 +84,21 @@ export const updateAppConfig = async (req: Request, res: Response) => {
             case 'VTPAY_API_KEY': app.payment_settings.vtpay_api_key = value; break;
             case 'VTPAY_SECRET_KEY': app.payment_settings.vtpay_secret_key = value; break;
             case 'VTPAY_PUBLIC_KEY': app.payment_settings.vtpay_public_key = value; break;
-            case 'PAYRANT_API_KEY': app.payment_settings.payrant_api_key = value; break;
-            case 'PAYRANT_WEBHOOK_SECRET': app.payment_settings.payrant_webhook_secret = value; break;
             case 'PAYSTACK_SECRET_KEY': app.payment_settings.paystack_secret_key = value; break;
             case 'PAYSTACK_PUBLIC_KEY': app.payment_settings.paystack_public_key = value; break;
             case 'MONNIFY_API_KEY': app.payment_settings.monnify_api_key = value; break;
             case 'MONNIFY_SECRET_KEY': app.payment_settings.monnify_secret_key = value; break;
             case 'MONNIFY_CONTRACT_CODE': app.payment_settings.monnify_contract_code = value; break;
+
+            // Referral
+            case 'REFERRAL_ENABLED':
+                if (!app.referral_settings) app.referral_settings = { enabled: false, amount: 0 };
+                app.referral_settings.enabled = value === 'true';
+                break;
+            case 'REFERRAL_AMOUNT':
+                if (!app.referral_settings) app.referral_settings = { enabled: false, amount: 0 };
+                app.referral_settings.amount = Number(value);
+                break;
 
             default:
                 return res.status(400).json({ success: false, message: `Unknown config key: ${key}` });

@@ -1,5 +1,4 @@
 import React, { useCallback, useMemo, useState, useEffect } from "react";
-import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ActivityIndicator,
   Image,
@@ -8,16 +7,21 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import * as Haptics from 'expo-haptics';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+
 import { useTheme } from "../components/ThemeContext";
 import CustomAlert from "../components/CustomAlert";
 import { authService } from "../services/auth.service";
 import { appService } from "../services/api";
-
 import { Config } from "../constants/Config";
+import { PremiumInput, PremiumButton } from "../components/PremiumUI";
+import { PremiumBackground } from "../components/PremiumBackground";
+import { ConnectionIndicator } from "../components/ConnectionIndicator";
 
 export default function VerifyOTPScreen() {
   const { isDark } = useTheme();
@@ -31,7 +35,6 @@ export default function VerifyOTPScreen() {
   const [alert, setAlert] = useState({ visible: false, message: "", type: "info" });
   const [branding, setBranding] = useState(null);
 
-  // Fetch branding
   useEffect(() => {
     const fetchBranding = async () => {
       try {
@@ -48,33 +51,15 @@ export default function VerifyOTPScreen() {
 
   const showAlert = useCallback((message, type = "info") => {
     setAlert({ visible: true, message, type });
+    if (type === 'error') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    else Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }, []);
 
   const hideAlert = useCallback(() => {
     setAlert((prev) => ({ ...prev, visible: false }));
   }, []);
 
-  const theme = {
-    primary: "#0A2540",
-    accent: "#FF9F43",
-    backgroundLight: "#F8F9FA",
-    backgroundDark: "#111921",
-    textHeadings: "#1E293B",
-    textBody: "#475569",
-  };
-
-  const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
-  const brandColor = branding?.primary_color || (isDark ? theme.accent : theme.primary);
-  const textColor = isDark ? "#FFFFFF" : theme.textHeadings;
-  const textBodyColor = isDark ? "#9CA3AF" : theme.textBody;
-  const cardBg = isDark ? "#1F2937" : "#FFFFFF";
-  const borderColor = branding?.primary_color || (isDark ? "#374151" : "#334155");
-
   const onVerify = async () => {
-    if (!email) {
-      showAlert("Missing email. Please go back and enter your email.", "error");
-      return;
-    }
     if (!otp || otp.length < 6) {
       showAlert("Enter the 6 digit OTP sent to your email.", "error");
       return;
@@ -87,109 +72,96 @@ export default function VerifyOTPScreen() {
         showAlert("OTP verified successfully.", "success");
         setTimeout(() => {
           router.replace("/login");
-        }, 700);
+        }, 1500);
       } else {
-        showAlert(res?.message || "Invalid OTP. Please try again.", "error");
+        showAlert(res?.message || "Invalid OTP", "error");
       }
     } catch (e) {
-      const msg = e?.message || "OTP verification failed. Please try again.";
-      showAlert(msg, "error");
+      showAlert(e.message || "Verification failed", "error");
     } finally {
       setSubmitting(false);
     }
   };
 
   const onResend = async () => {
-    if (!email) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       const res = await authService.resendOTP('', email.trim().toLowerCase());
       if (res?.success) {
-        showAlert("A new OTP has been sent to your email.", "success");
+        showAlert("A new OTP has been sent.", "success");
       } else {
-        showAlert(res?.message || "Failed to resend OTP.", "error");
+        showAlert(res?.message || "Failed to resend OTP", "error");
       }
     } catch (e) {
-      showAlert(e?.message || "Failed to resend OTP.", "error");
+      showAlert(e.message || "Failed to resend OTP", "error");
     }
   };
 
+  const brandColor = branding?.primary_color || "#00ADFF";
+  const textColor = isDark ? "#FFF" : "#000";
+
   return (
-    <View style={[styles.container, { backgroundColor: bgColor }]}>
+    <PremiumBackground isDark={isDark} brandColor={brandColor}>
+      <ConnectionIndicator />
       <CustomAlert
         visible={alert.visible}
         message={alert.message}
         type={alert.type}
         onClose={hideAlert}
-        duration={5000}
       />
-      <KeyboardAvoidingView style={styles.keyboardView} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
-          <View style={styles.logoContainer}>
-            <Image
-              source={branding?.logo_url ? { uri: branding.logo_url } : require("../assets/images/logo.png")}
-              style={styles.logo}
-            />
-            <Text style={[styles.title, { color: brandColor }]}>Verify OTP</Text>
-            <Text style={[styles.subtitle, { color: textBodyColor }]}>
-              Enter the OTP sent to {email || 'your email'}
+          <Animated.View entering={FadeInUp.delay(200)} style={styles.header}>
+            <View style={styles.iconBox}>
+              <Image
+                source={branding?.logo_url ? { uri: branding.logo_url } : require("../assets/images/logo.png")}
+                style={styles.logo}
+              />
+            </View>
+            <Text style={[styles.title, { color: textColor }]}>Verification</Text>
+            <Text style={[styles.subtitle, { color: isDark ? '#AAA' : '#666' }]}>
+              Enter the code sent to your email
             </Text>
-          </View>
+            <Text style={[styles.emailText, { color: brandColor }]}>{email}</Text>
+          </Animated.View>
 
-          <View style={styles.formContainer}>
-            <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: brandColor }]}>OTP Code</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: cardBg, borderColor: borderColor }]}>
-                <TextInput
-                  style={[styles.input, { color: textColor, letterSpacing: 6, textAlign: 'center' }]}
-                  placeholder="••••••"
-                  placeholderTextColor={textBodyColor}
-                  value={otp}
-                  onChangeText={setOtp}
-                  keyboardType="number-pad"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  selectionColor={brandColor}
-                  maxLength={6}
-                />
-              </View>
-            </View>
+          <Animated.View entering={FadeInDown.delay(400)} style={styles.form}>
+            <PremiumInput
+              label="OTP Code"
+              icon="numeric"
+              value={otp}
+              onChangeText={setOtp}
+              isDark={isDark}
+              placeholder="••••••"
+              keyboardType="number-pad"
+              autoCapitalize="none"
+            />
 
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={[styles.button, styles.primaryButton, (submitting || !otp) && styles.buttonDisabled, { backgroundColor: brandColor }]}
-                onPress={onVerify}
-                disabled={submitting || !otp}
-                activeOpacity={0.8}
-              >
-                {submitting ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <Text style={styles.primaryButtonText}>Verify</Text>
-                )}
+            <PremiumButton
+              title="Verify Code"
+              onPress={onVerify}
+              loading={submitting}
+              disabled={otp.length < 6}
+              brandColor={brandColor}
+              style={{ marginTop: 20 }}
+            />
+
+            <View style={styles.footer}>
+              <TouchableOpacity onPress={onResend}>
+                <Text style={[styles.resendText, { color: brandColor }]}>Resend OTP</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity style={[styles.button, styles.secondaryButton]} onPress={onResend}>
-                <Text style={[styles.secondaryButtonText, { color: textBodyColor }]}>Resend OTP</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={[styles.button, styles.ghostButton]} onPress={() => router.replace("/login")}>
-                <Text style={[styles.secondaryButtonText, { color: textBodyColor }]}>Back to Sign In</Text>
+              <TouchableOpacity style={{ marginTop: 20 }} onPress={() => router.replace("/login")}>
+                <Text style={[styles.backText, { color: isDark ? '#AAA' : '#666' }]}>Back to Sign In</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </PremiumBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  keyboardView: { flex: 1 },
-  scrollContainer: { flexGrow: 1, justifyContent: "center", paddingVertical: 24 },
-  logoContainer: { alignItems: "center", marginBottom: 24 },
-  logo: { width: 64, height: 64, resizeMode: "contain", marginBottom: 8 },
-  title: { fontSize: 24, fontFamily: "Poppins-Bold" },
   subtitle: { fontSize: 14, fontFamily: "Poppins-Regular" },
   formContainer: { paddingHorizontal: 24 },
   inputContainer: { marginBottom: 16 },

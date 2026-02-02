@@ -1,7 +1,7 @@
 import axios from 'axios';
+import { Config } from '../config/Config';
 
-// const BASE_URL = "https://api.vtfree.com.ng/api/v1/app-admin";
-const BASE_URL = "http://localhost:5000/api/v1/app-admin"
+const BASE_URL = Config.BASE_URL;
 
 console.log('API Base URL:', BASE_URL);
 

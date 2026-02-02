@@ -1,515 +1,365 @@
-import { useAlert } from '@/components/AlertContext';
-import { billPaymentService } from '@/services/billpayment.service';
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState, useRef } from 'react';
 import {
-  ActivityIndicator,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  useColorScheme,
   View,
-  Animated,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  useColorScheme,
+  Modal,
+  ActivityIndicator,
   Platform,
-  KeyboardAvoidingView,
   Dimensions,
+  Pressable,
 } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { billPaymentService } from '@/services/billpayment.service';
+import { useAlert } from '@/components/AlertContext';
+import { useTheme } from '@/components/ThemeContext';
+import * as Contacts from 'expo-contacts';
+import * as Haptics from 'expo-haptics';
+import * as LocalAuthentication from 'expo-local-authentication';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  SlideInDown,
+  Layout
+} from 'react-native-reanimated';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-const theme = {
-  primary: '#00ADFF', // Snapchat Blue
-  backgroundLight: '#FFFFFF',
-  backgroundDark: '#000000',
-  inputLight: "#F2F2F2",
-  inputDark: "#1E1E1E",
-  textLight: "#000000",
-  textDark: "#FFFFFF",
-  textSecondaryLight: "#757575",
-  textSecondaryDark: "#A0A0A0",
-  success: '#00D166',
-  error: '#FF5B5B',
-};
+const { width } = Dimensions.get('window');
 
 export default function BuyAirtimeScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ phone?: string; amount?: string }>();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark, theme } = useTheme();
 
-  const bgColor = isDark ? theme.backgroundDark : theme.backgroundLight;
-  const cardBgColor = isDark ? theme.inputDark : theme.inputLight;
-  const textColor = isDark ? theme.textDark : theme.textLight;
-  const textSecondaryColor = isDark ? theme.textSecondaryDark : theme.textSecondaryLight;
-  const borderColor = isDark ? '#333' : '#E5E7EB';
-
-  const { showSuccess, showError, showInfo } = useAlert();
+  const { showSuccess, showError } = useAlert();
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [selectedNetwork, setSelectedNetwork] = useState<string | null>(null);
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState('');
-  const [selectedNetwork, setSelectedNetwork] = useState<string | null>(null);
-  const [selectedNetworkIndex, setSelectedNetworkIndex] = useState<number | null>(null);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
   const [pin, setPin] = useState('');
 
-  const [networks, setNetworks] = useState<Array<{ id: string; name: string; color: string; icon: string }>>([
-    { id: 'mtn', name: 'MTN', color: '#FFCC00', icon: 'phone-portrait' },
-    { id: 'glo', name: 'Glo', color: '#00A95C', icon: 'phone-portrait' },
-    { id: 'airtel', name: 'Airtel', color: '#FF0000', icon: 'phone-portrait' },
-    { id: '9mobile', name: '9mobile', color: '#00693E', icon: 'phone-portrait' },
-  ]);
-  const [netLoading, setNetLoading] = useState(false);
-  const [netError, setNetError] = useState<string | null>(null);
+  // Contact Picker State
+  const [contacts, setContacts] = useState<Contacts.Contact[]>([]);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [contactSearch, setContactSearch] = useState('');
+  const [contactsLoading, setContactsLoading] = useState(false);
 
-  const quickAmounts = [50, 100, 200, 500, 1000, 2000, 5000, 10000];
+  // Biometric State
+  const [isBiometricEnabled, setIsBiometricEnabled] = useState(false);
+  const [storedPin, setStoredPin] = useState<string | null>(null);
 
-  // Animation values
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
-  const pinModalSlide = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const brandColor = theme.primary;
+  const bgColor = theme.background;
+  const textColor = theme.text;
+  const cardBg = theme.surface;
+
+  const networks = [
+    { id: 'mtn', name: 'MTN', color: '#FFCC00' },
+    { id: 'glo', name: 'Glo', color: '#00A95C' },
+    { id: 'airtel', name: 'Airtel', color: '#FF0000' },
+    { id: '9mobile', name: '9mobile', color: '#00693E' },
+  ];
+
+  const quickAmounts = [100, 200, 500, 1000, 2000, 5000];
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    checkBiometricStatus();
   }, []);
 
-  useEffect(() => {
-    if (showPinModal) {
-      Animated.spring(pinModalSlide, {
-        toValue: 0,
-        useNativeDriver: true,
-        damping: 20,
-        mass: 0.8,
-      }).start();
-    } else {
-      Animated.timing(pinModalSlide, {
-        toValue: SCREEN_HEIGHT,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [showPinModal]);
+  const checkBiometricStatus = async () => {
+    try {
+      const enabled = await AsyncStorage.getItem('biometric_tx_enabled');
+      const savedPin = await AsyncStorage.getItem('transaction_pin');
 
-  useEffect(() => {
-    if (params?.phone && typeof params.phone === 'string') {
-      setPhoneNumber(params.phone);
-    }
-    if (params?.amount && typeof params.amount === 'string') {
-      const amt = Number(params.amount);
-      if (!Number.isNaN(amt) && amt > 0) {
-        setSelectedAmount(amt);
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+      if (enabled === 'true' && savedPin && hasHardware && isEnrolled) {
+        setIsBiometricEnabled(true);
+        setStoredPin(savedPin);
       }
+    } catch (e) {
+      console.log('Error checking biometrics', e);
     }
-  }, [params]);
-
-  useEffect(() => {
-    const loadNetworks = async () => {
-      try {
-        setNetLoading(true);
-        setNetError(null);
-        const res = await billPaymentService.getNetworks();
-        if (res?.success && Array.isArray(res.data)) {
-          const mapped = res.data.map((n: any, i: number) => {
-            const baseId = (n.network_code || n.network_id || n.network || n.name || '')
-              .toString()
-              .trim()
-              .toLowerCase()
-              .replace(/\s+/g, '-');
-            const id = baseId || `net-${i}`;
-
-            let color = '#0A2540';
-            const networkName = (n.name || n.network || n.network_code || '').toLowerCase();
-            if (networkName.includes('mtn')) color = '#FFCC00';
-            else if (networkName.includes('glo')) color = '#00A95C';
-            else if (networkName.includes('airtel')) color = '#FF0000';
-            else if (networkName.includes('9mobile') || networkName.includes('etisalat')) color = '#00693E';
-
-            return {
-              id,
-              name: n.name || n.network || n.network_code || 'Network',
-              color,
-              icon: 'phone-portrait',
-            };
-          });
-          if (mapped.length) setNetworks(mapped);
-        }
-      } catch (e: any) {
-        setNetError(e?.message || 'Failed to load networks');
-      } finally {
-        setNetLoading(false);
-      }
-    };
-    loadNetworks();
-  }, []);
-
-  const handleInitiatePurchase = () => {
-    if (!phoneNumber || !selectedNetwork || (!selectedAmount && !customAmount)) {
-      showError('Please fill all required fields');
-      return;
-    }
-
-    const cleanPhone = phoneNumber.replace(/\D/g, '');
-    if (cleanPhone.length !== 11) {
-      showError('Phone number must be exactly 11 digits');
-      return;
-    }
-
-    const amount = selectedAmount || parseFloat(customAmount);
-    if (!amount || amount < 50) {
-      showError('Minimum airtime amount is ₦50');
-      return;
-    }
-
-    if (amount > 50000) {
-      showError('Maximum airtime amount is ₦50,000');
-      return;
-    }
-
-    setShowPinModal(true);
   };
 
-  const handleBuyAirtime = async () => {
-    if (!/^\d{4}$/.test(pin)) {
-      showError('Enter your 4-digit transaction PIN');
-      return;
+  const handleNetworkSelect = (id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedNetwork(id);
+  };
+
+  const selectContact = async () => {
+    const { status } = await Contacts.requestPermissionsAsync();
+    if (status === 'granted') {
+      setContactsLoading(true);
+      setShowContactModal(true);
+      const { data } = await Contacts.getContactsAsync({
+        fields: [Contacts.Fields.PhoneNumbers],
+      });
+      setContacts(data);
+      setContactsLoading(false);
+    } else {
+      showError('Contact permission denied');
     }
+  };
 
-    const cleanPhone = phoneNumber.replace(/\D/g, '');
-    const amount = selectedAmount || parseFloat(customAmount);
-
+  const handleBuyAirtime = async (pinOverride?: string) => {
+    const transactionPin = pinOverride || pin;
+    if (transactionPin.length < 4) return;
     setIsLoading(true);
-
     try {
-      const response = await billPaymentService.purchaseAirtime({
+      const amount = selectedAmount || parseFloat(customAmount);
+      const res = await billPaymentService.purchaseAirtime({
         network: selectedNetwork!,
-        phone: cleanPhone,
-        amount: amount,
+        phone: phoneNumber,
+        amount,
         airtime_type: 'VTU',
         ported_number: true,
-        pin,
+        pin: transactionPin,
       });
 
-      setShowPinModal(false);
-
-      if (response.success) {
-        showSuccess(`Airtime purchase successful! ₦${amount} sent to ${phoneNumber}`);
-        setPhoneNumber('');
-        setSelectedAmount(null);
-        setCustomAmount('');
-        setSelectedNetwork(null);
-        setPin('');
-        setTimeout(() => {
-          router.back();
-        }, 2000);
+      if (res.success) {
+        setShowPinModal(false);
+        showSuccess('Airtime purchase successful!');
+        router.back();
       } else {
-        showError(response.message || 'Failed to purchase airtime');
+        showError(res.message || 'Transaction failed');
       }
-    } catch (error: any) {
-      setShowPinModal(false);
-      showError(error.message || 'Failed to purchase airtime. Please try again.');
+    } catch (e: any) {
+      showError(e.message || 'An error occurred');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const triggerBiometricAuth = async () => {
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Authenticate Transaction',
+        disableDeviceFallback: false,
+      });
+
+      if (result.success && storedPin) {
+        setPin(storedPin);
+        handleBuyAirtime(storedPin);
+      } else if (!result.success && result.error !== 'user_cancel') {
+        showError('Authentication failed');
+      }
+    } catch (e) {
+      showError('Biometric error');
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
-      <View style={[styles.header, { backgroundColor: bgColor }]}>
-        <TouchableOpacity
-          style={[styles.backButton, { backgroundColor: cardBgColor }]}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={20} color={textColor} />
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={24} color={textColor} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: textColor }]}>Buy Airtime</Text>
+        <Text style={[styles.title, { color: textColor }]}>Buy Airtime</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: textSecondaryColor }]}>SELECT NETWORK</Text>
-            {netLoading && <Text style={{ color: textSecondaryColor, marginBottom: 8 }}>Loading networks...</Text>}
-            {netError && <Text style={{ color: theme.error, marginBottom: 8 }}>{netError}</Text>}
-            <View style={styles.networksRow}>
-              {networks.map((network, idx) => (
-                <TouchableOpacity
-                  key={network.id || idx}
-                  style={[
-                    styles.networkCircle,
-                    {
-                      backgroundColor: cardBgColor,
-                      borderColor: selectedNetworkIndex === idx ? network.color : 'transparent',
-                      borderWidth: 2,
-                    },
-                  ]}
-                  onPress={() => { setSelectedNetwork(network.id); setSelectedNetworkIndex(idx); }}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={[
-                      styles.networkIconCircle,
-                      {
-                        backgroundColor: `${network.color}20`,
-                      },
-                    ]}
-                  >
-                    <Ionicons
-                      name={network.icon as any}
-                      size={20}
-                      color={network.color}
-                    />
-                  </View>
-                  {selectedNetworkIndex === idx && (
-                    <View style={[styles.checkMarkCircle, { backgroundColor: network.color }]}>
-                      <Ionicons name="checkmark" size={10} color="#FFFFFF" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-            <Text style={[styles.networkLabel, { color: textColor }]}>
-              {selectedNetwork ? networks.find(n => n.id === selectedNetwork)?.name : 'Select Provider'}
-            </Text>
-          </View>
-
-          {/* Recent Beneficiaries */}
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: textSecondaryColor }]}>RECENT</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.beneficiariesContainer}>
-              {[
-                { name: 'Mom', phone: '08012345678', avatar: 'person' },
-                { name: 'John', phone: '09087654321', avatar: 'person' },
-                { name: 'Work', phone: '07011223344', avatar: 'briefcase' },
-              ].map((beneficiary, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[styles.beneficiaryCard, { backgroundColor: cardBgColor }]}
-                  onPress={() => setPhoneNumber(beneficiary.phone)}
-                >
-                  <View style={[styles.beneficiaryAvatar, { backgroundColor: theme.primary + '15' }]}>
-                    <Ionicons name={beneficiary.avatar as any} size={16} color={theme.primary} />
-                  </View>
-                  <View>
-                    <Text style={[styles.beneficiaryName, { color: textColor }]} numberOfLines={1}>{beneficiary.name}</Text>
-                    <Text style={[styles.beneficiaryPhone, { color: textSecondaryColor }]}>{beneficiary.phone}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Animated.View entering={FadeInDown.delay(200).springify()}>
+          {/* Network Selection */}
+          <Text style={[styles.label, { color: theme.textSecondary }]}>CARRIER</Text>
+          <View style={styles.networkGrid}>
+            {networks.map((net) => (
               <TouchableOpacity
-                style={[styles.beneficiaryCard, { backgroundColor: cardBgColor, borderStyle: 'dashed', borderWidth: 1, borderColor: textSecondaryColor + '40' }]}
-                onPress={() => { /* Open contacts */ }}
+                key={net.id}
+                style={[
+                  styles.netCard,
+                  {
+                    backgroundColor: cardBg,
+                    borderColor: selectedNetwork === net.id ? net.color : 'transparent',
+                    borderWidth: 2,
+                  }
+                ]}
+                onPress={() => handleNetworkSelect(net.id)}
               >
-                <View style={[styles.beneficiaryAvatar, { backgroundColor: textSecondaryColor + '15' }]}>
-                  <Ionicons name="people" size={16} color={textSecondaryColor} />
-                </View>
-                <View>
-                  <Text style={[styles.beneficiaryName, { color: textColor }]}>Contacts</Text>
-                  <Text style={[styles.beneficiaryPhone, { color: textSecondaryColor }]}>Select</Text>
-                </View>
+                <View style={[styles.netDot, { backgroundColor: net.color }]} />
+                <Text style={[styles.netName, { color: textColor }]}>{net.name}</Text>
               </TouchableOpacity>
-            </ScrollView>
+            ))}
           </View>
 
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: textSecondaryColor }]}>PHONE NUMBER</Text>
-            <View style={[styles.inputContainer, { backgroundColor: cardBgColor }]}>
-              <Ionicons name="call" size={20} color={textSecondaryColor} style={styles.inputIcon} />
+          {/* Phone Input */}
+          <View style={styles.inputSection}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>TARGET NUMBER</Text>
+            <View style={[styles.inputBox, { backgroundColor: cardBg }]}>
+              <MaterialCommunityIcons name="phone-outline" size={20} color={brandColor} />
               <TextInput
                 style={[styles.input, { color: textColor }]}
-                placeholder="Enter phone number"
-                placeholderTextColor={textSecondaryColor}
-                value={phoneNumber}
-                onChangeText={(t) => setPhoneNumber(t.replace(/\D/g, '').slice(0, 11))}
+                placeholder="0801 234 5678"
+                placeholderTextColor={theme.border}
                 keyboardType="phone-pad"
-                maxLength={11}
+                value={phoneNumber}
+                onChangeText={setPhoneNumber}
               />
-              <TouchableOpacity onPress={() => { /* Open contacts */ }}>
-                <Ionicons name="person-add" size={20} color={theme.primary} />
+              <TouchableOpacity onPress={selectContact}>
+                <Ionicons name="person-add-outline" size={20} color={brandColor} />
               </TouchableOpacity>
             </View>
           </View>
 
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: textSecondaryColor }]}>AMOUNT</Text>
-            <View style={styles.amountsGrid}>
-              {quickAmounts.map((amount) => (
+          {/* Amount Selection */}
+          <View style={styles.inputSection}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>QUICK AMOUNT</Text>
+            <View style={styles.networkGrid}>
+              {quickAmounts.map((amt) => (
                 <TouchableOpacity
-                  key={amount}
+                  key={amt}
                   style={[
-                    styles.amountCard,
+                    styles.netCard,
                     {
-                      backgroundColor: selectedAmount === amount ? theme.primary : cardBgColor,
-                    },
+                      backgroundColor: cardBg,
+                      borderColor: selectedAmount === amt ? brandColor : 'transparent',
+                      borderWidth: 2,
+                    }
                   ]}
                   onPress={() => {
-                    setSelectedAmount(amount);
+                    setSelectedAmount(amt);
                     setCustomAmount('');
+                    Haptics.selectionAsync();
                   }}
-                  activeOpacity={0.7}
                 >
-                  <Text
-                    style={[
-                      styles.amountText,
-                      { color: selectedAmount === amount ? '#FFFFFF' : textColor },
-                    ]}
-                  >
-                    ₦{amount}
-                  </Text>
+                  <Text style={[styles.netName, { color: textColor }]}>₦{amt.toLocaleString()}</Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            <View style={[styles.inputContainer, { backgroundColor: cardBgColor, marginTop: 12 }]}>
-              <Text style={[styles.currencySymbol, { color: textSecondaryColor }]}>₦</Text>
+            <Text style={[styles.label, { color: theme.textSecondary, marginTop: 20 }]}>OR ENTER AMOUNT</Text>
+            <View style={[styles.inputBox, { backgroundColor: cardBg }]}>
+              <Text style={{ color: brandColor, fontWeight: '800', fontSize: 18 }}>₦</Text>
               <TextInput
                 style={[styles.input, { color: textColor }]}
                 placeholder="Enter custom amount"
-                placeholderTextColor={textSecondaryColor}
+                placeholderTextColor={theme.border}
+                keyboardType="numeric"
                 value={customAmount}
-                onChangeText={(text) => {
-                  setCustomAmount(text);
+                onChangeText={(t) => {
+                  setCustomAmount(t);
                   setSelectedAmount(null);
                 }}
-                keyboardType="numeric"
               />
             </View>
-            <Text style={[styles.helperText, { color: textSecondaryColor }]}>
-              Min: ₦50 • Max: ₦50,000
-            </Text>
           </View>
 
           <TouchableOpacity
-            style={[
-              styles.buyButton,
-              {
-                backgroundColor: (!phoneNumber || phoneNumber.replace(/\D/g, '').length !== 11 || !selectedNetwork || (!selectedAmount && !customAmount))
-                  ? (isDark ? '#333' : '#E0E0E0')
-                  : theme.primary,
-              },
-            ]}
-            onPress={handleInitiatePurchase}
-            disabled={!phoneNumber || phoneNumber.replace(/\D/g, '').length !== 11 || !selectedNetwork || (!selectedAmount && !customAmount)}
-            activeOpacity={0.8}
+            style={[styles.mainBtn, { backgroundColor: brandColor, marginTop: 30 }]}
+            onPress={() => {
+              if (!phoneNumber || !selectedNetwork || (!selectedAmount && !customAmount)) {
+                return showError('Check all fields');
+              }
+              setShowPinModal(true);
+              // Auto-trigger biometrics if enabled
+              if (isBiometricEnabled) {
+                setTimeout(() => triggerBiometricAuth(), 500);
+              }
+            }}
           >
-            <Text style={[
-              styles.buyButtonText,
-              { color: (!phoneNumber || phoneNumber.replace(/\D/g, '').length !== 11 || !selectedNetwork || (!selectedAmount && !customAmount)) ? textSecondaryColor : '#FFF' }
-            ]}>
-              Continue
-            </Text>
+            <Text style={styles.btnText}>Proceed to Payment</Text>
+            <Ionicons name="shield-checkmark" size={20} color="#FFF" />
           </TouchableOpacity>
-
         </Animated.View>
       </ScrollView>
 
       {/* PIN Modal */}
-      <Modal
-        visible={showPinModal}
-        transparent={true}
-        onRequestClose={() => setShowPinModal(false)}
-        statusBarTranslucent
-      >
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity
-            style={styles.backdrop}
-            activeOpacity={1}
-            onPress={() => setShowPinModal(false)}
-          />
-          <Animated.View
-            style={[
-              styles.pinModalContent,
-              {
-                backgroundColor: bgColor,
-                transform: [{ translateY: pinModalSlide }]
-              }
-            ]}
-          >
-            <View style={styles.handleBarContainer}>
-              <View style={[styles.handleBar, { backgroundColor: isDark ? '#333' : '#E0E0E0' }]} />
-            </View>
-
-            <Text style={[styles.pinModalTitle, { color: textColor }]}>Confirm Transaction</Text>
-            <Text style={[styles.pinModalSubtitle, { color: textSecondaryColor }]}>
-              Enter your 4-digit PIN to confirm purchase of ₦{selectedAmount || customAmount} airtime for {phoneNumber}
+      <Modal visible={showPinModal} transparent animationType="slide">
+        <Pressable style={styles.modalOverlay} onPress={() => setShowPinModal(false)}>
+          <Animated.View entering={SlideInDown} style={[styles.pinSheet, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.pinTitle, { color: textColor }]}>Authorize Transaction</Text>
+            <Text style={[styles.pinSubtitle, { color: theme.textSecondary }]}>
+              Confirm ₦{(selectedAmount || parseFloat(customAmount || '0')).toLocaleString()} airtime for {phoneNumber}
             </Text>
 
-            <View style={[styles.pinInputContainer, { backgroundColor: cardBgColor }]}>
+            <View style={[styles.pinBox, { backgroundColor: cardBg }]}>
               <TextInput
                 style={[styles.pinInput, { color: textColor }]}
-                placeholder="••••"
-                placeholderTextColor={textSecondaryColor}
-                value={pin}
-                onChangeText={(t) => setPin(t.replace(/\D/g, '').slice(0, 4))}
-                keyboardType="number-pad"
                 secureTextEntry
                 maxLength={4}
-                autoFocus={true}
+                keyboardType="numeric"
+                value={pin}
+                onChangeText={setPin}
+                autoFocus={!isBiometricEnabled}
               />
             </View>
 
-            <TouchableOpacity
-              style={[
-                styles.confirmButton,
-                { backgroundColor: pin.length === 4 ? theme.primary : (isDark ? '#333' : '#E0E0E0') }
-              ]}
-              onPress={handleBuyAirtime}
-              disabled={pin.length !== 4 || isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <Text style={[
-                  styles.confirmButtonText,
-                  { color: pin.length === 4 ? '#FFF' : textSecondaryColor }
-                ]}>
-                  Confirm & Pay
-                </Text>
+            <View style={{ gap: 15 }}>
+              <TouchableOpacity
+                style={[styles.confirmBtn, { backgroundColor: brandColor }]}
+                onPress={() => handleBuyAirtime()}
+                disabled={isLoading}
+              >
+                {isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnText}>Pay Now</Text>}
+              </TouchableOpacity>
+
+              {isBiometricEnabled && (
+                <TouchableOpacity
+                  style={[styles.confirmBtn, { backgroundColor: cardBg, marginTop: 0 }]}
+                  onPress={triggerBiometricAuth}
+                  disabled={isLoading}
+                >
+                  <MaterialCommunityIcons name="fingerprint" size={24} color={brandColor} />
+                  <Text style={[styles.btnText, { color: textColor, marginLeft: 10 }]}>Pay with Biometrics</Text>
+                </TouchableOpacity>
               )}
-            </TouchableOpacity>
+            </View>
           </Animated.View>
-        </View>
+        </Pressable>
       </Modal>
 
-      <Modal
-        visible={showSuccessModal}
-        transparent={true}
-        animationType="fade"
-      >
-        <View style={styles.successModalBackdrop}>
-          <View style={[styles.successModalCard, { backgroundColor: bgColor }]}>
-            <View style={[styles.successIconContainer, { backgroundColor: theme.success + '20' }]}>
-              <Ionicons name="checkmark" size={40} color={theme.success} />
+      {/* Contacts Modal */}
+      <Modal visible={showContactModal} transparent animationType="slide">
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.8)' }]}>
+          <View style={[styles.contactSheet, { backgroundColor: bgColor }]}>
+            <View style={styles.contactHeader}>
+              <Text style={[styles.pinTitle, { color: textColor }]}>Select Contact</Text>
+              <TouchableOpacity onPress={() => setShowContactModal(false)}>
+                <Ionicons name="close" size={24} color={textColor} />
+              </TouchableOpacity>
             </View>
-
-            <Text style={[styles.successTitle, { color: textColor }]}>
-              Successful!
-            </Text>
-            <Text style={[styles.successMessage, { color: textSecondaryColor }]}>
-              Airtime purchase has been processed successfully.
-            </Text>
+            <TextInput
+              style={[styles.inputBox, { backgroundColor: cardBg, color: textColor, marginBottom: 20 }]}
+              placeholder="Search name or number..."
+              placeholderTextColor="#777"
+              value={contactSearch}
+              onChangeText={setContactSearch}
+            />
+            {contactsLoading ? (
+              <ActivityIndicator color={brandColor} />
+            ) : (
+              <ScrollView>
+                {contacts.filter(c => c.name?.toLowerCase().includes(contactSearch.toLowerCase())).map((c, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={styles.contactItem}
+                    onPress={() => {
+                      const num = c.phoneNumbers?.[0]?.number?.replace(/\D/g, '');
+                      if (num) {
+                        setPhoneNumber(num.startsWith('234') ? '0' + num.slice(3) : num);
+                        setShowContactModal(false);
+                      }
+                    }}
+                  >
+                    <View style={[styles.contactIcon, { backgroundColor: theme.primary }]}>
+                      <Text style={{ color: '#FFF' }}>{c.name?.charAt(0)}</Text>
+                    </View>
+                    <View>
+                      <Text style={{ color: textColor, fontWeight: '700' }}>{c.name}</Text>
+                      <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{c.phoneNumbers?.[0]?.number}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
           </View>
         </View>
       </Modal>
@@ -518,252 +368,58 @@ export default function BuyAirtimeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: 16,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 24,
-  },
-  section: {
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1,
-    marginBottom: 16,
-    paddingLeft: 4,
-  },
-  networksRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  networkCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  networkIconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkMarkCircle: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#FFF',
-  },
-  networkLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginTop: 12,
-  },
-  beneficiariesContainer: {
-    gap: 12,
-    paddingRight: 24,
-  },
-  beneficiaryCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    paddingRight: 16,
-    borderRadius: 16,
-    gap: 10,
-    minWidth: 120,
-  },
-  beneficiaryAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  beneficiaryName: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  beneficiaryPhone: {
-    fontSize: 10,
-    opacity: 0.6,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 20,
     paddingHorizontal: 20,
-    height: 60,
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
+    paddingBottom: 20,
   },
-  inputIcon: {
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
-    height: '100%',
-  },
-  currencySymbol: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginRight: 8,
-  },
-  amountsGrid: {
+  backBtn: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  title: { fontSize: 20, fontWeight: '800' },
+  scrollContent: { padding: 20, paddingBottom: 100 },
+  label: { fontSize: 11, fontWeight: '800', letterSpacing: 1.5, marginBottom: 15 },
+  networkGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 30 },
+  netCard: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 15,
     gap: 10,
   },
-  amountCard: {
-    width: '22%', // Fits 4 items per row with gap
-    paddingVertical: 12,
-    borderRadius: 12,
+  netDot: { width: 10, height: 10, borderRadius: 5 },
+  netName: { fontWeight: '700', fontSize: 13 },
+  inputSection: { marginBottom: 30 },
+  inputBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    height: 60,
+    borderRadius: 18,
+    gap: 12,
+  },
+  input: { flex: 1, fontSize: 16, fontWeight: '700' },
+  mainBtn: {
+    height: 65,
+    borderRadius: 22,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'transparent',
+    gap: 10
   },
-  amountText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  helperText: {
-    fontSize: 12,
-    marginTop: 12,
-    paddingLeft: 4,
-    fontWeight: '500',
-  },
-  buyButton: {
-    paddingVertical: 20,
-    borderRadius: 24,
-    alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 40,
-  },
-  buyButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-  },
-  pinModalContent: {
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    padding: 24,
-    paddingBottom: 40,
-  },
-  handleBarContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  handleBar: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-  },
-  pinModalTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  pinModalSubtitle: {
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 20,
-  },
-  pinInputContainer: {
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 24,
-  },
-  pinInput: {
-    fontSize: 24,
-    fontWeight: '700',
-    textAlign: 'center',
-    letterSpacing: 8,
-  },
-  confirmButton: {
-    paddingVertical: 20,
-    borderRadius: 24,
-    alignItems: 'center',
-  },
-  confirmButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  successModalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  successModalCard: {
-    width: '100%',
-    borderRadius: 32,
-    padding: 32,
-    alignItems: 'center',
-  },
-  successIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  successTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    marginBottom: 12,
-  },
-  successMessage: {
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-    fontWeight: '500',
-  },
+  btnText: { color: '#FFF', fontSize: 17, fontWeight: '800' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  pinSheet: { borderTopLeftRadius: 35, borderTopRightRadius: 35, padding: 30, paddingBottom: 50 },
+  pinTitle: { fontSize: 22, fontWeight: '800' },
+  pinSubtitle: { marginTop: 10, marginBottom: 30, fontSize: 14 },
+  pinBox: { height: 75, borderRadius: 20, justifyContent: 'center', paddingHorizontal: 20, marginBottom: 30 },
+  pinInput: { textAlign: 'center', fontSize: 32, letterSpacing: 20, fontWeight: '800' },
+  confirmBtn: { height: 60, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+  contactSheet: { height: '80%', borderTopLeftRadius: 35, borderTopRightRadius: 35, padding: 25 },
+  contactHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  contactItem: { flexDirection: 'row', alignItems: 'center', gap: 15, marginBottom: 20 },
+  contactIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#00ADFF', justifyContent: 'center', alignItems: 'center' },
 });

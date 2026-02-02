@@ -10,8 +10,14 @@ export { notificationsService } from './notifications.service';
 export { promotionsService } from './promotions.service';
 export { supportService } from './support.service';
 export { adminService } from './admin.service';
+export { vtpayService } from './vtpay.service';
 
 // Re-export types
+export type {
+  CreateVirtualAccountData as VTPayCreateData,
+  VTPayAccount,
+  VTPayResponse
+} from './vtpay.service';
 export type {
   RegisterData,
   LoginData,
@@ -65,4 +71,5 @@ export type {
 } from './admin.service';
 
 // Export API instance and base URL
-export { default as api, API_BASE_URL } from './api';
+import api, { API_BASE_URL } from './api';
+export { api as default, API_BASE_URL };

@@ -13,7 +13,7 @@ async function createSuperAdmin() {
         console.log('Connected to database.');
 
         const email = 'superadmin@vtfree.com';
-        const password = 'password123';
+        const password = 'Admin@123456';
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);

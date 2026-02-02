@@ -423,7 +423,8 @@ export class AppAdminFundingController {
             const topupmateService = (await import('../services/topupmate.service.js')).default;
 
             // Check if VTPay API key is configured for this app
-            const vtpayApiKey = app.payment_settings?.vtpay_api_key;
+            // Use Secret Key as per latest update
+            const vtpayApiKey = app.payment_settings?.vtpay_secret_key || app.payment_settings?.vtpay_api_key;
             const hasVtpayKey = vtpayApiKey && vtpayApiKey.trim().length > 0;
 
             // Fetch external balances with error tracking
@@ -431,14 +432,19 @@ export class AppAdminFundingController {
                 smeplugService.getWalletBalance().catch(() => ({ balance: null, error: true })),
                 topupmateService.getWalletBalance().catch(() => ({ balance: null, error: true })),
                 hasVtpayKey
-                    ? VTPayService.getPlatformBalance(vtpayApiKey).catch(() => ({ data: { balance: null }, error: true }))
+                    ? VTPayService.getPlatformBalance(vtpayApiKey).catch((err) => {
+                        logger.error('VTPay Balance Fetch Error:', err?.message);
+                        return { data: { balance: null }, error: true, message: err?.message };
+                    })
                     : Promise.resolve({ data: { balance: null }, error: true })
             ]);
 
             const ibdataBalance = owner.wallet_balance || 0;
             const smeplugBalance = smeplugRes?.balance;
             const topupmateBalance = topupmateRes?.balance;
-            const vtpayBalance = vtpayRes?.data?.balance ?? vtpayRes?.balance;
+            // VTPay returns balance in kobo, convert to Naira by dividing by 100
+            const vtpayBalanceKobo = vtpayRes?.data?.balance ?? vtpayRes?.balance;
+            const vtpayBalance = vtpayBalanceKobo ? Number(vtpayBalanceKobo) / 100 : 0;
 
             const providers = [
                 {
@@ -465,7 +471,7 @@ export class AppAdminFundingController {
                 {
                     code: 'vtpay',
                     name: 'VTPay',
-                    balance: vtpayBalance ?? 0,
+                    balance: vtpayBalance,
                     currency: 'NGN',
                     status: (vtpayRes as any).error ? 'error' : 'ok'
                 }

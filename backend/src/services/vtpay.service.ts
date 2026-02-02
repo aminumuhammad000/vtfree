@@ -8,20 +8,29 @@ export interface CreateVirtualAccountDto {
     email: string;
     reference: string;
     phone: string;
+    bvn?: string;
+    dob?: string;
 }
 
 export class VTPayService {
-    private static baseURL = 'http://localhost:3000/api'; // Default to local
+    private static baseURL = 'https://vtpayapi.vtfree.com.ng/api'; // Default to LIVE
 
     /**
      * Get an Axios instance for a specific API key
      */
     private static async getClient(customApiKey?: string) {
-        const apiKey = customApiKey || await configService.get('VTPAY_API_KEY');
+        // According to docs, we MUST use Secret Key in x-api-key header
+        let apiKey = customApiKey || await configService.get('VTPAY_SECRET_KEY');
+
+        // Fallback to API_KEY only if SECRET_KEY is missing (backward compatibility)
+        if (!apiKey) {
+            apiKey = await configService.get('VTPAY_API_KEY');
+        }
+
         const baseURL = await configService.get('VTPAY_BASE_URL') || this.baseURL;
 
-        if (!apiKey) {
-            throw new Error('VTPay API key not configured');
+        if (!apiKey || apiKey === 'sk_live_vtpay_key_here') {
+            throw new Error('VTPay Secret Key not configured');
         }
 
         return axios.create({
@@ -38,7 +47,6 @@ export class VTPayService {
      */
     static async createVirtualAccount(data: CreateVirtualAccountDto, customApiKey?: string) {
         try {
-            const client = await this.getClient(customApiKey);
             // Normalize phone number: if 10 digits, prepend '0'
             let normalizedPhone = String(data.phone).trim();
             if (normalizedPhone.length === 10) {
@@ -46,15 +54,35 @@ export class VTPayService {
             }
 
             const payload = { ...data, phone: normalizedPhone };
-            const response = await client.post('/virtual-accounts', payload);
+            const baseURL = await configService.get('VTPAY_BASE_URL') || this.baseURL;
+
+            // Get the correct key for logging/request
+            let apiKey = customApiKey || await configService.get('VTPAY_SECRET_KEY');
+            if (!apiKey) apiKey = await configService.get('VTPAY_API_KEY');
+
+            logger.info(`VTPay Request: POST ${baseURL}/virtual-accounts (Key: ${apiKey ? apiKey.substring(0, 8) + '...' : 'MISSING'})`);
+
+            const response = await axios.post(`${baseURL}/virtual-accounts`, payload, {
+                headers: {
+                    'x-api-key': apiKey,
+                    'Content-Type': 'application/json',
+                },
+                timeout: 15000 // 15s timeout
+            });
+
             return response.data;
         } catch (error: any) {
             if (error.response) {
                 logger.error(`VTPay API Error (${error.response.status}):`, error.response.data);
+                throw new Error(error.response.data?.message || error.response.data?.error || 'VTPay API Error');
+            } else if (error.request) {
+                logger.error('VTPay Network Error (No response):', error.message);
+                throw new Error('Failed to connect to VTPay server (Network Error)');
             } else {
                 logger.error('VTPay Request Error:', error.message);
+                // Propagate the actual error (e.g. "VTPay Secret Key not configured")
+                throw new Error(error.message || 'An unexpected error occurred');
             }
-            throw new Error(error.response?.data?.message || error.response?.data?.error || 'Failed to create virtual account');
         }
     }
 
@@ -137,7 +165,16 @@ export class VTPayService {
      */
     static async getPlatformBalance(customApiKey?: string) {
         try {
+            // This will now use VTPAY_SECRET_KEY as per the updated getClient method
             const client = await this.getClient(customApiKey);
+
+            // Log the request (masked key)
+            const baseURL = await configService.get('VTPAY_BASE_URL') || this.baseURL;
+            let apiKey = customApiKey || await configService.get('VTPAY_SECRET_KEY');
+            if (!apiKey) apiKey = await configService.get('VTPAY_API_KEY');
+
+            logger.info(`VTPay Request: GET ${baseURL}/wallet/balance (Key: ${apiKey ? apiKey.substring(0, 8) + '...' : 'MISSING'})`);
+
             const response = await client.get('/wallet/balance');
             return response.data;
         } catch (error: any) {

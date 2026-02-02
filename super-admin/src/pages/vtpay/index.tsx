@@ -32,7 +32,7 @@ const VTPayManagement = () => {
     const [transactions, setTransactions] = useState<VTPayTransaction[]>([]);
     const [loadingTransactions, setLoadingTransactions] = useState(false);
     const [accountBalance, setAccountBalance] = useState<{ balance: number; currency: string } | null>(null);
-    const [platformBalance, setPlatformBalance] = useState<{ balance: number; availableBalance: number; currency: string } | null>(null);
+    const [platformBalance, setPlatformBalance] = useState<{ balance: number; availableBalance: number; availableBalanceNaira?: number; currency: string } | null>(null);
     const [loadingBalance, setLoadingBalance] = useState(false);
 
     const [newAccount, setNewAccount] = useState({

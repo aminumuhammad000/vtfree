@@ -21,6 +21,7 @@ router.get('/:appId/download', VTfreeAppController.downloadAppSource);
 // APK Build & Download
 router.post('/:appId/build', VTfreeAppController.triggerBuildApk);
 router.get('/:appId/apk', VTfreeAppController.downloadApk);
+router.get('/:appId/status', VTfreeAppController.getAppBuildStatus);
 router.get('/:appId', VTfreeAppController.getAppDetails);
 
 
