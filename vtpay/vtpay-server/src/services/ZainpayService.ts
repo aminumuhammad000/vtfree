@@ -327,7 +327,7 @@ export class ZainpayService {
     async verifyAccount(accountNumber: string, bankCode: string): Promise<NameEnquiryResponse> {
         const response = await this.nameEnquiry(bankCode, accountNumber);
         if (response.code !== '00' || !response.data) {
-            throw new Error(response.message || 'Account verification failed');
+            throw new Error(response.description || 'Account verification failed');
         }
         return response.data;
     }
