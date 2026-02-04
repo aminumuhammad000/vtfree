@@ -264,27 +264,29 @@ export default function EditAppScreen() {
     };
 
     const handleDelete = () => {
-        Alert.alert(
-            'Delete App',
-            'Are you sure you want to delete this app? This action cannot be undone.',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                        setLoading(true);
-                        try {
-                            await AppService.deleteApp(appId as string);
-                            router.replace('/');
-                        } catch (error: any) {
-                            Alert.alert('Error', error.message || 'Failed to delete app');
-                            setLoading(false);
-                        }
-                    }
+        setAlertConfig({
+            visible: true,
+            type: 'warning',
+            title: 'Delete App',
+            message: 'Are you sure you want to delete this app? This action cannot be undone.',
+            showCancel: true,
+            confirmText: 'Delete',
+            onConfirm: async () => {
+                setLoading(true);
+                try {
+                    await AppService.deleteApp(appId as string);
+                    router.replace('/');
+                } catch (error: any) {
+                    setAlertConfig({
+                        visible: true,
+                        type: 'error',
+                        title: 'Delete Failed',
+                        message: error.message || 'Failed to delete app'
+                    });
+                    setLoading(false);
                 }
-            ]
-        );
+            }
+        } as any);
     };
 
     const closeAlert = () => {
@@ -439,21 +441,37 @@ export default function EditAppScreen() {
                 {/* Build Option */}
                 {appData?.status !== 'pending' && (
                     <View style={styles.sectionContainer}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <View style={{ flex: 1, paddingRight: 16 }}>
-                                <Text style={styles.sectionTitle}>Build & Publish</Text>
-                                <Text style={{ color: Colors.gray[500], fontSize: 13, marginTop: 4 }}>
-                                    Ready to deploy changes? Create a new build.
-                                </Text>
-                            </View>
-                            <TouchableOpacity
-                                style={{ backgroundColor: Colors.primary, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 6 }}
-                                onPress={() => router.push({ pathname: '/build-app', params: { appId } })}
-                            >
-                                <Rocket color={Colors.white} size={16} />
-                                <Text style={{ color: Colors.white, fontWeight: '600', fontSize: 14 }}>Build App</Text>
-                            </TouchableOpacity>
-                        </View>
+                        {(() => {
+                            const isBuilding = appData?.status === 'building' || appData?.build_status_full === 'queued' || appData?.build_status_full === 'building';
+                            const isFailed = appData?.status === 'failed' || appData?.build_status_full === 'failed';
+
+                            return (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <View style={{ flex: 1, paddingRight: 16 }}>
+                                        <Text style={styles.sectionTitle}>Build & Publish</Text>
+                                        <Text style={{ color: Colors.gray[500], fontSize: 13, marginTop: 4 }}>
+                                            {isBuilding ? 'A build is currently in progress.' : (isFailed ? 'The last build attempt failed.' : 'Ready to deploy changes? Create a new build.')}
+                                        </Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.buildActionButton,
+                                            isBuilding && { backgroundColor: Colors.yellow[600] },
+                                            isFailed && { backgroundColor: Colors.red[600] }
+                                        ]}
+                                        onPress={() => router.push({
+                                            pathname: isBuilding || isFailed ? '/build-status' : '/build-app',
+                                            params: { appId }
+                                        })}
+                                    >
+                                        <Rocket color={Colors.white} size={16} />
+                                        <Text style={styles.buildActionButtonText}>
+                                            {isBuilding ? 'View Progress' : (isFailed ? 'Retry Build' : 'Build App')}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            );
+                        })()}
                     </View>
                 )}
 
@@ -480,6 +498,9 @@ export default function EditAppScreen() {
                 title={alertConfig.title}
                 message={alertConfig.message}
                 onClose={closeAlert}
+                showCancel={(alertConfig as any).showCancel}
+                confirmText={(alertConfig as any).confirmText}
+                onConfirm={(alertConfig as any).onConfirm}
             />
         </View>
     );
@@ -731,5 +752,19 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 2,
         elevation: 1,
+    },
+    buildActionButton: {
+        backgroundColor: Colors.primary,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    buildActionButtonText: {
+        color: Colors.white,
+        fontWeight: '600',
+        fontSize: 14,
     },
 });

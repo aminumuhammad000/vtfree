@@ -13,6 +13,11 @@ export interface ICreatedApp extends Document {
         web: boolean;
     };
 
+    // Publishing Options
+    publish_play_store?: boolean;
+    publish_app_store?: boolean;
+    publish_web?: boolean;
+
     // Services
     services: string[];
 
@@ -40,7 +45,7 @@ export interface ICreatedApp extends Document {
     };
 
     // Status
-    status: 'pending' | 'building' | 'live' | 'suspended';
+    status: 'pending' | 'building' | 'live' | 'suspended' | 'failed';
     build_status: {
         android: 'not_started' | 'building' | 'completed' | 'failed';
         ios: 'not_started' | 'building' | 'completed' | 'failed';
@@ -49,8 +54,15 @@ export interface ICreatedApp extends Document {
     build_progress?: number;
     build_stage?: string;
 
-    // Download Links (Google Drive or other storage)
+    // Download Links (Proxy Links for Frontend)
     download_links?: {
+        android?: string;
+        ios?: string;
+        web?: string;
+    };
+
+    // GitHub Original Assets (Private URLs)
+    github_assets?: {
         android?: string;
         ios?: string;
         web?: string;
@@ -62,6 +74,8 @@ export interface ICreatedApp extends Document {
     build_status_full?: 'queued' | 'building' | 'completed' | 'failed';
     build_error?: string;
     last_build_id?: string;
+    last_successful_step?: string;
+    estimated_finish_at?: Date;
 
     // Payment
     payment_status: 'pending' | 'paid' | 'refunded';
@@ -158,6 +172,20 @@ const CreatedAppSchema: Schema = new Schema({
         },
     },
 
+    // Publishing Options
+    publish_play_store: {
+        type: Boolean,
+        default: false,
+    },
+    publish_app_store: {
+        type: Boolean,
+        default: false,
+    },
+    publish_web: {
+        type: Boolean,
+        default: false,
+    },
+
     // Services
     services: {
         type: [String],
@@ -218,7 +246,7 @@ const CreatedAppSchema: Schema = new Schema({
     // Status
     status: {
         type: String,
-        enum: ['pending', 'building', 'live', 'suspended'],
+        enum: ['pending', 'building', 'live', 'suspended', 'failed'],
         default: 'pending',
         index: true,
     },
@@ -256,6 +284,13 @@ const CreatedAppSchema: Schema = new Schema({
         web: { type: String },
     },
 
+    // GitHub Assets (Private)
+    github_assets: {
+        android: { type: String },
+        ios: { type: String },
+        web: { type: String },
+    },
+
     // GitHub & Expanded Build Status
     github_repo: { type: String },
     last_commit: { type: String },
@@ -265,6 +300,8 @@ const CreatedAppSchema: Schema = new Schema({
     },
     build_error: { type: String },
     last_build_id: { type: String },
+    last_successful_step: { type: String },
+    estimated_finish_at: { type: Date },
 
     // Payment
     payment_status: {

@@ -145,7 +145,7 @@ export default function LoginScreen() {
                     >
                         {/* Top Branding Section - Compact */}
                         <View style={styles.brandingSection}>
-                            <Animated.View entering={FadeInDown.delay(100).springify()}>
+                            <View>
                                 <LinearGradient
                                     colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.05)']}
                                     style={styles.logoCircle}
@@ -156,15 +156,14 @@ export default function LoginScreen() {
                                         resizeMode="contain"
                                     />
                                 </LinearGradient>
-                            </Animated.View>
-                            <Animated.View entering={FadeInDown.delay(200).springify()}>
+                            </View>
+                            <View>
                                 <Text style={styles.brandTitle}>VTFree</Text>
-                            </Animated.View>
+                            </View>
                         </View>
 
                         {/* Full Width Curved Form Card */}
-                        <Animated.View
-                            entering={FadeInUp.delay(300).springify().damping(15)}
+                        <View
                             style={styles.formCard}
                         >
                             <View style={styles.cardHeader}>
@@ -295,7 +294,7 @@ export default function LoginScreen() {
                                     <Text style={styles.linkText}>Register</Text>
                                 </TouchableOpacity>
                             </View>
-                        </Animated.View>
+                        </View>
                     </ScrollView>
                 </KeyboardAvoidingView>
 
@@ -307,7 +306,7 @@ export default function LoginScreen() {
                     onClose={handleAlertClose}
                 />
             </LinearGradient>
-        </View>
+        </View >
     );
 }
 

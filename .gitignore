@@ -14,3 +14,5 @@ logs/
 backend/tools/
 backend/credentials/
 backend/vtfree-apps-*.json
+tools/jdk-17.0.2/
+tools/jdk.tar.gz

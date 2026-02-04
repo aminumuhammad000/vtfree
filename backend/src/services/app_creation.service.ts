@@ -17,6 +17,9 @@ export class AppCreationService {
         company?: { name?: string; email?: string; phone?: string; address?: string };
         admin_credentials?: { email: string; password: string };
         payment_status?: 'pending' | 'paid';
+        publish_play_store?: boolean;
+        publish_app_store?: boolean;
+        publish_web?: boolean;
     }) {
         // 1. Validate Package Name
         const existingApp = await CreatedApp.findOne({ package_name: data.package_name });
@@ -59,6 +62,9 @@ export class AppCreationService {
             total_paid: payment_status === 'paid' ? 0 : 0, // Will be updated on actual payment
             admin_email: adminEmail,
             admin_password_hash: hashedPassword,
+            publish_play_store: data.publish_play_store,
+            publish_app_store: data.publish_app_store,
+            publish_web: data.publish_web,
         });
 
         await newApp.save();
@@ -74,6 +80,11 @@ export class AppCreationService {
 
         // 6. Trigger App Generation via Queue ONLY IF PAID
         if (payment_status === 'paid') {
+            const targets: string[] = [];
+            if (data.platforms.android) targets.push('android_apk');
+            if (data.platforms.web) targets.push('web');
+            if (targets.length === 0) targets.push('android_apk');
+
             await addBuildJob(app_id, {
                 appId: app_id,
                 options: {
@@ -82,7 +93,9 @@ export class AppCreationService {
                     package_name: data.package_name,
                     branding: data.branding,
                     server_url: process.env.API_BASE_URL || 'https://vua.vtfree.com/api',
-                    target: data.platforms.android ? 'android_apk' : (data.platforms.web ? 'web' : 'android_apk')
+                    targets,
+                    target: targets[0],
+                    user_email: data.owner_email
                 }
             });
         }

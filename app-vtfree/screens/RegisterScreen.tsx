@@ -176,17 +176,17 @@ export default function RegisterScreen() {
 
                         {/* Top Illustration - Consistent with Login */}
                         <View style={styles.topIllustration}>
-                            <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.logoBadge}>
+                            <View style={styles.logoBadge}>
                                 <Image
                                     source={require('../assets/images/logo.png')}
                                     style={styles.logoImage}
                                     resizeMode="contain"
                                 />
-                            </Animated.View>
+                            </View>
                         </View>
 
                         {/* Full Width Curved Card */}
-                        <Animated.View entering={FadeInUp.delay(200).springify().damping(15)} style={styles.wizardCard}>
+                        <View style={styles.wizardCard}>
                             <View style={styles.cardHeader}>
                                 <Text style={styles.stepTitle}>{getStepTitle()}</Text>
                                 {renderProgress()}
@@ -324,7 +324,7 @@ export default function RegisterScreen() {
                                     </TouchableOpacity>
                                 </View>
                             </View>
-                        </Animated.View>
+                        </View>
                     </ScrollView>
                 </KeyboardAvoidingView>
 
@@ -336,7 +336,7 @@ export default function RegisterScreen() {
                     onClose={handleAlertClose}
                 />
             </LinearGradient>
-        </View>
+        </View >
     );
 }
 

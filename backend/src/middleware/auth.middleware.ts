@@ -48,7 +48,7 @@ export const authenticate = authMiddleware;
 
 export const authenticateVTfreeUser = (req: AuthRequest, res: Response, next: NextFunction) => {
   authMiddleware(req, res, () => {
-    if (req.user?.type === 'vtfree_user') {
+    if (req.user?.type === 'vtfree_user' || req.user?.type === 'super_admin' || req.user?.role === 'admin') {
       next();
     } else {
       return ApiResponse.error(res, 'Unauthorized: VTfree User access required', 403);

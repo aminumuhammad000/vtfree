@@ -26,7 +26,9 @@ export default function MyAppsScreen() {
                     name: app.app_name,
                     package: app.package_name,
                     // Map statuses specifically
-                    status: (app.status === 'active' || app.status === 'live') ? 'Live' : 'Building',
+                    status: (app.status === 'active' || app.status === 'live' || app.build_status_full === 'completed') ? 'Live' :
+                        (app.status === 'failed' || app.build_status_full === 'failed') ? 'Failed' :
+                            (app.build_status_full === 'queued') ? 'Queued' : 'Building',
                     rawStatus: app.status,
                     platforms: app.platforms,
                     logo: app.branding?.logo_url || null,
@@ -56,13 +58,15 @@ export default function MyAppsScreen() {
                 {/* Header / Banner area */}
                 <View style={[styles.cardHeader, { backgroundColor: `${item.color}15` }]}>
                     <View style={[styles.statusTag,
-                    item.status === 'Live' ? styles.statusLive : styles.statusBuilding
+                    item.status === 'Live' ? styles.statusLive : (item.status === 'Failed' ? styles.statusFailed : styles.statusBuilding)
                     ]}>
                         <View style={[styles.statusDot,
-                        item.status === 'Live' ? { backgroundColor: Colors.green[500] } : { backgroundColor: Colors.yellow[500] }
+                        item.status === 'Live' ? { backgroundColor: Colors.green[500] } :
+                            (item.status === 'Failed' ? { backgroundColor: Colors.red[500] } : { backgroundColor: Colors.yellow[500] })
                         ]} />
                         <Text style={[styles.statusText,
-                        item.status === 'Live' ? { color: Colors.green[700] } : { color: Colors.yellow[700] }
+                        item.status === 'Live' ? { color: Colors.green[700] } :
+                            (item.status === 'Failed' ? { color: Colors.red[700] } : { color: Colors.yellow[700] })
                         ]}>{item.status}</Text>
                     </View>
                 </View>
@@ -99,7 +103,7 @@ export default function MyAppsScreen() {
                     </View>
 
                     <TouchableOpacity style={[styles.arrowButton, { backgroundColor: `${item.color}20` }]}>
-                        <Globe size={18} color={item.color} />
+                        <Plus size={18} color={item.color} />
                     </TouchableOpacity>
                 </View>
             </TouchableOpacity>
@@ -268,6 +272,9 @@ const styles = StyleSheet.create({
     },
     statusBuilding: {
         backgroundColor: Colors.yellow[100],
+    },
+    statusFailed: {
+        backgroundColor: Colors.red[100],
     },
     statusDot: {
         width: 6,

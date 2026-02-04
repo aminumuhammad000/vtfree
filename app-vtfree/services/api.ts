@@ -10,6 +10,10 @@ export const BASE_URL = __DEV__
     ? 'http://192.168.43.204:5000/api/v1'
     : 'https://api.ibdata.com.ng/api/v1';
 
+export const SOCKET_URL = __DEV__
+    ? 'http://192.168.43.204:5000'
+    : 'https://api.ibdata.com.ng';
+
 const api = axios.create({
     baseURL: BASE_URL,
     headers: {

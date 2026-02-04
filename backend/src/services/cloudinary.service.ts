@@ -20,9 +20,25 @@ export const cloudinaryService = {
             const result = await cloudinary.uploader.upload(filePath, {
                 folder: folder,
                 resource_type: 'auto',
+                timeout: 60000, // Increase timeout to 60s
             });
             return result;
-        } catch (error) {
+        } catch (error: any) {
+            // Retry once for timeout/network errors
+            if (error.name === 'TimeoutError' || error.http_code === 499 || error.http_code === 504) {
+                console.log('Cloudinary upload timed out. Retrying...');
+                try {
+                    const result = await cloudinary.uploader.upload(filePath, {
+                        folder: folder,
+                        resource_type: 'auto',
+                        timeout: 120000,
+                    });
+                    return result;
+                } catch (retryError) {
+                    console.error('Cloudinary upload retry failed:', retryError);
+                    throw retryError;
+                }
+            }
             console.error('Cloudinary upload error:', error);
             throw error;
         }

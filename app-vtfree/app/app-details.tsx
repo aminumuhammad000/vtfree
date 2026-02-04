@@ -48,45 +48,79 @@ export default function AppDetailsScreen() {
         admins: [] as any[]
     });
 
-    const [showAdminModal, setShowAdminModal] = React.useState(false);
-    const [adminForm, setAdminForm] = React.useState({ email: '', password: '', firstName: '', lastName: '' });
-    const [isAddingAdmin, setIsAddingAdmin] = React.useState(false);
+    // Admin adding functionality removed as per request
 
-    const handleAddAdmin = async () => {
-        if (!adminForm.email || !adminForm.password) {
-            Alert.alert('Error', 'Email and Password are required');
-            return;
-        }
-        setIsAddingAdmin(true);
-        try {
-            await AppService.addAppAdmin(params.appId as string, {
-                email: adminForm.email,
-                password: adminForm.password,
-                first_name: adminForm.firstName,
-                last_name: adminForm.lastName
-            });
-            Alert.alert('Success', 'Admin added successfully');
-            setShowAdminModal(false);
-            setAdminForm({ email: '', password: '', firstName: '', lastName: '' });
-            fetchAppDetails(params.appId as string);
-        } catch (error: any) {
-            Alert.alert('Error', error.message || 'Failed to add admin');
-        } finally {
-            setIsAddingAdmin(false);
-        }
-    };
 
     const [showBuildConfirm, setShowBuildConfirm] = React.useState(false);
 
     const [prices, setPrices] = React.useState<any>(null);
 
+    // Socket State
+    const [socket, setSocket] = React.useState<any>(null);
+
     React.useEffect(() => {
         if (params.appId) {
             fetchAppDetails(params.appId as string);
+            setupSocket(params.appId as string);
         }
         fetchPrices();
-        return () => stopPolling();
+
+        return () => {
+            if (socket) {
+                socket.emit('leave_app', params.appId);
+                socket.disconnect();
+            }
+        };
     }, [params.appId]);
+
+    const setupSocket = (appId: string) => {
+        // Dynamic import to avoid issues if package missing (though we installed it)
+        const { io } = require('socket.io-client');
+        import('../services/api').then(({ SOCKET_URL }) => {
+            const newSocket = io(SOCKET_URL);
+
+            newSocket.on('connect', () => {
+                console.log('Socket Connected');
+                newSocket.emit('join_app', appId);
+            });
+
+            newSocket.on('build_update', (data: any) => {
+                console.log('Socket Update:', data);
+
+                // Update Progress Modal State
+                if (data.progress !== undefined) setBuildProgress(data.progress);
+                if (data.stage) setBuildStage(data.stage);
+
+                // Update Local App Data Status
+                if (data.status) {
+                    let displayStatus = 'Building';
+                    if (data.status === 'active' || data.status === 'live') displayStatus = 'Live';
+                    else if (data.status === 'pending') displayStatus = 'Pending';
+                    else if (data.status === 'failed') displayStatus = 'Failed';
+                    else if (data.status === 'queued') displayStatus = 'Queued';
+
+                    setAppData(prev => ({ ...prev, status: displayStatus }));
+                }
+
+                // Handle Completion/Failure logic for Modal
+                if (data.status === 'live' || data.status === 'completed') {
+                    setBuildStatus('completed');
+                    if (data.download_links) {
+                        setApkLink(data.download_links.android);
+                        setDriveLink(data.download_links.android);
+                    }
+                    // Refresh details to ensure consistency
+                    fetchAppDetails(appId);
+                } else if (data.status === 'failed') {
+                    setBuildStatus('failed');
+                } else if (data.status === 'building') {
+                    setBuildStatus('building');
+                }
+            });
+
+            setSocket(newSocket);
+        });
+    };
 
     const fetchPrices = async () => {
         try {
@@ -99,40 +133,6 @@ export default function AppDetailsScreen() {
         }
     };
 
-    const stopPolling = () => {
-        if (pollingRef.current) {
-            clearInterval(pollingRef.current);
-            pollingRef.current = null;
-        }
-    };
-
-    const startPolling = () => {
-        stopPolling();
-        pollingRef.current = setInterval(async () => {
-            try {
-                const response = await AppService.getAppDetails(params.appId as string);
-                if (response.success) {
-                    const app = response.data.app;
-                    if (app.build_progress) setBuildProgress(app.build_progress);
-                    if (app.build_stage) setBuildStage(app.build_stage);
-
-                    // Allow build status to update
-                    if (app.build_status?.android === 'completed') {
-                        setBuildStatus('completed');
-                        setApkLink(app.download_links?.android);
-                        setDriveLink(app.download_links?.android); // Use drive link as valid link
-                        stopPolling();
-                    } else if (app.build_status?.android === 'failed') {
-                        setBuildStatus('failed');
-                        stopPolling();
-                    }
-                }
-            } catch (e) {
-                console.log('Polling error', e);
-            }
-        }, 2000);
-    };
-
     const fetchAppDetails = async (id: string) => {
         try {
             const response = await AppService.getAppDetails(id);
@@ -142,11 +142,12 @@ export default function AppDetailsScreen() {
                 if (app.status === 'active' || app.status === 'live') displayStatus = 'Live';
                 else if (app.status === 'pending') displayStatus = 'Pending';
                 else if (app.status === 'failed') displayStatus = 'Failed';
+                else if (app.status === 'queued') displayStatus = 'Queued';
 
                 // Map Admins properly
                 const formattedAdmins = (response.data.admins || []).map((admin: any) => ({
                     id: admin._id,
-                    name: admin.first_name ? `${admin.first_name} ${admin.last_name || ''}` : (admin.email.split('@')[0]), // Use name or username part of email
+                    name: admin.first_name ? `${admin.first_name} ${admin.last_name || ''}` : (admin.email?.split('@')[0] || 'Unknown'), // Use name or username part of email
                     email: admin.email,
                     role: admin.role.charAt(0).toUpperCase() + admin.role.slice(1),
                     status: admin.status.charAt(0).toUpperCase() + admin.status.slice(1),
@@ -180,7 +181,7 @@ export default function AppDetailsScreen() {
 
     const handleBuildApk = async () => {
         // If app is already building, go to status
-        if (appData.status === 'Building') {
+        if (appData.status === 'Building' || appData.status === 'Queued') {
             router.push({
                 pathname: '/build-status',
                 params: { appId: params.appId }
@@ -228,6 +229,8 @@ export default function AppDetailsScreen() {
         { name: 'Website', icon: Globe, active: appData.type === 'Web' || appData.type === 'All', status: 'Live' },
         { name: 'Android', icon: Smartphone, active: appData.type === 'Android' || appData.type === 'All', status: 'Live' },
     ];
+
+    const isDownloadDisabled = appData.status !== 'Live';
 
     return (
         <View style={styles.container}>
@@ -308,13 +311,6 @@ export default function AppDetailsScreen() {
                 {/* Admin Management */}
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Admin Management</Text>
-                    <TouchableOpacity
-                        style={styles.addAdminButton}
-                        onPress={() => setShowAdminModal(true)}
-                    >
-                        <Plus color={Colors.primary} size={20} />
-                        <Text style={styles.addAdminText}>Add New</Text>
-                    </TouchableOpacity>
                 </View>
 
                 <Animated.View entering={FadeInDown.delay(400).springify()} style={styles.adminCard}>
@@ -438,23 +434,23 @@ export default function AppDetailsScreen() {
                         <Text style={styles.devSectionTitle}>Downloads</Text>
                         <View style={styles.downloadGrid}>
                             <TouchableOpacity
-                                style={[styles.downloadButton, appData.status === 'Pending' && styles.disabledButton]}
+                                style={[styles.downloadButton, isDownloadDisabled && styles.disabledButton]}
                                 onPress={handleDownloadApk}
-                                disabled={appData.status === 'Pending'}
+                                disabled={isDownloadDisabled}
                             >
                                 <View style={[styles.downloadIcon, { backgroundColor: Colors.green[100] }]}>
-                                    {appData.status === 'Pending' ? <Lock color={Colors.green[600]} size={20} /> : <Smartphone color={Colors.green[600]} size={20} />}
+                                    {isDownloadDisabled ? <Lock color={Colors.green[600]} size={20} /> : <Smartphone color={Colors.green[600]} size={20} />}
                                 </View>
                                 <Text style={styles.downloadText}>Android APK</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
-                                style={[styles.downloadButton, appData.status === 'Pending' && styles.disabledButton]}
+                                style={[styles.downloadButton, isDownloadDisabled && styles.disabledButton]}
                                 onPress={handleDownloadSource}
-                                disabled={appData.status === 'Pending'}
+                                disabled={isDownloadDisabled}
                             >
                                 <View style={[styles.downloadIcon, { backgroundColor: Colors.gray[100] }]}>
-                                    {appData.status === 'Pending' ? <Lock color={Colors.gray[600]} size={20} /> : <Laptop color={Colors.gray[600]} size={20} />}
+                                    {isDownloadDisabled ? <Lock color={Colors.gray[600]} size={20} /> : <Laptop color={Colors.gray[600]} size={20} />}
                                 </View>
                                 <Text style={styles.downloadText}>Web Bundle</Text>
                             </TouchableOpacity>
@@ -475,71 +471,7 @@ export default function AppDetailsScreen() {
                 driveLink={driveLink}
             />
 
-            {/* Add Admin Modal */}
-            <Modal
-                visible={showAdminModal}
-                transparent
-                animationType="fade"
-                onRequestClose={() => setShowAdminModal(false)}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Add New Admin</Text>
-                            <TouchableOpacity onPress={() => setShowAdminModal(false)}>
-                                <Text style={{ fontSize: 20, color: Colors.gray[500] }}>✕</Text>
-                            </TouchableOpacity>
-                        </View>
 
-                        <Text style={styles.inputLabel}>Email Address</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="admin@example.com"
-                            value={adminForm.email}
-                            onChangeText={(text) => setAdminForm({ ...adminForm, email: text })}
-                            autoCapitalize="none"
-                            keyboardType="email-address"
-                        />
-
-                        <Text style={styles.inputLabel}>Temporary Password</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Password"
-                            value={adminForm.password}
-                            onChangeText={(text) => setAdminForm({ ...adminForm, password: text })}
-                            secureTextEntry
-                        />
-                        <View style={{ flexDirection: 'row', gap: 10 }}>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.inputLabel}>First Name</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="John"
-                                    value={adminForm.firstName}
-                                    onChangeText={(text) => setAdminForm({ ...adminForm, firstName: text })}
-                                />
-                            </View>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.inputLabel}>Last Name</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="Doe"
-                                    value={adminForm.lastName}
-                                    onChangeText={(text) => setAdminForm({ ...adminForm, lastName: text })}
-                                />
-                            </View>
-                        </View>
-
-                        <TouchableOpacity
-                            style={[styles.modalButton, isAddingAdmin && { opacity: 0.7 }]}
-                            onPress={handleAddAdmin}
-                            disabled={isAddingAdmin}
-                        >
-                            <Text style={styles.modalButtonText}>{isAddingAdmin ? 'Adding...' : 'Add Admin'}</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
 
             {/* Build Confirmation Modal */}
             <Modal

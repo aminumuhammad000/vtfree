@@ -1,25 +1,3 @@
-# Introduction
-Welcome to the VTPay API. This API is dedicated to Virtual Account Management. It allows you to seamlessly create and manage dedicated virtual bank accounts for your customers, check balances, and retrieve transaction histories.
-
-## Dedicated Service
-VTPay specializes in providing robust virtual account infrastructure for fintech applications.
-
-## Authentication
-Authenticate your requests by including your Secret Key in the `x-api-key` header.
-
-```
-x-api-key: sk_live_xxxxxxxxxxxxxxxxxxxx
-```
-
-### Security Warning
-Never share your secret keys in client-side code or public repositories.
-
-## Base URL
-All API requests should be made to our production endpoint:
-
-```
-https://api.vtpay.com/api
-```
 
 ## Virtual Account Endpoints
 

@@ -345,50 +345,85 @@ export default function DashboardScreen() {
                                         <Text style={styles.appName} numberOfLines={1}>{app.app_name}</Text>
                                         <Text style={styles.appPackage} numberOfLines={1}>{app.package_name}</Text>
                                     </View>
-                                    <View style={[
-                                        styles.statusBadge,
-                                        app.status === 'live' ? styles.statusLive :
-                                            (app.status === 'failed' ? styles.statusFailed :
-                                                (app.status === 'pending' ? styles.statusPending : styles.statusBuilding))
-                                    ]}>
-                                        <Text style={[
-                                            styles.statusText,
-                                            app.status === 'live' ? styles.statusTextLive :
-                                                (app.status === 'failed' ? styles.statusTextFailed :
-                                                    (app.status === 'pending' ? styles.statusTextPending : styles.statusTextBuilding))
-                                        ]}>
-                                            {app.status === 'live' ? 'Live' :
-                                                (app.status === 'failed' ? 'Failed' :
-                                                    (app.status === 'pending' ? 'Pending' : 'Building'))}
-                                        </Text>
-                                    </View>
+                                    {(() => {
+                                        const buildStatus = app.build_status_full;
+                                        const isLive = buildStatus === 'completed' || app.status === 'live';
+                                        const isBuilding = buildStatus === 'building';
+                                        const isQueued = buildStatus === 'queued';
+                                        const isFailed = buildStatus === 'failed' || app.status === 'failed';
+                                        const isPending = app.status === 'pending' || !buildStatus;
+
+                                        return (
+                                            <View style={[
+                                                styles.statusBadge,
+                                                isLive ? styles.statusLive :
+                                                    (isFailed ? styles.statusFailed :
+                                                        (isPending ? styles.statusPending : styles.statusBuilding))
+                                            ]}>
+                                                <Text style={[
+                                                    styles.statusText,
+                                                    isLive ? styles.statusTextLive :
+                                                        (isFailed ? styles.statusTextFailed :
+                                                            (isPending ? styles.statusTextPending : styles.statusTextBuilding))
+                                                ]}>
+                                                    {isLive ? 'Live' : (isFailed ? 'Failed' : (isQueued ? 'Queued' : (isPending ? 'Pending' : 'Building')))}
+                                                </Text>
+                                            </View>
+                                        );
+                                    })()}
                                 </View>
 
-                                {(app.status === 'live' || app.status === 'pending') && (
-                                    <TouchableOpacity
-                                        style={styles.upgradeButton}
-                                        onPress={(e) => {
-                                            e.stopPropagation();
-                                            router.push({ pathname: '/build-app', params: { appId: app.app_id } });
-                                        }}
-                                    >
-                                        <Text style={styles.upgradeButtonText}>Upgrade / Build</Text>
-                                        <ArrowRight size={14} color={Colors.primary} />
-                                    </TouchableOpacity>
-                                )}
+                                {(() => {
+                                    const buildStatus = app.build_status_full;
+                                    const isLive = buildStatus === 'completed' || app.status === 'live';
+                                    const isBuilding = buildStatus === 'building';
+                                    const isQueued = buildStatus === 'queued';
+                                    const isFailed = buildStatus === 'failed' || app.status === 'failed';
+                                    const isPending = app.status === 'pending';
 
-                                {app.status === 'failed' && (
-                                    <TouchableOpacity
-                                        style={styles.upgradeButton}
-                                        onPress={(e) => {
-                                            e.stopPropagation();
-                                            router.push({ pathname: '/build-status', params: { appId: app.app_id } });
-                                        }}
-                                    >
-                                        <Text style={[styles.upgradeButtonText, { color: Colors.red[600] }]}>Retry Build</Text>
-                                        <ArrowRight size={14} color={Colors.red[600]} />
-                                    </TouchableOpacity>
-                                )}
+                                    if (isBuilding || isQueued) {
+                                        return (
+                                            <TouchableOpacity
+                                                style={styles.upgradeButton}
+                                                onPress={(e) => {
+                                                    e.stopPropagation();
+                                                    router.push({ pathname: '/build-status', params: { appId: app.app_id } });
+                                                }}
+                                            >
+                                                <Text style={[styles.upgradeButtonText, { color: Colors.yellow[700] }]}>View Progress</Text>
+                                                <ArrowRight size={14} color={Colors.yellow[700]} />
+                                            </TouchableOpacity>
+                                        );
+                                    }
+
+                                    if (isFailed) {
+                                        return (
+                                            <TouchableOpacity
+                                                style={styles.upgradeButton}
+                                                onPress={(e) => {
+                                                    e.stopPropagation();
+                                                    router.push({ pathname: '/build-status', params: { appId: app.app_id } });
+                                                }}
+                                            >
+                                                <Text style={[styles.upgradeButtonText, { color: Colors.red[700] }]}>Retry Build</Text>
+                                                <ArrowRight size={14} color={Colors.red[700]} />
+                                            </TouchableOpacity>
+                                        );
+                                    }
+
+                                    return (
+                                        <TouchableOpacity
+                                            style={styles.upgradeButton}
+                                            onPress={(e) => {
+                                                e.stopPropagation();
+                                                router.push({ pathname: '/build-app', params: { appId: app.app_id } });
+                                            }}
+                                        >
+                                            <Text style={styles.upgradeButtonText}>Upgrade / Build</Text>
+                                            <ArrowRight size={14} color={Colors.primary} />
+                                        </TouchableOpacity>
+                                    );
+                                })()}
                             </TouchableOpacity>
                         ))}
                     </View>

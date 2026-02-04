@@ -107,6 +107,13 @@ export default function BuildAppScreen() {
     };
 
     const handleBuild = async () => {
+        const isBuilding = appData?.status === 'building' || appData?.build_status_full === 'queued' || appData?.build_status_full === 'building';
+        if (isBuilding) {
+            Alert.alert('Build in Progress', 'Your app is already building. Please wait for it to complete.');
+            router.push({ pathname: '/build-status', params: { appId: appId as string } });
+            return;
+        }
+
         if (platforms.length === 0) {
             Alert.alert('Required', 'Please select at least one platform');
             return;
@@ -340,23 +347,31 @@ export default function BuildAppScreen() {
                     )}
                 </View>
 
-                <TouchableOpacity
-                    style={[
-                        styles.buildButton,
-                        (submitting || walletBalance < totalCost) && styles.buildButtonDisabled
-                    ]}
-                    onPress={handleBuild}
-                    disabled={submitting || walletBalance < totalCost}
-                >
-                    {submitting ? (
-                        <ActivityIndicator color={Colors.white} />
-                    ) : (
-                        <>
-                            <Rocket color={Colors.white} size={20} />
-                            <Text style={styles.buildButtonText}>Pay & Build</Text>
-                        </>
-                    )}
-                </TouchableOpacity>
+                {(() => {
+                    const isBuilding = appData?.status === 'building' || appData?.build_status_full === 'queued' || appData?.build_status_full === 'building';
+                    return (
+                        <TouchableOpacity
+                            style={[
+                                styles.buildButton,
+                                (submitting || (walletBalance < totalCost && !isBuilding)) && styles.buildButtonDisabled,
+                                isBuilding && { backgroundColor: Colors.yellow[600] }
+                            ]}
+                            onPress={handleBuild}
+                            disabled={submitting}
+                        >
+                            {submitting ? (
+                                <ActivityIndicator color={Colors.white} />
+                            ) : (
+                                <>
+                                    <Rocket color={Colors.white} size={20} />
+                                    <Text style={styles.buildButtonText}>
+                                        {isBuilding ? 'Build in Progress' : 'Pay & Build'}
+                                    </Text>
+                                </>
+                            )}
+                        </TouchableOpacity>
+                    );
+                })()}
 
             </ScrollView>
 

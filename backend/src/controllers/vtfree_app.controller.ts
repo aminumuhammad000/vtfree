@@ -19,7 +19,7 @@ import { cloudinaryService } from '../services/cloudinary.service.js';
 
 export const createApp = async (req: Request, res: Response) => {
     try {
-        const { app_name, package_name, platforms, branding, services, publish_play_store, publish_app_store, payment_method, company } = req.body;
+        const { app_name, package_name, platforms, branding, services, publish_play_store, publish_app_store, publish_web, payment_method, company } = req.body;
         const owner_id = (req as any).user.id;
         const owner_email = (req as any).user.email;
 
@@ -34,6 +34,7 @@ export const createApp = async (req: Request, res: Response) => {
 
         if (publish_play_store) totalAmount += PRICES.PUBLISH_PLAY_STORE;
         if (publish_app_store) totalAmount += PRICES.PUBLISH_APP_STORE;
+        if (publish_web) totalAmount += PRICES.PUBLISH_WEB;
 
         if (services && services.includes('bills')) totalAmount += PRICES.SERVICE_BILLS;
         if (services && services.includes('giftcard')) totalAmount += PRICES.SERVICE_GIFTCARD;
@@ -43,8 +44,8 @@ export const createApp = async (req: Request, res: Response) => {
         if (payment_method === 'card') {
             return res.status(400).json({ success: false, message: 'Card payment is temporarily unavailable. Please use Wallet.' });
             /*
-            const paystackService = new PaystackService();
-            const transactionRecord = await paystackService.initializeTransaction(
+            const vtpayService = new VtpayService();
+            const transactionRecord = await vtpayService.initializeTransaction(
                 owner_email,
                 totalAmount,
                 `APP-${uuidv4()}`
@@ -78,7 +79,10 @@ export const createApp = async (req: Request, res: Response) => {
                 services: services || [],
                 company,
                 admin_credentials: req.body.admin_credentials || undefined,
-                payment_status: 'pending'
+                payment_status: 'pending',
+                publish_play_store,
+                publish_app_store,
+                publish_web
             });
 
             return res.status(201).json({
@@ -117,7 +121,10 @@ export const createApp = async (req: Request, res: Response) => {
             branding,
             services: services || [],
             company,
-            admin_credentials: req.body.admin_credentials || undefined
+            admin_credentials: req.body.admin_credentials || undefined,
+            publish_play_store,
+            publish_app_store,
+            publish_web
         });
 
         res.status(201).json({
@@ -177,7 +184,10 @@ export const verifyAppPayment = async (req: Request, res: Response) => {
             package_name,
             platforms,
             branding,
-            services: services || []
+            services: services || [],
+            publish_play_store: appPayload.publish_play_store,
+            publish_app_store: appPayload.publish_app_store,
+            publish_web: appPayload.publish_web
         });
 
         res.status(201).json({
@@ -319,19 +329,28 @@ export const downloadAppSource = async (req: Request, res: Response) => {
 export const triggerBuildApk = async (req: Request, res: Response) => {
     try {
         const { appId } = req.params;
-        const owner_id = (req as any).user.id;
-        const { target = 'android_apk' } = req.body;
+        const user = (req as any).user;
+        const owner_id = user.id;
+        const { target = 'android_apk' } = req.body || {};
 
-        // Verify ownership
-        const app = await CreatedApp.findOne({ app_id: appId, owner_id });
+        // Find app
+        const app = await CreatedApp.findOne({ app_id: appId });
         if (!app) {
-            return res.status(404).json({ success: false, message: 'App not found or unauthorized' });
+            return res.status(404).json({ success: false, message: 'App not found' });
+        }
+
+        // Check ownership or super admin
+        const isOwner = app.owner_id.toString() === owner_id.toString();
+        const isSuperAdmin = user.type === 'super_admin' || user.role === 'admin';
+
+        if (!isOwner && !isSuperAdmin) {
+            return res.status(403).json({ success: false, message: 'Unauthorized access' });
         }
 
         // Check if already building
-        if (app.status === 'building') {
-            return res.status(409).json({ success: false, message: 'A build is already in progress for this app.' });
-        }
+        // if (app.status === 'building') {
+        //     return res.status(409).json({ success: false, message: 'A build is already in progress for this app.' });
+        // }
 
         const targets: string[] = [];
         if (app.platforms.android) targets.push('android_apk');
@@ -350,7 +369,8 @@ export const triggerBuildApk = async (req: Request, res: Response) => {
             server_url: process.env.API_BASE_URL || 'https://vua.vtfree.com/api',
             targets: targets,
             target: targets[0],
-            user_email: (req as any).user.email
+            user_email: (req as any).user.email,
+            retry: app.status === 'failed' || req.body.retry === true
         };
 
         // Enqueue Build Job
@@ -361,8 +381,10 @@ export const triggerBuildApk = async (req: Request, res: Response) => {
             { app_id: appId },
             {
                 status: 'building',
+                build_status_full: 'queued',
                 build_progress: 0,
-                build_stage: 'Queued'
+                build_stage: 'Queued',
+                build_error: '' // Clear previous error
             }
         );
 
@@ -381,13 +403,21 @@ export const triggerBuildApk = async (req: Request, res: Response) => {
 export const getAppBuildStatus = async (req: Request, res: Response) => {
     try {
         const { appId } = req.params;
-        const owner_id = (req as any).user.id;
+        const user = (req as any).user;
+        const owner_id = user.id;
 
-        const app = await CreatedApp.findOne({ app_id: appId, owner_id })
-            .select('status build_status build_progress build_stage download_links build_error payment_status total_paid');
+        const app = await CreatedApp.findOne({ app_id: appId })
+            .select('owner_id status build_status build_progress build_stage download_links build_error payment_status total_paid estimated_finish_at');
 
         if (!app) {
             return res.status(404).json({ success: false, message: 'App not found' });
+        }
+
+        const isOwner = app.owner_id.toString() === owner_id.toString();
+        const isSuperAdmin = user.type === 'super_admin' || user.role === 'admin';
+
+        if (!isOwner && !isSuperAdmin) {
+            return res.status(403).json({ success: false, message: 'Unauthorized access' });
         }
 
         res.json({
@@ -399,7 +429,8 @@ export const getAppBuildStatus = async (req: Request, res: Response) => {
                 links: app.download_links,
                 error: (app as any).build_error,
                 payment_status: app.payment_status,
-                total_paid: app.total_paid
+                total_paid: app.total_paid,
+                estimated_finish_at: app.estimated_finish_at
             }
         });
     } catch (error) {
@@ -435,6 +466,68 @@ export const downloadApk = async (req: Request, res: Response) => {
 
     } catch (error: any) {
         console.error('Download APK error:', error);
+        res.status(500).json({ success: false, message: error.message || 'Server error' });
+    }
+};
+
+export const downloadArtifact = async (req: Request, res: Response) => {
+    try {
+        const { appId, target } = req.params; // target: 'android' | 'web'
+        const owner_id = (req as any).user.id;
+
+        // Verify ownership
+        const app = await CreatedApp.findOne({ app_id: appId, owner_id });
+        if (!app) {
+            return res.status(404).json({ success: false, message: 'App not found or unauthorized' });
+        }
+
+        // Check if we have a GitHub Asset for this target
+        // github_assets stores the Asset ID
+        const assetIdStr = app.github_assets?.[target as 'android' | 'web'];
+
+        if (assetIdStr) {
+            try {
+                const githubService = new GitHubAutomationService();
+                const repoName = `vtfree-app-${appId}`; // Assuming naming convention
+
+                // Fetch the asset buffer
+                // For large files, buffer might be memory intensive. 
+                // But AppGenerator builds are < 50MB typically.
+                const buffer = await githubService.streamAsset(repoName, parseInt(assetIdStr));
+
+                // Set headers
+                const fileExt = target === 'web' ? 'zip' : 'apk';
+                const contentType = target === 'web' ? 'application/zip' : 'application/vnd.android.package-archive';
+                const fileName = `${app.package_name}_${target}.${fileExt}`;
+
+                res.setHeader('Content-Type', contentType);
+                res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+                res.send(Buffer.from(buffer));
+                return;
+            } catch (ghError) {
+                console.error('GitHub Asset Stream Failed:', ghError);
+                // Fallback to local check below?
+            }
+        }
+
+        // FALLBACK: Local File Check (Legacy or if GitHub failed)
+        // Check for real path locally
+        let realPath = '';
+        if (target === 'android') {
+            realPath = path.resolve(__dirname, '../../../generated_apps', appId, 'android/app/build/outputs/apk/release/app-release.apk');
+        } else if (target === 'web') {
+            realPath = path.resolve(__dirname, '../../../generated_apps', appId, 'web-build.zip'); // adjust path if needed
+        }
+
+        if (realPath && await fs.pathExists(realPath)) {
+            const fileName = `${app.package_name}_${target}.${target === 'web' ? 'zip' : 'apk'}`;
+            return res.download(realPath, fileName);
+        }
+
+        res.status(404).json({ success: false, message: 'Artifact not found. Please build it first.' });
+
+    } catch (error: any) {
+        console.error('Download Artifact error:', error);
         res.status(500).json({ success: false, message: error.message || 'Server error' });
     }
 };
@@ -497,62 +590,91 @@ export const uploadLogo = async (req: Request, res: Response) => {
 export const payAndStartBuild = async (req: Request, res: Response) => {
     try {
         const { appId } = req.params;
-        const owner_id = (req as any).user.id;
-        const owner_email = (req as any).user.email;
+        const authUser = (req as any).user;
 
-        const app = await CreatedApp.findOne({ app_id: appId, owner_id });
+        const app = await CreatedApp.findOne({ app_id: appId });
         if (!app) {
             return res.status(404).json({ success: false, message: 'App not found' });
         }
 
-        if (app.payment_status === 'paid') {
-            return res.status(400).json({ success: false, message: 'App is already paid for' });
+        // Check ownership or super admin
+        const isOwner = app.owner_id.toString() === authUser.id.toString();
+        const isSuperAdmin = authUser.type === 'super_admin' || authUser.role === 'admin';
+
+        if (!isOwner && !isSuperAdmin) {
+            return res.status(403).json({ success: false, message: 'Unauthorized access' });
         }
 
-        // 1. Recalculate Total Cost
-        const PRICES = await PricingService.getAppCreationPrices();
-        let totalAmount = 0;
-        if (app.platforms.android) totalAmount += PRICES.PLATFORM_ANDROID;
-        if (app.platforms.ios) totalAmount += PRICES.PLATFORM_IOS;
-        if (app.platforms.web) totalAmount += PRICES.PLATFORM_WEB;
-
-        // 2. Check Balance
-        const user = await VTfreeUser.findById(owner_id);
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'User not found' });
+        // IMPORTANT: For the rest of the logic, use the APP'S OWNER for payment deduction
+        const owner_id = app.owner_id;
+        const actualOwner = await VTfreeUser.findById(owner_id);
+        if (!actualOwner) {
+            return res.status(404).json({ success: false, message: 'App owner not found' });
         }
+        const owner_email = actualOwner.email;
 
-        if (user.wallet_balance < totalAmount) {
-            return res.status(402).json({
-                success: false,
-                message: 'Insufficient wallet balance',
-                code: 'INSUFFICIENT_FUNDS',
-                data: {
-                    required: totalAmount,
-                    current: user.wallet_balance,
-                    shortfall: totalAmount - user.wallet_balance
-                }
+        let message = 'Payment successful. App build started.';
+
+        if (app.payment_status !== 'paid') {
+            // 1. Recalculate Total Cost
+            const PRICES = await PricingService.getAppCreationPrices();
+            let totalAmount = 0;
+            if (app.platforms.android) totalAmount += PRICES.PLATFORM_ANDROID;
+            if (app.platforms.ios) totalAmount += PRICES.PLATFORM_IOS;
+            if (app.platforms.web) totalAmount += PRICES.PLATFORM_WEB;
+
+            if (app.publish_play_store) totalAmount += PRICES.PUBLISH_PLAY_STORE;
+            if (app.publish_app_store) totalAmount += PRICES.PUBLISH_APP_STORE;
+            if (app.publish_web) totalAmount += PRICES.PUBLISH_WEB;
+
+            if (app.services && app.services.includes('bills')) totalAmount += PRICES.SERVICE_BILLS;
+            if (app.services && app.services.includes('giftcard')) totalAmount += PRICES.SERVICE_GIFTCARD;
+
+            // 2. Check Balance
+            const user = await VTfreeUser.findById(owner_id);
+            if (!user) {
+                return res.status(404).json({ success: false, message: 'User not found' });
+            }
+
+            if (user.wallet_balance < totalAmount) {
+                return res.status(402).json({
+                    success: false,
+                    message: 'Insufficient wallet balance',
+                    code: 'INSUFFICIENT_FUNDS',
+                    data: {
+                        required: totalAmount,
+                        current: user.wallet_balance,
+                        shortfall: totalAmount - user.wallet_balance
+                    }
+                });
+            }
+
+            // 3. Process Wallet Payment
+            user.wallet_balance -= totalAmount;
+            await user.save();
+
+            await VTfreeTransaction.create({
+                user_id: owner_id,
+                type: 'debit',
+                amount: totalAmount,
+                reference: `PAY-${uuidv4()}`,
+                description: `Payment for App Creation (Finalizing): ${app.app_name}`,
+                status: 'success',
+                metadata: { app_name: app.app_name, package_name: app.package_name, method: 'wallet' }
             });
+
+            // 4. Update App Status
+            app.payment_status = 'paid';
+            app.total_paid = totalAmount;
+        } else {
+            message = 'App is already paid. Build restarted.';
         }
 
-        // 3. Process Wallet Payment
-        user.wallet_balance -= totalAmount;
-        await user.save();
-
-        await VTfreeTransaction.create({
-            user_id: owner_id,
-            type: 'debit',
-            amount: totalAmount,
-            reference: `PAY-${uuidv4()}`,
-            description: `Payment for App Creation (Finalizing): ${app.app_name}`,
-            status: 'success',
-            metadata: { app_name: app.app_name, package_name: app.package_name, method: 'wallet' }
-        });
-
-        // 4. Update App Status
-        app.payment_status = 'paid';
-        app.total_paid = totalAmount;
         app.status = 'building';
+        (app as any).build_status_full = 'queued';
+        app.build_progress = 0;
+        app.build_stage = 'Queued';
+        (app as any).build_error = ''; // Clear previous error
         await app.save();
 
         // 5. Trigger App Generation
@@ -578,7 +700,7 @@ export const payAndStartBuild = async (req: Request, res: Response) => {
 
         res.json({
             success: true,
-            message: 'Payment successful. App build started.',
+            message: message,
             data: { app }
         });
 
@@ -749,5 +871,61 @@ export const upgradeApp = async (req: Request, res: Response) => {
     } catch (error: any) {
         console.error('Upgrade app error:', error);
         res.status(500).json({ success: false, message: error.message || 'Server error' });
+    }
+};
+
+export const deleteApp = async (req: Request, res: Response) => {
+    try {
+        const { appId } = req.params;
+        const user = (req as any).user;
+        const owner_id = user.id;
+
+        const app = await CreatedApp.findOne({ app_id: appId });
+        if (!app) {
+            return res.status(404).json({ success: false, message: 'App not found' });
+        }
+
+        // Check ownership: must be the owner OR a super admin/admin
+        const isOwner = app.owner_id.toString() === owner_id.toString();
+        const isSuperAdmin = user.type === 'super_admin' || user.role === 'admin';
+
+        if (!isOwner && !isSuperAdmin) {
+            console.warn(`[DeleteApp] Unauthorized deletion attempt by user ${owner_id} for app ${appId}`);
+            return res.status(403).json({ success: false, message: 'Unauthorized: You do not have permission to delete this app' });
+        }
+
+        // Delete associated admins
+        await AppAdmin.deleteMany({ app_id: appId });
+
+        // Delete the app
+        await CreatedApp.deleteOne({ app_id: appId });
+
+        // CLEANUP: Delete app folder and zip files from server
+        const appFolderPath = path.resolve(__dirname, '../../../generated_apps', appId);
+        const appsFolderPath = path.resolve(__dirname, '../../../apps', appId);
+        const appZipPath = path.resolve(__dirname, '../../../generated_apps', `${appId}.zip`);
+
+        try {
+            if (await fs.pathExists(appFolderPath)) {
+                await fs.remove(appFolderPath);
+                console.log(`[DeleteApp] Deleted app files at: ${appFolderPath}`);
+            }
+            if (await fs.pathExists(appsFolderPath)) {
+                await fs.remove(appsFolderPath);
+                console.log(`[DeleteApp] Deleted app files at: ${appsFolderPath}`);
+            }
+            if (await fs.pathExists(appZipPath)) {
+                await fs.remove(appZipPath);
+                console.log(`[DeleteApp] Deleted app zip at: ${appZipPath}`);
+            }
+        } catch (cleanupError) {
+            console.error('[DeleteApp] Failed to cleanup files:', cleanupError);
+            // Don't fail the request since DB deletion was successful
+        }
+
+        res.json({ success: true, message: 'App deleted successfully' });
+    } catch (error: any) {
+        console.error('Delete app error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 };

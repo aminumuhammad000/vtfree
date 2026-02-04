@@ -24,6 +24,7 @@ export class AppGeneratorService {
             secondary_color: string;
         };
         owner_id: string;
+        server_url?: string;
     }) {
         try {
             const { app_id, app_name, package_name, branding } = data;
@@ -82,7 +83,13 @@ export class AppGeneratorService {
                 // Replace icon.png, adaptive-icon.png
                 await fs.copy(brandingWithImages.logo_path, path.join(assetsDir, 'icon.png'));
                 await fs.copy(brandingWithImages.logo_path, path.join(assetsDir, 'adaptive-icon.png'));
-                console.log(`[AppGenerator] App Logo assets injected`);
+
+                // Also replace 'assets/images/logo.png' if it serves as internal app logo
+                const imagesDir = path.join(assetsDir, 'images');
+                await fs.ensureDir(imagesDir);
+                await fs.copy(brandingWithImages.logo_path, path.join(imagesDir, 'logo.png'));
+
+                console.log(`[AppGenerator] App Logo assets (icon + internal logo) injected`);
             }
 
             if (brandingWithImages.splash_path && await fs.pathExists(brandingWithImages.splash_path)) {
@@ -177,7 +184,7 @@ export default Colors;
             const configContent = `
 export const AppConfig = {
     APP_ID: '${app_id}',
-    API_URL: 'https://vua.vtfree.com/api', // TODO: Make this dynamic from env or current backend
+    API_URL: '${data.server_url || 'https://vua.vtfree.com/api'}',
     APP_NAME: '${app_name}',
     PACKAGE_NAME: '${package_name}'
 };
@@ -186,7 +193,7 @@ export const AppConfig = {
             await fs.writeFile(configPath, configContent);
             console.log(`[AppGenerator] AppConfig.ts created`);
 
-            console.log(`[AppGenerator] Successfully generated app source at ${appPath}`);
+            console.log(`[AppGenerator] Successfully generated app source at ${appPath} `);
             return {
                 success: true,
                 path: appPath
@@ -267,7 +274,7 @@ export const AppConfig = {
                     let propsContent = await fs.readFile(gradleWrapperPropsPath, 'utf8');
                     // Update distributionUrl to file absolute path (or relative if supported, but absolute file:// is safer for offline)
                     // Using file:///path/to/project/android/gradle/wrapper/gradle-8.14.3-bin.zip
-                    const localDistUrl = `file\://${gradleZipDest}`;
+                    const localDistUrl = `file://${gradleZipDest}`;
                     propsContent = propsContent.replace(/distributionUrl=.*/g, `distributionUrl=${localDistUrl}`);
 
                     await fs.writeFile(gradleWrapperPropsPath, propsContent);
@@ -292,7 +299,7 @@ export const AppConfig = {
                 });
                 console.log('[AppGenerator] APK build completed successfully!');
                 if (onProgress) await onProgress('APK compiled successfully!', 90);
-            } catch (err) {
+            } catch (err: any) {
                 console.error('[AppGenerator] Build step failed:', err);
                 throw new Error(`Gradle build failed: ${err.message}`);
             }
@@ -370,3 +377,4 @@ export const AppConfig = {
         });
     }
 }
+

@@ -40,12 +40,34 @@ import * as LucideIcons from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
+interface AppFormData {
+    logo: string | null;
+    primaryColor: string;
+    secondaryColor: string;
+    appName: string;
+    packageName: string;
+    businessName: string;
+    email: string;
+    phone: string;
+    address: string;
+    website: string;
+    services: string[];
+    adminEmail: string;
+    adminPassword: string;
+    platforms: string[];
+    androidBuildTypes: ('apk' | 'aab')[];
+    publishPlayStore: boolean;
+    publishAppStore: boolean;
+    publishWeb: boolean;
+    paymentMethod: 'wallet' | 'card';
+}
+
 export default function CreateAppScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const [currentStep, setCurrentStep] = useState(1);
-    const [formData, setFormData] = useState({
-        logo: null as string | null,
+    const [formData, setFormData] = useState<AppFormData>({
+        logo: null,
         primaryColor: '#16A34A',
         secondaryColor: '#22C55E',
         appName: '',
@@ -59,18 +81,18 @@ export default function CreateAppScreen() {
         website: '',
 
         // Step 3: Services
-        services: [] as string[],
+        services: [],
 
         // Step 4: Admin Panel
         adminEmail: '',
         adminPassword: '',
 
-        platforms: [] as string[],
-        androidBuildTypes: [] as ('apk' | 'aab')[],
+        platforms: [],
+        androidBuildTypes: [],
         publishPlayStore: false,
         publishAppStore: false,
         publishWeb: false,
-        paymentMethod: 'wallet' as 'wallet' | 'card'
+        paymentMethod: 'wallet'
     });
 
     const [showColorPicker, setShowColorPicker] = useState(false);
@@ -81,14 +103,21 @@ export default function CreateAppScreen() {
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [showPassword, setShowPassword] = useState(false);
     const [hexInput, setHexInput] = useState('');
+    const [showVerifyPaymentModal, setShowVerifyPaymentModal] = useState(false);
+    const [paymentVerificationData, setPaymentVerificationData] = useState<{ reference: string, payload: any } | null>(null);
+    const [loadingData, setLoadingData] = useState(true);
+
+    // ... (rest of state items, keeping them same but updating appPrices initial state)
     const [appPrices, setAppPrices] = useState<any>({
         PLATFORM_ANDROID: 10000,
         PLATFORM_WEB: 20000,
-        PUBLISH_PRICE_PLAY_STORE: 35000,
-        PUBLISH_PRICE_APP_STORE: 50000,
+        PUBLISH_PLAY_STORE: 35000,
+        PUBLISH_APP_STORE: 50000,
         PUBLISH_WEB: 15000
     });
-    const [loadingData, setLoadingData] = useState(true);
+
+    // ... (rest until calculateTotal)
+
     const [showInsufficientModal, setShowInsufficientModal] = useState(false);
     const [showSavedModal, setShowSavedModal] = useState(false);
     const [savedAppData, setSavedAppData] = useState<any>(null);
@@ -210,6 +239,8 @@ export default function CreateAppScreen() {
 
         // Publishing Fees
         if (formData.platforms.includes('android') && formData.publishPlayStore) total += appPrices.PUBLISH_PLAY_STORE;
+        if (formData.platforms.includes('ios') && formData.publishAppStore) total += appPrices.PUBLISH_APP_STORE;
+        if (formData.platforms.includes('web') && formData.publishWeb) total += appPrices.PUBLISH_WEB;
 
         return total;
     };
@@ -374,18 +405,10 @@ export default function CreateAppScreen() {
                 const { payment_url, reference } = response;
                 await WebBrowser.openBrowserAsync(payment_url);
 
-                // Show Verification Alert/Modal
-                Alert.alert(
-                    'Complete Payment',
-                    'Please complete the payment in the browser. Once done, click "Check Payment Status".',
-                    [
-                        { text: 'Cancel', style: 'cancel', onPress: () => setIsSubmitting(false) },
-                        {
-                            text: 'Check Payment Status',
-                            onPress: async () => await verifyPayment(reference, payload)
-                        }
-                    ]
-                );
+                // Show Modern Verification Modal
+                setPaymentVerificationData({ reference, payload });
+                setShowVerifyPaymentModal(true);
+                setIsSubmitting(false);
             } else {
                 if (response.code === 'INSUFFICIENT_FUNDS') {
                     setInsufficientData({
@@ -396,7 +419,7 @@ export default function CreateAppScreen() {
                 } else {
                     Alert.alert('Error', response.message || 'Failed to create app');
                 }
-                setIsSubmitting(false); // Only stop submitting on error/insufficient funds, not on payment redirect
+                setIsSubmitting(false);
             }
         } catch (error: any) {
             Alert.alert('Error', error.message || 'An error occurred');
@@ -1204,6 +1227,18 @@ export default function CreateAppScreen() {
                                     <Text style={styles.billPrice}>{formatCurrency(appPrices.PUBLISH_PRICE_PLAY_STORE)}</Text>
                                 </View>
                             )}
+                            {formData.platforms.includes('ios') && formData.publishAppStore && (
+                                <View style={styles.billRow}>
+                                    <Text style={styles.billItem}>App Store Publishing</Text>
+                                    <Text style={styles.billPrice}>{formatCurrency(appPrices.PUBLISH_APP_STORE)}</Text>
+                                </View>
+                            )}
+                            {formData.platforms.includes('web') && formData.publishWeb && (
+                                <View style={styles.billRow}>
+                                    <Text style={styles.billItem}>Web App Hosting & Domain</Text>
+                                    <Text style={styles.billPrice}>{formatCurrency(appPrices.PUBLISH_WEB)}</Text>
+                                </View>
+                            )}
 
                             <View style={styles.billDivider} />
                             <View style={styles.billTotalRow}>
@@ -1523,6 +1558,68 @@ export default function CreateAppScreen() {
                                 >
                                     <Check color="#fff" size={18} />
                                     <Text style={styles.alertFundText}>OK</Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        </View>
+                    </Animated.View>
+                </View>
+            </Modal>
+            {/* Modern Payment Verification Modal */}
+            <Modal
+                visible={showVerifyPaymentModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowVerifyPaymentModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <Animated.View
+                        entering={FadeInRight}
+                        style={styles.modernAlertContainer}
+                    >
+                        <LinearGradient
+                            colors={[Colors.primary, Colors.primaryLight]}
+                            style={styles.modernAlertHeader}
+                        >
+                            <View style={styles.alertIconContainer}>
+                                <CreditCard color="#fff" size={32} />
+                            </View>
+                            <Text style={styles.modernAlertTitle}>Payment Confirmation</Text>
+                            <Text style={styles.modernAlertSubtitle}>
+                                Please complete payment in the browser
+                            </Text>
+                        </LinearGradient>
+
+                        <View style={styles.modernAlertContent}>
+                            <Text style={styles.modernAlertMessage}>
+                                We've opened a secure payment page for you. Once you've completed the transaction, click the button below to verify and start your build.
+                            </Text>
+                        </View>
+
+                        <View style={styles.modernAlertActions}>
+                            <TouchableOpacity
+                                style={styles.alertCancelButton}
+                                onPress={() => {
+                                    setShowVerifyPaymentModal(false);
+                                    setIsSubmitting(false);
+                                }}
+                            >
+                                <Text style={styles.alertCancelText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.alertFundButton}
+                                onPress={() => {
+                                    if (paymentVerificationData) {
+                                        setShowVerifyPaymentModal(false);
+                                        verifyPayment(paymentVerificationData.reference, paymentVerificationData.payload);
+                                    }
+                                }}
+                            >
+                                <LinearGradient
+                                    colors={[Colors.primary, Colors.primaryLight]}
+                                    style={styles.alertFundGradient}
+                                >
+                                    <Check color="#fff" size={18} />
+                                    <Text style={styles.alertFundText}>I Have Paid</Text>
                                 </LinearGradient>
                             </TouchableOpacity>
                         </View>

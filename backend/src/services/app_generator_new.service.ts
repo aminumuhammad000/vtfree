@@ -53,9 +53,10 @@ export class AppGeneratorService {
         if (await fs.pathExists(appJsonPath)) {
             const appJson = await fs.readJson(appJsonPath);
             appJson.expo.name = app_name;
-            appJson.expo.slug = package_name.split('.').pop() || 'vtu-app';
-            appJson.expo.android.package = package_name;
-            appJson.expo.ios.bundleIdentifier = package_name;
+            const safePackageName = package_name || 'com.vtfree.app';
+            appJson.expo.slug = safePackageName.split('.').pop() || 'vtu-app';
+            appJson.expo.android.package = safePackageName;
+            appJson.expo.ios.bundleIdentifier = safePackageName;
             appJson.expo.version = "1.0.0";
             await fs.writeJson(appJsonPath, appJson, { spaces: 2 });
         }
@@ -132,22 +133,85 @@ export const AppConfig = {
     }
 
     /**
+     * Installs dependencies in the build directory.
+     */
+    static async installDependencies(buildDir: string) {
+        console.log(`[AppGenerator] Installing dependencies in: ${buildDir}`);
+        // Use --no-audit and --no-fund to speed up
+        await execa('npm', ['install', '--no-audit', '--no-fund', '--prefer-offline'], { cwd: buildDir });
+    }
+
+    /**
      * Executes the build based on target.
      */
     static async runBuild(buildDir: string, target: string): Promise<string> {
         console.log(`[AppGenerator] Starting build for target: ${target}`);
 
         if (target === 'web') {
-            await execa('npx', ['expo', 'export', '--platform', 'web'], { cwd: buildDir });
+            // Ensure expo is available (locally)
+            await execa('npx', ['expo', 'export', '--platform', 'web'], {
+                cwd: buildDir,
+                env: { ...process.env, CI: 'true' }
+            });
             const webDistPath = path.join(buildDir, 'dist');
             const zipPath = path.join(buildDir, 'web-build.zip');
             await this.zipDirectory(webDistPath, zipPath);
             return zipPath;
         } else if (target === 'android_apk') {
-            // For now, we simulate but we expect real path if we were actually running gradlew
-            const mockApk = path.join(buildDir, 'release.apk');
-            await fs.writeFile(mockApk, 'MOCK APK CONTENT FOR ' + target);
-            return mockApk;
+            console.log('[AppGenerator] Running Expo Prebuild...');
+            // Prebuild to generate native android folder
+            await execa('npx', ['expo', 'prebuild', '--platform', 'android', '--clean'], {
+                cwd: buildDir,
+                stdio: 'inherit',
+                env: { ...process.env, CI: '1', EXPO_NO_INTERACTIVE_PROMPTS: '1' }
+            });
+
+            const androidDir = path.join(buildDir, 'android');
+
+            // Locate Tools (JDK, Android SDK) relative to backend/src/services
+            // Expected structure: vtfree/tools/
+            const toolsDir = path.resolve(__dirname, '../../../tools');
+            const jdkPath = path.join(toolsDir, 'jdk-17.0.2');
+            const androidSdkPath = path.join(toolsDir, 'android-sdk'); // Ensure this exists or fallback to system?
+
+            // Prepare Environment Variables
+            // We prioritize our bundled tools if they exist
+            let env = { ...process.env };
+
+            if (await fs.pathExists(jdkPath)) {
+                console.log(`[AppGenerator] Using bundled JDK: ${jdkPath}`);
+                env.JAVA_HOME = jdkPath;
+                env.PATH = `${path.join(jdkPath, 'bin')}:${env.PATH}`;
+            }
+
+            if (await fs.pathExists(androidSdkPath)) {
+                console.log(`[AppGenerator] Using bundled Android SDK: ${androidSdkPath}`);
+                env.ANDROID_HOME = androidSdkPath;
+                // Create local.properties to ensure Gradle sees it
+                await fs.writeFile(path.join(androidDir, 'local.properties'), `sdk.dir=${androidSdkPath}\n`);
+            }
+
+            console.log('[AppGenerator] Running Gradle AssembleRelease...');
+            try {
+                await execa('chmod', ['+x', 'gradlew'], { cwd: androidDir });
+                await execa('./gradlew', ['assembleRelease'], {
+                    cwd: androidDir,
+                    stdio: 'inherit',
+                    env
+                });
+            } catch (buildErr: any) {
+                console.error('[AppGenerator] Gradle build failed:', buildErr);
+                // Fallback: If build fails (e.g. memory), we MIGHT want to throw.
+                // But for "fully functional" we need it to work.
+                throw new Error(`Gradle build failed: ${buildErr.message}`);
+            }
+
+            const apkPath = path.join(androidDir, 'app/build/outputs/apk/release/app-release.apk');
+            if (await fs.pathExists(apkPath)) {
+                return apkPath;
+            } else {
+                throw new Error('APK file not found after build completion.');
+            }
         }
 
         throw new Error(`Unsupported build target: ${target}`);

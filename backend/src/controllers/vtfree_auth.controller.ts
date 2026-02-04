@@ -324,26 +324,33 @@ export const uploadProfilePicture = async (req: Request, res: Response) => {
         const uploadResult = await cloudinaryService.uploadImage(req.file.path, `vtfree/profiles/${userId}`);
 
         // Clean up local file
-        if (fs.existsSync(req.file.path)) {
-            fs.unlinkSync(req.file.path);
+        if (fs.default.existsSync(req.file.path)) {
+            fs.default.unlinkSync(req.file.path);
         }
+
+        // Update user record with new profile picture URL
+        const user = await VTfreeUser.findById(userId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        user.profile_picture = uploadResult.secure_url;
+        await user.save();
 
         res.json({
             success: true,
-            message: 'Image uploaded successfully',
-            url: uploadResult.secure_url
+            message: 'Profile picture updated successfully',
+            url: uploadResult.secure_url,
+            user: {
+                _id: user._id,
+                email: user.email,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                profile_picture: user.profile_picture
+            }
         });
     } catch (error: any) {
-        console.error('Upload profile picture error:', error);
-
-        try {
-            const fs = require('fs');
-            const path = require('path');
-            const logPath = path.join(process.cwd(), 'upload_debug.log');
-            const timestamp = new Date().toISOString();
-            const logMsg = `\n[${timestamp}] Error: ${error.message}\nStack: ${error.stack}\nDetails: ${JSON.stringify(error)}\n`;
-            fs.appendFileSync(logPath, logMsg);
-        } catch (e) { console.error('Failed to write log', e); }
+        logger.error('Upload profile picture error:', error);
 
         res.status(500).json({
             success: false,

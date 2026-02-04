@@ -22,13 +22,15 @@ router.get('/:appId/download', VTfreeAppController.downloadAppSource);
 
 // APK Build & Download
 router.post('/:appId/build', VTfreeAppController.triggerBuildApk);
-router.get('/:appId/apk', VTfreeAppController.downloadApk);
+router.get('/:appId/apk', VTfreeAppController.downloadApk); // Legacy
+router.get('/:appId/download/:target', VTfreeAppController.downloadArtifact); // New Proxy
 router.get('/:appId/status', VTfreeAppController.getAppBuildStatus);
 router.post('/:appId/pay-and-build', VTfreeAppController.payAndStartBuild);
 // Update App
 router.put('/:appId', VTfreeAppController.updateAppDetails);
 router.post('/:appId/admins', VTfreeAppController.addAppAdmin);
 router.post('/:appId/upgrade', VTfreeAppController.upgradeApp);
+router.delete('/:appId', VTfreeAppController.deleteApp);
 
 // Logo Upload
 router.post('/logo/upload', logoUpload.single('logo'), VTfreeAppController.uploadLogo);

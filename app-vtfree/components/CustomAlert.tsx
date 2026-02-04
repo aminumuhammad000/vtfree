@@ -13,9 +13,21 @@ interface CustomAlertProps {
     title: string;
     message: string;
     onClose: () => void;
+    showCancel?: boolean;
+    confirmText?: string;
+    onConfirm?: () => void;
 }
 
-export default function CustomAlert({ visible, type, title, message, onClose }: CustomAlertProps) {
+export default function CustomAlert({
+    visible,
+    type,
+    title,
+    message,
+    onClose,
+    showCancel,
+    confirmText,
+    onConfirm
+}: CustomAlertProps) {
     const scale = useSharedValue(0.8);
     const opacity = useSharedValue(0);
 
@@ -80,14 +92,25 @@ export default function CustomAlert({ visible, type, title, message, onClose }: 
                     <Text style={styles.title}>{title}</Text>
                     <Text style={styles.message}>{message}</Text>
 
-                    <TouchableOpacity onPress={onClose} style={styles.button} activeOpacity={0.8}>
-                        <LinearGradient
-                            colors={[Colors.primary, Colors.primaryLight] as [string, string]}
-                            style={styles.buttonGradient}
+                    <View style={styles.buttonContainer}>
+                        {showCancel && (
+                            <TouchableOpacity onPress={onClose} style={[styles.button, { flex: 1, backgroundColor: Colors.gray[100] }]} activeOpacity={0.8}>
+                                <Text style={[styles.buttonText, { color: Colors.gray[700] }]}>Cancel</Text>
+                            </TouchableOpacity>
+                        )}
+                        <TouchableOpacity
+                            onPress={onConfirm || onClose}
+                            style={[styles.button, showCancel && { flex: 1 }]}
+                            activeOpacity={0.8}
                         >
-                            <Text style={styles.buttonText}>OK</Text>
-                        </LinearGradient>
-                    </TouchableOpacity>
+                            <LinearGradient
+                                colors={type === 'error' ? [Colors.red[500], Colors.red[600]] : [Colors.primary, Colors.primaryLight]}
+                                style={styles.buttonGradient}
+                            >
+                                <Text style={styles.buttonText}>{confirmText || 'OK'}</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </View>
                 </Animated.View>
             </View>
         </Modal>
@@ -145,6 +168,11 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 24,
         lineHeight: 22,
+    },
+    buttonContainer: {
+        flexDirection: 'row',
+        gap: 12,
+        width: '100%',
     },
     button: {
         width: '100%',

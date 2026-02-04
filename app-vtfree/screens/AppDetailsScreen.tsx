@@ -14,7 +14,9 @@ import {
     Share2,
     BarChart2,
     Box,
-    Copy
+    Copy,
+    Rocket,
+    RotateCcw
 } from 'lucide-react-native';
 import Colors from '../constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -47,20 +49,46 @@ export default function AppDetailsScreen() {
         }
     };
 
-    const handleDownload = async (platform: 'android' | 'ios') => {
-        // Placeholder logic for download
-        if (platform === 'android' && app?.build_status === 'success') {
-            // In a real scenario, this would link to the APK url
-            Alert.alert('Download Started', 'Your APK is downloading...');
-            // Linking.openURL(app.download_url);
+    // Precise Status Logic
+    const buildStatus = app?.build_status_full; // queued, building, completed, failed
+    const isFailed = buildStatus === 'failed' || app?.status === 'failed';
+    const isPending = app?.status === 'pending';
+    const isBuilding = buildStatus === 'building';
+    const isQueued = buildStatus === 'queued';
+
+    // An app is only live if it's explicitly completed and not in a failed/pending state
+    const isLive = (buildStatus === 'completed' || app?.status === 'live') && !isFailed && !isPending;
+
+    const handleDownload = async (platform: 'android' | 'web' | 'ios') => {
+        if (!isLive) {
+            let title = 'Not Ready';
+            let msg = 'The app build is not yet available for download.';
+
+            if (isPending) {
+                title = 'Payment Pending';
+                msg = 'Please complete the build process to generate download links.';
+            } else if (isBuilding) {
+                title = 'Building';
+                msg = 'Your app is still being built. Please wait.';
+            } else if (isQueued) {
+                title = 'Queued';
+                msg = 'Your app is in the build queue and will start shortly.';
+            } else if (isFailed) {
+                title = 'Build Failed';
+                msg = 'The last build attempt failed. Please check the build status for more details.';
+            }
+
+            Alert.alert(title, msg);
+            return;
+        }
+
+        const link = app?.download_links?.[platform];
+        if (link) {
+            Linking.openURL(link);
         } else {
-            Alert.alert('Not Ready', 'Build is not ready for download yet.');
+            Alert.alert('Missing Link', 'Download link not found. Please try rebuilding.');
         }
     };
-
-    // Status Logic
-    const isLive = app?.status === 'live' || app?.status === 'active';
-    const isBuilding = app?.status === 'building' || app?.build_status === 'pending';
 
     if (loading) {
         return (
@@ -131,51 +159,109 @@ export default function AppDetailsScreen() {
                         </TouchableOpacity>
                     </View>
 
-                    <View style={[styles.statusPill, isLive ? styles.statusLive : styles.statusBuilding]}>
-                        {isLive ? <CheckCircle size={14} color={Colors.green[700]} /> : <Clock size={14} color={Colors.yellow[700]} />}
-                        <Text style={[styles.statusText, isLive ? styles.textLive : styles.textBuilding]}>
-                            {isLive ? 'Live & Active' : 'Build in Progress'}
+                    <View style={[
+                        styles.statusPill,
+                        isLive ? styles.statusLive : (isFailed ? styles.statusFailed : (isPending ? styles.statusPending : styles.statusBuilding))
+                    ]}>
+                        {isLive ? <CheckCircle size={14} color={Colors.green[700]} /> : (isFailed ? <AlertTriangle size={14} color={Colors.red[700]} /> : <Clock size={14} color={isPending ? '#EA580C' : Colors.yellow[700]} />)}
+                        <Text style={[styles.statusText, isLive ? styles.textLive : (isFailed ? styles.textFailed : (isPending ? styles.textPending : styles.textBuilding))]}>
+                            {isLive ? 'Live & Active' : (isFailed ? 'Build Failed' : (isPending ? 'Pending' : (isQueued ? 'Queued' : 'Building')))}
                         </Text>
                     </View>
                 </View>
 
                 {/* Main Actions Grid */}
                 <View style={styles.gridContainer}>
-                    {/* Download Card */}
-                    <TouchableOpacity
-                        style={[styles.actionCard, styles.primaryCard]}
-                        onPress={() => handleDownload('android')}
-                        activeOpacity={0.9}
-                    >
-                        <View style={styles.cardIconCircle}>
-                            <Download color={Colors.white} size={24} />
-                        </View>
-                        <View>
-                            <Text style={styles.cardTitleWhite}>Download APK</Text>
-                            <Text style={styles.cardSubWhite}>v1.0.0 • 15MB</Text>
-                        </View>
-                    </TouchableOpacity>
+                    {/* Android Download Card */}
+                    {app.platforms?.android && (
+                        <TouchableOpacity
+                            style={[
+                                styles.actionCard,
+                                styles.primaryCard,
+                                !isLive && { opacity: 0.5, backgroundColor: Colors.gray[400] }
+                            ]}
+                            onPress={() => handleDownload('android')}
+                            activeOpacity={0.9}
+                            disabled={!isLive}
+                        >
+                            <View style={styles.cardIconCircle}>
+                                <Download color={Colors.white} size={24} />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.cardTitleWhite}>Download APK</Text>
+                                <Text style={styles.cardSubWhite}>{isLive ? 'Android App v1.0.0' : 'Not yet built'}</Text>
+                            </View>
+                        </TouchableOpacity>
+                    )}
 
-                    {/* Dashboard/Analytics Card */}
-                    <TouchableOpacity style={styles.actionCard} activeOpacity={0.7}>
-                        <View style={[styles.cardIconBg, { backgroundColor: Colors.primaryLighter }]}>
-                            <BarChart2 color={Colors.primary} size={24} />
-                        </View>
-                        <Text style={styles.cardTitle}>Analytics</Text>
-                        <Text style={styles.cardSub}>0 Users</Text>
-                    </TouchableOpacity>
+                    {/* Web Download Card */}
+                    {app.platforms?.web && (
+                        <TouchableOpacity
+                            style={[
+                                styles.actionCard,
+                                styles.primaryCard,
+                                { backgroundColor: Colors.purple[600] },
+                                !isLive && { opacity: 0.5, backgroundColor: Colors.gray[400] }
+                            ]}
+                            onPress={() => handleDownload('web')}
+                            activeOpacity={0.9}
+                            disabled={!isLive}
+                        >
+                            <View style={styles.cardIconCircle}>
+                                <Globe color={Colors.white} size={24} />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.cardTitleWhite}>Web App Assets</Text>
+                                <Text style={styles.cardSubWhite}>{isLive ? 'Download Source Zip' : 'Not yet built'}</Text>
+                            </View>
+                        </TouchableOpacity>
+                    )}
+
+                    {/* View Progress / Retry / Analytics Card */}
+                    {(isBuilding || isQueued) ? (
+                        <TouchableOpacity
+                            style={[styles.actionCard, { borderColor: Colors.yellow[500], borderWidth: 1 }]}
+                            onPress={() => router.push({ pathname: '/build-status', params: { appId: app.app_id } })}
+                        >
+                            <View style={[styles.cardIconBg, { backgroundColor: Colors.yellow[100] }]}>
+                                <Rocket color={Colors.yellow[700]} size={24} />
+                            </View>
+                            <Text style={styles.cardTitle}>View Progress</Text>
+                            <Text style={styles.cardSub}>Track building</Text>
+                        </TouchableOpacity>
+                    ) : isFailed ? (
+                        <TouchableOpacity
+                            style={[styles.actionCard, { borderColor: Colors.red[500], borderWidth: 1 }]}
+                            onPress={() => router.push({ pathname: '/build-status', params: { appId: app.app_id } })}
+                        >
+                            <View style={[styles.cardIconBg, { backgroundColor: Colors.red[100] }]}>
+                                <RotateCcw color={Colors.red[700]} size={24} />
+                            </View>
+                            <Text style={styles.cardTitle}>Retry Build</Text>
+                            <Text style={styles.cardSub}>Fix build errors</Text>
+                        </TouchableOpacity>
+                    ) : (
+                        <TouchableOpacity style={styles.actionCard} activeOpacity={0.7}>
+                            <View style={[styles.cardIconBg, { backgroundColor: Colors.primaryLighter }]}>
+                                <BarChart2 color={Colors.primary} size={24} />
+                            </View>
+                            <Text style={styles.cardTitle}>Analytics</Text>
+                            <Text style={styles.cardSub}>0 Users</Text>
+                        </TouchableOpacity>
+                    )}
 
                     {/* Edit / Config Card */}
                     <TouchableOpacity
-                        style={styles.actionCard}
+                        style={[styles.actionCard, (isBuilding || isQueued) && { opacity: 0.5 }]}
                         activeOpacity={0.7}
+                        disabled={isBuilding || isQueued}
                         onPress={() => router.push({ pathname: '/edit-app', params: { appId: app.app_id } })}
                     >
                         <View style={[styles.cardIconBg, { backgroundColor: Colors.gray[100] }]}>
                             <Settings color={Colors.gray[700]} size={24} />
                         </View>
                         <Text style={styles.cardTitle}>Configuration</Text>
-                        <Text style={styles.cardSub}>Manage services</Text>
+                        <Text style={styles.cardSub}>{(isBuilding || isQueued) ? 'Wait for build' : 'Manage app'}</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -370,6 +456,16 @@ const styles = StyleSheet.create({
     },
     textLive: { color: Colors.green[700] },
     textBuilding: { color: Colors.yellow[700] },
+    statusFailed: {
+        backgroundColor: Colors.red[50],
+        borderColor: Colors.red[200],
+    },
+    textFailed: { color: Colors.red[700] },
+    statusPending: {
+        backgroundColor: '#FFEDD5',
+        borderColor: '#FED7AA',
+    },
+    textPending: { color: '#EA580C' },
 
     gridContainer: {
         flexDirection: 'row',

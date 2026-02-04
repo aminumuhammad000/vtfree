@@ -66,6 +66,10 @@ async function startServer() {
       console.log(`Environment: ${config.nodeEnv}`);
     });
 
+    // Initialize Socket.io
+    const { socketService } = await import("./services/socket.service.js");
+    socketService.init(server);
+
 
     // Handle server errors
     server.on('error', (error: NodeJS.ErrnoException) => {
