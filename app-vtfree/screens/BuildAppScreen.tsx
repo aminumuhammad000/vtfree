@@ -132,19 +132,24 @@ export default function BuildAppScreen() {
 
         Alert.alert(
             'Confirm Build',
-            `This will cost ₦${totalCost.toLocaleString()}. Do you want to proceed?`,
+            `This will cost ₦${totalCost.toLocaleString()}. Choose your build method:`,
             [
                 { text: 'Cancel', style: 'cancel' },
                 {
-                    text: 'Pay & Build',
+                    text: 'Custom Build',
                     style: 'default',
-                    onPress: processBuild
+                    onPress: () => processBuild('custom')
+                },
+                {
+                    text: 'Automatic Build',
+                    style: 'default',
+                    onPress: () => processBuild('auto')
                 }
             ]
         );
     };
 
-    const processBuild = async () => {
+    const processBuild = async (buildType: 'auto' | 'custom') => {
         setSubmitting(true);
         try {
             // Need a specific endpoint or update + build logic.
@@ -169,13 +174,15 @@ export default function BuildAppScreen() {
 
             // Now trigger paid build
             // Assuming payAndStartBuild endpoint handles deducting money and starting job
-            await AppService.payAndStartBuild(appId as string);
+            await AppService.payAndStartBuild(appId as string, buildType);
 
             setAlertConfig({
                 visible: true,
                 type: 'success',
-                title: 'Build Started',
-                message: 'Your app build has proven successful and started. You will be notified when it is ready.'
+                title: buildType === 'custom' ? 'Request Sent' : 'Build Started',
+                message: buildType === 'custom'
+                    ? 'Your custom build request has been sent to our team. We will process it shortly.'
+                    : 'Your app build has proven successful and started. You will be notified when it is ready.'
             });
 
         } catch (error: any) {
@@ -350,26 +357,28 @@ export default function BuildAppScreen() {
                 {(() => {
                     const isBuilding = appData?.status === 'building' || appData?.build_status_full === 'queued' || appData?.build_status_full === 'building';
                     return (
-                        <TouchableOpacity
-                            style={[
-                                styles.buildButton,
-                                (submitting || (walletBalance < totalCost && !isBuilding)) && styles.buildButtonDisabled,
-                                isBuilding && { backgroundColor: Colors.yellow[600] }
-                            ]}
-                            onPress={handleBuild}
-                            disabled={submitting}
-                        >
-                            {submitting ? (
-                                <ActivityIndicator color={Colors.white} />
-                            ) : (
-                                <>
-                                    <Rocket color={Colors.white} size={20} />
-                                    <Text style={styles.buildButtonText}>
-                                        {isBuilding ? 'Build in Progress' : 'Pay & Build'}
-                                    </Text>
-                                </>
-                            )}
-                        </TouchableOpacity>
+                        <View style={{ gap: 10, marginTop: 10 }}>
+                            <TouchableOpacity
+                                style={[
+                                    styles.buildButton,
+                                    (submitting || (walletBalance < totalCost && !isBuilding)) && styles.buildButtonDisabled,
+                                    isBuilding && { backgroundColor: Colors.yellow[600] }
+                                ]}
+                                onPress={() => handleBuild()}
+                                disabled={submitting || isBuilding}
+                            >
+                                {submitting ? (
+                                    <ActivityIndicator color={Colors.white} />
+                                ) : (
+                                    <>
+                                        <Rocket color={Colors.white} size={20} />
+                                        <Text style={styles.buildButtonText}>
+                                            {isBuilding ? 'Build in Progress' : 'Start Build'}
+                                        </Text>
+                                    </>
+                                )}
+                            </TouchableOpacity>
+                        </View>
                     );
                 })()}
 

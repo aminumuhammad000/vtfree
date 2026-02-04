@@ -296,7 +296,7 @@ const CreatedAppSchema: Schema = new Schema({
     last_commit: { type: String },
     build_status_full: {
         type: String,
-        enum: ['queued', 'building', 'completed', 'failed'],
+        enum: ['queued', 'building', 'completed', 'failed', 'custom_pending'],
     },
     build_error: { type: String },
     last_build_id: { type: String },

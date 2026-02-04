@@ -51,8 +51,8 @@ export const AppService = {
         return response.data;
     },
 
-    async payAndStartBuild(appId: string) {
-        const response = await api.post(`/vtfree/apps/${appId}/pay-and-build`);
+    async payAndStartBuild(appId: string, buildType: 'auto' | 'custom' = 'auto') {
+        const response = await api.post(`/vtfree/apps/${appId}/pay-and-build`, { build_type: buildType });
         return response.data;
     },
 

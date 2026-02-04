@@ -180,4 +180,37 @@ export class EmailService {
             return false;
         }
     }
+
+    static async sendCustomBuildRequest(adminEmail: string, appDetails: any, userDetails: any) {
+        try {
+            const subject = `[Custom Build Request] ${appDetails.app_name} (${appDetails.package_name})`;
+            const html = `
+                <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                    <h2 style="color: #4F46E5;">New Custom Build Request</h2>
+                    <p>User <strong>${userDetails.email}</strong> has requested a custom build for their app.</p>
+                    
+                    <div style="background-color: #F3F4F6; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                        <h3 style="margin-top: 0;">App Details</h3>
+                        <p><strong>App Name:</strong> ${appDetails.app_name}</p>
+                        <p><strong>Package Name:</strong> ${appDetails.package_name}</p>
+                        <p><strong>App ID:</strong> ${appDetails.app_id}</p>
+                        <p><strong>Status:</strong> ${appDetails.status}</p>
+                        <p><strong>Paid Amount:</strong> ₦${appDetails.total_paid.toLocaleString()}</p>
+                    </div>
+
+                    <div style="margin-top: 20px;">
+                        <p>Please review the request and proceed with the manual build process.</p>
+                        <a href="https://admin.vtfree.com/apps/${appDetails.app_id}" class="btn">View in Admin Panel</a>
+                    </div>
+                </div>
+                <style>
+                    .btn { display: inline-block; background-color: #4F46E5; color: #ffffff; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; }
+                </style>
+            `;
+            return await this.sendEmail(adminEmail, subject, html);
+        } catch (error) {
+            console.error('[EmailService] Failed to send custom build request email:', error);
+            return false;
+        }
+    }
 }

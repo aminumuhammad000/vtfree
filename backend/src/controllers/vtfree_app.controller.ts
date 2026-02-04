@@ -16,6 +16,7 @@ import { PricingService } from '../services/pricing.service.js';
 import { AppGeneratorService } from '../services/app_generator.service.js';
 import { addBuildJob } from '../queues/app_build.queue.js';
 import { cloudinaryService } from '../services/cloudinary.service.js';
+import { EmailService } from '../services/email.service.js';
 
 export const createApp = async (req: Request, res: Response) => {
     try {
@@ -677,7 +678,27 @@ export const payAndStartBuild = async (req: Request, res: Response) => {
         (app as any).build_error = ''; // Clear previous error
         await app.save();
 
-        // 5. Trigger App Generation
+        if (req.body.build_type === 'custom') {
+            app.status = 'building';
+            (app as any).build_status_full = 'custom_pending';
+            app.build_progress = 0;
+            app.build_stage = 'Waiting for Manual Build';
+            (app as any).build_error = '';
+            await app.save();
+
+            // Send Email to Super Admin (Hardcoded or configured)
+            const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL || 'support@vtfree.com';
+            await EmailService.sendCustomBuildRequest(SUPER_ADMIN_EMAIL, app, actualOwner);
+
+            res.json({
+                success: true,
+                message: 'Payment successful. Custom build request sent to admin.',
+                data: { app }
+            });
+            return;
+        }
+
+        // 5. Trigger App Generation (Automated)
         const targets: string[] = [];
         if (app.platforms.android) targets.push('android_apk');
         if (app.platforms.web) targets.push('web');
