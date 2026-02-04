@@ -14,6 +14,7 @@ export interface IVTfreeUser extends Document {
     reset_password_expires?: Date;
     wallet_balance: number;
     profile_picture?: string;
+    bvn?: string;
     virtual_account?: {
         bank: string;
         account_number: string;
@@ -61,6 +62,11 @@ const VTfreeUserSchema: Schema = new Schema({
     profile_picture: {
         type: String,
         default: null,
+    },
+    bvn: {
+        type: String,
+        trim: true,
+        default: null
     },
     virtual_account: {
         bank: String,

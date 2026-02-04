@@ -19,9 +19,15 @@ export const createVirtualAccount = async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, message: 'Virtual account already exists' });
         }
 
-        const { bankType } = req.body;
+        const { bankType, bvn } = req.body;
         if (!bankType) {
             return res.status(400).json({ success: false, message: 'Bank type is required' });
+        }
+
+        // Save BVN if provided (and not already saved)
+        if (bvn && bvn.length === 11) {
+            user.bvn = bvn;
+            await user.save();
         }
 
         const vtpayData = {
@@ -29,7 +35,8 @@ export const createVirtualAccount = async (req: Request, res: Response) => {
             accountName: `${user.first_name} ${user.last_name || ''}`.trim(),
             email: user.email,
             phone: user.phone_number,
-            reference: `VTF_${user._id}_${Date.now()}`
+            reference: `VTF_${user._id}_${Date.now()}`,
+            bvn: user.bvn || bvn // Use stored BVN or provided BVN
         };
 
         const result = await VTPayService.createVirtualAccount(vtpayData);

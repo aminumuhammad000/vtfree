@@ -38,6 +38,11 @@ const VTfreeUserSchema = new Schema({
         type: String,
         default: null,
     },
+    bvn: {
+        type: String,
+        trim: true,
+        default: null
+    },
     virtual_account: {
         bank: String,
         account_number: String,
