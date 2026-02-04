@@ -1,4 +1,4 @@
-import { Worker, Job } from 'bullmq';
+import { Worker } from 'bullmq';
 import { redisConfig } from '../config/redis.config.js';
 import { AppGeneratorService } from '../services/app_generator_new.service.js';
 import { GitHubAutomationService } from '../services/github_automation.service.js';
@@ -7,24 +7,19 @@ import fs from 'fs-extra';
 import path from 'path';
 import axios from 'axios';
 import { fileURLToPath } from 'url';
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 import { socketService } from '../services/socket.service.js';
-
 const githubService = new GitHubAutomationService();
-
 /**
  * Downloads an image from a URL and saves it to a local temporary path.
  */
-async function downloadImage(url: string, destPath: string): Promise<string> {
+async function downloadImage(url, destPath) {
     const response = await axios({
         url,
         method: 'GET',
         responseType: 'stream',
     });
-
     return new Promise((resolve, reject) => {
         const writer = fs.createWriteStream(destPath);
         response.data.pipe(writer);
@@ -32,46 +27,42 @@ async function downloadImage(url: string, destPath: string): Promise<string> {
         writer.on('error', reject);
     });
 }
-
 import { EmailService } from '../services/email.service.js';
 import { logger } from '../config/bootstrap.js';
-
-const worker = new Worker('app-build-queue', async (job: Job) => {
+const worker = new Worker('app-build-queue', async (job) => {
     const { appId, options } = job.data;
-    const jobId = job.id!;
+    const jobId = job.id;
     const tempAssetsDir = path.resolve(__dirname, `../../../apps/${appId}/temp_assets`);
-
-    const log = (msg: string) => {
+    const log = (msg) => {
         const logMsg = `[Worker] [Job:${jobId}] [App:${appId}] ${msg}`;
         logger.info(logMsg);
         try {
             const logPath = path.resolve(__dirname, '../../../logs/worker_debug.log');
             fs.appendFileSync(logPath, `[${new Date().toISOString()}] ${logMsg}\n`);
-        } catch (e) { console.error('Worker log error', e); }
+        }
+        catch (e) {
+            console.error('Worker log error', e);
+        }
     };
-
     log(`Starting job process`);
-
     try {
         const targets = options.targets || [options.target];
         const totalTargets = targets.length;
-        const links: { android?: string, web?: string } = {};
-        const ghAssets: { android?: string, web?: string } = {};
-
+        const links = {};
+        const ghAssets = {};
         // 1. Update DB to building
         log(`Updating database status to 'building'`);
-
         // Base time: 5 mins for environment/deps/github
         // Web: 2 mins
         // Android: 10 mins
         let totalEstimatedMins = 5;
-        targets.forEach((t: string) => {
-            if (t === 'web' || t.includes('web')) totalEstimatedMins += 2;
-            else totalEstimatedMins += 10;
+        targets.forEach((t) => {
+            if (t === 'web' || t.includes('web'))
+                totalEstimatedMins += 2;
+            else
+                totalEstimatedMins += 10;
         });
-
         const estimatedFinishAt = new Date(Date.now() + totalEstimatedMins * 60000);
-
         await CreatedApp.updateOne({ app_id: appId }, {
             build_status_full: 'building',
             build_progress: 5,
@@ -85,15 +76,12 @@ const worker = new Worker('app-build-queue', async (job: Job) => {
             step: 'init'
         });
         log(`PROGRESS: 5% - Preparing environment`);
-
         // 0. Fetch current state for RESUME logic
         const currentApp = await CreatedApp.findOne({ app_id: appId });
         const lastStep = currentApp?.last_successful_step || '';
         const isRetry = options.retry === true;
-
         log(`Build Info: Retry=${isRetry}, LastStep=${lastStep}`);
-
-        const updateStep = async (stepName: string, progress: number, stage: string) => {
+        const updateStep = async (stepName, progress, stage) => {
             await CreatedApp.updateOne({ app_id: appId }, {
                 build_progress: progress,
                 build_stage: stage,
@@ -107,7 +95,6 @@ const worker = new Worker('app-build-queue', async (job: Job) => {
             });
             log(`PROGRESS: ${progress}% - ${stage} (Step: ${stepName})`);
         };
-
         // 2. Handle Cloudinary/External Logo Download (Once)
         // SKIP if lastStep >= 'logo_downloaded'
         if (options.branding.logo_url) {
@@ -116,7 +103,8 @@ const worker = new Worker('app-build-queue', async (job: Job) => {
                 // Ensure path is set even if skipped
                 const localLogoPath = path.join(tempAssetsDir, `logo_${jobId}.png`);
                 options.branding.logo_path = localLogoPath;
-            } else {
+            }
+            else {
                 log(`Downloading logo from: ${options.branding.logo_url}`);
                 await fs.ensureDir(tempAssetsDir);
                 const localLogoPath = path.join(tempAssetsDir, `logo_${jobId}.png`);
@@ -126,7 +114,6 @@ const worker = new Worker('app-build-queue', async (job: Job) => {
                 await updateStep('logo_downloaded', 10, 'Logo downloaded');
             }
         }
-
         // 3. Prepare Build Dir
         // Can't easily skip if it's a new job ID, assume checking existence via AppGeneratorService
         log(`Preparing build directory`);
@@ -134,14 +121,14 @@ const worker = new Worker('app-build-queue', async (job: Job) => {
         // If we are retrying, we might need to rely on the fact that files are there.
         // BUT AppGeneratorService.prepareBuildDir currently CLONES.
         // We should skip prepare if we believe it's ready.
-
         let buildDir = '';
         if (isRetry && (lastStep === 'config_injected' || lastStep === 'deps_installed' || lastStep === 'github_synced')) {
             // Reconstruct path
             buildDir = path.join(path.resolve(__dirname, '../../../apps'), appId, 'builds', jobId);
             if (await fs.pathExists(buildDir)) {
                 log(`Skipping Prepare Build Dir (Resuming existing dir: ${buildDir})`);
-            } else {
+            }
+            else {
                 // Fallback if deleted
                 log(`Resume requested but dir missing. Re-preparing.`);
                 // TODO: Update prepareBuildDir/generateSourceCode signature to accept server_url if needed?
@@ -150,25 +137,26 @@ const worker = new Worker('app-build-queue', async (job: Job) => {
                 // Let's assume the View step clarifies.
                 buildDir = await AppGeneratorService.prepareBuildDir(appId, jobId);
             }
-        } else {
+        }
+        else {
             buildDir = await AppGeneratorService.prepareBuildDir(appId, jobId);
         }
-
         // 4. Inject Config
         if (isRetry && (lastStep === 'config_injected' || lastStep === 'deps_installed' || lastStep === 'github_synced')) {
             log(`Skipping Config Injection (Already done)`);
-        } else {
+        }
+        else {
             await AppGeneratorService.injectConfig(buildDir, options);
             await updateStep('config_injected', 15, 'Configuration injected');
         }
-
         // 5. Build Dependencies (Real Step)
         if (isRetry && (lastStep === 'deps_installed' || lastStep === 'github_synced')) {
             log(`Skipping Dependencies Install (Already done)`);
             socketService.emitToApp(appId, 'build_update', {
                 status: 'building', progress: 20, stage: 'Skipping dependencies...', step: 'install_deps_skip'
             });
-        } else {
+        }
+        else {
             console.log(`[Worker] Installing dependencies for ${appId}`);
             // Update UI/DB before starting long process
             await CreatedApp.updateOne({ app_id: appId }, {
@@ -178,11 +166,9 @@ const worker = new Worker('app-build-queue', async (job: Job) => {
             await AppGeneratorService.installDependencies(buildDir);
             await updateStep('deps_installed', 30, 'Dependencies installed');
         }
-
         // 6. Run Builds Locally (CRITICAL STEP)
         // Must succeed before we attempt upload
-        const builtArtifacts: { [key: string]: string } = {};
-
+        const builtArtifacts = {};
         if (isRetry && (lastStep === 'build_local')) {
             log(`Skipping Local Build (Already done)`);
             // We need to re-discover artifact paths if we skip build
@@ -195,117 +181,102 @@ const worker = new Worker('app-build-queue', async (job: Job) => {
             // Since 'runBuild' might be expensive, let's assume we re-run it for now to ensure we have paths, 
             // unless we store paths in DB. For simplicity in this fix, we re-run OR just proceed if we trust the resume.
             // Correction: The user wants to "continue". If we built successfully, artifacts should be there.
-
             // ... actually let's just run it. If it's `expo export`, it might be fast if cached? 
             // Simplest approach: Run the build loop. If it was successful before, it presumably works now.
         }
-
         // We will run the build loop now.
         // Update DB
         await CreatedApp.updateOne({ app_id: appId }, {
             build_progress: 40,
             build_stage: 'Building application locally...'
         });
-
         // Parallel or Serial build? Serial is fine.
         for (const target of targets) {
             log(`Building target locally: ${target}`);
             socketService.emitToApp(appId, 'build_update', {
                 status: 'building', progress: 40, stage: `Building ${target} locally...`, step: `build_local_${target}`
             });
-
             // This throws if build fails -> Job Fails (Desired)
             const artifactPath = await AppGeneratorService.runBuild(buildDir, target);
             builtArtifacts[target] = artifactPath;
             log(`Build successful for ${target}: ${artifactPath}`);
         }
-
         await updateStep('build_local', 60, 'Local builds completed');
-
         // 7. GitHub Automation (NON-CRITICAL - Skip on failure)
         let repoName = '';
         let releaseId = 0;
-
         try {
             if (isRetry && lastStep === 'github_complete') {
                 log('Skipping GitHub Sync & Release (Already done)');
-            } else {
+            }
+            else {
                 // 7a. GitHub Source Sync
                 log(`Handling GitHub Source Sync for ${appId}`);
                 await CreatedApp.updateOne({ app_id: appId }, { build_progress: 70, build_stage: 'Syncing source code...' });
-
                 const repoUrl = await githubService.ensureRepository(`vtfree-app-${appId}`);
                 const pushResult = await githubService.pushToRepository(buildDir, repoUrl, `Build ${jobId}: ${options.app_name}`);
                 repoName = pushResult.repoName;
-
                 await CreatedApp.updateOne({ app_id: appId }, {
                     github_repo: repoUrl,
                     last_commit: pushResult.commitHash
                 });
                 log(`GitHub Source Sync Success: ${repoUrl}`);
-
                 // 7b. Create Release
                 log(`Creating GitHub release for artifacts`);
                 const tagName = `v1.0.${jobId.substring(0, 4)}-${Date.now()}`;
-                const release = await githubService.createRelease(repoName!, tagName, `Build ${jobId}`, `Automated build for ${options.app_name}`);
+                const release = await githubService.createRelease(repoName, tagName, `Build ${jobId}`, `Automated build for ${options.app_name}`);
                 releaseId = release.id;
-
                 await updateStep('github_complete', 80, 'GitHub Release Created');
             }
-
             // 7c. Upload Artifacts (NON-CRITICAL LOOP)
             // Even if one upload fails, try others.
-
-
             if (releaseId && repoName) {
                 let uploadCount = 0;
                 for (const target of targets) {
                     const artifactPath = builtArtifacts[target];
-                    if (!artifactPath) continue;
-
+                    if (!artifactPath)
+                        continue;
                     try {
                         const targetName = target === 'web' ? 'Web App' : 'Android App';
                         log(`Uploading ${target} artifact to GitHub Release...`);
-
                         socketService.emitToApp(appId, 'build_update', {
                             status: 'building', progress: 85, stage: `Uploading ${targetName}...`, step: `upload_${target}`
                         });
-
                         const fileName = `${options.app_name}_${target}_${jobId}.${target === 'web' ? 'zip' : 'apk'}`;
                         // Now returns { id, url }
                         const uploadResult = await githubService.uploadReleaseAsset(repoName, releaseId, artifactPath, fileName);
-
                         // Construct Proxy URL
                         // Ensure server_url doesn't end with slash
                         const baseUrl = (options.server_url || 'https://vua.vtfree.com/api').replace(/\/$/, '');
                         const proxyUrl = `${baseUrl}/v1/vtfree/apps/${appId}/download/${target}`;
-
                         if (target === 'web') {
                             links.web = proxyUrl;
                             ghAssets.web = uploadResult.id.toString();
-                        } else {
+                        }
+                        else {
                             links.android = proxyUrl;
                             ghAssets.android = uploadResult.id.toString();
                         }
-
                         uploadCount++;
-                    } catch (uploadErr: any) {
+                    }
+                    catch (uploadErr) {
                         console.error(`[Worker] Failed to upload ${target} artifact:`, uploadErr);
                         log(`WARNING: Upload failed for ${target}. Skipping.`);
                         // Continue to next target
                     }
                 }
-
                 if (uploadCount > 0) {
                     await updateStep('upload_complete', 90, 'Artifacts Uploaded');
-                } else {
+                }
+                else {
                     log(`WARNING: No artifacts were uploaded successfully.`);
                 }
-            } else {
+            }
+            else {
                 log(`Skipping Asset Upload: No release created.`);
             }
-
-        } catch (ghError: any) {
+        }
+        catch (ghError) {
             console.error(`[Worker] GitHub Automation Failed:`, ghError);
             log(`WARNING: GitHub Source/Release failed. Skipping upload. Your app is built but not hosted.`);
             // We do NOT throw here, proceeding to completion
@@ -313,18 +284,16 @@ const worker = new Worker('app-build-queue', async (job: Job) => {
                 status: 'building', progress: 90, stage: 'GitHub integration skipped due to error', step: 'github_skip'
             });
         }
-
         // 8. Update DB to completed & Cleanup
         const existingApp = await CreatedApp.findOne({ app_id: appId }).select('download_links github_assets');
         const finalLinks = {
-            ... (existingApp?.download_links || {}),
+            ...(existingApp?.download_links || {}),
             ...links
         };
         const finalGhAssets = {
-            ... (existingApp?.github_assets || {}),
+            ...(existingApp?.github_assets || {}),
             ...ghAssets
         };
-
         await CreatedApp.updateOne({ app_id: appId }, {
             build_status_full: 'completed',
             status: 'live',
@@ -342,25 +311,20 @@ const worker = new Worker('app-build-queue', async (job: Job) => {
             download_links: finalLinks
         });
         log(`PROGRESS: 100% - Completed successfully`);
-
         // Cleanup
         await AppGeneratorService.cleanup(appId, jobId);
         if (await fs.pathExists(tempAssetsDir)) {
             await fs.remove(tempAssetsDir);
         }
-
         console.log(`[Worker] Job ${jobId} finished successfully`);
-
         // Send Success Email
         if (options.user_email) {
             await EmailService.sendAppBuildSuccess(options.user_email, options.app_name, links);
         }
-
         return { success: true, links };
-
-    } catch (error: any) {
+    }
+    catch (error) {
         console.error(`[Worker] Job ${jobId} failed:`, error);
-
         await CreatedApp.updateOne({ app_id: appId }, {
             status: 'failed',
             build_status_full: 'failed',
@@ -375,7 +339,6 @@ const worker = new Worker('app-build-queue', async (job: Job) => {
             error: error.message
         });
         log(`PROGRESS: FAILED - ${error.message}`);
-
         // DO NOT CLEANUP immediately on failure if we want to support retry/resume.
         // The user explicitly requested to "continue from where it stop".
         // Files will be cleaned up if the user DELETES the app via control panel.
@@ -391,25 +354,20 @@ const worker = new Worker('app-build-queue', async (job: Job) => {
             console.error(`[Worker] Cleanup failed for job ${jobId}:`, cleanupErr);
         }
         */
-
         // Send Failure Email
         if (options.user_email) {
             await EmailService.sendAppBuildFailure(options.user_email, options.app_name, error.message);
         }
-
         throw error;
     }
 }, {
     connection: redisConfig,
     concurrency: 1,
 });
-
 worker.on('completed', (job) => {
     console.log(`[Worker] Build ${job.id} completed`);
 });
-
 worker.on('failed', (job, err) => {
     console.error(`[Worker] Build ${job?.id} failed: ${err.message}`);
 });
-
 export default worker;
