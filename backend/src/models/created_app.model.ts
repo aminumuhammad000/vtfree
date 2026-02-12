@@ -107,6 +107,9 @@ export interface ICreatedApp extends Document {
         monnify_api_key?: string;
         monnify_secret_key?: string;
         monnify_contract_code?: string;
+        payrant_api_key?: string;
+        payrant_webhook_secret?: string;
+        payrant_is_active?: boolean;
     };
 
     // Referral Settings
@@ -346,6 +349,9 @@ const CreatedAppSchema: Schema = new Schema({
         monnify_api_key: { type: String },
         monnify_secret_key: { type: String },
         monnify_contract_code: { type: String },
+        payrant_api_key: { type: String },
+        payrant_webhook_secret: { type: String },
+        payrant_is_active: { type: Boolean, default: false },
     },
 
     // Referral Settings

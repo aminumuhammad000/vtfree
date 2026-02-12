@@ -7,12 +7,12 @@ import { Platform } from 'react-native';
 // DEVELOPMENT: Use local backend
 // verified local IP
 export const BASE_URL = __DEV__
-    ? 'http://192.168.43.204:5000/api/v1'
-    : 'https://api.ibdata.com.ng/api/v1';
+    ? 'https://api.vtfree.com.ng/api/v1'
+    : 'https://api.vtfree.com.ng/api/v1';
 
 export const SOCKET_URL = __DEV__
-    ? 'http://192.168.43.204:5000'
-    : 'https://api.ibdata.com.ng';
+    ? 'https://api.vtfree.com.ng'
+    : 'https://api.vtfree.com.ng';
 
 const api = axios.create({
     baseURL: BASE_URL,

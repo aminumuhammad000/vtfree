@@ -118,4 +118,9 @@ router.get('/branding', authenticateAppAdmin, AppBrandingController.getBranding)
 router.put('/branding', authenticateAppAdmin, AppBrandingController.updateBranding);
 router.post('/branding/logo', authenticateAppAdmin, logoUpload.single('logo'), AppBrandingController.uploadLogo);
 
+// Payment Settings
+import * as PaymentSettingsController from '../controllers/payment_settings.controller.js';
+router.get('/payment-settings', authenticateAppAdmin, PaymentSettingsController.getPaymentSettings);
+router.put('/payment-settings', authenticateAppAdmin, PaymentSettingsController.updatePaymentSettings);
+
 export default router;

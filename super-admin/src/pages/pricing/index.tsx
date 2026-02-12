@@ -99,14 +99,7 @@ const PricingPlans = () => {
         }
     };
 
-    const getBillingCycleColor = (cycle: string) => {
-        switch (cycle) {
-            case 'monthly': return 'bg-emerald-100 text-emerald-700';
-            case 'yearly': return 'bg-blue-100 text-blue-700';
-            case 'one-time': return 'bg-purple-100 text-purple-700';
-            default: return 'bg-slate-100 text-slate-700';
-        }
-    };
+
 
     const updateProfitPercentage = (planId: string, newPercentage: number) => {
         if (isNaN(newPercentage)) return;
@@ -834,7 +827,7 @@ interface BuildPriceCardProps {
     onCancel: () => void;
 }
 
-const BuildPriceCard = ({ icon, title, description, priceKey, price, color, isEditing, onEdit, onSave, onCancel }: BuildPriceCardProps) => {
+const BuildPriceCard = ({ icon, title, description, price, color, isEditing, onEdit, onSave, onCancel }: BuildPriceCardProps) => {
     const [editValue, setEditValue] = useState(price);
 
     useEffect(() => {

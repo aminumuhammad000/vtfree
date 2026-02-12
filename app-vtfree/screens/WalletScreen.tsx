@@ -24,6 +24,10 @@ export default function WalletScreen() {
     const [funding, setFunding] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
 
+    // BVN Modal State
+    const [showBVNModal, setShowBVNModal] = useState(false);
+    const [bvnInput, setBvnInput] = useState('');
+
     useEffect(() => {
         fetchWalletData();
     }, []);
@@ -39,6 +43,9 @@ export default function WalletScreen() {
             // Only log non-auth errors (auth errors are expected when not logged in)
             if (!error?.isAuthError) {
                 console.error('Wallet fetch failed:', error);
+            }
+            if (error?.response?.status === 401) {
+                console.warn('Session likely expired');
             }
         } finally {
             setLoading(false);
@@ -79,10 +86,19 @@ export default function WalletScreen() {
         return '₦' + amount.toLocaleString();
     };
 
-    const handleCreateVirtualAccount = async () => {
+    const handleCreateVirtualAccount = () => {
+        setShowBVNModal(true);
+    };
+
+    const submitBVNAndCreateAccount = async () => {
+        if (!bvnInput || bvnInput.length !== 11) {
+            Alert.alert('Invalid BVN', 'Please enter a valid 11-digit BVN.');
+            return;
+        }
+
         setIsGenerating(true);
         try {
-            const res = await AuthService.createVirtualAccount('wema'); // Defaulting to Wema
+            const res = await AuthService.createVirtualAccount('wema', bvnInput);
             if (res.success) {
                 // Update local user state
                 const updatedUser = { ...user, virtual_account: res.data };
@@ -90,10 +106,10 @@ export default function WalletScreen() {
                 if (updateUser) {
                     await updateUser(updatedUser);
                 } else {
-                    // Fallback if context doesn't expose updater yet (though we added it)
                     await AsyncStorage.setItem('vtfree_user', JSON.stringify(updatedUser));
                 }
                 Alert.alert('Success', 'Virtual account generated successfully!');
+                setShowBVNModal(false);
             } else {
                 Alert.alert('Failed', res.message || 'Failed to generate virtual account');
             }
@@ -279,6 +295,52 @@ export default function WalletScreen() {
                                 <ActivityIndicator color={Colors.white} />
                             ) : (
                                 <Text style={styles.submitFundButtonText}>Proceed to Pay</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* BVN Modal */}
+            <Modal
+                transparent
+                visible={showBVNModal}
+                animationType="fade"
+                onRequestClose={() => setShowBVNModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Identity Verification</Text>
+                            <TouchableOpacity onPress={() => setShowBVNModal(false)}>
+                                <X color={Colors.gray[500]} size={24} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={{ fontSize: 14, color: Colors.gray[600], marginBottom: 16 }}>
+                            To comply with regulatory requirements, please provide your BVN to generate your unique account number.
+                        </Text>
+
+                        <Text style={styles.inputLabel}>Enter BVN (11 Digits)</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={bvnInput}
+                            onChangeText={setBvnInput}
+                            placeholder="e.g. 12345678901"
+                            keyboardType="numeric"
+                            maxLength={11}
+                            autoFocus
+                        />
+
+                        <TouchableOpacity
+                            style={styles.submitFundButton}
+                            onPress={submitBVNAndCreateAccount}
+                            disabled={isGenerating}
+                        >
+                            {isGenerating ? (
+                                <ActivityIndicator color={Colors.white} />
+                            ) : (
+                                <Text style={styles.submitFundButtonText}>Verify & Generate Account</Text>
                             )}
                         </TouchableOpacity>
                     </View>

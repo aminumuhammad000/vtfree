@@ -538,7 +538,7 @@ export const getPublicAppDetails = async (req: Request, res: Response) => {
     try {
         const { appId } = req.params;
         // Find app by app_id only, no owner check needed for public info
-        const app = await CreatedApp.findOne({ app_id: appId }).select('app_name package_name branding services status company');
+        const app = await CreatedApp.findOne({ app_id: appId }).select('app_name package_name branding services status company payment_settings.default_gateway');
 
         if (!app) {
             return res.status(404).json({ success: false, message: 'App not found' });

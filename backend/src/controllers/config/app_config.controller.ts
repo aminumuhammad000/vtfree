@@ -36,7 +36,9 @@ export const getAppConfigs = async (req: Request, res: Response) => {
             { key: 'MONNIFY_API_KEY', value: app.payment_settings?.monnify_api_key || '', group: 'PAYMENT' },
             { key: 'MONNIFY_SECRET_KEY', value: app.payment_settings?.monnify_secret_key || '', group: 'PAYMENT' },
             { key: 'MONNIFY_CONTRACT_CODE', value: app.payment_settings?.monnify_contract_code || '', group: 'PAYMENT' },
-            { key: 'MONNIFY_CONTRACT_CODE', value: app.payment_settings?.monnify_contract_code || '', group: 'PAYMENT' },
+            { key: 'PAYRANT_API_KEY', value: app.payment_settings?.payrant_api_key || '', group: 'PAYMENT' },
+            { key: 'PAYRANT_WEBHOOK_SECRET', value: app.payment_settings?.payrant_webhook_secret || '', group: 'PAYMENT' },
+            { key: 'PAYRANT_IS_ACTIVE', value: app.payment_settings?.payrant_is_active ? 'true' : 'false', group: 'PAYMENT' },
 
             // Referral Settings
             { key: 'REFERRAL_ENABLED', value: app.referral_settings?.enabled ? 'true' : 'false', group: 'REFERRAL' },
@@ -89,6 +91,9 @@ export const updateAppConfig = async (req: Request, res: Response) => {
             case 'MONNIFY_API_KEY': app.payment_settings.monnify_api_key = value; break;
             case 'MONNIFY_SECRET_KEY': app.payment_settings.monnify_secret_key = value; break;
             case 'MONNIFY_CONTRACT_CODE': app.payment_settings.monnify_contract_code = value; break;
+            case 'PAYRANT_API_KEY': app.payment_settings.payrant_api_key = value; break;
+            case 'PAYRANT_WEBHOOK_SECRET': app.payment_settings.payrant_webhook_secret = value; break;
+            case 'PAYRANT_IS_ACTIVE': app.payment_settings.payrant_is_active = value === 'true'; break;
 
             // Referral
             case 'REFERRAL_ENABLED':

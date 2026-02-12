@@ -29,6 +29,9 @@ const PaymentSettings = () => {
         MONNIFY_API_KEY: '',
         MONNIFY_SECRET_KEY: '',
         MONNIFY_CONTRACT_CODE: '',
+        PAYRANT_API_KEY: '',
+        PAYRANT_WEBHOOK_SECRET: '',
+        PAYRANT_IS_ACTIVE: 'false',
     });
 
     useEffect(() => {
@@ -91,7 +94,8 @@ const PaymentSettings = () => {
     }
 
     const gateways = [
-        { id: 'vtpay', name: 'VTPay', description: 'Primary Gateway', disabled: false },
+        { id: 'vtpay', name: 'VTPay', description: 'VTPay Gateway', disabled: false },
+        { id: 'payrant', name: 'Payrant', description: 'Payrant Gateway', disabled: false },
     ];
 
     return (
@@ -233,6 +237,70 @@ const PaymentSettings = () => {
                             </div>
                         )}
 
+                        {/* Payrant Config */}
+                        {formData.DEFAULT_PAYMENT_GATEWAY === 'payrant' && (
+                            <div className="space-y-6 p-6 bg-slate-50/50 rounded-3xl border border-slate-100 animate-in fade-in slide-in-from-top-4 duration-500">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm border border-slate-100 text-[10px] font-black text-slate-400">01</div>
+                                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">Payrant Credentials</h3>
+                                </div>
+                                <div className="p-4 bg-purple-50/50 border border-purple-100 rounded-2xl flex gap-3">
+                                    <div className="w-8 h-8 bg-white rounded-lg shadow-sm flex items-center justify-center text-purple-600 shrink-0">
+                                        <FiInfo className="w-4 h-4" />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <p className="text-[10px] text-purple-800 font-medium leading-relaxed">
+                                            Payrant is an alternative gateway supporting PalmPay virtual accounts.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Payrant API Key</label>
+                                        <div className="relative">
+                                            <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                            <input
+                                                type={showSecrets['PAYRANT_API_KEY'] ? 'text' : 'password'}
+                                                name="PAYRANT_API_KEY"
+                                                value={formData.PAYRANT_API_KEY}
+                                                onChange={handleChange}
+                                                className="w-full pl-11 pr-12 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 outline-none font-mono text-xs transition-all"
+                                                placeholder="Payrant API Key"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleSecret('PAYRANT_API_KEY')}
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                            >
+                                                {showSecrets['PAYRANT_API_KEY'] ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Payrant Webhook Secret</label>
+                                        <div className="relative">
+                                            <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                            <input
+                                                type={showSecrets['PAYRANT_WEBHOOK_SECRET'] ? 'text' : 'password'}
+                                                name="PAYRANT_WEBHOOK_SECRET"
+                                                value={formData.PAYRANT_WEBHOOK_SECRET}
+                                                onChange={handleChange}
+                                                className="w-full pl-11 pr-12 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 outline-none font-mono text-xs transition-all"
+                                                placeholder="Webhook Secret"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => toggleSecret('PAYRANT_WEBHOOK_SECRET')}
+                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                            >
+                                                {showSecrets['PAYRANT_WEBHOOK_SECRET'] ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                     </div>
 
                     <div className="flex justify-end pt-6 border-t border-slate-100">
@@ -254,9 +322,9 @@ const PaymentSettings = () => {
                             )}
                         </button>
                     </div>
-                </form>
-            </div>
-        </div>
+                </form >
+            </div >
+        </div >
     );
 };
 

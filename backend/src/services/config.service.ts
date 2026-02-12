@@ -97,6 +97,10 @@ class ConfigService {
             { key: 'APP_UPGRADE_FEE', group: 'PRICING', description: 'Fee for upgrading app to latest version', value: '5000' },
             { key: 'APP_UPGRADE_ENABLED', group: 'SYSTEM', description: 'Enable/Disable App Upgrades', value: 'true' },
             { key: 'LATEST_TEMPLATE_VERSION', group: 'SYSTEM', description: 'Latest App Template Version', value: '2.0.0' },
+
+            { key: 'PAYRANT_API_KEY', group: 'PAYMENT', description: 'Payrant API Key (Admin Default)' },
+            { key: 'PAYRANT_BASE_URL', group: 'PAYMENT', description: 'Payrant Base URL', value: 'https://api-core.payrant.com/' },
+            { key: 'PAYRANT_IS_ACTIVE', group: 'PAYMENT', description: 'Payrant Gateway Status (true/false)', value: 'false' },
         ];
 
         for (const def of defaults) {

@@ -40,6 +40,14 @@ const { width } = Dimensions.get('window');
 
 const BANKS = [
   {
+    id: 'palmpay',
+    name: 'PalmPay',
+    logo: 'https://palmpay.com/wp-content/uploads/2021/04/PalmPay-Logo-1.png',
+    color: '#8A2BE2',
+    icon: 'account-balance',
+    description: 'Reliable virtual accounts with instant settlement via PalmPay network.'
+  },
+  {
     id: 'moniepoint',
     name: 'Moniepoint',
     logo: 'https://cdn.worldvectorlogo.com/logos/moniepoint.svg',
@@ -73,6 +81,7 @@ export default function AddMoneyScreen() {
   const { showSuccess, showError, showInfo, showWarning } = useAlert();
 
   const [virtualAccounts, setVirtualAccounts] = useState<VTPayAccount[]>([]);
+  const [gateway, setGateway] = useState<string>('vtpay');
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStep, setGenerationStep] = useState('');
@@ -97,6 +106,9 @@ export default function AddMoneyScreen() {
       const res = await vtpayService.getVirtualAccounts();
       if (res.success) {
         setVirtualAccounts(res.data);
+        if (res.gateway) {
+          setGateway(res.gateway);
+        }
       }
     } catch (error: any) {
       console.error('Error loading accounts:', error);
@@ -122,7 +134,13 @@ export default function AddMoneyScreen() {
       return;
     }
 
-    if (!profileData.bvn) {
+    if (gateway === 'payrant' && !profileData.nin && !profileData.bvn) {
+      showError('Your NIN or BVN is required for Payrant virtual account generation. Please update it in your profile.');
+      router.push('/edit-profile');
+      return;
+    }
+
+    if (gateway === 'vtpay' && !profileData.bvn) {
       showError('Your BVN is required for virtual account generation. Please update it in your profile.');
       router.push('/edit-profile');
       return;
@@ -171,11 +189,19 @@ export default function AddMoneyScreen() {
   };
 
   const openBankModal = () => {
-    // Set Moniepoint (or the first available bank) as default selection
-    const availableBanks = BANKS.filter(b => !virtualAccounts.some(acc => acc.metadata?.bankType === b.id));
+    let availableBanks = BANKS.filter(b => !virtualAccounts.some(acc => acc.metadata?.bankType === b.id));
+
+    // Filter by gateway
+    if (gateway === 'payrant') {
+      availableBanks = BANKS.filter(b => b.id === 'palmpay' && !virtualAccounts.some(acc => acc.bankName.toLowerCase().includes('palmpay')));
+    } else {
+      availableBanks = availableBanks.filter(b => b.id !== 'palmpay');
+    }
+
     if (availableBanks.length > 0) {
-      const moniepoint = availableBanks.find(b => b.id === 'moniepoint');
-      setSelectedBankId(moniepoint ? 'moniepoint' : availableBanks[0].id);
+      const preferredId = gateway === 'payrant' ? 'palmpay' : 'moniepoint';
+      const preferred = availableBanks.find(b => b.id === preferredId);
+      setSelectedBankId(preferred ? preferred.id : availableBanks[0].id);
     }
 
     setShowBankModal(true);
@@ -348,7 +374,10 @@ export default function AddMoneyScreen() {
               </View>
 
               <View style={styles.bankGrid}>
-                {BANKS.filter(b => !virtualAccounts.some(acc => acc.metadata?.bankType === b.id)).map((bank) => (
+                {BANKS.filter(b => {
+                  if (gateway === 'payrant') return b.id === 'palmpay' && !virtualAccounts.some(acc => acc.bankName.toLowerCase().includes('palmpay'));
+                  return b.id !== 'palmpay' && !virtualAccounts.some(acc => acc.metadata?.bankType === b.id);
+                }).map((bank) => (
                   <TouchableOpacity
                     key={bank.id}
                     style={[
@@ -397,16 +426,22 @@ export default function AddMoneyScreen() {
                 </View>
               )}
 
-              {!selectedBankId && BANKS.filter(b => !virtualAccounts.some(acc => acc.metadata?.bankType === b.id)).length > 0 && (
-                <Text style={[styles.modalHint, { color: textSecondaryColor }]}>Select a bank to see more details</Text>
-              )}
+              {!selectedBankId && BANKS.filter(b => {
+                if (gateway === 'payrant') return b.id === 'palmpay' && !virtualAccounts.some(acc => acc.bankName.toLowerCase().includes('palmpay'));
+                return b.id !== 'palmpay' && !virtualAccounts.some(acc => acc.metadata?.bankType === b.id);
+              }).length > 0 && (
+                  <Text style={[styles.modalHint, { color: textSecondaryColor }]}>Select a bank to see more details</Text>
+                )}
 
-              {BANKS.filter(b => !virtualAccounts.some(acc => acc.metadata?.bankType === b.id)).length === 0 && (
-                <View style={styles.completedState}>
-                  <Ionicons name="checkmark-circle" size={50} color={theme.success} />
-                  <Text style={[styles.completedText, { color: textColor }]}>All available banks linked!</Text>
-                </View>
-              )}
+              {BANKS.filter(b => {
+                if (gateway === 'payrant') return b.id === 'palmpay' && !virtualAccounts.some(acc => acc.bankName.toLowerCase().includes('palmpay'));
+                return b.id !== 'palmpay' && !virtualAccounts.some(acc => acc.metadata?.bankType === b.id);
+              }).length === 0 && (
+                  <View style={styles.completedState}>
+                    <Ionicons name="checkmark-circle" size={50} color={theme.success} />
+                    <Text style={[styles.completedText, { color: textColor }]}>All available banks linked!</Text>
+                  </View>
+                )}
 
               <TouchableOpacity style={[styles.closeBtn, { backgroundColor: cardBg }]} onPress={closeBankModal}>
                 <Text style={[styles.closeBtnText, { color: textColor }]}>Maybe Later</Text>

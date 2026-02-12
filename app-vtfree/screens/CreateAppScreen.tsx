@@ -32,7 +32,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { AppService } from '../services/app.service';
 import { FeatureService, Feature } from '../services/feature.service';
 import { WalletService } from '../services/wallet.service';
-import ColorPicker, { Panel1, Swatches, Preview, OpacitySlider, HueSlider } from 'reanimated-color-picker';
+
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as LucideIcons from 'lucide-react-native';
@@ -561,44 +561,72 @@ export default function CreateAppScreen() {
                         <View style={styles.row}>
                             <View style={[styles.inputGroup, { flex: 1 }]}>
                                 <Text style={styles.label}>Primary Color</Text>
-                                <TouchableOpacity
-                                    style={styles.colorInputContainer}
-                                    onPress={() => {
-                                        setActiveColorType('primary');
-                                        setShowColorPicker(true);
-                                    }}
-                                >
-                                    <View style={[styles.colorPreview, { backgroundColor: formData.primaryColor }]} />
-                                    <View style={{ flex: 1, paddingVertical: 12 }}>
-                                        <Text style={{ fontSize: 16, color: Colors.text.primary }}>{formData.primaryColor}</Text>
-                                    </View>
-                                </TouchableOpacity>
+                                <View style={styles.colorInputWrapper}>
+                                    <View style={[styles.colorPreviewSmall, { backgroundColor: formData.primaryColor }]} />
+                                    <TextInput
+                                        style={styles.colorTextInput}
+                                        value={formData.primaryColor}
+                                        onChangeText={(text) => {
+                                            // Auto-add # if missing
+                                            let val = text;
+                                            if (val.length > 0 && !val.startsWith('#')) val = '#' + val;
+                                            setFormData({ ...formData, primaryColor: val });
+                                        }}
+                                        placeholder="#16A34A"
+                                        maxLength={7}
+                                    />
+                                </View>
                             </View>
                             <View style={[styles.inputGroup, { flex: 1 }]}>
                                 <Text style={styles.label}>Secondary Color</Text>
-                                <TouchableOpacity
-                                    style={styles.colorInputContainer}
-                                    onPress={() => {
-                                        setActiveColorType('secondary');
-                                        setShowColorPicker(true);
-                                    }}
-                                >
-                                    <View style={[styles.colorPreview, { backgroundColor: formData.secondaryColor }]} />
-                                    <View style={{ flex: 1, paddingVertical: 12 }}>
-                                        <Text style={{ fontSize: 16, color: Colors.text.primary }}>{formData.secondaryColor}</Text>
-                                    </View>
-                                </TouchableOpacity>
+                                <View style={styles.colorInputWrapper}>
+                                    <View style={[styles.colorPreviewSmall, { backgroundColor: formData.secondaryColor }]} />
+                                    <TextInput
+                                        style={styles.colorTextInput}
+                                        value={formData.secondaryColor}
+                                        onChangeText={(text) => {
+                                            // Auto-add # if missing
+                                            let val = text;
+                                            if (val.length > 0 && !val.startsWith('#')) val = '#' + val;
+                                            setFormData({ ...formData, secondaryColor: val });
+                                        }}
+                                        placeholder="#22C55E"
+                                        maxLength={7}
+                                    />
+                                </View>
+                            </View>
+
+                            {/* Color Presets */}
+                            <View style={{ marginTop: 12 }}>
+                                <Text style={styles.label}>Quick Select</Text>
+                                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8 }}>
+                                    {['#16A34A', '#2563EB', '#7C3AED', '#DC2626', '#EA580C', '#0891B2', '#111827'].map((color) => (
+                                        <TouchableOpacity
+                                            key={color}
+                                            style={[
+                                                { width: 32, height: 32, borderRadius: 16, backgroundColor: color, borderWidth: 2, borderColor: Colors.white },
+                                                // Highlight active choice
+                                                (formData.primaryColor === color || formData.secondaryColor === color) && { borderColor: Colors.text.primary, borderWidth: 2 }
+                                            ]}
+                                            onPress={() => {
+                                                // Smart replace: if they are editing secondary (or logic to determine which one), but here both are visible.
+                                                // Let's just update Primary for now as it's the main brand color, or maybe offer two rows?
+                                                // Simpler: Just update Primary when clicked, as it drives the brand.
+                                                // Or better: Update whichever input was last focused? No, that's complex.
+                                                // Let's make it explicitly for Primary Color and maybe a lighter version for secondary?
+                                                // For now, let's just make it update Primary, and maybe suggest a secondary?
+                                                // Actually, let's just put it under Primary input or make it global.
+                                                // Let's update Primary, and set Secondary to a complementary or same color?
+                                                setFormData((prev: any) => ({ ...prev, primaryColor: color }));
+                                            }}
+                                        />
+                                    ))}
+                                </View>
+                                <Text style={{ fontSize: 12, color: Colors.gray[500], marginTop: 8, fontStyle: 'italic' }}>
+                                    Tap a color to set as Primary. You can also type any Hex code above.
+                                </Text>
                             </View>
                         </View>
-
-                        {/* Color Picker Modal */}
-                        <ColorSelectionModal
-                            visible={showColorPicker}
-                            initialColor={activeColorType === 'primary' ? formData.primaryColor : formData.secondaryColor}
-                            title={`Select ${activeColorType === 'primary' ? 'Primary' : 'Secondary'} Color`}
-                            onClose={() => setShowColorPicker(false)}
-                            onSelect={onSelectColor}
-                        />
 
                         {/* Live Preview */}
                         <View style={styles.previewContainer}>
@@ -1630,91 +1658,6 @@ export default function CreateAppScreen() {
     );
 }
 
-interface ColorSelectionModalProps {
-    visible: boolean;
-    initialColor: string;
-    title: string;
-    onClose: () => void;
-    onSelect: (color: string) => void;
-}
-
-const ColorSelectionModal = ({ visible, initialColor, title, onClose, onSelect }: ColorSelectionModalProps) => {
-    const [localColor, setLocalColor] = useState(initialColor);
-    const [localHexInput, setLocalHexInput] = useState(initialColor.replace('#', '').toUpperCase());
-
-    const professionalPresets = [
-        '#16A34A', '#2563EB', '#7C3AED', '#DC2626', '#EA580C',
-        '#0891B2', '#4F46E5', '#BE185D', '#111827', '#4B5563'
-    ];
-
-    const handleSelect = ({ hex }: { hex: string }) => {
-        setLocalColor(hex);
-        setLocalHexInput(hex.replace('#', '').toUpperCase());
-    };
-
-    return (
-        <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-            <View style={styles.modalOverlay}>
-                <View style={styles.modalContent}>
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>{title}</Text>
-                        <TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
-                            <LucideIcons.X color={Colors.gray[400]} size={24} />
-                        </TouchableOpacity>
-                    </View>
-
-                    <View style={styles.hexInputWrapper}>
-                        <Text style={styles.hexHash}>#</Text>
-                        <TextInput
-                            style={styles.hexInput}
-                            value={localHexInput}
-                            onChangeText={(text) => {
-                                const clean = text.toUpperCase().replace(/[^0-9A-F]/g, '').slice(0, 6);
-                                setLocalHexInput(clean);
-                                if (clean.length === 3 || clean.length === 6) {
-                                    setLocalColor('#' + clean);
-                                }
-                            }}
-                            placeholder="FFFFFF"
-                            maxLength={6}
-                        />
-                    </View>
-
-                    <ColorPicker
-                        style={{ width: '100%' }}
-                        value={localColor}
-                        onComplete={handleSelect}
-                    >
-                        <Panel1 style={{ height: 200, borderRadius: 12, marginBottom: 20 }} />
-                        <HueSlider style={{ borderRadius: 10, height: 24, marginBottom: 30 }} />
-
-                        <View style={styles.colorPresets}>
-                            {professionalPresets.map(preset => (
-                                <TouchableOpacity
-                                    key={preset}
-                                    style={[
-                                        styles.presetCircle,
-                                        { backgroundColor: preset },
-                                        localColor.toUpperCase() === preset.toUpperCase() && { borderWidth: 3, borderColor: '#000' }
-                                    ]}
-                                    onPress={() => handleSelect({ hex: preset })}
-                                />
-                            ))}
-                        </View>
-                    </ColorPicker>
-
-                    <TouchableOpacity
-                        style={[styles.confirmButton, { backgroundColor: localColor }]}
-                        onPress={() => onSelect(localColor)}
-                    >
-                        <Text style={styles.confirmButtonText}>Confirm Selection</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-        </Modal>
-    );
-}
-
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -2409,49 +2352,6 @@ const styles = StyleSheet.create({
         color: Colors.white,
         fontSize: 16,
         fontWeight: 'bold',
-    },
-    hexInputWrapper: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.gray[50],
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        borderWidth: 1,
-        borderColor: Colors.gray[200],
-        marginBottom: 20,
-    },
-    hexHash: {
-        fontSize: 18,
-        color: Colors.gray[400],
-        fontWeight: '600',
-    },
-    hexInput: {
-        flex: 1,
-        paddingVertical: 12,
-        paddingHorizontal: 8,
-        fontSize: 18,
-        color: Colors.text.primary,
-        fontWeight: 'bold',
-        fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    },
-    colorPresets: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 12,
-        marginTop: 10,
-        justifyContent: 'center',
-    },
-    presetCircle: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        borderWidth: 2,
-        borderColor: Colors.white,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 1,
     },
     billSummary: {
         backgroundColor: Colors.gray[50],

@@ -5,7 +5,7 @@ import {
     getVirtualAccounts,
     getAccountBalance,
     getTransactions
-} from '../controllers/vtpay.controller.js';
+} from '../controllers/funding_gateway.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 
 const router = Router();

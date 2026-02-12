@@ -1,7 +1,7 @@
 import api from './api';
 
 export interface CreateVirtualAccountData {
-    bankType: 'moniepoint' | 'fcmb' | 'fidelity';
+    bankType: 'moniepoint' | 'fcmb' | 'fidelity' | 'palmpay';
 }
 
 export interface VTPayAccount {
@@ -20,6 +20,7 @@ export interface VTPayResponse<T> {
     success: boolean;
     message: string;
     data: T;
+    gateway?: string;
 }
 
 export const vtpayService = {

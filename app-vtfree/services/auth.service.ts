@@ -84,8 +84,8 @@ export const AuthService = {
         return data;
     },
 
-    async createVirtualAccount(bankType: string) {
-        const response = await api.post('/vtfree/auth/create-virtual-account', { bankType });
+    async createVirtualAccount(bankType: string, bvn?: string) {
+        const response = await api.post('/vtfree/auth/create-virtual-account', { bankType, bvn });
         return response.data;
     }
 };

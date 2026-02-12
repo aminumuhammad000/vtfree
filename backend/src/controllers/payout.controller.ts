@@ -9,7 +9,19 @@ export class PayoutController {
      * Get active payout service
      */
     private static async getActiveService(app_id?: string) {
-        // Default to VTPayService as strictly requested
+        if (!app_id) return VTPayService;
+        try {
+            const CreatedApp = (await import('../models/created_app.model.js')).default;
+            const app = await CreatedApp.findOne({ app_id });
+            const gateway = app?.payment_settings?.default_gateway || 'vtpay';
+
+            if (gateway === 'payrant') {
+                const { PayrantService } = await import('../services/payrant.service.js');
+                return PayrantService as any;
+            }
+        } catch (e) {
+            console.error('Error getting active payout service:', e);
+        }
         return VTPayService;
     }
 
@@ -21,6 +33,11 @@ export class PayoutController {
         try {
             const CreatedApp = (await import('../models/created_app.model.js')).default;
             const app = await CreatedApp.findOne({ app_id });
+            const gateway = app?.payment_settings?.default_gateway || 'vtpay';
+
+            if (gateway === 'payrant') {
+                return app?.payment_settings?.payrant_api_key;
+            }
             // Prefer secret key, fallback to api key
             return app?.payment_settings?.vtpay_secret_key || app?.payment_settings?.vtpay_api_key;
         } catch (e) {
