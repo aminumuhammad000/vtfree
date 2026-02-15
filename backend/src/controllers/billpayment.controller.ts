@@ -11,9 +11,10 @@ import { ApiResponse } from '../utils/response.js';
 
 export class BillPaymentController {
   // Get networks
-  async getNetworks(req: Request, res: Response, next: NextFunction) {
+  async getNetworks(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const selected = await providerRegistry.getPreferredProviderFor('airtime');
+      const app_id = req.user?.app_id;
+      const selected = await providerRegistry.getPreferredProviderFor('airtime', app_id);
       const client = selected?.client || topupmateService;
       const networks = await (client.getNetworks ? client.getNetworks() : topupmateService.getNetworks());
       const payload = (networks as any).response || networks;
@@ -24,9 +25,10 @@ export class BillPaymentController {
   }
 
   // Get data plans
-  async getDataPlans(req: Request, res: Response, next: NextFunction) {
+  async getDataPlans(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { network } = req.query;
+      const app_id = req.user?.app_id;
 
       // Optional filter by provider/network
       let providerId: number | undefined;
@@ -39,10 +41,36 @@ export class BillPaymentController {
       }
 
       // Fetch from the same model the admin manages
-      const filter: any = { type: 'DATA', active: true };
+      const filter: any = {
+        type: 'DATA',
+        active: true,
+        $or: [
+          { app_id: app_id },
+          { app_id: null },
+          { app_id: { $exists: false } }
+        ]
+      };
       if (providerId) filter.providerId = providerId;
 
-      const dbPlans = await AirtimePlan.find(filter).sort({ providerId: 1, price: 1, name: 1 });
+      // If app_id plans exist, prioritize them. 
+      // Actually, we should probably sort so app-specific plans come first or are the only ones.
+      // Usually, if an admin has setup plans, we only show those.
+      const appPlans = await AirtimePlan.find({ app_id, type: 'DATA', active: true });
+
+      let dbPlans;
+      if (appPlans.length > 0) {
+        // If app-specific plans exist, filter them by network if requested
+        if (providerId) {
+          dbPlans = appPlans.filter(p => p.providerId === providerId);
+        } else {
+          dbPlans = appPlans;
+        }
+        // sort
+        dbPlans.sort((a, b) => (a.price || 0) - (b.price || 0));
+      } else {
+        // Fallback to global plans
+        dbPlans = await AirtimePlan.find(filter).sort({ providerId: 1, price: 1, name: 1 });
+      }
 
       // Map to frontend expected shape
       const payload = dbPlans.map((p: any) => ({
@@ -63,9 +91,10 @@ export class BillPaymentController {
   }
 
   // Get cable providers
-  async getCableProviders(req: Request, res: Response, next: NextFunction) {
+  async getCableProviders(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const selected = await providerRegistry.getPreferredProviderFor('cable');
+      const app_id = req.user?.app_id;
+      const selected = await providerRegistry.getPreferredProviderFor('cable', app_id);
       const client = selected?.client || topupmateService;
       const providers = await (client.getCableProviders ? client.getCableProviders() : topupmateService.getCableProviders());
       const payload = (providers as any).response || providers;
@@ -76,9 +105,10 @@ export class BillPaymentController {
   }
 
   // Get electricity providers
-  async getElectricityProviders(req: Request, res: Response, next: NextFunction) {
+  async getElectricityProviders(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const selected = await providerRegistry.getPreferredProviderFor('electricity');
+      const app_id = req.user?.app_id;
+      const selected = await providerRegistry.getPreferredProviderFor('electricity', app_id);
       const client = selected?.client || topupmateService;
       const providers = await (client.getElectricityProviders ? client.getElectricityProviders() : topupmateService.getElectricityProviders());
       const payload = (providers as any).response || providers;
@@ -89,9 +119,10 @@ export class BillPaymentController {
   }
 
   // Get exam pin providers
-  async getExamPinProviders(req: Request, res: Response, next: NextFunction) {
+  async getExamPinProviders(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const selected = await providerRegistry.getPreferredProviderFor('exampin');
+      const app_id = req.user?.app_id;
+      const selected = await providerRegistry.getPreferredProviderFor('exampin', app_id);
       const client = selected?.client || topupmateService;
       const providers = await (client.getExamPinProviders ? client.getExamPinProviders() : topupmateService.getExamPinProviders());
       const payload = (providers as any).response || providers;
@@ -170,7 +201,7 @@ export class BillPaymentController {
       });
 
       try {
-        const selected = await providerRegistry.getPreferredProviderFor('airtime');
+        const selected = await providerRegistry.getPreferredProviderFor('airtime', req.user?.app_id);
         const client = selected?.client || topupmateService;
         const result = await (client.purchaseAirtime
           ? client.purchaseAirtime({
@@ -269,7 +300,22 @@ export class BillPaymentController {
       }
 
       // Get plan details from DB
-      const dbPlan = await AirtimePlan.findById(plan);
+      let dbPlan;
+      const mongoose = await import('mongoose').then(m => m.default || m);
+      if (mongoose.Types.ObjectId.isValid(plan)) {
+        dbPlan = await AirtimePlan.findById(plan);
+      }
+
+      // Fallback search by externalPlanId or code if not found by _id
+      if (!dbPlan) {
+        dbPlan = await AirtimePlan.findOne({
+          $or: [
+            { externalPlanId: plan },
+            { code: plan }
+          ],
+          app_id: req.user?.app_id || { $exists: false }
+        });
+      }
       if (!dbPlan) {
         return ApiResponse.error(res, 'Invalid plan selected', 400);
       }
@@ -307,7 +353,7 @@ export class BillPaymentController {
       });
 
       try {
-        const selected = await providerRegistry.getPreferredProviderFor('data');
+        const selected = await providerRegistry.getPreferredProviderFor('data', req.user?.app_id, dbPlan.source_provider);
         const client = selected?.client || topupmateService;
         const result = await (client.purchaseData
           ? client.purchaseData({
@@ -369,7 +415,8 @@ export class BillPaymentController {
   async verifyCableAccount(req: Request, res: Response, next: NextFunction) {
     try {
       const { provider, iucnumber } = req.body;
-      const selected = await providerRegistry.getPreferredProviderFor('cable');
+      const app_id = (req as AuthRequest).user?.app_id;
+      const selected = await providerRegistry.getPreferredProviderFor('cable', app_id);
       const client = selected?.client || topupmateService;
       const result = await (client.verifyCableAccount
         ? client.verifyCableAccount({ provider: String(provider), iucnumber: String(iucnumber) })
@@ -435,7 +482,7 @@ export class BillPaymentController {
       });
 
       try {
-        const selected = await providerRegistry.getPreferredProviderFor('cable');
+        const selected = await providerRegistry.getPreferredProviderFor('cable', req.user?.app_id);
         const client = selected?.client || topupmateService;
         const result = await (client.purchaseCableTV
           ? client.purchaseCableTV({ provider, iucnumber, plan, ref, subtype, phone })
@@ -478,7 +525,8 @@ export class BillPaymentController {
   async verifyElectricityMeter(req: Request, res: Response, next: NextFunction) {
     try {
       const { provider, meternumber, metertype } = req.body;
-      const selected = await providerRegistry.getPreferredProviderFor('electricity');
+      const app_id = (req as AuthRequest).user?.app_id;
+      const selected = await providerRegistry.getPreferredProviderFor('electricity', app_id);
       const client = selected?.client || topupmateService;
       const result = await (client.verifyElectricityMeter
         ? client.verifyElectricityMeter({ provider, meternumber, metertype })
@@ -534,7 +582,7 @@ export class BillPaymentController {
       });
 
       try {
-        const selected = await providerRegistry.getPreferredProviderFor('electricity');
+        const selected = await providerRegistry.getPreferredProviderFor('electricity', req.user?.app_id);
         const client = selected?.client || topupmateService;
         const result = await (client.purchaseElectricity
           ? client.purchaseElectricity({ provider, meternumber, amount, metertype, phone, ref })
@@ -621,7 +669,7 @@ export class BillPaymentController {
       });
 
       try {
-        const selected = await providerRegistry.getPreferredProviderFor('exampin');
+        const selected = await providerRegistry.getPreferredProviderFor('exampin', req.user?.app_id);
         const client = selected?.client || topupmateService;
         const result = await (client.purchaseExamPin
           ? client.purchaseExamPin({ provider, quantity, ref })
@@ -665,8 +713,9 @@ export class BillPaymentController {
   async getTransactionStatus(req: Request, res: Response, next: NextFunction) {
     try {
       const { reference } = req.params;
+      const app_id = (req as AuthRequest).user?.app_id;
 
-      const selected = await providerRegistry.getPreferredProviderFor('airtime');
+      const selected = await providerRegistry.getPreferredProviderFor('airtime', app_id);
       const client = selected?.client || topupmateService;
       const result = await (client.getTransactionStatus
         ? client.getTransactionStatus(reference)

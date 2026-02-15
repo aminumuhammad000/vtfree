@@ -25,8 +25,10 @@ const PricingEditModal: React.FC<PricingEditModalProps> = ({ plan, onClose, onSa
     code: plan?.code || '',
     name: plan?.name || '',
     price: plan?.price || '',
+    buyingPrice: plan?.meta?.original_price || plan?.meta?.price || '',
     type: plan?.type || 'AIRTIME',
     discount: plan?.discount || 0,
+    source_provider: plan?.source_provider || '',
     active: plan?.active !== false,
   });
 
@@ -68,16 +70,31 @@ const PricingEditModal: React.FC<PricingEditModalProps> = ({ plan, onClose, onSa
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      onSave(formData);
+      const payload = {
+        ...formData,
+        meta: {
+          ...(plan?.meta || {}),
+          original_price: Number(formData.buyingPrice)
+        }
+      };
+      onSave(payload);
     }
   };
 
+  const isCloning = plan && !plan.app_id;
+  const profit = formData.price && formData.buyingPrice ? Number(formData.price) - Number(formData.buyingPrice) : 0;
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg max-w-2xl w-full p-6 shadow-lg max-h-96 overflow-y-auto">
-        <h2 className="text-2xl font-bold mb-4 text-gray-900">
-          {isCreate ? 'Create New Plan' : 'Edit Plan'}
+      <div className="bg-white rounded-lg max-w-2xl w-full p-6 shadow-lg max-h-[90vh] overflow-y-auto">
+        <h2 className="text-2xl font-bold mb-1 text-gray-900">
+          {isCreate ? 'Create New Plan' : isCloning ? 'Clone & Customize System Plan' : 'Edit Plan'}
         </h2>
+        {isCloning && (
+          <p className="text-xs font-bold text-amber-600 mb-4 bg-amber-50 p-2 rounded border border-amber-100 italic">
+            Note: You are customizing a system default plan. Saving will create a private version for your app.
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -111,6 +128,18 @@ const PricingEditModal: React.FC<PricingEditModalProps> = ({ plan, onClose, onSa
           </div>
 
           <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Source Provider (e.g. ibdata)</label>
+            <input
+              type="text"
+              name="source_provider"
+              value={formData.source_provider}
+              onChange={handleChange}
+              placeholder="Source API code (e.g. ibdata, smeplug)"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+
+          <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Plan Name *</label>
             <input
               type="text"
@@ -118,16 +147,15 @@ const PricingEditModal: React.FC<PricingEditModalProps> = ({ plan, onClose, onSa
               value={formData.name}
               onChange={handleChange}
               placeholder="e.g., MTN 1GB Daily"
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                errors.name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-green-500'
-              }`}
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-green-500'
+                }`}
             />
             {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Price (₦) *</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Selling Price (₦) *</label>
               <input
                 type="number"
                 name="price"
@@ -135,15 +163,34 @@ const PricingEditModal: React.FC<PricingEditModalProps> = ({ plan, onClose, onSa
                 onChange={handleChange}
                 placeholder="0"
                 step="0.01"
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                  errors.price ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-green-500'
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.price ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-green-500'
+                  }`}
               />
               {errors.price && <p className="text-red-500 text-sm mt-1">{errors.price}</p>}
+              {profit !== 0 && (
+                <p className={`text-[10px] font-black mt-1 uppercase ${profit > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  Expected Profit: ₦{profit.toLocaleString()}
+                </p>
+              )}
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Discount (%) *</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Buying Price (Cost) (₦)</label>
+              <input
+                type="number"
+                name="buyingPrice"
+                value={formData.buyingPrice}
+                onChange={handleChange}
+                placeholder="0"
+                step="0.01"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Discount (%)</label>
               <input
                 type="number"
                 name="discount"
@@ -153,15 +200,12 @@ const PricingEditModal: React.FC<PricingEditModalProps> = ({ plan, onClose, onSa
                 min="0"
                 max="100"
                 step="0.01"
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                  errors.discount ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-green-500'
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${errors.discount ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-green-500'
+                  }`}
               />
               {errors.discount && <p className="text-red-500 text-sm mt-1">{errors.discount}</p>}
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Code</label>
               <input
@@ -170,18 +214,6 @@ const PricingEditModal: React.FC<PricingEditModalProps> = ({ plan, onClose, onSa
                 value={formData.code}
                 onChange={handleChange}
                 placeholder="Plan code"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">External Plan ID</label>
-              <input
-                type="text"
-                name="externalPlanId"
-                value={formData.externalPlanId}
-                onChange={handleChange}
-                placeholder="External ID"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>

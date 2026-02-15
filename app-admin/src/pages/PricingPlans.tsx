@@ -15,22 +15,12 @@ import {
   FiSettings,
   FiArrowRight
 } from 'react-icons/fi';
-import {
-  bulkImportPricingPlans,
-  createPricingPlan,
-  deletePricingPlan,
-  getPricingPlans,
-  updatePricingPlan,
-  getProviderData,
-  getProviders,
-  createProvider,
-} from '../api/adminApi';
+import { bulkImportPricingPlans, createProvider, deletePricingPlan, deleteAllPricingPlans, getPricingPlans, getProviders, updatePricingPlan, getProviderData, createPricingPlan } from '../api/adminApi';
 import Layout from '../components/Layout';
 import PricingBulkImportModal from '../components/PricingBulkImportModal';
 import PricingDeleteModal from '../components/PricingDeleteModal';
 import PricingEditModal from '../components/PricingEditModal';
 import PricingViewModal from '../components/PricingViewModal';
-import IBDataSyncModal from '../components/IBDataSyncModal';
 import { useToast } from '../hooks/ToastContext';
 
 const PROVIDERS = [
@@ -56,7 +46,6 @@ const PricingPlans: React.FC = () => {
   const [editPlan, setEditPlan] = useState<any | null>(null);
   const [deletePlan, setDeletePlan] = useState<any | null>(null);
   const [showBulkImport, setShowBulkImport] = useState(false);
-  const [showIBDataSync, setShowIBDataSync] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('my-plans');
 
@@ -122,14 +111,23 @@ const PricingPlans: React.FC = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: () =>
-      deletePricingPlan(deletePlan.id || deletePlan._id).then((res: any) => res.data),
+    mutationFn: (id: string) =>
+      deletePricingPlan(id).then((res: any) => res.data),
     onSuccess: () => {
       setDeletePlan(null);
       queryClient.invalidateQueries({ queryKey: ['pricing-plans'] });
       showSuccess('Plan deleted successfully');
     },
     onError: (err: any) => showError(err.response?.data?.message || 'Failed to delete plan'),
+  });
+
+  const deleteAllMutation = useMutation({
+    mutationFn: () => deleteAllPricingPlans().then((res: any) => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pricing-plans'] });
+      showSuccess('All plans cleared successfully');
+    },
+    onError: (err: any) => showError(err.response?.data?.message || 'Failed to clear plans'),
   });
 
   const createMutation = useMutation({
@@ -218,6 +216,18 @@ const PricingPlans: React.FC = () => {
                 >
                   <FiUpload className="w-5 h-5 text-blue-600" />
                   <span>Bulk Import</span>
+                </button>
+                <button
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to delete ALL plans? This cannot be undone.')) {
+                      deleteAllMutation.mutate();
+                    }
+                  }}
+                  disabled={deleteAllMutation.status === 'pending' || total === 0}
+                  className="flex items-center gap-2 bg-white border border-red-200 text-red-600 px-6 py-2.5 rounded-xl hover:bg-red-50 transition-all shadow-sm font-bold active:scale-95 disabled:opacity-50"
+                >
+                  <FiTrash2 className="w-5 h-5" />
+                  <span>{deleteAllMutation.status === 'pending' ? 'Clearing...' : 'Clear All Plans'}</span>
                 </button>
               </div>
 
@@ -313,10 +323,10 @@ const PricingPlans: React.FC = () => {
                         <thead>
                           <tr className="bg-slate-50/50 border-b border-slate-100">
                             <th className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Plan Name</th>
-                            <th className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Provider</th>
+                            <th className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Source</th>
                             <th className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider hidden md:table-cell">Type</th>
-                            <th className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Price</th>
-                            <th className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider hidden lg:table-cell">Discount</th>
+                            <th className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Cost Price</th>
+                            <th className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Selling Price</th>
                             <th className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
                             <th className="px-4 sm:px-6 py-4 text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
                           </tr>
@@ -331,12 +341,20 @@ const PricingPlans: React.FC = () => {
                             <tr key={plan._id || plan.id} className="hover:bg-slate-50/50 transition-colors group">
                               <td className="px-4 sm:px-6 py-4">
                                 <div className="flex flex-col">
-                                  <span className="text-sm font-bold text-slate-900">{plan.name}</span>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-sm font-bold text-slate-900">{plan.name}</span>
+                                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter ${plan.app_id ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
+                                      {plan.app_id ? 'Custom' : 'System'}
+                                    </span>
+                                  </div>
                                   <span className="sm:hidden text-[10px] font-medium text-slate-500 uppercase">{plan.providerName} • {plan.type}</span>
                                 </div>
                               </td>
                               <td className="px-4 sm:px-6 py-4 hidden sm:table-cell">
-                                <span className="text-xs font-bold text-slate-600 uppercase bg-slate-100 px-2 py-1 rounded">{plan.providerName}</span>
+                                <div className="flex flex-col">
+                                  <span className="text-[10px] font-bold text-white uppercase bg-blue-600 px-1.5 py-0.5 rounded w-fit mb-1">{plan.source_provider || 'global'}</span>
+                                  <span className="text-xs font-bold text-slate-600 uppercase bg-slate-100 px-2 py-1 rounded w-fit">{plan.providerName}</span>
+                                </div>
                               </td>
                               <td className="px-4 sm:px-6 py-4 hidden md:table-cell">
                                 <span className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${plan.type === 'AIRTIME' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'}`}>
@@ -344,10 +362,15 @@ const PricingPlans: React.FC = () => {
                                 </span>
                               </td>
                               <td className="px-4 sm:px-6 py-4">
-                                <span className="text-sm sm:text-base font-black text-slate-900">₦{plan.price?.toLocaleString()}</span>
+                                <span className="text-sm font-bold text-slate-500">₦{plan.meta?.original_price || plan.meta?.price || plan.price}</span>
                               </td>
-                              <td className="px-4 sm:px-6 py-4 hidden lg:table-cell">
-                                <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">{plan.discount || 0}% Off</span>
+                              <td className="px-4 sm:px-6 py-4">
+                                <span className="text-sm sm:text-base font-black text-green-600">₦{plan.price?.toLocaleString()}</span>
+                                {plan.meta?.original_price && (
+                                  <div className="text-[10px] font-bold text-blue-600">
+                                    Profit: ₦{(plan.price - plan.meta.original_price).toLocaleString()}
+                                  </div>
+                                )}
                               </td>
                               <td className="px-4 sm:px-6 py-4">
                                 <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${plan.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
@@ -365,8 +388,8 @@ const PricingPlans: React.FC = () => {
                                   </button>
                                   <button
                                     onClick={() => setEditPlan(plan)}
-                                    className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-all"
-                                    title="Edit Plan"
+                                    className={`p-2 rounded-xl transition-all ${!plan.app_id ? 'text-amber-500 hover:text-amber-600 hover:bg-amber-50' : 'text-slate-400 hover:text-green-600 hover:bg-green-50'}`}
+                                    title={!plan.app_id ? 'Clone & Customize' : 'Edit Plan'}
                                   >
                                     <FiEdit2 className="w-4 h-4" />
                                   </button>
@@ -429,15 +452,23 @@ const PricingPlans: React.FC = () => {
           <PricingEditModal
             plan={editPlan}
             onClose={() => setEditPlan(null)}
-            onSave={editMutation.mutate}
-            isSaving={editMutation.status === 'pending'}
+            onSave={(formData) => {
+              if (!editPlan.app_id) {
+                // System plan -> create NEW app plan
+                createMutation.mutate(formData);
+              } else {
+                // App plan -> update EXISTING app plan
+                editMutation.mutate(formData);
+              }
+            }}
+            isSaving={editMutation.status === 'pending' || createMutation.status === 'pending'}
           />
         )}
         {deletePlan && (
           <PricingDeleteModal
             plan={deletePlan}
             onClose={() => setDeletePlan(null)}
-            onDelete={deleteMutation.mutate}
+            onDelete={() => deleteMutation.mutate(deletePlan._id || deletePlan.id)}
             isDeleting={deleteMutation.status === 'pending'}
           />
         )}
@@ -457,9 +488,6 @@ const PricingPlans: React.FC = () => {
             isImporting={bulkImportMutation.status === 'pending'}
           />
         )}
-        {showIBDataSync && (
-          <IBDataSyncModal onClose={() => setShowIBDataSync(false)} />
-        )}
       </div>
     </Layout>
   );
@@ -476,6 +504,7 @@ const DirectPlansView: React.FC<DirectPlansViewProps> = ({ providerCode }) => {
   const [isProviderMissing, setIsProviderMissing] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
   const [apiKey, setApiKey] = useState('');
+  const [appPlans, setAppPlans] = useState<any[]>([]);
 
   // Global Profit Settings
   const [globalProfit, setGlobalProfit] = useState<number>(10);
@@ -511,8 +540,18 @@ const DirectPlansView: React.FC<DirectPlansViewProps> = ({ providerCode }) => {
     }
   };
 
+  const fetchAppPlans = async () => {
+    try {
+      const res: any = await getPricingPlans({ providerCode, limit: 1000 });
+      setAppPlans(res.data?.data?.plans || []);
+    } catch (err) {
+      console.error('Failed to fetch app plans:', err);
+    }
+  };
+
   useEffect(() => {
     fetchPlans();
+    fetchAppPlans();
     setCustomProfits({}); // Reset custom profits when provider changes
   }, [providerCode]);
 
@@ -528,6 +567,7 @@ const DirectPlansView: React.FC<DirectPlansViewProps> = ({ providerCode }) => {
     mutationFn: (plansData: any[]) => bulkImportPricingPlans(plansData).then((res: any) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pricing-plans'] });
+      fetchAppPlans(); // Refresh local list
       toast.success('Plans synced successfully!');
     },
     onError: (err: any) => {
@@ -565,6 +605,7 @@ const DirectPlansView: React.FC<DirectPlansViewProps> = ({ providerCode }) => {
       price: Math.ceil(finalPrice),
       type: (p.plan_type || p.type || '').toUpperCase().includes('DATA') ? 'DATA' : 'AIRTIME',
       discount: 0,
+      source_provider: providerCode,
       active: true,
       meta: {
         validity: p.validity,
@@ -762,7 +803,12 @@ const DirectPlansView: React.FC<DirectPlansViewProps> = ({ providerCode }) => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
-                          <span className="text-sm font-bold text-slate-900">{p.plan_name || p.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-slate-900">{p.plan_name || p.name}</span>
+                            {appPlans.some(ap => String(ap.externalPlanId) === String(planId)) && (
+                              <span className="text-[9px] font-black bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded uppercase tracking-tighter">Synced</span>
+                            )}
+                          </div>
                           <span className="text-[10px] text-slate-400 font-mono">ID: {planId}</span>
                         </div>
                       </td>
@@ -779,15 +825,23 @@ const DirectPlansView: React.FC<DirectPlansViewProps> = ({ providerCode }) => {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-sm font-black text-green-600">₦{Math.ceil(sellingPrice).toLocaleString()}</span>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-black text-green-600">₦{Math.ceil(sellingPrice).toLocaleString()}</span>
+                          {appPlans.find(ap => String(ap.externalPlanId) === String(planId)) && (
+                            <span className="text-[9px] font-bold text-slate-400">Current: ₦{appPlans.find(ap => String(ap.externalPlanId) === String(planId)).price.toLocaleString()}</span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <button
                           onClick={() => handleSingleSync(p)}
-                          className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95"
+                          className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm active:scale-95 ${appPlans.some(ap => String(ap.externalPlanId) === String(planId))
+                            ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                            }`}
                         >
-                          <FiArrowRight />
-                          Sync
+                          {appPlans.some(ap => String(ap.externalPlanId) === String(planId)) ? <FiRefreshCw /> : <FiArrowRight />}
+                          {appPlans.some(ap => String(ap.externalPlanId) === String(planId)) ? 'Update' : 'Sync'}
                         </button>
                       </td>
                     </tr>

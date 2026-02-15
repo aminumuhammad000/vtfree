@@ -10,6 +10,7 @@ export interface IAirtimePlan extends Document {
   price: number; // in Naira
   type: 'AIRTIME' | 'DATA' | 'CABLE' | 'UTILITY'; // AIRTIME, DATA, CABLE or UTILITY
   discount?: number; // discount percentage
+  source_provider?: string; // e.g., 'ibdata', 'smeplug', etc.
   meta?: Record<string, any>;
   active: boolean;
   createdAt: Date;
@@ -27,6 +28,7 @@ const AirtimePlanSchema = new Schema<IAirtimePlan>(
     price: { type: Number, required: true },
     type: { type: String, enum: ['AIRTIME', 'DATA', 'CABLE', 'UTILITY'], required: true, index: true },
     discount: { type: Number, default: 0 },
+    source_provider: { type: String, index: true },
     meta: { type: Schema.Types.Mixed },
     active: { type: Boolean, default: true },
   },

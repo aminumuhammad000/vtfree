@@ -81,6 +81,7 @@ router.get('/pricing', authenticateAppAdmin, AppAdminPricingController.getAllPla
 router.get('/pricing/:id', authenticateAppAdmin, AppAdminPricingController.getPlanById);
 router.post('/pricing', authenticateAppAdmin, AppAdminPricingController.createPlan);
 router.put('/pricing/:id', authenticateAppAdmin, AppAdminPricingController.updatePlan);
+router.delete('/pricing/all', authenticateAppAdmin, AppAdminPricingController.deleteAllPlans);
 router.delete('/pricing/:id', authenticateAppAdmin, AppAdminPricingController.deletePlan);
 router.post('/pricing/bulk-import', authenticateAppAdmin, AppAdminPricingController.bulkImportPlans);
 router.get('/pricing/provider/:providerId', authenticateAppAdmin, AppAdminPricingController.getPlansByProvider);

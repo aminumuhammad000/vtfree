@@ -28,7 +28,6 @@ import {
   getProviderData
 } from '../api/adminApi';
 import Layout from '../components/Layout';
-import IBDataSyncModal from '../components/IBDataSyncModal';
 import { useToast } from '../hooks/ToastContext';
 
 const ALL_SERVICES = ['airtime', 'data', 'cable', 'electricity', 'exampin'];
@@ -199,7 +198,6 @@ const Providers: React.FC = () => {
   const [testItem, setTestItem] = useState<any | null>(null);
   const [testResults, setTestResults] = useState<any>(null);
   const [testLoading, setTestLoading] = useState(false);
-  const [isSyncOpen, setIsSyncOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const queryClient = useQueryClient();
@@ -347,14 +345,6 @@ const Providers: React.FC = () => {
               >
                 <FiPlus className="w-5 h-5" />
                 <span>Add Provider</span>
-              </button>
-
-              <button
-                onClick={() => setIsSyncOpen(true)}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-xl hover:bg-slate-50 transition-all shadow-sm font-bold active:scale-95"
-              >
-                <FiRefreshCw className="w-5 h-5 text-blue-600" />
-                <span>Sync IBData Plans</span>
               </button>
             </div>
 
@@ -869,8 +859,6 @@ const Providers: React.FC = () => {
             </div>
           </div>
         )}
-
-        {isSyncOpen && <IBDataSyncModal onClose={() => setIsSyncOpen(false)} />}
       </div>
     </Layout>
   );

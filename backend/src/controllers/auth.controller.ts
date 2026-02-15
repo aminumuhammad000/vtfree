@@ -69,7 +69,11 @@ export class AuthController {
         return ApiResponse.success(res, { user }, 'Registration successful. Your account is pending approval by the administrator.', 201);
       }
 
-      const token = jwt.sign({ id: user._id }, configService.getSync('JWT_SECRET') || config.jwtSecret, { expiresIn: configService.getSync('JWT_EXPIRY') || config.jwtExpiry } as SignOptions);
+      const token = jwt.sign(
+        { id: user._id, app_id: user.app_id },
+        configService.getSync('JWT_SECRET') || config.jwtSecret,
+        { expiresIn: configService.getSync('JWT_EXPIRY') || config.jwtExpiry } as SignOptions
+      );
 
       return ApiResponse.success(res, { user, token }, 'Registration successful', 201);
     } catch (error: any) {
@@ -106,7 +110,11 @@ export class AuthController {
         return ApiResponse.error(res, 'Account is inactive', 403);
       }
 
-      const token = jwt.sign({ id: user._id }, configService.getSync('JWT_SECRET') || config.jwtSecret, { expiresIn: configService.getSync('JWT_EXPIRY') || config.jwtExpiry } as SignOptions);
+      const token = jwt.sign(
+        { id: user._id, app_id: user.app_id },
+        configService.getSync('JWT_SECRET') || config.jwtSecret,
+        { expiresIn: configService.getSync('JWT_EXPIRY') || config.jwtExpiry } as SignOptions
+      );
 
       return ApiResponse.success(res, { user, token }, 'Login successful');
     } catch (error: any) {

@@ -38,10 +38,21 @@ class ProviderRegistryService {
     return this.clients[code];
   }
 
-  async getPreferredProviderFor(service: string): Promise<{ code: string; client: ProviderClient } | null> {
-    // Always prioritize IBData first (priority 0)
-    const providers = await ProviderConfig.find({ active: true, supported_services: { $in: [service] } })
-      .sort({ priority: 1, name: 1 });
+  async getPreferredProviderFor(service: string, app_id?: string, providerCode?: string): Promise<{ code: string; client: ProviderClient } | null> {
+    // If a specific providerCode is requested (e.g. from plan.source_provider), use it directly
+    if (providerCode) {
+      const client = this.getClient(providerCode);
+      if (client) return { code: providerCode, client };
+    }
+
+    const filter: any = { active: true, supported_services: { $in: [service] } };
+    if (app_id) {
+      filter.app_id = app_id;
+    } else {
+      filter.app_id = { $exists: false }; // System global providers
+    }
+
+    const providers = await ProviderConfig.find(filter).sort({ priority: 1, name: 1 });
 
     // Check for IBData first regardless of other providers
     const ibdataProvider = providers.find(p => p.code === 'ibdata');
@@ -60,7 +71,13 @@ class ProviderRegistryService {
       }
     }
 
-    // Final fallback to IBData
+    // Final fallback to IBData if no provider found for this app
+    if (app_id) {
+      // Check if there is a global IBData fallback or if we should just use the client
+      const fallback = this.getClient('ibdata');
+      return fallback ? { code: 'ibdata', client: fallback } : null;
+    }
+
     const fallback = this.getClient('ibdata');
     return fallback ? { code: 'ibdata', client: fallback } : null;
   }

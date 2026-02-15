@@ -13,7 +13,8 @@ export class AppAdminPricingController {
             const app_id = req.user?.app_id;
             const { providerId, type, active } = req.query;
 
-            const filter: any = {
+            // Fetch all potentially relevant plans (both app-specific and global)
+            const query: any = {
                 $or: [
                     { app_id: app_id },
                     { app_id: null },
@@ -21,11 +22,28 @@ export class AppAdminPricingController {
                 ]
             };
 
-            if (providerId) filter.providerId = parseInt(providerId as string);
-            if (type) filter.type = type;
-            if (active !== undefined) filter.active = active === 'true';
+            if (providerId) query.providerId = parseInt(providerId as string);
+            if (type) query.type = type;
+            if (active !== undefined) query.active = active === 'true';
 
-            const plans = await AirtimePlan.find(filter).sort({ providerId: 1, type: 1, price: 1 });
+            const allPlans = await AirtimePlan.find(query).sort({ providerId: 1, type: 1, price: 1 });
+
+            // De-duplicate plans: prioritize plans with app_id over global ones
+            const planMap = new Map();
+            for (const plan of allPlans) {
+                // Create a unique key for the plan based on its identifying characteristics
+                const key = `${plan.providerId}-${plan.type}-${plan.externalPlanId || plan.code || plan.name}`;
+
+                if (plan.app_id) {
+                    // App-specific plan always wins
+                    planMap.set(key, plan);
+                } else if (!planMap.has(key)) {
+                    // Global plan only wins if no app-specific plan exists for this key
+                    planMap.set(key, plan);
+                }
+            }
+
+            const plans = Array.from(planMap.values());
 
             ApiResponse.success(res, 'Plans retrieved successfully', { plans, total: plans.length });
         } catch (error) {
@@ -68,7 +86,7 @@ export class AppAdminPricingController {
     static async createPlan(req: AuthRequest, res: Response): Promise<void> {
         try {
             const app_id = req.user?.app_id;
-            const { providerId, providerName, externalPlanId, code, name, price, type, discount, meta, active } = req.body;
+            const { providerId, providerName, externalPlanId, code, name, price, type, discount, meta, active, source_provider } = req.body;
 
             if (!providerId || !providerName || !name || price === undefined || !type) {
                 ApiResponse.error(res, 'Missing required fields', 400);
@@ -85,6 +103,7 @@ export class AppAdminPricingController {
                 price,
                 type,
                 discount: discount || 0,
+                source_provider,
                 meta,
                 active: active !== false,
             });
@@ -104,7 +123,7 @@ export class AppAdminPricingController {
         try {
             const app_id = req.user?.app_id;
             const { id } = req.params;
-            const { providerId, providerName, externalPlanId, code, name, price, type, discount, meta, active } = req.body;
+            const { providerId, providerName, externalPlanId, code, name, price, type, discount, meta, active, source_provider } = req.body;
 
             // Only allow updating plans that belong to this app
             const plan = await AirtimePlan.findOne({ _id: id, app_id });
@@ -121,6 +140,7 @@ export class AppAdminPricingController {
             if (price !== undefined) plan.price = price;
             if (type !== undefined) plan.type = type;
             if (discount !== undefined) plan.discount = discount;
+            if (source_provider !== undefined) plan.source_provider = source_provider;
             if (meta !== undefined) plan.meta = meta;
             if (active !== undefined) plan.active = active;
 
@@ -141,11 +161,18 @@ export class AppAdminPricingController {
             const { id } = req.params;
 
             // Only allow deleting plans that belong to this app
-            const plan = await AirtimePlan.findOneAndDelete({ _id: id, app_id });
+            const plan = await AirtimePlan.findOne({ _id: id });
             if (!plan) {
-                ApiResponse.error(res, 'Plan not found or you do not have permission to delete it', 404);
+                ApiResponse.error(res, 'Plan not found', 404);
                 return;
             }
+
+            if (plan.app_id !== app_id) {
+                ApiResponse.error(res, 'You do not have permission to delete this plan (it is a system default plan)', 403);
+                return;
+            }
+
+            await AirtimePlan.findByIdAndDelete(id);
 
             ApiResponse.success(res, 'Plan deleted successfully', { plan });
         } catch (error) {
@@ -155,7 +182,7 @@ export class AppAdminPricingController {
     }
 
     /**
-     * Bulk import plans for the current app
+     * Bulk import/sync plans for the current app (Additive/Upsert)
      */
     static async bulkImportPlans(req: AuthRequest, res: Response): Promise<void> {
         try {
@@ -167,21 +194,43 @@ export class AppAdminPricingController {
                 return;
             }
 
-            const formattedPlans = plans.map(p => ({
-                ...p,
-                app_id
-            }));
+            let count = 0;
+            for (const p of plans) {
+                const filter = {
+                    app_id,
+                    externalPlanId: p.externalPlanId,
+                    source_provider: p.source_provider || p.meta?.source_provider
+                };
 
-            // Optional: Clear existing plans for this app before import?
-            // For now, let's just append or let the user manage.
-            // Usually sync means replace.
-            await AirtimePlan.deleteMany({ app_id });
+                const update = {
+                    ...p,
+                    app_id,
+                    // Ensure source_provider is at top level
+                    source_provider: p.source_provider || p.meta?.source_provider
+                };
 
-            const result = await AirtimePlan.insertMany(formattedPlans);
-            ApiResponse.success(res, 'Plans imported successfully', { count: result.length }, 201);
+                await AirtimePlan.findOneAndUpdate(filter, update, { upsert: true, new: true });
+                count++;
+            }
+
+            ApiResponse.success(res, 'Plans synced successfully', { count }, 201);
         } catch (error) {
             logger.error('Error bulk importing app plans:', error);
-            ApiResponse.error(res, 'Failed to import plans', 500);
+            ApiResponse.error(res, 'Failed to sync plans', 500);
+        }
+    }
+
+    /**
+     * Delete all plans for the current app
+     */
+    static async deleteAllPlans(req: AuthRequest, res: Response): Promise<void> {
+        try {
+            const app_id = req.user?.app_id;
+            const result = await AirtimePlan.deleteMany({ app_id });
+            ApiResponse.success(res, 'All plans cleared successfully', { count: result.deletedCount });
+        } catch (error) {
+            logger.error('Error clearing app plans:', error);
+            ApiResponse.error(res, 'Failed to clear plans', 500);
         }
     }
 

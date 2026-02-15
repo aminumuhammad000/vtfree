@@ -41,6 +41,8 @@ export const updatePricingPlan = (id: string, data: any) =>
   api.put(`/pricing/${id}`, data);
 export const deletePricingPlan = (id: string) =>
   api.delete(`/pricing/${id}`);
+export const deleteAllPricingPlans = () =>
+  api.delete('/pricing/all');
 export const bulkImportPricingPlans = (plans: any[]) =>
   api.post('/pricing/bulk-import', { plans });
 

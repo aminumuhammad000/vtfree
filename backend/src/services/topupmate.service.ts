@@ -314,9 +314,9 @@ class TopupmateService {
   }
 
   // Get wallet balance (account info)
-  async getWalletBalance(): Promise<{ balance: number; currency?: string; name?: string; status?: string; raw?: any }> {
+  async getWalletBalance(configOverride?: any): Promise<{ balance: number; currency?: string; name?: string; status?: string; raw?: any }> {
     try {
-      const api = await this.ensureClient();
+      const api = await this.ensureClient(configOverride);
       const response = await api.get('/user/');
       const data = response.data as any;
       const rawBalance = data?.balance ?? data?.response?.balance;
