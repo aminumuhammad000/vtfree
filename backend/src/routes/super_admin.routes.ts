@@ -10,11 +10,18 @@ router.post('/login', SuperAdminController.login);
 // Protected routes
 router.use(authenticateSuperAdmin);
 router.get('/apps', SuperAdminController.getAllApps);
+router.post('/apps', SuperAdminController.createApp);
 router.get('/users', SuperAdminController.getAllUsers);
 router.get('/owners', SuperAdminController.getAllOwners);
+router.post('/owners', SuperAdminController.createOwner);
 router.get('/owners/:id', SuperAdminController.getOwnerById);
+router.put('/owners/:id', SuperAdminController.updateOwner);
+router.delete('/owners/:id', SuperAdminController.deleteOwner);
 router.get('/admins', SuperAdminController.getAllAdmins);
+router.post('/admins', SuperAdminController.createAdmin);
 router.get('/admins/:id', SuperAdminController.getAdminById);
+router.put('/admins/:id', SuperAdminController.updateAdmin);
+router.delete('/admins/:id', SuperAdminController.deleteAdmin);
 
 // Pricing & Plans
 router.get('/pricing/ibdata-plans', SuperAdminController.getIBDataPlans);

@@ -290,22 +290,26 @@ export class AppAdminProviderController {
                     data = await client.getNetworks?.();
                     break;
                 case 'plans':
-                    data = await client.getDataPlans?.();
+                    if (code.toLowerCase() === 'ibdata') {
+                        // Fetch plans defined by Super Admin (where app_id is null)
+                        const AirtimePlan = (await import('../models/airtime_plan.model.js')).default;
+                        const superAdminPlans = await AirtimePlan.find({
+                            app_id: null, // Global plans
+                            active: true
+                        }).sort({ providerId: 1, price: 1 });
 
-                    // Apply global profit if it's IBData
-                    if (code.toLowerCase() === 'ibdata' && Array.isArray(data)) {
-                        const globalPlans = await (mongoose.model('AirtimePlan') as any).find({ app_id: null });
-                        data = data.map((p: any) => {
-                            const globalPlan = globalPlans.find((gp: any) => gp.externalPlanId === p.plan_id || gp.code === `IBDATA_${p.plan_id}`);
-                            if (globalPlan) {
-                                return {
-                                    ...p,
-                                    price: globalPlan.price, // This is the selling price set by super admin
-                                    original_price: p.price // Keep original for reference
-                                };
-                            }
-                            return p;
-                        });
+                        // Transform to standard format expected by frontend
+                        data = superAdminPlans.map((plan: any) => ({
+                            plan_id: plan.externalPlanId || plan.code?.replace('IBDATA_', ''),
+                            network: plan.providerId,
+                            plan_name: plan.name,
+                            amount: plan.price, // Cost price for App Admin
+                            validity: plan.meta?.validity || '30 Days',
+                            plan_type: plan.type,
+                            data_value: plan.meta?.data_value || plan.name
+                        }));
+                    } else {
+                        data = await client.getDataPlans?.();
                     }
                     break;
                 default:

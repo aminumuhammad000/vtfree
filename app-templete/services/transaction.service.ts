@@ -178,10 +178,26 @@ export const transactionService = {
    */
   getTransactionById: async (id: string): Promise<any> => {
     try {
+      // Check if ID is a valid MongoDB ObjectId format (24 hex characters)
+      const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+
+      // If not a valid ObjectId, check demo data first
+      if (!isValidObjectId) {
+        const demoTx = DEMO_TRANSACTIONS.find(t => t._id === id || t.reference_number === id);
+        if (demoTx) {
+          return {
+            success: true,
+            message: 'Transaction retrieved successfully',
+            data: demoTx
+          };
+        }
+      }
+
+      // Try API call for valid ObjectIds
       const response = await api.get(`/transactions/${id}`);
       return response.data;
     } catch (error: any) {
-      // Check demo data
+      // Fallback to demo data on API error
       const demoTx = DEMO_TRANSACTIONS.find(t => t._id === id || t.reference_number === id);
       if (demoTx) {
         return {

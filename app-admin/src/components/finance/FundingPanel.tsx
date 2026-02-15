@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { useState } from 'react';
-import { createFundingAccount, deleteFundingAccount, getBanksList, getFundingAccounts, getProviderBalances, getVTPayBalance, updateFundingAccount, validateAccount, getAllConfigs } from '../../api/adminApi';
+import { createFundingAccount, deleteFundingAccount, getBanksList, getFundingAccounts, getProviderBalances, getVTStackBalance, updateFundingAccount, validateAccount, getAllConfigs } from '../../api/adminApi';
 
 const FundingPanel: React.FC = () => {
     // Default Gateway
@@ -13,14 +13,14 @@ const FundingPanel: React.FC = () => {
     });
 
     const defaultGateway = Array.isArray(configRes)
-        ? configRes.find((c: any) => c.key === 'DEFAULT_PAYMENT_GATEWAY')?.value || 'vtpay'
-        : 'vtpay';
+        ? configRes.find((c: any) => c.key === 'DEFAULT_PAYMENT_GATEWAY')?.value || 'vtstack'
+        : 'vtstack';
 
     // Gateway Balance
     const { data: gatewayBalanceRes } = useQuery({
         queryKey: ['gateway-balance', defaultGateway],
         queryFn: async () => {
-            const res = await getVTPayBalance(); // This endpoint now handles default gateway in backend
+            const res = await getVTStackBalance(); // This endpoint now handles default gateway in backend
             return res.data?.data || { balance: 0 };
         },
     });
@@ -213,7 +213,7 @@ const FundingPanel: React.FC = () => {
                                     </tr>
                                 )}
                                 {providers.map((p) => {
-                                    const isVTPayError = p.reason?.toLowerCase().includes('configuration') ||
+                                    const isVTStackError = p.reason?.toLowerCase().includes('configuration') ||
                                         p.reason?.toLowerCase().includes('api key') ||
                                         p.reason?.toLowerCase().includes('unauthorized') ||
                                         p.reason?.includes('401') || p.reason?.includes('403');
@@ -227,7 +227,7 @@ const FundingPanel: React.FC = () => {
                                                     ? (p.status === 'error' ?
                                                         <div className="flex flex-col">
                                                             <span className="text-red-600 font-bold">Error</span>
-                                                            {isVTPayError && (
+                                                            {isVTStackError && (
                                                                 <span className="text-[10px] text-red-500 mt-1">Check Configuration</span>
                                                             )}
                                                         </div>

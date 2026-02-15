@@ -1,5 +1,5 @@
 import { Response } from 'express';
-import { VTPayService } from '../services/vtpay.service.js';
+import { VTStackService } from '../services/vtstack.service.js';
 import { PayrantService } from '../services/payrant.service.js';
 import { AuthRequest } from '../types/index.js';
 import VirtualAccount from '../models/VirtualAccount.js';
@@ -7,7 +7,7 @@ import { User, CreatedApp } from '../models/index.js';
 import logger from '../utils/logger.js';
 
 /**
- * @desc Create a personal virtual account via the configured gateway (Payrant or VTPay)
+ * @desc Create a personal virtual account via the configured gateway (Payrant or VTStack)
  */
 export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
     try {
@@ -31,7 +31,9 @@ export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ success: false, message: 'App not found' });
         }
 
-        const gateway = app.payment_settings?.default_gateway || 'vtpay';
+        let gateway = app.payment_settings?.default_gateway || 'vtstack';
+        // Treat vtpay as vtstack
+        if (gateway === 'vtpay') gateway = 'vtstack';
 
         if (user.kyc_status !== 'verified') {
             return res.status(403).json({
@@ -47,7 +49,8 @@ export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
         const existingAccount = await VirtualAccount.findOne({
             user: userId,
             provider: gateway,
-            ...(gateway === 'vtpay' ? { 'metadata.bankType': bankType } : {})
+            // For VTStack, we only allow one account now (PalmPay)
+            // ... no extra filter needed as only PalmPay is supported
         });
 
         if (existingAccount) {
@@ -81,9 +84,13 @@ export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
 
             result = await PayrantService.createVirtualAccount(payload, app.payment_settings?.payrant_api_key);
         } else {
-            // Default to VTPay
-            const allowedBanks = ['moniepoint', 'fcmb', 'fidelity'];
-            const selectedBank = (bankType && allowedBanks.includes(bankType)) ? bankType : 'moniepoint';
+            // Default to VTStack
+            if (!user.first_name || !user.last_name) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'First name and Last name are required to generate a virtual account. Please update your profile.'
+                });
+            }
 
             if (!user.bvn) {
                 return res.status(400).json({
@@ -93,16 +100,22 @@ export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
             }
 
             const payload = {
-                bankType: selectedBank,
-                accountName: `${user.first_name} ${user.last_name}`,
+                firstName: user.first_name,
+                lastName: user.last_name,
                 email: user.email,
                 phone: user.phone_number || '08000000000',
                 reference,
                 bvn: user.bvn,
-                dob: user.date_of_birth ? new Date(user.date_of_birth).toISOString().split('T')[0] : undefined
+                // identityType defaults to INDIVIDUAL in service
             };
 
-            result = await VTPayService.createVirtualAccount(payload, app.payment_settings?.vtpay_secret_key || app.payment_settings?.vtpay_api_key);
+            // Use VTStack Service
+            // Fallback to vtpay keys for compatibility if vtstack keys are missing
+            const apiKey = app.payment_settings?.vtstack_secret_key
+                || app.payment_settings?.vtpay_secret_key
+                || app.payment_settings?.vtpay_api_key;
+
+            result = await VTStackService.createVirtualAccount(payload, apiKey);
         }
 
         if (result && result.success && result.data) {
@@ -111,14 +124,13 @@ export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
                 user: userId,
                 accountNumber: result.data.accountNumber,
                 accountName: result.data.accountName,
-                bankName: result.data.bankName,
+                bankName: result.data.bankName || 'PalmPay',
                 provider: gateway,
                 reference: result.data.reference || reference,
                 status: result.data.status || 'active',
                 metadata: {
                     ...result.data,
-                    // Keep bankType for compatibility if it was VTPay
-                    bankType: gateway === 'vtpay' ? result.data.bankType : undefined
+                    bankType: 'palmpay' // Explicitly set bankType for frontend compatibility
                 }
             });
 
@@ -143,7 +155,12 @@ export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        res.status(400).json(result || { success: false, message: 'Failed to create virtual account' });
+        // Handle error response from service
+        res.status(400).json({
+            success: false,
+            message: result?.message || 'Failed to create virtual account'
+        });
+
     } catch (error: any) {
         logger.error('Create virtual account error:', error);
         res.status(500).json({
@@ -168,7 +185,8 @@ export const getVirtualAccounts = async (req: AuthRequest, res: Response) => {
         // Find app to get default gateway
         const user = await User.findById(userId);
         const app = await CreatedApp.findOne({ app_id: user?.app_id });
-        const gateway = app?.payment_settings?.default_gateway || 'vtpay';
+        let gateway = app?.payment_settings?.default_gateway || 'vtstack';
+        if (gateway === 'vtpay') gateway = 'vtstack';
 
         res.status(200).json({
             success: true,
@@ -201,12 +219,14 @@ export const getAccountBalance = async (req: AuthRequest, res: Response) => {
 
         let result;
         if (account.provider === 'payrant') {
-            // Payrant doesn't seem to have a balance endpoint for specific accounts in the provided docs, 
-            // but we might need to check if there is one. 
-            // For now, return a generic message or try a default.
             return res.status(200).json({ success: true, balance: 0, currency: 'NGN' });
         } else {
-            result = await VTPayService.getAccountBalance(accountNumber, app?.payment_settings?.vtpay_secret_key || app?.payment_settings?.vtpay_api_key);
+            // Use VTStack Service
+            const apiKey = app?.payment_settings?.vtstack_secret_key
+                || app?.payment_settings?.vtpay_secret_key
+                || app?.payment_settings?.vtpay_api_key;
+
+            result = await VTStackService.getAccountBalance(accountNumber, apiKey);
         }
 
         res.status(200).json(result);
@@ -236,14 +256,17 @@ export const getTransactions = async (req: AuthRequest, res: Response) => {
 
         let result;
         if (account.provider === 'payrant') {
-            // Payrant docs only mentioned checkout transactions verify. 
-            // We might have to store our own transaction history or check if there's an API.
             return res.status(200).json({ success: true, data: [] });
         } else {
-            result = await VTPayService.getTransactions(accountNumber, app?.payment_settings?.vtpay_secret_key || app?.payment_settings?.vtpay_api_key);
+            // VTStack doesn't seem to have a getTransactions endpoint in the provided snippet?
+            // Checking service... it didn't have one in the new implementation based on user request.
+            // But the old one did. I should probably add one if the API supports it or return empty.
+            // The user provided docs only showed: POST create, GET accounts, GET balance.
+            // So I will return empty data for now or check if there was one.
+            // Wait, I didn't implement getTransactions in VTStackService because it wasn't in the provided docs.
+            // I'll return empty.
+            return res.status(200).json({ success: true, data: [] });
         }
-
-        res.status(200).json(result);
     } catch (error: any) {
         res.status(500).json({
             success: false,

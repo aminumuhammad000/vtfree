@@ -96,7 +96,7 @@ router.post('/notifications/broadcast', authMiddleware, async (req, res) => {
 // Payout/VTPay routes
 router.get('/payout/banks', authMiddleware, PayoutController.getBanksList);
 router.post('/payout/validate-account', authMiddleware, PayoutController.validateAccount);
-router.get('/payout/balance', authMiddleware, PayoutController.getVTPayBalance);
+router.get('/payout/balance', authMiddleware, PayoutController.getVTStackBalance);
 
 // Zainbox Management
 router.post('/zainboxes', authMiddleware, AdminController.createZainbox);

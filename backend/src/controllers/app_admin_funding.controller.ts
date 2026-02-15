@@ -179,12 +179,16 @@ export class AppAdminFundingController {
             const lastName = admin?.last_name || owner.last_name || '';
             const email = admin?.email || owner.email;
             const phone = owner.phone_number || '08000000000';
+            const bvn = owner.bvn; // Get BVN from owner (required for VTPay)
+
+            if (!bvn) {
+                return ApiResponse.error(res, 'App owner BVN is required to generate a virtual account', 400);
+            }
 
             // Restrict to IBData as per user requirement
             const provider = 'ibdata';
 
             // Check if account already exists for this admin and provider
-            // For ibdata, we allow up to 3 accounts per admin
             const existingAccounts = await VirtualAccount.find({
                 user: owner._id,
                 provider,
@@ -192,15 +196,18 @@ export class AppAdminFundingController {
             });
 
             if (existingAccounts.length >= 3) {
+                // Relaxed check or keep as is? 
+                // If VTPay only supports 1 account type, multiple accounts might be redundant unless for different references.
+                // We'll keep the limit check.
                 return ApiResponse.error(res, 'Maximum of 3 virtual accounts allowed for IBData per admin', 400);
             }
 
             // Also check if this specific bank already exists for this user/provider
-            if (requestedBank && existingAccounts.find(a => (a.metadata as any)?.bankType === requestedBank)) {
-                return ApiResponse.error(res, `A virtual account for ${requestedBank} already exists`, 400);
-            }
+            // With new VTPay, it's always "active" (PalmPay). 
+            // We can check if ANY VTPay/IBData account exists if we want to enforce 1 account total, 
+            // but the code allows 3. We'll skip specific bank check since bankType requested might not matter.
 
-            // Map requested bank to Zainpay supported bank types
+            // Map requested bank to Zainpay supported bank types (Legacy logic, mostly ignored by new VTPay)
             const bankMapping: Record<string, string> = {
                 'palmpay': 'moniepoint',
                 'wema': 'moniepoint',
@@ -219,14 +226,16 @@ export class AppAdminFundingController {
             logger.info(`Generating virtual account for ${email} (${app_id}) using ${provider} (Bank: ${bankType})`);
 
             try {
-                const { VTPayService } = await import('../services/vtpay.service.js');
-                const result = await VTPayService.createVirtualAccount({
-                    bankType: bankType,
-                    accountName: `${firstName} ${lastName}`.trim(),
+                const { VTStackService } = await import('../services/vtstack.service.js');
+                const result = await VTStackService.createVirtualAccount({
+                    firstName: firstName,
+                    lastName: lastName,
                     email: email,
-                    reference: `REF-${app_id}-${Date.now()}`,
-                    phone: phone
-                }, app.payment_settings?.vtpay_api_key);
+                    phone: phone,
+                    bvn: bvn,
+                    identityType: 'INDIVIDUAL',
+                    reference: `REF-${app_id}-${Date.now()}`
+                }, app.payment_settings?.vtpay_secret_key || app.payment_settings?.vtpay_api_key);
 
                 if (result && result.success && result.data) {
                     // Clean account name: remove "Zainpay" prefix if present
@@ -258,8 +267,8 @@ export class AppAdminFundingController {
                 if (err.message?.includes('already exists')) {
                     // Try to sync and find the existing account
                     try {
-                        const { VTPayService } = await import('../services/vtpay.service.js');
-                        const vtpayResult = await VTPayService.getVirtualAccounts(app.payment_settings?.vtpay_api_key);
+                        const { VTStackService } = await import('../services/vtstack.service.js');
+                        const vtpayResult = await VTStackService.getVirtualAccounts(app.payment_settings?.vtpay_api_key);
                         const vtpayAccounts = Array.isArray(vtpayResult.data) ? vtpayResult.data : (vtpayResult.data?.accounts || vtpayResult.accounts || []);
 
                         if (vtpayAccounts.length > 0) {
@@ -329,8 +338,8 @@ export class AppAdminFundingController {
 
             // Sync with VTPay to ensure we have the latest
             try {
-                const { VTPayService } = await import('../services/vtpay.service.js');
-                const vtpayResult = await VTPayService.getVirtualAccounts(app.payment_settings?.vtpay_api_key);
+                const { VTStackService } = await import('../services/vtstack.service.js');
+                const vtpayResult = await VTStackService.getVirtualAccounts(app.payment_settings?.vtpay_api_key);
                 const vtpayAccounts = Array.isArray(vtpayResult.data) ? vtpayResult.data : (vtpayResult.data?.accounts || vtpayResult.accounts || []);
 
                 if (vtpayAccounts.length > 0) {
@@ -386,10 +395,10 @@ export class AppAdminFundingController {
      */
     static async getVTPayAccounts(req: AuthRequest, res: Response) {
         try {
-            const { VTPayService } = await import('../services/vtpay.service.js');
+            const { VTStackService } = await import('../services/vtstack.service.js');
             const CreatedApp = (await import('../models/created_app.model.js')).default;
             const app = await CreatedApp.findOne({ app_id: req.user?.app_id });
-            const result = await VTPayService.getVirtualAccounts(app?.payment_settings?.vtpay_api_key);
+            const result = await VTStackService.getVirtualAccounts(app?.payment_settings?.vtpay_api_key);
 
             const accounts = Array.isArray(result.data) ? result.data : (result.data?.accounts || result.accounts || []);
 
@@ -418,7 +427,7 @@ export class AppAdminFundingController {
 
             if (!owner) return ApiResponse.error(res, 'Owner not found', 404);
 
-            const { VTPayService } = await import('../services/vtpay.service.js');
+            const { VTStackService } = await import('../services/vtstack.service.js');
             const smeplugService = (await import('../services/smeplug.service.js')).default;
             const topupmateService = (await import('../services/topupmate.service.js')).default;
 
@@ -432,7 +441,7 @@ export class AppAdminFundingController {
                 smeplugService.getWalletBalance().catch(() => ({ balance: null, error: true })),
                 topupmateService.getWalletBalance().catch(() => ({ balance: null, error: true })),
                 hasVtpayKey
-                    ? VTPayService.getPlatformBalance(vtpayApiKey).catch((err) => {
+                    ? VTStackService.getPlatformBalance(vtpayApiKey).catch((err) => {
                         logger.error('VTPay Balance Fetch Error:', err?.message);
                         return { data: { balance: null }, error: true, message: err?.message };
                     })
@@ -469,8 +478,8 @@ export class AppAdminFundingController {
                     status: (topupmateRes as any).error ? 'error' : 'ok'
                 },
                 {
-                    code: 'vtpay',
-                    name: 'VTPay',
+                    code: 'vtstack',
+                    name: 'VTStack',
                     balance: vtpayBalance,
                     currency: 'NGN',
                     status: (vtpayRes as any).error ? 'error' : 'ok'

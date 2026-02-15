@@ -79,7 +79,7 @@ const SystemConfig = () => {
     };
 
     const handleDelete = async (key: string) => {
-        if (key.startsWith('VTPAY_')) {
+        if (key.startsWith('VTSTACK_')) {
             showWarning('Default gateway configuration cannot be cleared');
             return;
         }
@@ -208,7 +208,7 @@ const SystemConfig = () => {
                                                         <span className="font-mono font-black text-slate-900 text-[11px] bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
                                                             {config.key}
                                                         </span>
-                                                        {config.key.startsWith('VTPAY_') && (
+                                                        {config.key.startsWith('VTSTACK_') && (
                                                             <span className="px-3 py-1 bg-green-100 text-green-700 text-[9px] font-black rounded-full uppercase tracking-[0.15em]">
                                                                 System Default
                                                             </span>

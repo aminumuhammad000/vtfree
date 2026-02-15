@@ -12,6 +12,8 @@ import {
   Platform,
   Dimensions,
   Pressable,
+  SafeAreaView,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -307,7 +309,12 @@ export default function BuyDataScreen() {
                         <View style={styles.planHeader}>
                           <Text style={[styles.planData, { color: textColor }]}>{plan.data}</Text>
                           <View style={[styles.planTag, { backgroundColor: brandColor + '15' }]}>
-                            <Text style={{ color: brandColor, fontSize: 10, fontWeight: '800' }}>{plan.validity}</Text>
+                            <Text
+                              style={{ color: brandColor, fontSize: 9, fontWeight: '800', textTransform: 'uppercase' }}
+                              numberOfLines={1}
+                            >
+                              {plan.validity}
+                            </Text>
                           </View>
                         </View>
                         <Text style={[styles.planPrice, { color: textColor }]}>₦{plan.price.toLocaleString()}</Text>
@@ -323,67 +330,198 @@ export default function BuyDataScreen() {
               )}
             </View>
           )}
-
-          <TouchableOpacity
-            style={[styles.mainBtn, { backgroundColor: brandColor, marginTop: 30 }]}
-            onPress={() => {
-              if (!phoneNumber || !selectedPlan) return showError('Check all fields');
-              setShowPinModal(true);
-              // Auto-trigger biometrics if enabled
-              if (isBiometricEnabled) {
-                setTimeout(() => triggerBiometricAuth(), 500);
-              }
-            }}
-          >
-            <Text style={styles.btnText}>Proceed to Payment</Text>
-            <Ionicons name="shield-checkmark" size={20} color="#FFF" />
-          </TouchableOpacity>
         </Animated.View>
       </ScrollView>
 
-      {/* PIN Modal */}
-      <Modal visible={showPinModal} transparent animationType="slide">
-        <Pressable style={styles.modalOverlay} onPress={() => setShowPinModal(false)}>
-          <Animated.View entering={SlideInDown} style={[styles.pinSheet, { backgroundColor: theme.surface }]}>
-            <Text style={[styles.pinTitle, { color: textColor }]}>Authorize Transaction</Text>
-            <Text style={[styles.pinSubtitle, { color: theme.textSecondary }]}>
-              Confirm ₦{selectedPlan?.price.toLocaleString()} for {selectedPlan?.data} data
-            </Text>
-
-            <View style={[styles.pinBox, { backgroundColor: cardBg }]}>
-              <TextInput
-                style={[styles.pinInput, { color: textColor }]}
-                secureTextEntry
-                maxLength={4}
-                keyboardType="numeric"
-                value={pin}
-                onChangeText={setPin}
-                autoFocus={!isBiometricEnabled}
-              />
-            </View>
-
-            <View style={{ gap: 15 }}>
+      {/* Sticky Floating Buy Button - Appears when plan is selected */}
+      {selectedPlan && (
+        <SafeAreaView style={styles.safeAreaButton}>
+          <Animated.View
+            entering={SlideInDown.springify()}
+            style={[styles.floatingButtonContainer, { backgroundColor: bgColor }]}
+          >
+            <View style={styles.floatingButtonContent}>
+              <View style={styles.selectedPlanInfo}>
+                <Text style={[styles.selectedPlanText, { color: textColor }]} numberOfLines={1}>
+                  {selectedPlan.data}
+                </Text>
+                <Text style={[styles.selectedPlanPrice, { color: brandColor }]}>
+                  ₦{selectedPlan.price.toLocaleString()}
+                </Text>
+              </View>
               <TouchableOpacity
-                style={[styles.confirmBtn, { backgroundColor: brandColor }]}
-                onPress={() => handleBuyData()}
-                disabled={isLoading}
+                style={[styles.floatingBtn, { backgroundColor: brandColor }]}
+                onPress={() => {
+                  if (!phoneNumber || !selectedPlan) return showError('Check all fields');
+                  setShowPinModal(true);
+                  // Auto-trigger biometrics if enabled
+                  if (isBiometricEnabled) {
+                    setTimeout(() => triggerBiometricAuth(), 500);
+                  }
+                }}
               >
-                {isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnText}>Pay Now</Text>}
+                <Text style={styles.btnText}>Buy Now</Text>
+                <Ionicons name="arrow-forward" size={20} color="#FFF" />
               </TouchableOpacity>
-
-              {isBiometricEnabled && (
-                <TouchableOpacity
-                  style={[styles.confirmBtn, { backgroundColor: cardBg, marginTop: 0 }]}
-                  onPress={triggerBiometricAuth}
-                  disabled={isLoading}
-                >
-                  <MaterialCommunityIcons name="fingerprint" size={24} color={brandColor} />
-                  <Text style={[styles.btnText, { color: textColor, marginLeft: 10 }]}>Pay with Biometrics</Text>
-                </TouchableOpacity>
-              )}
             </View>
           </Animated.View>
-        </Pressable>
+        </SafeAreaView>
+      )}
+
+      {/* PIN Modal - Native Keyboard with Visual Display */}
+      <Modal visible={showPinModal} transparent animationType="slide">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <View style={styles.modalOverlay}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowPinModal(false)} />
+
+            <SafeAreaView style={{ backgroundColor: cardBg }}>
+              <Animated.View
+                entering={SlideInDown.springify()}
+                style={[styles.pinBottomSheet, { backgroundColor: cardBg }]}
+              >
+                {/* Handle Bar */}
+                <View style={styles.handleBar} />
+
+                {/* Header */}
+                <View style={styles.pinSheetHeader}>
+                  <View>
+                    <Text style={[styles.pinSheetTitle, { color: textColor }]}>Enter Transaction PIN</Text>
+                    <Text style={[styles.pinSheetSubtitle, { color: theme.textSecondary }]}>
+                      Confirm your purchase
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setShowPinModal(false)}>
+                    <Ionicons name="close" size={24} color={textColor} />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                  contentContainerStyle={{ paddingBottom: 20 }}
+                >
+                  {/* Transaction Card */}
+                  <View style={[styles.transactionCard, { backgroundColor: theme.surface }]}>
+                    <View style={styles.transactionRow}>
+                      <Text style={[styles.transactionLabel, { color: theme.textSecondary }]}>Plan</Text>
+                      <Text style={[styles.transactionValue, { color: textColor }]}>{selectedPlan?.data}</Text>
+                    </View>
+                    <View style={styles.transactionRow}>
+                      <Text style={[styles.transactionLabel, { color: theme.textSecondary }]}>Amount</Text>
+                      <Text style={[styles.transactionValue, { color: brandColor, fontWeight: '800' }]}>
+                        ₦{selectedPlan?.price.toLocaleString()}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* PIN Input Section */}
+                  <View style={styles.pinInputSection}>
+                    <Text style={[styles.pinInputLabel, { color: theme.textSecondary }]}>
+                      Enter 4-digit PIN
+                    </Text>
+
+                    {/* Visual PIN Dots - Tappable to focus */}
+                    <Pressable
+                      onPress={() => {
+                        // Focus the hidden input to show keyboard
+                        const input = document.getElementById?.('pin-input') as any;
+                        input?.focus?.();
+                      }}
+                      style={styles.pinDotsDisplay}
+                    >
+                      {[0, 1, 2, 3].map((index) => (
+                        <Animated.View
+                          key={index}
+                          entering={FadeInDown.delay(index * 50)}
+                          style={[
+                            styles.pinDotLarge,
+                            {
+                              backgroundColor: pin.length > index ? brandColor : 'transparent',
+                              borderColor: pin.length > index ? brandColor : theme.border,
+                              transform: [{ scale: pin.length === index ? 1.1 : 1 }],
+                            }
+                          ]}
+                        >
+                          {pin.length > index && (
+                            <Animated.View entering={FadeInDown.springify()}>
+                              <Ionicons name="checkmark" size={16} color="#FFF" />
+                            </Animated.View>
+                          )}
+                        </Animated.View>
+                      ))}
+                    </Pressable>
+
+                    {/* Hidden TextInput - Triggers native keyboard */}
+                    <TextInput
+                      nativeID="pin-input"
+                      style={styles.hiddenPinInput}
+                      value={pin}
+                      onChangeText={(text) => {
+                        // Only allow numbers and max 4 digits
+                        const numericText = text.replace(/[^0-9]/g, '').slice(0, 4);
+                        setPin(numericText);
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                      keyboardType="number-pad"
+                      maxLength={4}
+                      autoFocus={!isBiometricEnabled}
+                      secureTextEntry={false}
+                      caretHidden
+                    />
+
+                    <Text style={[styles.pinHint, { color: theme.textSecondary }]}>
+                      Tap the dots above to enter your PIN
+                    </Text>
+                  </View>
+
+                  {/* Biometric Option */}
+                  {isBiometricEnabled && (
+                    <TouchableOpacity
+                      style={[styles.biometricOption, { backgroundColor: theme.surface }]}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                        triggerBiometricAuth();
+                      }}
+                    >
+                      <MaterialCommunityIcons name="fingerprint" size={28} color={brandColor} />
+                      <Text style={[styles.biometricText, { color: textColor }]}>Use Fingerprint</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Submit Button */}
+                  <TouchableOpacity
+                    style={[
+                      styles.pinSubmitButton,
+                      {
+                        backgroundColor: pin.length === 4 ? brandColor : theme.border,
+                        opacity: pin.length === 4 ? 1 : 0.5,
+                      }
+                    ]}
+                    onPress={() => {
+                      if (pin.length === 4) {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                        handleBuyData();
+                      }
+                    }}
+                    disabled={pin.length < 4 || isLoading}
+                  >
+                    {isLoading ? (
+                      <ActivityIndicator color="#FFF" />
+                    ) : (
+                      <>
+                        <Text style={styles.pinSubmitText}>Continue</Text>
+                        <Ionicons name="arrow-forward" size={20} color="#FFF" />
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </ScrollView>
+              </Animated.View>
+            </SafeAreaView>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Contacts Modal */}
@@ -449,7 +587,7 @@ const styles = StyleSheet.create({
   },
   backBtn: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   title: { fontSize: 20, fontWeight: '800' },
-  scrollContent: { padding: 20, paddingBottom: 100 },
+  scrollContent: { padding: 20, paddingBottom: 120 },
   label: { fontSize: 11, fontWeight: '800', letterSpacing: 1.5, marginBottom: 15 },
   networkGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 30 },
   netCard: {
@@ -481,9 +619,26 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 20,
   },
-  planHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  planData: { fontSize: 18, fontWeight: '800' },
-  planTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  planHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+  planData: {
+    fontSize: 18,
+    fontWeight: '800',
+    flex: 1,
+  },
+  planTag: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    minWidth: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
   planPrice: { fontSize: 15, fontWeight: '700', marginTop: 10, opacity: 0.8 },
   mainBtn: {
     height: 65,
@@ -494,16 +649,180 @@ const styles = StyleSheet.create({
     gap: 10
   },
   btnText: { color: '#FFF', fontSize: 17, fontWeight: '800' },
+
+  // Modal Overlay
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  pinSheet: { borderTopLeftRadius: 35, borderTopRightRadius: 35, padding: 30, paddingBottom: 50 },
-  pinTitle: { fontSize: 22, fontWeight: '800' },
-  pinSubtitle: { marginTop: 10, marginBottom: 30, fontSize: 14 },
-  pinBox: { height: 75, borderRadius: 20, justifyContent: 'center', paddingHorizontal: 20, marginBottom: 30 },
-  pinInput: { textAlign: 'center', fontSize: 32, letterSpacing: 20, fontWeight: '800' },
-  confirmBtn: { height: 60, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
+
+  // PIN Bottom Sheet with Native Keyboard
+  pinBottomSheet: {
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingHorizontal: 20,
+    paddingBottom: 25,
+    paddingTop: 10,
+  },
+  handleBar: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#D0D0D0',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  pinSheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  pinSheetTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  pinSheetSubtitle: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  // Transaction Card
+  transactionCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 25,
+  },
+  transactionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  transactionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  transactionValue: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+
+  // PIN Input Section
+  pinInputSection: {
+    marginBottom: 20,
+  },
+  pinInputLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 15,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  pinDotsDisplay: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 20,
+    marginBottom: 15,
+  },
+  pinDotLarge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  hiddenPinInput: {
+    position: 'absolute',
+    opacity: 0.01,
+    height: 1,
+    width: 1,
+  },
+  pinHint: {
+    fontSize: 12,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+
+  // Biometric Option
+  biometricOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingVertical: 14,
+    borderRadius: 14,
+    marginBottom: 15,
+  },
+  biometricText: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+
+  // Submit Button
+  pinSubmitButton: {
+    height: 56,
+    borderRadius: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  pinSubmitText: {
+    color: '#FFF',
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  // Contact Modal Styles
   contactSheet: { height: '80%', borderTopLeftRadius: 35, borderTopRightRadius: 35, padding: 25 },
   contactHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   contactItem: { flexDirection: 'row', alignItems: 'center', gap: 15, marginBottom: 20 },
   contactIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#00ADFF', justifyContent: 'center', alignItems: 'center' },
   empty: { height: 200, justifyContent: 'center', alignItems: 'center' },
+
+  // Floating Button Styles
+  safeAreaButton: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  floatingButtonContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 15,
+    paddingBottom: 15,
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 20,
+  },
+  floatingButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  selectedPlanInfo: {
+    flex: 1,
+  },
+  selectedPlanText: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  selectedPlanPrice: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  floatingBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 18,
+    gap: 8,
+  },
 });

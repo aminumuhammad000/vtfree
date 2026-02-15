@@ -23,6 +23,7 @@ import {
   updatePricingPlan,
   getProviderData,
   getProviders,
+  createProvider,
 } from '../api/adminApi';
 import Layout from '../components/Layout';
 import PricingBulkImportModal from '../components/PricingBulkImportModal';
@@ -67,11 +68,18 @@ const PricingPlans: React.FC = () => {
 
   const activeProviders = useMemo(() => {
     const providers = providersData || [];
-    const hasIbdata = providers.find((p: any) => p.code.toLowerCase() === 'ibdata');
-    if (!hasIbdata) {
-      return [{ code: 'ibdata', name: 'IBData' }, ...providers];
-    }
-    return providers;
+    const defaultProviders = [
+      { code: 'ibdata', name: 'IBData' },
+      { code: 'smeplug', name: 'SMEPlug' },
+      { code: 'topupmate', name: 'TopupMate' }
+    ];
+
+    // Filter out if they already exist in fetched providers to avoid duplicates
+    const uniqueDefaults = defaultProviders.filter(d =>
+      !providers.some((p: any) => p.code.toLowerCase() === d.code.toLowerCase())
+    );
+
+    return [...uniqueDefaults, ...providers];
   }, [providersData]);
 
   const params = {
@@ -465,6 +473,9 @@ const DirectPlansView: React.FC<DirectPlansViewProps> = ({ providerCode }) => {
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isProviderMissing, setIsProviderMissing] = useState(false);
+  const [isActivating, setIsActivating] = useState(false);
+  const [apiKey, setApiKey] = useState('');
 
   // Global Profit Settings
   const [globalProfit, setGlobalProfit] = useState<number>(10);
@@ -480,6 +491,7 @@ const DirectPlansView: React.FC<DirectPlansViewProps> = ({ providerCode }) => {
   const fetchPlans = async () => {
     setLoading(true);
     setError('');
+    setIsProviderMissing(false);
     try {
       const res: any = await getProviderData(providerCode, 'plans');
       let plansData = res.data?.data?.data || res.data?.data || [];
@@ -489,7 +501,11 @@ const DirectPlansView: React.FC<DirectPlansViewProps> = ({ providerCode }) => {
       }
       setPlans(Array.isArray(plansData) ? plansData : []);
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || `Failed to fetch ${providerCode} plans`);
+      if (err.response?.status === 404 && err.response?.data?.message === 'Provider not found') {
+        setIsProviderMissing(true);
+      } else {
+        setError(err.response?.data?.message || err.message || `Failed to fetch ${providerCode} plans`);
+      }
     } finally {
       setLoading(false);
     }
@@ -535,17 +551,22 @@ const DirectPlansView: React.FC<DirectPlansViewProps> = ({ providerCode }) => {
     const costPrice = Number(p.price || p.amount || 0);
     const finalPrice = calculateSellingPrice(costPrice, profit);
 
+    // Handle various network field naming conventions
+    const networkId = p.network || p.network_id || p.networkId;
+    const planId = p.plan_id || p.id || p.planId;
+    const planName = p.plan_name || p.name || p.planName;
+
     return {
-      providerId: Number(p.network),
-      providerName: getNetworkName(p.network),
-      externalPlanId: p.plan_id || p.id,
-      code: `${providerCode.toUpperCase()}_${p.plan_id || p.id}`,
-      name: p.plan_name || p.name,
+      providerId: Number(networkId),
+      providerName: getNetworkName(networkId),
+      externalPlanId: planId,
+      code: `${providerCode.toUpperCase()}_${planId}`,
+      name: planName,
       price: Math.ceil(finalPrice),
-      type: (p.plan_type || p.type) === 'DATA' ? 'DATA' : 'AIRTIME',
+      type: (p.plan_type || p.type || '').toUpperCase().includes('DATA') ? 'DATA' : 'AIRTIME',
       discount: 0,
       active: true,
-      metadata: {
+      meta: {
         validity: p.validity,
         data_value: p.data_value,
         original_price: costPrice,
@@ -563,15 +584,71 @@ const DirectPlansView: React.FC<DirectPlansViewProps> = ({ providerCode }) => {
     importMutation.mutate([formatPlanForSync(p)]);
   };
 
-  const getNetworkName = (id: string) => {
+  const handleActivateProvider = async () => {
+    setIsActivating(true);
+    try {
+      await createProvider({
+        name: providerCode === 'smeplug' ? 'SMEPlug' : providerCode === 'topupmate' ? 'TopupMate' : providerCode.toUpperCase(),
+        code: providerCode,
+        active: true,
+        api_key: apiKey,
+        priority: 1,
+        supported_services: ['airtime', 'data']
+      });
+      toast.success(`${providerCode} activated successfully!`);
+      setIsProviderMissing(false);
+      fetchPlans();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to activate provider');
+    } finally {
+      setIsActivating(false);
+    }
+  };
+
+  const getNetworkName = (id: string | number) => {
     const map: Record<string, string> = { '1': 'MTN', '2': 'AIRTEL', '3': 'GLO', '4': '9MOBILE' };
-    return map[id] || 'UNKNOWN';
+    return map[String(id)] || 'UNKNOWN';
   };
 
   if (loading) return (
     <div className="p-12 text-center bg-white rounded-2xl border border-slate-200">
       <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-green-500 border-t-transparent mb-4"></div>
       <p className="text-slate-500 font-bold">Fetching live plans from {providerCode.toUpperCase()}...</p>
+    </div>
+  );
+
+  if (isProviderMissing) return (
+    <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 shadow-sm max-w-2xl mx-auto mt-8">
+      <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
+        <FiPlus className="w-10 h-10 text-blue-600" />
+      </div>
+      <h2 className="text-2xl font-bold text-slate-900 mb-2">Activate {providerCode === 'smeplug' ? 'SMEPlug' : providerCode === 'topupmate' ? 'TopupMate' : providerCode.toUpperCase()}</h2>
+      <p className="text-slate-500 mb-8 max-w-md mx-auto">
+        This provider is not yet active on your account. Activate it now to start syncing plans and processing transactions.
+      </p>
+
+      <div className="max-w-md mx-auto space-y-4">
+        <div className="text-left">
+          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">API Key (Optional)</label>
+          <input
+            type="text"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder={`Enter your ${providerCode} API Key`}
+            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-sm"
+          />
+          <p className="text-[10px] text-slate-400 mt-1">You can add this later in settings if you skip it now.</p>
+        </div>
+
+        <button
+          onClick={handleActivateProvider}
+          disabled={isActivating}
+          className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg disabled:opacity-70 flex items-center justify-center gap-2"
+        >
+          {isActivating ? <FiRefreshCw className="animate-spin" /> : <FiCheckCircle />}
+          <span>Activate {providerCode === 'smeplug' ? 'SMEPlug' : 'Provider'} Now</span>
+        </button>
+      </div>
     </div>
   );
 
@@ -681,7 +758,7 @@ const DirectPlansView: React.FC<DirectPlansViewProps> = ({ providerCode }) => {
                   return (
                     <tr key={planId} className="hover:bg-slate-50/50 transition-colors group">
                       <td className="px-6 py-4">
-                        <span className="text-xs font-bold text-slate-600 uppercase bg-slate-100 px-2 py-1 rounded">{getNetworkName(p.network)}</span>
+                        <span className="text-xs font-bold text-slate-600 uppercase bg-slate-100 px-2 py-1 rounded">{getNetworkName(p.network || p.network_id || p.networkId)}</span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">

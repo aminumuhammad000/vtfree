@@ -29,7 +29,7 @@ import superAdminRoutes from './super_admin.routes.js';
 import vtfreeAppRoutes from './vtfree_app.routes.js';
 import vtfreeAuthRoutes from './vtfree_auth.routes.js';
 import vtfreeWalletRoutes from './vtfree_wallet.routes.js';
-import vtpayRoutes from './vtpay.routes.js';
+import vtstackRoutes from './vtstack.routes.js';
 import webhookRoutes from './webhook.routes.js';
 
 export default (app: Express) => {
@@ -56,8 +56,8 @@ export default (app: Express) => {
   // Bill payment routes
   app.use('/api/v1/billpayment', billPaymentRoutes);
 
-  // VTPay routes
-  app.use('/api/v1/vtpay', vtpayRoutes);
+  // VTStack routes
+  app.use('/api/v1/vtstack', vtstackRoutes);
 
   // Webhooks - Open endpoints
   app.use('/api/v1/webhooks', webhookRoutes);

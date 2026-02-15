@@ -43,35 +43,10 @@ const BANKS = [
     id: 'palmpay',
     name: 'PalmPay',
     logo: 'https://palmpay.com/wp-content/uploads/2021/04/PalmPay-Logo-1.png',
-    color: '#8A2BE2',
-    icon: 'account-balance',
-    description: 'Reliable virtual accounts with instant settlement via PalmPay network.'
-  },
-  {
-    id: 'moniepoint',
-    name: 'Moniepoint',
-    logo: 'https://cdn.worldvectorlogo.com/logos/moniepoint.svg',
-    color: '#00ADFF',
-    isRecommended: true,
-    icon: 'account-balance',
-    description: 'Lightning-fast settlement and highly reliable network performance.'
-  },
-  {
-    id: 'fcmb',
-    name: 'FCMB',
-    logo: 'https://upload.wikimedia.org/wikipedia/en/5/52/FCMB_Logo.svg',
-    color: '#FFD700',
-    icon: 'account-balance-wallet',
-    description: 'Premium banking experience with automated transfer clearing.'
-  },
-  {
-    id: 'fidelity',
-    name: 'Fidelity',
-    logo: 'https://upload.wikimedia.org/wikipedia/en/4/4b/Fidelity_Bank_Nigeria_logo.svg',
-    color: '#004A99',
-    icon: 'bank',
-    description: 'Secure and trusted retail banking partner with 24/7 support.'
-  },
+    color: '#6f33cf',
+    icon: 'wallet',
+    description: 'Instant funding via PalmPay virtual account. Fast and reliable.'
+  }
 ];
 
 export default function AddMoneyScreen() {
@@ -81,7 +56,7 @@ export default function AddMoneyScreen() {
   const { showSuccess, showError, showInfo, showWarning } = useAlert();
 
   const [virtualAccounts, setVirtualAccounts] = useState<VTPayAccount[]>([]);
-  const [gateway, setGateway] = useState<string>('vtpay');
+  const [gateway, setGateway] = useState<string>('vtstack');
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStep, setGenerationStep] = useState('');
@@ -112,6 +87,14 @@ export default function AddMoneyScreen() {
       }
     } catch (error: any) {
       console.error('Error loading accounts:', error);
+      Alert.alert(
+        'Unable to Load Accounts',
+        error.message || 'Could not fetch your virtual accounts.',
+        [
+          { text: 'Retry', onPress: () => loadVirtualAccounts() },
+          { text: 'Cancel', style: 'cancel' }
+        ]
+      );
     } finally {
       setIsLoading(false);
     }
@@ -134,13 +117,7 @@ export default function AddMoneyScreen() {
       return;
     }
 
-    if (gateway === 'payrant' && !profileData.nin && !profileData.bvn) {
-      showError('Your NIN or BVN is required for Payrant virtual account generation. Please update it in your profile.');
-      router.push('/edit-profile');
-      return;
-    }
-
-    if (gateway === 'vtpay' && !profileData.bvn) {
+    if (!profileData.bvn) {
       showError('Your BVN is required for virtual account generation. Please update it in your profile.');
       router.push('/edit-profile');
       return;
@@ -153,24 +130,25 @@ export default function AddMoneyScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
 
       await new Promise(resolve => setTimeout(resolve, 800));
-      setGenerationStep('Contacting Bank Network...');
+      setGenerationStep('Contacting PalmPay...');
 
-      const res = await vtpayService.createVirtualAccount({ bankType: bankType as any });
+      // bankType is ignored by backend, but we pass it compliant with interface
+      const res = await vtpayService.createVirtualAccount({ bankType: 'palmpay' });
 
       await new Promise(resolve => setTimeout(resolve, 800));
       setGenerationStep('Securing Account Details...');
 
       if (res.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        showSuccess(`Great! Your ${bankType.toUpperCase()} account has been linked to your wallet.`);
+        showSuccess(`Great! Your PalmPay account has been linked to your wallet.`);
         loadVirtualAccounts();
         refreshProfile();
       } else {
-        showError(res.message || 'The bank network is currently busy. Please try another provider.');
+        showError(res.message || 'Failed to create account. Please try again.');
       }
     } catch (error: any) {
       console.error('Generation Error:', error);
-      showError(error.message || 'An unexpected error occurred. Please try again later.');
+      showError(error.message || 'An unexpected error occurred.');
     } finally {
       setIsGenerating(false);
       setGenerationStep('');
@@ -189,21 +167,18 @@ export default function AddMoneyScreen() {
   };
 
   const openBankModal = () => {
-    let availableBanks = BANKS.filter(b => !virtualAccounts.some(acc => acc.metadata?.bankType === b.id));
+    // Check if user already has PalmPay (or any VTStack account)
+    const hasAccount = virtualAccounts.some(acc =>
+      acc.bankName.toLowerCase().includes('palmpay') ||
+      acc.metadata?.bankType === 'palmpay'
+    );
 
-    // Filter by gateway
-    if (gateway === 'payrant') {
-      availableBanks = BANKS.filter(b => b.id === 'palmpay' && !virtualAccounts.some(acc => acc.bankName.toLowerCase().includes('palmpay')));
-    } else {
-      availableBanks = availableBanks.filter(b => b.id !== 'palmpay');
+    if (hasAccount) {
+      showInfo('You already have a generated account.');
+      return;
     }
 
-    if (availableBanks.length > 0) {
-      const preferredId = gateway === 'payrant' ? 'palmpay' : 'moniepoint';
-      const preferred = availableBanks.find(b => b.id === preferredId);
-      setSelectedBankId(preferred ? preferred.id : availableBanks[0].id);
-    }
-
+    setSelectedBankId('palmpay');
     setShowBankModal(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     modalScale.value = withSpring(1);
@@ -374,10 +349,7 @@ export default function AddMoneyScreen() {
               </View>
 
               <View style={styles.bankGrid}>
-                {BANKS.filter(b => {
-                  if (gateway === 'payrant') return b.id === 'palmpay' && !virtualAccounts.some(acc => acc.bankName.toLowerCase().includes('palmpay'));
-                  return b.id !== 'palmpay' && !virtualAccounts.some(acc => acc.metadata?.bankType === b.id);
-                }).map((bank) => (
+                {BANKS.map((bank) => (
                   <TouchableOpacity
                     key={bank.id}
                     style={[
@@ -398,11 +370,9 @@ export default function AddMoneyScreen() {
                       />
                     </View>
                     <Text style={[styles.bankGridName, { color: selectedBankId === bank.id ? brandColor : textColor }]}>{bank.name}</Text>
-                    {bank.isRecommended && (
-                      <View style={[styles.recBadge, { backgroundColor: theme.primary + '20', position: 'absolute', top: 5, right: 5, marginLeft: 0 }]}>
-                        <Text style={[styles.recBadgeText, { color: theme.primary, fontSize: 8 }]}>BEST</Text>
-                      </View>
-                    )}
+                    <View style={[styles.recBadge, { backgroundColor: theme.primary + '20', position: 'absolute', top: 5, right: 5, marginLeft: 0 }]}>
+                      <Text style={[styles.recBadgeText, { color: theme.primary, fontSize: 8 }]}>NEW</Text>
+                    </View>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -426,22 +396,11 @@ export default function AddMoneyScreen() {
                 </View>
               )}
 
-              {!selectedBankId && BANKS.filter(b => {
-                if (gateway === 'payrant') return b.id === 'palmpay' && !virtualAccounts.some(acc => acc.bankName.toLowerCase().includes('palmpay'));
-                return b.id !== 'palmpay' && !virtualAccounts.some(acc => acc.metadata?.bankType === b.id);
-              }).length > 0 && (
-                  <Text style={[styles.modalHint, { color: textSecondaryColor }]}>Select a bank to see more details</Text>
-                )}
+              {!selectedBankId && (
+                <Text style={[styles.modalHint, { color: textSecondaryColor }]}>Select to proceed</Text>
+              )}
 
-              {BANKS.filter(b => {
-                if (gateway === 'payrant') return b.id === 'palmpay' && !virtualAccounts.some(acc => acc.bankName.toLowerCase().includes('palmpay'));
-                return b.id !== 'palmpay' && !virtualAccounts.some(acc => acc.metadata?.bankType === b.id);
-              }).length === 0 && (
-                  <View style={styles.completedState}>
-                    <Ionicons name="checkmark-circle" size={50} color={theme.success} />
-                    <Text style={[styles.completedText, { color: textColor }]}>All available banks linked!</Text>
-                  </View>
-                )}
+              {/* Removed complex completed state check as openBankModal handles it */}
 
               <TouchableOpacity style={[styles.closeBtn, { backgroundColor: cardBg }]} onPress={closeBankModal}>
                 <Text style={[styles.closeBtnText, { color: textColor }]}>Maybe Later</Text>
@@ -602,7 +561,6 @@ const styles = StyleSheet.create({
   addMoreIcon: { width: 44, height: 44, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
   addMoreText: { fontSize: 15, fontWeight: '700' },
   emptyContainer: { borderRadius: 40, padding: 30, alignItems: 'center' },
-  emptyContainer: { borderRadius: 40, padding: 30, alignItems: 'center' },
   emptyContent: { alignItems: 'center', gap: 15 },
   emptyIconBox: { width: 120, height: 120, borderRadius: 60, justifyContent: 'center', alignItems: 'center' },
   emptyIllustration: { width: 60, height: 60 },
@@ -623,7 +581,6 @@ const styles = StyleSheet.create({
   modalSub: { fontSize: 14, lineHeight: 22 },
   bankOptions: { gap: 12 },
   bankRow: { flexDirection: 'row', alignItems: 'center', padding: 18, borderRadius: 22, gap: 15 },
-  bankIconCircle: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center' },
   bankLogoImage: { width: 28, height: 28 },
   bankRowName: { fontSize: 16, fontWeight: '800' },
   bankRowDesc: { fontSize: 12, opacity: 0.7 },

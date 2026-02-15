@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,21 +7,52 @@ import {
   TouchableOpacity,
   Platform,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/components/ThemeContext';
+import { walletService } from '@/services/wallet.service';
+import { useAlert } from '@/components/AlertContext';
 
 const { width } = Dimensions.get('window');
 
 export default function PayBillsScreen() {
   const router = useRouter();
   const { isDark, theme } = useTheme();
+  const { showSuccess } = useAlert();
 
   const bgColor = theme.background;
   const cardBg = theme.surface;
   const textColor = theme.text;
   const textSecondaryColor = theme.textSecondary;
+
+  // Wallet state
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [isLoadingBalance, setIsLoadingBalance] = useState(true);
+
+  // Fetch wallet balance on mount
+  useEffect(() => {
+    fetchWalletBalance();
+  }, []);
+
+  const fetchWalletBalance = async () => {
+    try {
+      setIsLoadingBalance(true);
+      const response = await walletService.getWallet();
+      if (response.success && response.data) {
+        setWalletBalance(response.data.balance);
+      }
+    } catch (error) {
+      console.log('Failed to fetch wallet balance:', error);
+    } finally {
+      setIsLoadingBalance(false);
+    }
+  };
+
+  const showComingSoon = () => {
+    showSuccess('🚀 Coming Soon! This feature will be available shortly.');
+  };
 
   const billCategories = [
     {
@@ -127,9 +158,13 @@ export default function PayBillsScreen() {
         <View style={[styles.balanceCard, { backgroundColor: theme.primary }]}>
           <View>
             <Text style={styles.balanceLabel}>Wallet Balance</Text>
-            <Text style={styles.balanceValue}>₦50,000.00</Text>
+            {isLoadingBalance ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text style={styles.balanceValue}>₦{walletBalance.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+            )}
           </View>
-          <TouchableOpacity style={styles.topUpButton}>
+          <TouchableOpacity style={styles.topUpButton} onPress={() => router.push('/add-money')}>
             <Ionicons name="add" size={20} color={theme.primary} />
             <Text style={[styles.topUpText, { color: theme.primary }]}>Top Up</Text>
           </TouchableOpacity>
@@ -143,7 +178,7 @@ export default function PayBillsScreen() {
               key={category.id}
               style={[styles.categoryCard, { backgroundColor: cardBg }]}
               activeOpacity={0.7}
-              onPress={() => console.log('Navigate to', category.route)}
+              onPress={showComingSoon}
             >
               <View style={[styles.iconContainer, { backgroundColor: category.color + '15' }]}>
                 <Ionicons name={category.icon as any} size={24} color={category.color} />

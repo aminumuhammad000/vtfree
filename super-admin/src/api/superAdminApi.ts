@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://api.vtfree.com.ng/api/v1/super-admin';
+const API_URL = 'http://localhost:5000/api/v1/super-admin'; // 'https://api.vtfree.com.ng/api/v1/super-admin';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -44,12 +44,22 @@ export const createApp = async (data: any) => {
 export const getOwners = async () => {
   return api.get('/owners');
 };
+export const getOwner = (id: string) => api.get(`/owners/${id}`);
+export const updateOwner = (id: string, data: any) => api.put(`/owners/${id}`, data);
+export const deleteOwner = (id: string) => api.delete(`/owners/${id}`);
+export const getAdmins = () => api.get('/admins');
+export const getAdmin = (id: string) => api.get(`/admins/${id}`);
+export const updateAdmin = (id: string, data: any) => api.put(`/admins/${id}`, data);
+export const deleteAdmin = (id: string) => api.delete(`/admins/${id}`);
 
 export const updateUserStatus = (id: string, status: string) =>
   api.put(`/users/${id}/status`, { status });
 export const approveKyc = (id: string) => api.put(`/users/${id}/kyc/approve`);
 export const rejectKyc = (id: string, reason: string) =>
   api.put(`/users/${id}/kyc/reject`, { reason });
+
+export const creditOwnerWallet = (id: string, amount: number, reason: string) =>
+  api.post(`/owners/${id}/credit`, { amount, reason });
 
 export const getTransactions = async (params?: any) => {
   return api.get('/transactions', { params });
@@ -153,7 +163,6 @@ const superAdminApi = {
   createFeature,
   updateFeature,
   deleteFeature,
-  updateUserStatus,
   approveKyc,
   rejectKyc,
   getSystemSettings,
@@ -168,6 +177,15 @@ const superAdminApi = {
   createVTPayAccount,
   getVTPayAccountBalance,
   getVTPayAccountTransactions,
+  getOwner,
+  updateOwner,
+  deleteOwner,
+  getAdmins,
+  getAdmin,
+  updateAdmin,
+  deleteAdmin,
+  updateUserStatus,
+  creditOwnerWallet,
 };
 
 export default superAdminApi;

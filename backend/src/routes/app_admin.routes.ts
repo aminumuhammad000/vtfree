@@ -99,7 +99,7 @@ router.get('/funding/vtpay-accounts', authenticateAppAdmin, AppAdminFundingContr
 import { PayoutController } from '../controllers/payout.controller.js';
 router.get('/payout/banks', authenticateAppAdmin, PayoutController.getBanksList);
 router.post('/payout/validate-account', authenticateAppAdmin, PayoutController.validateAccount);
-router.get('/payout/balance', authenticateAppAdmin, PayoutController.getVTPayBalance);
+router.get('/payout/balance', authenticateAppAdmin, PayoutController.getVTStackBalance);
 
 // Notifications & Broadcasts
 import { NotificationController } from '../controllers/notification.controller.js';

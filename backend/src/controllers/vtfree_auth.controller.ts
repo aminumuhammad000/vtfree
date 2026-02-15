@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import VTfreeUser from '../models/vtfree_user.model.js';
 import { logger } from '../config/bootstrap.js';
-import { VTPayService } from '../services/vtpay.service.js';
+import { VTStackService } from '../services/vtstack.service.js';
 
 export const createVirtualAccount = async (req: Request, res: Response) => {
     try {
@@ -19,10 +19,8 @@ export const createVirtualAccount = async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, message: 'Virtual account already exists' });
         }
 
-        const { bankType, bvn } = req.body;
-        if (!bankType) {
-            return res.status(400).json({ success: false, message: 'Bank type is required' });
-        }
+        const { bvn } = req.body;
+        // bankType is deprecated as VTStack uses PalmPay by default
 
         // Save BVN if provided (and not already saved)
         if (bvn && bvn.length === 11) {
@@ -30,16 +28,16 @@ export const createVirtualAccount = async (req: Request, res: Response) => {
             await user.save();
         }
 
-        const vtpayData = {
-            bankType,
-            accountName: `${user.first_name} ${user.last_name || ''}`.trim(),
+        const vtstackData = {
+            firstName: user.first_name,
+            lastName: user.last_name || 'User',
             email: user.email,
             phone: user.phone_number,
-            reference: `VTF_${user._id}_${Date.now()}`,
-            bvn: user.bvn || bvn // Use stored BVN or provided BVN
+            bvn: user.bvn || bvn, // Use stored BVN or provided BVN
+            reference: `VTF_${user._id}_${Date.now()}`
         };
 
-        const result = await VTPayService.createVirtualAccount(vtpayData);
+        const result = await VTStackService.createVirtualAccount(vtstackData);
 
         if (result.success) {
             user.virtual_account = {

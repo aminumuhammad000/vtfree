@@ -70,7 +70,7 @@ export const updateFundingAccount = (id: string, data: Partial<{ bankName: strin
 export const deleteFundingAccount = (id: string) => api.delete(`/funding/accounts/${id}`);
 export const generateVirtualAccount = (data?: { provider?: string; bank?: string }) => api.post('/funding/virtual-account', data);
 export const getIBDataBalance = () => api.get('/funding/ibdata-balance');
-export const getVTPayAccounts = () => api.get('/funding/vtpay-accounts');
+export const getVTStackAccounts = () => api.get('/funding/vtstack-accounts');
 
 // Transactions
 export const getTransactions = (params?: { page?: number; limit?: number; status?: string; type?: string; search?: string; user_id?: string }) =>
@@ -110,11 +110,11 @@ export const replySupportMessage = (id: string, data: { message: string }) =>
 export const updateMessageStatus = (id: string, status: string) =>
   api.patch(`/support/messages/${id}/status`, { status });
 
-// Payout/VTPay
+// Payout/VTStack
 export const getBanksList = () => api.get('/payout/banks');
 export const validateAccount = (data: { bank_code: string; account_number: string }) =>
   api.post('/payout/validate-account', data);
-export const getVTPayBalance = () => api.get('/payout/balance');
+export const getVTStackBalance = () => api.get('/payout/balance');
 
 // Disputes
 export const getDisputes = (params?: { page?: number; limit?: number; status?: string; search?: string }) =>

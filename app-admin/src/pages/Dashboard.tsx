@@ -52,9 +52,9 @@ const Dashboard: React.FC = () => {
       const gateway = configs.find((c: any) => c.key === 'DEFAULT_PAYMENT_GATEWAY')?.value;
       if (!gateway) {
         missing.push('Payment Gateway not selected');
-      } else if (gateway === 'vtpay') {
-        const apiKey = configs.find((c: any) => c.key === 'VTPAY_API_KEY')?.value;
-        if (!apiKey) missing.push('VTPay API Key is missing');
+      } else if (gateway === 'vtstack') {
+        const apiKey = configs.find((c: any) => c.key === 'VTSTACK_API_KEY')?.value;
+        if (!apiKey) missing.push('VTStack API Key is missing');
       }
 
       const mailUser = configs.find((c: any) => c.key === 'MAIL_USER')?.value;

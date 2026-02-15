@@ -4,6 +4,7 @@ import { Icon } from '@iconify/react';
 import paths from 'routes/paths';
 import { UserService, User as BackendUser } from 'services/user.service';
 import { toast } from 'react-hot-toast';
+import AddUserModal from './AddUserModal';
 
 type UserType = 'vtfree-users' | 'admin-users';
 
@@ -20,7 +21,111 @@ interface User {
     role?: string;
     app_id?: string;
     lastActive?: string;
+    ibdata_balance?: number;
+    owner_id?: string;
 }
+
+interface CreditModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    user: User | null;
+    onSuccess: () => void;
+}
+
+const CreditModal = ({ isOpen, onClose, user, onSuccess }: CreditModalProps) => {
+    const [amount, setAmount] = useState('');
+    const [reason, setReason] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    if (!isOpen || !user) return null;
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const creditId = user.type === 'admin-users' && user.owner_id ? user.owner_id : user.id;
+            await UserService.creditOwnerWallet(creditId, Number(amount), reason);
+            toast.success('Wallet credited successfully');
+            onSuccess();
+            onClose();
+            setAmount('');
+            setReason('');
+        } catch (error) {
+            toast.error('Failed to credit wallet');
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <div>
+                        <h2 className="text-xl font-bold text-slate-900">Credit Wallet</h2>
+                        <p className="text-sm text-slate-500 mt-1">Add funds to {user.name}'s wallet</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600">
+                        <Icon icon="solar:close-circle-bold" width="24" />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 flex items-center justify-between">
+                        <span className="text-sm font-medium text-blue-700">
+                            {user.type === 'admin-users' ? 'IBData Balance (Owner)' : 'Current Balance'}
+                        </span>
+                        <span className="text-lg font-bold text-blue-900">
+                            ₦{(user.type === 'admin-users' ? user.ibdata_balance : user.balance)?.toLocaleString() ?? 0}
+                        </span>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Amount (₦)</label>
+                        <input
+                            type="number"
+                            required
+                            min="1"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-mono text-lg"
+                            placeholder="0.00"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Reason / Description</label>
+                        <textarea
+                            value={reason}
+                            onChange={(e) => setReason(e.target.value)}
+                            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 min-h-[100px]"
+                            placeholder="e.g. Manual deposit via bank transfer"
+                        />
+                    </div>
+
+                    <div className="pt-2 flex gap-3">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="flex-1 py-3 px-4 bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-all"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="flex-1 py-3 px-4 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 disabled:opacity-70 flex items-center justify-center gap-2"
+                        >
+                            {loading ? <Icon icon="eos-icons:loading" width="20" /> : <Icon icon="solar:wallet-money-bold" width="20" />}
+                            <span>Credit Amount</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
 
 const Users = () => {
     const navigate = useNavigate();
@@ -28,6 +133,9 @@ const Users = () => {
     const [activeTab, setActiveTab] = useState<UserType>('vtfree-users');
     const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
     const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
+    const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+    const [creditModalOpen, setCreditModalOpen] = useState(false);
+    const [selectedUserForAction, setSelectedUserForAction] = useState<User | null>(null);
     const [owners, setOwners] = useState<User[]>([]);
     const [admins, setAdmins] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
@@ -47,7 +155,9 @@ const Users = () => {
         type: type,
         role: u.role,
         app_id: u.app_id,
-        lastActive: u.last_login ? new Date(u.last_login).toLocaleString() : 'Never'
+        lastActive: u.last_login ? new Date(u.last_login).toLocaleString() : 'Never',
+        ibdata_balance: u.ibdata_balance,
+        owner_id: u.owner_id
     });
 
     const fetchAllData = async () => {
@@ -99,6 +209,30 @@ const Users = () => {
 
     const handleUserAction = async (userId: string, action: string) => {
         setActionMenuOpen(null);
+
+        if (action === 'delete') {
+            if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+                return;
+            }
+            try {
+                let success = false;
+                if (activeTab === 'vtfree-users') {
+                    success = await UserService.deleteOwner(userId);
+                } else {
+                    success = await UserService.deleteAdmin(userId);
+                }
+
+                if (success) {
+                    toast.success('User deleted successfully');
+                    fetchAllData();
+                }
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                toast.error('Failed to delete user');
+            }
+            return;
+        }
+
         let status: 'active' | 'suspended' | 'pending' = 'active';
 
         if (action === 'approve') status = 'active';
@@ -153,7 +287,10 @@ const Users = () => {
                         <Icon icon="solar:import-bold" width="20" />
                         <span>Import</span>
                     </button>
-                    <button className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all flex items-center gap-2">
+                    <button
+                        onClick={() => setIsAddUserModalOpen(true)}
+                        className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all flex items-center gap-2"
+                    >
                         <Icon icon="solar:user-plus-bold" width="20" />
                         <span>Add User</span>
                     </button>
@@ -399,7 +536,15 @@ const Users = () => {
                                                 <span className="text-sm font-mono text-slate-600">{user.app_id || 'N/A'}</span>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold">
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-bold text-emerald-600">
+                                                        ₦{user.ibdata_balance?.toLocaleString() ?? 0}
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-400 uppercase tracking-tighter">IBData Balance</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold uppercase">
                                                     {user.role}
                                                 </span>
                                             </td>
@@ -440,6 +585,17 @@ const Users = () => {
                                                 </button>
                                                 {actionMenuOpen === user.id && (
                                                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border-2 border-slate-100 py-2 z-50">
+                                                        <button
+                                                            onClick={() => {
+                                                                setSelectedUserForAction(user);
+                                                                setCreditModalOpen(true);
+                                                                setActionMenuOpen(null);
+                                                            }}
+                                                            className="w-full px-4 py-2.5 text-left text-sm text-blue-600 hover:bg-blue-50 transition-all flex items-center gap-2"
+                                                        >
+                                                            <Icon icon="solar:wallet-money-bold" width="18" />
+                                                            <span>Credit Wallet</span>
+                                                        </button>
                                                         <button
                                                             onClick={() => handleUserAction(user.id, 'approve')}
                                                             className="w-full px-4 py-2.5 text-left text-sm text-emerald-600 hover:bg-emerald-50 transition-all flex items-center gap-2"
@@ -510,6 +666,24 @@ const Users = () => {
                     </div>
                 )}
             </div>
+
+            <AddUserModal
+                isOpen={isAddUserModalOpen}
+                onClose={() => setIsAddUserModalOpen(false)}
+                onSuccess={() => {
+                    fetchAllData();
+                    toast.success('User list refreshed');
+                }}
+            />
+
+            <CreditModal
+                isOpen={creditModalOpen}
+                onClose={() => setCreditModalOpen(false)}
+                user={selectedUserForAction}
+                onSuccess={() => {
+                    fetchAllData();
+                }}
+            />
         </div>
     );
 };

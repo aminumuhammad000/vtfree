@@ -20,10 +20,10 @@ const PaymentSettings = () => {
     const [saving, setSaving] = useState(false);
     const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
     const [formData, setFormData] = useState({
-        DEFAULT_PAYMENT_GATEWAY: 'vtpay',
-        VTPAY_API_KEY: '',
-        VTPAY_SECRET_KEY: '',
-        VTPAY_PUBLIC_KEY: '',
+        DEFAULT_PAYMENT_GATEWAY: 'vtstack',
+        VTSTACK_API_KEY: '',
+        VTSTACK_SECRET_KEY: '',
+        VTSTACK_PUBLIC_KEY: '',
         PAYSTACK_SECRET_KEY: '',
         PAYSTACK_PUBLIC_KEY: '',
         MONNIFY_API_KEY: '',
@@ -94,7 +94,7 @@ const PaymentSettings = () => {
     }
 
     const gateways = [
-        { id: 'vtpay', name: 'VTPay', description: 'VTPay Gateway', disabled: false },
+        { id: 'vtstack', name: 'VTStack', description: 'VTStack Gateway', disabled: false },
         { id: 'payrant', name: 'Payrant', description: 'Payrant Gateway', disabled: false },
     ];
 
@@ -185,12 +185,12 @@ const PaymentSettings = () => {
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {/* VTPay Config */}
-                        {formData.DEFAULT_PAYMENT_GATEWAY === 'vtpay' && (
+                        {/* VTStack Config */}
+                        {formData.DEFAULT_PAYMENT_GATEWAY === 'vtstack' && (
                             <div className="space-y-6 p-6 bg-slate-50/50 rounded-3xl border border-slate-100 animate-in fade-in slide-in-from-top-4 duration-500">
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-sm border border-slate-100 text-[10px] font-black text-slate-400">01</div>
-                                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">VTPay Credentials</h3>
+                                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">VTStack Credentials</h3>
                                 </div>
                                 <div className="p-4 bg-green-50/50 border border-green-100 rounded-2xl flex gap-3">
                                     <div className="w-8 h-8 bg-white rounded-lg shadow-sm flex items-center justify-center text-green-600 shrink-0">
@@ -198,10 +198,10 @@ const PaymentSettings = () => {
                                     </div>
                                     <div className="space-y-1.5">
                                         <p className="text-[10px] text-green-800 font-medium leading-relaxed">
-                                            VTPay is the recommended gateway for seamless automated funding and payouts. You need active API keys to process transactions.
+                                            VTStack is the recommended gateway for seamless automated funding and payouts. You need active API keys to process transactions.
                                         </p>
                                         <a
-                                            href="https://vtpay.vtfree.com.ng"
+                                            href="https://vtstack.vtfree.com.ng"
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-green-700 hover:text-green-900 hover:underline transition-all"
@@ -217,19 +217,19 @@ const PaymentSettings = () => {
                                         <div className="relative">
                                             <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                                             <input
-                                                type={showSecrets['VTPAY_SECRET_KEY'] ? 'text' : 'password'}
-                                                name="VTPAY_SECRET_KEY"
-                                                value={formData.VTPAY_SECRET_KEY}
+                                                type={showSecrets['VTSTACK_SECRET_KEY'] ? 'text' : 'password'}
+                                                name="VTSTACK_SECRET_KEY"
+                                                value={(formData as any).VTSTACK_SECRET_KEY}
                                                 onChange={handleChange}
                                                 className="w-full pl-11 pr-12 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none font-mono text-xs transition-all"
                                                 placeholder="sk_live_..."
                                             />
                                             <button
                                                 type="button"
-                                                onClick={() => toggleSecret('VTPAY_SECRET_KEY')}
+                                                onClick={() => toggleSecret('VTSTACK_SECRET_KEY')}
                                                 className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                                             >
-                                                {showSecrets['VTPAY_SECRET_KEY'] ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+                                                {showSecrets['VTSTACK_SECRET_KEY'] ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
                                             </button>
                                         </div>
                                     </div>

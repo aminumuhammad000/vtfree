@@ -18,8 +18,8 @@ class IBDataService {
         if (!configOverride && this.api) return this.api;
 
         const cfg = configOverride || await ProviderConfig.findOne({ code: 'ibdata' });
-        const baseURL = cfg?.base_url || 'https://api.ibdata.com.ng/api';
-        const apiKey = cfg?.api_key || '';
+        const baseURL = cfg?.base_url || process.env.IBDATA_BASE_URL || 'https://api.ibdata.com.ng/api';
+        const apiKey = cfg?.api_key || process.env.IBDATA_API_KEY || '';
 
         if (!apiKey) {
             throw new Error('IBData API key not configured');

@@ -15,7 +15,7 @@ import { Plan } from '../models/plan.model.js';
 import ibdataService from '../services/ibdata.service.js';
 import logger from '../utils/logger.js';
 import { normalizeNetwork, getNetworkName, NetworkId } from '../utils/network.js';
-import { VTPayService } from '../services/vtpay.service.js';
+import { VTStackService } from '../services/vtstack.service.js';
 import { configService } from '../services/config.service.js';
 
 export const login = async (req: Request, res: Response) => {
@@ -89,6 +89,62 @@ export const getAllApps = async (req: Request, res: Response) => {
     }
 };
 
+export const createApp = async (req: Request, res: Response) => {
+    try {
+        const { owner_id, app_name, package_name, admin_email, admin_password } = req.body;
+
+        if (!owner_id || !app_name || !package_name || !admin_email || !admin_password) {
+            return res.status(400).json({ success: false, message: 'Missing required fields' });
+        }
+
+        // Check if package name exists
+        const existingApp = await CreatedApp.findOne({ package_name });
+        if (existingApp) {
+            return res.status(400).json({ success: false, message: 'Package name already taken' });
+        }
+
+        // Generate app_id
+        const app_id = `APP_${Date.now()}_${Math.random().toString(36).substring(7).toUpperCase()}`;
+
+        // Hash admin password
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(admin_password, salt);
+
+        const newApp = new CreatedApp({
+            app_id,
+            owner_id,
+            app_name,
+            package_name,
+            admin_email,
+            admin_password_hash: passwordHash,
+            status: 'pending',
+            platforms: { android: true, ios: false, web: false },
+            version: '1.0.0'
+        });
+
+        await newApp.save();
+
+        // Create the initial AppAdmin
+        const newAdmin = new AppAdmin({
+            app_id,
+            email: admin_email,
+            password: passwordHash,
+            role: 'owner',
+            status: 'active'
+        });
+        await newAdmin.save();
+
+        res.status(201).json({
+            success: true,
+            message: 'App created successfully',
+            data: { app: newApp }
+        });
+    } catch (error) {
+        console.error('Create app error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
 export const getAllUsers = async (req: Request, res: Response) => {
     try {
         const { app_id, owner_id, search } = req.query;
@@ -142,6 +198,8 @@ export const getAllOwners = async (req: Request, res: Response) => {
     }
 };
 
+
+
 export const getOwnerById = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -165,14 +223,43 @@ export const getOwnerById = async (req: Request, res: Response) => {
     }
 };
 
+
+
 export const getAllAdmins = async (req: Request, res: Response) => {
     try {
         const admins = await AppAdmin.find().sort({ created_at: -1 }).select('-password');
-        res.json({ success: true, data: { admins } });
+
+        const enrichedAdmins = await Promise.all(admins.map(async (admin) => {
+            const app = await CreatedApp.findOne({ app_id: admin.app_id });
+            let ownerBalance = 0;
+            let appName = 'Unknown App';
+            let ownerId = null;
+
+            if (app) {
+                appName = app.app_name;
+                const owner = await VTfreeUser.findById(app.owner_id);
+                if (owner) {
+                    ownerBalance = owner.wallet_balance;
+                    ownerId = owner._id;
+                }
+            }
+
+            return {
+                ...admin.toObject(),
+                app_name: appName,
+                ibdata_balance: ownerBalance,
+                owner_id: ownerId
+            };
+        }));
+
+        res.json({ success: true, data: { admins: enrichedAdmins } });
     } catch (error) {
+        console.error('Get all admins error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
+
+
 
 export const getAdminById = async (req: Request, res: Response) => {
     try {
@@ -185,6 +272,8 @@ export const getAdminById = async (req: Request, res: Response) => {
     }
 };
 
+
+
 export const updateOwnerStatus = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -196,6 +285,8 @@ export const updateOwnerStatus = async (req: Request, res: Response) => {
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
+
+
 
 export const creditOwnerWallet = async (req: Request, res: Response) => {
     try {
@@ -244,6 +335,49 @@ export const creditOwnerWallet = async (req: Request, res: Response) => {
     }
 };
 
+export const createOwner = async (req: Request, res: Response) => {
+    try {
+        const { email, password, first_name, last_name, phone_number, company_name } = req.body;
+
+        // Basic validation
+        if (!email || !password || !first_name || !phone_number) {
+            return res.status(400).json({ success: false, message: 'Missing required fields' });
+        }
+
+        // Check if user exists
+        const existingUser = await VTfreeUser.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ success: false, message: 'User already exists' });
+        }
+
+        // Hash password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        const newOwner = new VTfreeUser({
+            email,
+            password: hashedPassword,
+            first_name,
+            last_name,
+            phone_number,
+            company_name,
+            status: 'active', // Direct creation by super admin is active by default
+            email_verified: true
+        });
+
+        await newOwner.save();
+
+        res.status(201).json({
+            success: true,
+            message: 'Owner created successfully',
+            data: { owner: { ...newOwner.toObject(), password: undefined } }
+        });
+    } catch (error) {
+        console.error('Create owner error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
 export const updateAdminStatus = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -255,6 +389,8 @@ export const updateAdminStatus = async (req: Request, res: Response) => {
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
+
+
 
 export const getDashboardStats = async (req: Request, res: Response) => {
     try {
@@ -418,8 +554,9 @@ export const getAllTransactions = async (req: Request, res: Response) => {
     try {
         const { limit = 50, offset = 0, source = 'local' } = req.query;
 
-        if (source === 'vtpay') {
-            const result = await VTPayService.getAllTransactions(Number(limit), Number(offset));
+        if (source === 'vtpay' || source === 'vtstack') {
+            // @ts-ignore
+            const result = await VTStackService.getAllTransactions(Number(limit), Number(offset));
             const normalized = result.data.transactions.map((tx: any) => ({
                 _id: tx.id || tx._id,
                 transaction_id: tx.reference,
@@ -463,6 +600,46 @@ export const getAllPayments = async (req: Request, res: Response) => {
         const payments = await PlatformTransaction.find().sort({ created_at: -1 }).populate('user_id', 'email first_name last_name');
         res.json({ success: true, data: { payments } });
     } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const createAdmin = async (req: Request, res: Response) => {
+    try {
+        const { app_id, email, password, first_name, last_name, role } = req.body;
+
+        if (!app_id || !email || !password) {
+            return res.status(400).json({ success: false, message: 'Missing required fields' });
+        }
+
+        const existingAdmin = await AppAdmin.findOne({ email, app_id });
+        if (existingAdmin) {
+            return res.status(400).json({ success: false, message: 'Admin already exists for this app' });
+        }
+
+        // Hash password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        const newAdmin = new AppAdmin({
+            app_id,
+            email,
+            password: hashedPassword,
+            first_name,
+            last_name,
+            role: role || 'admin',
+            status: 'active'
+        });
+
+        await newAdmin.save();
+
+        res.status(201).json({
+            success: true,
+            message: 'Admin created successfully',
+            data: { admin: { ...newAdmin.toObject(), password: undefined } }
+        });
+    } catch (error) {
+        console.error('Create admin error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };
@@ -949,7 +1126,7 @@ export const updateVTPaySettings = async (req: Request, res: Response) => {
 
 export const getVTPayPlatformBalance = async (req: Request, res: Response) => {
     try {
-        const result = await VTPayService.getPlatformBalance();
+        const result = await VTStackService.getPlatformBalance();
         res.json(result);
     } catch (error: any) {
         logger.error('Error getting VTPay platform balance:', error);
@@ -959,7 +1136,7 @@ export const getVTPayPlatformBalance = async (req: Request, res: Response) => {
 
 export const getVTPayAccounts = async (req: Request, res: Response) => {
     try {
-        const result = await VTPayService.getVirtualAccounts();
+        const result = await VTStackService.getVirtualAccounts();
         res.json(result);
     } catch (error: any) {
         logger.error('Error fetching VTPay accounts:', error);
@@ -969,7 +1146,7 @@ export const getVTPayAccounts = async (req: Request, res: Response) => {
 
 export const createVTPayAccount = async (req: Request, res: Response) => {
     try {
-        const result = await VTPayService.createVirtualAccount(req.body);
+        const result = await VTStackService.createVirtualAccount(req.body);
         res.status(201).json(result);
     } catch (error: any) {
         logger.error('Error creating VTPay account:', error);
@@ -980,7 +1157,7 @@ export const createVTPayAccount = async (req: Request, res: Response) => {
 export const getVTPayAccountBalance = async (req: Request, res: Response) => {
     try {
         const { accountNumber } = req.params;
-        const result = await VTPayService.getAccountBalance(accountNumber);
+        const result = await VTStackService.getAccountBalance(accountNumber);
         res.json(result);
     } catch (error: any) {
         logger.error('Error fetching VTPay account balance:', error);
@@ -991,7 +1168,7 @@ export const getVTPayAccountBalance = async (req: Request, res: Response) => {
 export const getVTPayAccountTransactions = async (req: Request, res: Response) => {
     try {
         const { accountNumber } = req.params;
-        const result = await VTPayService.getTransactions(accountNumber);
+        const result = await VTStackService.getTransactions(accountNumber);
         res.json(result);
     } catch (error: any) {
         logger.error('Error fetching VTPay account transactions:', error);
@@ -1048,5 +1225,85 @@ export const updateBuildPrice = async (req: Request, res: Response) => {
     } catch (error: any) {
         logger.error('Error updating build price:', error);
         res.status(500).json({ success: false, message: error.message || 'Server error' });
+    }
+};
+
+export const updateOwner = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { first_name, last_name, phone_number, company_name, email, status, password } = req.body;
+
+        const updateData: any = {};
+        if (first_name) updateData.first_name = first_name;
+        if (last_name) updateData.last_name = last_name;
+        if (phone_number) updateData.phone_number = phone_number;
+        if (company_name) updateData.company_name = company_name;
+        if (email) updateData.email = email;
+        if (status) updateData.status = status;
+
+        if (password) {
+            const salt = await bcrypt.genSalt(10);
+            updateData.password = await bcrypt.hash(password, salt);
+        }
+
+        const owner = await VTfreeUser.findByIdAndUpdate(id, updateData, { new: true }).select('-password');
+        if (!owner) return res.status(404).json({ success: false, message: 'Owner not found' });
+
+        res.json({ success: true, message: 'Owner updated successfully', data: { owner } });
+    } catch (error) {
+        console.error('Update owner error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const deleteOwner = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const owner = await VTfreeUser.findByIdAndDelete(id);
+        if (!owner) return res.status(404).json({ success: false, message: 'Owner not found' });
+
+        res.json({ success: true, message: 'Owner deleted successfully' });
+    } catch (error) {
+        console.error('Delete owner error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const updateAdmin = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { first_name, last_name, status, role, password } = req.body;
+
+        const updateData: any = {};
+        if (first_name) updateData.first_name = first_name;
+        if (last_name) updateData.last_name = last_name;
+        if (status) updateData.status = status;
+        if (role) updateData.role = role;
+
+        if (password) {
+            const salt = await bcrypt.genSalt(10);
+            updateData.password = await bcrypt.hash(password, salt);
+        }
+
+        const admin = await AppAdmin.findByIdAndUpdate(id, updateData, { new: true }).select('-password');
+        if (!admin) return res.status(404).json({ success: false, message: 'Admin not found' });
+
+        res.json({ success: true, message: 'Admin updated successfully', data: { admin } });
+    } catch (error) {
+        console.error('Update admin error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+export const deleteAdmin = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const admin = await AppAdmin.findByIdAndDelete(id);
+        if (!admin) return res.status(404).json({ success: false, message: 'Admin not found' });
+
+        res.json({ success: true, message: 'Admin deleted successfully' });
+    } catch (error) {
+        console.error('Delete admin error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 };

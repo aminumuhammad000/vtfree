@@ -22,6 +22,8 @@ const RegisterAppModal = ({ onClose, onSuccess }: RegisterAppModalProps) => {
         package_name: '',
         owner_id: '',
         description: '',
+        admin_email: '',
+        admin_password: '',
         admin_settings: {
             panel_title: '',
             primary_color: '#3B82F6', // Blue-500
@@ -51,6 +53,7 @@ const RegisterAppModal = ({ onClose, onSuccess }: RegisterAppModalProps) => {
         setFormData(prev => ({
             ...prev,
             owner_id: userId,
+            admin_email: owner?.email || '', // Default admin email to owner email
             admin_settings: {
                 ...prev.admin_settings,
                 support_email: owner?.email || prev.admin_settings.support_email,
@@ -63,8 +66,8 @@ const RegisterAppModal = ({ onClose, onSuccess }: RegisterAppModalProps) => {
         e.preventDefault();
         setError('');
 
-        if (!formData.app_name || !formData.owner_id) {
-            setError('App Name and Owner are required');
+        if (!formData.app_name || !formData.owner_id || !formData.admin_email || !formData.admin_password) {
+            setError('App Name, Owner, Admin Email and Admin Password are required');
             return;
         }
 
@@ -176,6 +179,39 @@ const RegisterAppModal = ({ onClose, onSuccess }: RegisterAppModalProps) => {
                                 value={formData.description}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                             />
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2 pb-2 border-b border-slate-100">
+                            <Icon icon="solar:shield-user-bold" className="text-purple-500" />
+                            Admin Access
+                        </h4>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-medium text-slate-700">Admin Email <span className="text-red-500">*</span></label>
+                                <input
+                                    type="email"
+                                    required
+                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                                    placeholder="admin@app.com"
+                                    value={formData.admin_email}
+                                    onChange={(e) => setFormData({ ...formData, admin_email: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-medium text-slate-700">Admin Password <span className="text-red-500">*</span></label>
+                                <input
+                                    type="password"
+                                    required
+                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all"
+                                    placeholder="••••••••"
+                                    value={formData.admin_password}
+                                    onChange={(e) => setFormData({ ...formData, admin_password: e.target.value })}
+                                />
+                            </div>
                         </div>
                     </div>
 
