@@ -252,7 +252,7 @@ export default function HomeScreen() {
                 }}
               >
                 <Ionicons name="add" size={20} color={brandColor} />
-                <Text style={[styles.addMoneyText, { color: brandColor }]}>Add Money</Text>
+                <Text style={[styles.addMoneyText, { color: brandColor }]}>Fund</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.refBox} onPress={() => {

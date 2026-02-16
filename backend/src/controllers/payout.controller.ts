@@ -36,12 +36,12 @@ export class PayoutController {
             const gateway = app?.payment_settings?.default_gateway || 'vtstack';
 
             if (gateway === 'payrant') {
-                return app?.payment_settings?.payrant_api_key;
+                return (app as any)?.payment_settings?.payrant_api_key;
             }
             // Prefer secret key, fallback to api key - supports both VTStack and VTPay keys
-            return app?.payment_settings?.vtstack_secret_key
-                || app?.payment_settings?.vtpay_secret_key
-                || app?.payment_settings?.vtpay_api_key;
+            return (app as any)?.payment_settings?.vtstack_secret_key
+                || (app as any)?.payment_settings?.vtpay_secret_key
+                || (app as any)?.payment_settings?.vtpay_api_key;
         } catch (e) {
             return undefined;
         }

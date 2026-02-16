@@ -4,8 +4,8 @@
  */
 
 export const BRAND_COLORS = {
-  primary: "#8e03a0ff",
-  secondary: "#0e00d1ff",
+  primary: "#e0b105ff",
+  secondary: "#F4C20D",
   accent: "#9333EA",
   success: "#00D166",
   error: "#FF3B30",
@@ -23,7 +23,7 @@ export const Colors = {
 
     text: '#1A1A1A',
     textSecondary: '#757575',
-    background: '#FFFFFF',
+    background: '#ffffff',
     surface: '#F2F2F2',
     border: '#E5E5E5',
     tint: BRAND_COLORS.primary,

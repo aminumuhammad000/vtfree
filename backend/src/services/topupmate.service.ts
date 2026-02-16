@@ -159,6 +159,7 @@ class TopupmateService {
     ref: string;
     plan: string;
     ported_number: boolean;
+    amount?: string | number;
   }, configOverride?: any): Promise<TopupmateResponse> {
     try {
       const api = await this.ensureClient(configOverride);

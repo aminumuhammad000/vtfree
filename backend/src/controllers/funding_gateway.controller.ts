@@ -31,7 +31,7 @@ export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ success: false, message: 'App not found' });
         }
 
-        let gateway = app.payment_settings?.default_gateway || 'vtstack';
+        let gateway = (app as any).payment_settings?.default_gateway || 'vtstack';
         // Treat vtpay as vtstack
         if (gateway === 'vtpay') gateway = 'vtstack';
 
@@ -111,9 +111,9 @@ export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
 
             // Use VTStack Service
             // Fallback to vtpay keys for compatibility if vtstack keys are missing
-            const apiKey = app.payment_settings?.vtstack_secret_key
-                || app.payment_settings?.vtpay_secret_key
-                || app.payment_settings?.vtpay_api_key;
+            const apiKey = (app as any).payment_settings?.vtstack_secret_key
+                || (app as any).payment_settings?.vtpay_secret_key
+                || (app as any).payment_settings?.vtpay_api_key;
 
             result = await VTStackService.createVirtualAccount(payload, apiKey);
         }
@@ -222,9 +222,9 @@ export const getAccountBalance = async (req: AuthRequest, res: Response) => {
             return res.status(200).json({ success: true, balance: 0, currency: 'NGN' });
         } else {
             // Use VTStack Service
-            const apiKey = app?.payment_settings?.vtstack_secret_key
-                || app?.payment_settings?.vtpay_secret_key
-                || app?.payment_settings?.vtpay_api_key;
+            const apiKey = (app as any)?.payment_settings?.vtstack_secret_key
+                || (app as any)?.payment_settings?.vtpay_secret_key
+                || (app as any)?.payment_settings?.vtpay_api_key;
 
             result = await VTStackService.getAccountBalance(accountNumber, apiKey);
         }

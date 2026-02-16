@@ -60,6 +60,7 @@ export const testProviderPurchase = (code: string, data: { type: 'airtime' | 'da
   api.post(`/providers/test-purchase/${code}`, data);
 export const getProviderData = (code: string, type: 'balance' | 'networks' | 'plans') =>
   api.get(`/providers/data/${code}`, { params: { type } });
+export const syncProvider = (code: string, profitConfig?: any) => api.post(`/providers/sync/${code}`, { profitConfig });
 
 // Funding & Provider Balances
 export const getProviderBalances = () => api.get('/providers/balances');

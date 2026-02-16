@@ -44,17 +44,17 @@ export default function AboutScreen() {
     {
       title: 'Terms of Service',
       icon: 'document-text',
-      url: 'https://ibdata.com.ng/terms'
+      url: 'https://example.com/terms'
     },
     {
       title: 'Privacy Policy',
       icon: 'shield-checkmark',
-      url: 'https://ibdata.com.ng/privacy'
+      url: 'https://example.com/privacy'
     },
     {
       title: 'License Agreement',
       icon: 'document',
-      url: 'https://ibdata.com.ng/license'
+      url: 'https://example.com/license'
     }
   ];
 

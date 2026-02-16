@@ -128,13 +128,13 @@ const PricingEditModal: React.FC<PricingEditModalProps> = ({ plan, onClose, onSa
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Source Provider (e.g. ibdata)</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Source Provider (e.g. vtplug)</label>
             <input
               type="text"
               name="source_provider"
               value={formData.source_provider}
               onChange={handleChange}
-              placeholder="Source API code (e.g. ibdata, smeplug)"
+              placeholder="Source API code (e.g. vtplug, smeplug)"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>

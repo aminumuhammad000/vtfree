@@ -129,7 +129,7 @@ const FundingPanel: React.FC = () => {
                                 <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
                                 <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
                             </svg>
-                            <p className="text-sm font-semibold uppercase tracking-wide text-purple-100">{defaultGateway} Balance</p>
+                            <p className="text-sm font-semibold uppercase tracking-wide text-purple-100">VTStack Balance</p>
                         </div>
                         <p className="text-4xl font-extrabold mb-1">₦{Number(gatewayBalanceRes?.balance || 0).toLocaleString()}</p>
                         <p className="text-xs text-purple-200 uppercase tracking-wide">Available Funds</p>

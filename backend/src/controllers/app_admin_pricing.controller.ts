@@ -14,36 +14,13 @@ export class AppAdminPricingController {
             const { providerId, type, active } = req.query;
 
             // Fetch all potentially relevant plans (both app-specific and global)
-            const query: any = {
-                $or: [
-                    { app_id: app_id },
-                    { app_id: null },
-                    { app_id: { $exists: false } }
-                ]
-            };
+            const query: any = { app_id };
 
             if (providerId) query.providerId = parseInt(providerId as string);
             if (type) query.type = type;
             if (active !== undefined) query.active = active === 'true';
 
-            const allPlans = await AirtimePlan.find(query).sort({ providerId: 1, type: 1, price: 1 });
-
-            // De-duplicate plans: prioritize plans with app_id over global ones
-            const planMap = new Map();
-            for (const plan of allPlans) {
-                // Create a unique key for the plan based on its identifying characteristics
-                const key = `${plan.providerId}-${plan.type}-${plan.externalPlanId || plan.code || plan.name}`;
-
-                if (plan.app_id) {
-                    // App-specific plan always wins
-                    planMap.set(key, plan);
-                } else if (!planMap.has(key)) {
-                    // Global plan only wins if no app-specific plan exists for this key
-                    planMap.set(key, plan);
-                }
-            }
-
-            const plans = Array.from(planMap.values());
+            const plans = await AirtimePlan.find(query).sort({ providerId: 1, type: 1, price: 1 });
 
             ApiResponse.success(res, 'Plans retrieved successfully', { plans, total: plans.length });
         } catch (error) {

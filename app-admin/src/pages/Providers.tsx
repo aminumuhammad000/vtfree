@@ -275,7 +275,10 @@ const Providers: React.FC = () => {
 
   const [, setErrors] = useState<Record<string, string>>({});
 
-  const canSubmit = useMemo(() => form.name && form.code, [form]);
+  const canSubmit = useMemo(() => {
+    if (editItem) return !!(editItem.name && editItem.code);
+    return !!(form.name && form.code);
+  }, [form, editItem]);
 
   const resetForm = () => {
     setForm({ name: '', code: '', base_url: '', api_key: '', secret_key: '', username: '', password: '', active: true, priority: 1, supported_services: [] });
@@ -536,7 +539,7 @@ const Providers: React.FC = () => {
                           onChange={(e) => {
                             const code = e.target.value;
                             const nameMap: Record<string, string> = {
-                              ibdata: 'IBDATA',
+                              ibdata: 'VTPLUG',
                               smeplug: 'SME PLUG',
                               topupmate: 'TOPUPMATE'
                             };
@@ -546,7 +549,7 @@ const Providers: React.FC = () => {
                           className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none font-bold text-slate-700"
                         >
                           <option value="">Select Code</option>
-                          <option value="ibdata">IBData</option>
+                          <option value="ibdata">VTPLUG</option>
                           <option value="smeplug">SME Plug</option>
                           <option value="topupmate">Topupmate</option>
                         </select>

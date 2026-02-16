@@ -24,7 +24,7 @@ export class AppAdminProviderController {
                 // Auto-create IBData provider if it doesn't exist
                 ibdataProvider = await ProviderConfig.create({
                     app_id,
-                    name: 'IBData (Default)',
+                    name: 'VTPLUG (Default)',
                     code: 'ibdata',
                     active: true,
                     priority: 0,
@@ -361,9 +361,10 @@ export class AppAdminProviderController {
         try {
             const app_id = req.user?.app_id;
             const { code } = req.params;
+            const { profitConfig } = req.body;
 
             if (code.toLowerCase() !== 'ibdata') {
-                return ApiResponse.error(res, 'Sync only supported for IBData currently', 400);
+                return ApiResponse.error(res, 'Sync only supported for VTPLUG currently', 400);
             }
 
             const AirtimePlan = (await import('../models/airtime_plan.model.js')).default;
@@ -382,34 +383,57 @@ export class AppAdminProviderController {
             let syncedCount = 0;
 
             for (const globalPlan of globalPlans) {
+                // Calculate Price with Profit
+                let sellingPrice = globalPlan.price;
+                if (profitConfig) {
+                    const { profitType, globalProfit, customProfits } = profitConfig;
+                    // Use externalPlanId (or _id) to match custom profits
+                    // The frontend sends customProfits keyed by plan ID. 
+                    // Global plans from `getProviderData` in frontend use externalPlanId as ID.
+                    const planId = globalPlan.externalPlanId || globalPlan._id.toString();
+                    
+                    const planProfit = (customProfits && customProfits[planId] !== undefined)
+                        ? Number(customProfits[planId])
+                        : Number(globalProfit || 0);
+
+                    if (profitType === 'percent') {
+                        sellingPrice = globalPlan.price + (globalPlan.price * (planProfit / 100));
+                    } else {
+                        sellingPrice = globalPlan.price + planProfit;
+                    }
+                    sellingPrice = Math.ceil(sellingPrice);
+                }
+
                 // Check if plan already exists for this app
                 // We match by unique identifier. externalPlanId is the best bet, or code.
                 const matchQuery: any = {
                     app_id,
-                    providerId: globalPlan.providerId
+                    providerId: globalPlan.providerId,
+                    code: globalPlan.code
                 };
-
-                if (globalPlan.externalPlanId) {
-                    matchQuery.externalPlanId = globalPlan.externalPlanId;
-                } else {
-                    // Fallback to code if externalPlanId is missing (unlikely for proper plans)
-                    matchQuery.code = globalPlan.code;
-                }
 
                 const existingPlan = await AirtimePlan.findOne(matchQuery);
 
                 if (existingPlan) {
-                    // OPTIONAL: Update details but PRESERVE PRICE if user changed it?
-                    // The user request says "make it saved".
-                    // If we overwrite, we lose custom pricing.
-                    // Usually "Sync" implies "Update descriptions/meta", but maybe not price.
-                    // For now, let's skip if exists, or maybe update only non-critical fields?
-                    // Let's safe-guard: only create if not exists.
-                    // Or maybe update "cost price" in meta if we track that.
-                    // But for this task "save in database", creation is the key.
+                    // Overwrite existing plan with global details
+                    existingPlan.providerId = globalPlan.providerId;
+                    existingPlan.externalPlanId = globalPlan.externalPlanId;
+                    existingPlan.code = globalPlan.code;
+                    existingPlan.providerName = globalPlan.providerName;
+                    existingPlan.name = globalPlan.name;
+                    existingPlan.price = sellingPrice;
+                    existingPlan.type = globalPlan.type;
+                    existingPlan.discount = globalPlan.discount || 0;
+                    existingPlan.source_provider = 'ibdata'; // Ensure source checks out
+                    existingPlan.active = true; // Re-activate if it was inactive
+                    existingPlan.meta = {
+                        ...(globalPlan.meta || {}),
+                        original_global_id: globalPlan._id,
+                        cost_price: globalPlan.price
+                    };
 
-                    // If we strictly follow "Sync", we might want to ensure the plan exists.
-                    // Let's just continue.
+                    await existingPlan.save();
+                    syncedCount++;
                     continue;
                 }
 
@@ -421,9 +445,8 @@ export class AppAdminProviderController {
                     externalPlanId: globalPlan.externalPlanId,
                     code: globalPlan.code,
                     name: globalPlan.name,
-                    // Use the global price as the base/cost price.
-                    // The App Admin will sell at this price or higher.
-                    price: globalPlan.price,
+                    // Use the calculated selling price
+                    price: sellingPrice,
                     type: globalPlan.type,
                     discount: 0,
                     source_provider: 'ibdata',

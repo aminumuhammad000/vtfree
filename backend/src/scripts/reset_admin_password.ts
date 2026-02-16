@@ -26,7 +26,7 @@ const resetAdminPassword = async () => {
             is_active: Boolean,
         }, { collection: 'app_admins' });
 
-        const AppAdmin = mongoose.models.AppAdmin || mongoose.model('AppAdmin', appAdminSchema);
+        const AppAdmin: any = mongoose.models.AppAdmin || mongoose.model('AppAdmin', appAdminSchema);
 
         // Prompt for email and app_id
         console.log('\n🔍 Enter admin details to reset password:');

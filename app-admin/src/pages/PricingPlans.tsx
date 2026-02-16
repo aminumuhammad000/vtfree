@@ -15,7 +15,7 @@ import {
   FiSettings,
   FiArrowRight
 } from 'react-icons/fi';
-import { bulkImportPricingPlans, createProvider, deletePricingPlan, deleteAllPricingPlans, getPricingPlans, getProviders, updatePricingPlan, getProviderData, createPricingPlan } from '../api/adminApi';
+import { bulkImportPricingPlans, createProvider, deletePricingPlan, deleteAllPricingPlans, getPricingPlans, getProviders, updatePricingPlan, getProviderData, createPricingPlan, syncProvider } from '../api/adminApi';
 import Layout from '../components/Layout';
 import PricingBulkImportModal from '../components/PricingBulkImportModal';
 import PricingDeleteModal from '../components/PricingDeleteModal';
@@ -58,17 +58,22 @@ const PricingPlans: React.FC = () => {
   const activeProviders = useMemo(() => {
     const providers = providersData || [];
     const defaultProviders = [
-      { code: 'ibdata', name: 'IBData' },
+      { code: 'ibdata', name: 'VTPLUG' },
       { code: 'smeplug', name: 'SMEPlug' },
       { code: 'topupmate', name: 'TopupMate' }
     ];
 
+    const normalizedProviders = providers.map((p: any) => ({
+      ...p,
+      name: p.code.toLowerCase() === 'ibdata' ? 'VTPLUG' : p.name
+    }));
+
     // Filter out if they already exist in fetched providers to avoid duplicates
     const uniqueDefaults = defaultProviders.filter(d =>
-      !providers.some((p: any) => p.code.toLowerCase() === d.code.toLowerCase())
+      !normalizedProviders.some((p: any) => p.code.toLowerCase() === d.code.toLowerCase())
     );
 
-    return [...uniqueDefaults, ...providers];
+    return [...uniqueDefaults, ...normalizedProviders];
   }, [providersData]);
 
   const params = {
@@ -194,7 +199,7 @@ const PricingPlans: React.FC = () => {
                 onClick={() => setActiveTab(p.code)}
                 className={`px-6 py-4 text-sm font-bold transition-all border-b-2 whitespace-nowrap uppercase flex items-center gap-2 ${activeTab === p.code ? 'border-green-600 text-green-600 bg-green-50/50' : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}
               >
-                {p.name} Direct
+                {p.name}
               </button>
             ))}
           </div>
@@ -352,7 +357,7 @@ const PricingPlans: React.FC = () => {
                               </td>
                               <td className="px-4 sm:px-6 py-4 hidden sm:table-cell">
                                 <div className="flex flex-col">
-                                  <span className="text-[10px] font-bold text-white uppercase bg-blue-600 px-1.5 py-0.5 rounded w-fit mb-1">{plan.source_provider || 'global'}</span>
+                                  <span className="text-[10px] font-bold text-white uppercase bg-blue-600 px-1.5 py-0.5 rounded w-fit mb-1">{(plan.source_provider === 'ibdata' ? 'VTPLUG' : plan.source_provider) || 'global'}</span>
                                   <span className="text-xs font-bold text-slate-600 uppercase bg-slate-100 px-2 py-1 rounded w-fit">{plan.providerName}</span>
                                 </div>
                               </td>
@@ -575,6 +580,18 @@ const DirectPlansView: React.FC<DirectPlansViewProps> = ({ providerCode }) => {
     }
   });
 
+  const syncMutation = useMutation({
+    mutationFn: ({ code, profitConfig }: { code: string; profitConfig: any }) => syncProvider(code, profitConfig).then((res: any) => res.data),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['pricing-plans'] });
+      fetchAppPlans(); // Refresh local list
+      toast.success(data.message || 'Plans synced successfully!');
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || err.message || 'Failed to sync plans');
+    }
+  });
+
   const getPlanProfit = (planId: string) => {
     return customProfits[planId] !== undefined ? customProfits[planId] : globalProfit;
   };
@@ -617,6 +634,15 @@ const DirectPlansView: React.FC<DirectPlansViewProps> = ({ providerCode }) => {
   };
 
   const handleBulkSync = () => {
+    if (providerCode.toLowerCase() === 'ibdata') {
+      const profitConfig = {
+        profitType,
+        globalProfit,
+        customProfits
+      };
+      syncMutation.mutate({ code: providerCode, profitConfig });
+      return;
+    }
     const formattedPlans = filteredPlans.map(formatPlanForSync);
     importMutation.mutate(formattedPlans);
   };
@@ -629,7 +655,7 @@ const DirectPlansView: React.FC<DirectPlansViewProps> = ({ providerCode }) => {
     setIsActivating(true);
     try {
       await createProvider({
-        name: providerCode === 'smeplug' ? 'SMEPlug' : providerCode === 'topupmate' ? 'TopupMate' : providerCode.toUpperCase(),
+        name: providerCode === 'smeplug' ? 'SMEPlug' : providerCode === 'topupmate' ? 'TopupMate' : providerCode === 'ibdata' ? 'VTPLUG' : providerCode.toUpperCase(),
         code: providerCode,
         active: true,
         api_key: apiKey,
@@ -654,7 +680,7 @@ const DirectPlansView: React.FC<DirectPlansViewProps> = ({ providerCode }) => {
   if (loading) return (
     <div className="p-12 text-center bg-white rounded-2xl border border-slate-200">
       <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-green-500 border-t-transparent mb-4"></div>
-      <p className="text-slate-500 font-bold">Fetching live plans from {providerCode.toUpperCase()}...</p>
+      <p className="text-slate-500 font-bold">Fetching live plans from {providerCode === 'ibdata' ? 'VTPLUG' : providerCode.toUpperCase()}...</p>
     </div>
   );
 
@@ -663,7 +689,7 @@ const DirectPlansView: React.FC<DirectPlansViewProps> = ({ providerCode }) => {
       <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
         <FiPlus className="w-10 h-10 text-blue-600" />
       </div>
-      <h2 className="text-2xl font-bold text-slate-900 mb-2">Activate {providerCode === 'smeplug' ? 'SMEPlug' : providerCode === 'topupmate' ? 'TopupMate' : providerCode.toUpperCase()}</h2>
+      <h2 className="text-2xl font-bold text-slate-900 mb-2">Activate {providerCode === 'smeplug' ? 'SMEPlug' : providerCode === 'topupmate' ? 'TopupMate' : providerCode === 'ibdata' ? 'VTPLUG' : providerCode.toUpperCase()}</h2>
       <p className="text-slate-500 mb-8 max-w-md mx-auto">
         This provider is not yet active on your account. Activate it now to start syncing plans and processing transactions.
       </p>
@@ -675,7 +701,7 @@ const DirectPlansView: React.FC<DirectPlansViewProps> = ({ providerCode }) => {
             type="text"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder={`Enter your ${providerCode} API Key`}
+            placeholder={`Enter your ${providerCode === 'ibdata' ? 'VTPLUG' : providerCode} API Key`}
             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-sm"
           />
           <p className="text-[10px] text-slate-400 mt-1">You can add this later in settings if you skip it now.</p>
@@ -687,7 +713,7 @@ const DirectPlansView: React.FC<DirectPlansViewProps> = ({ providerCode }) => {
           className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg disabled:opacity-70 flex items-center justify-center gap-2"
         >
           {isActivating ? <FiRefreshCw className="animate-spin" /> : <FiCheckCircle />}
-          <span>Activate {providerCode === 'smeplug' ? 'SMEPlug' : 'Provider'} Now</span>
+          <span>Activate {providerCode === 'smeplug' ? 'SMEPlug' : providerCode === 'ibdata' ? 'VTPLUG' : 'Provider'} Now</span>
         </button>
       </div>
     </div>
@@ -735,11 +761,20 @@ const DirectPlansView: React.FC<DirectPlansViewProps> = ({ providerCode }) => {
           </div>
           <button
             onClick={handleBulkSync}
-            disabled={importMutation.status === 'pending' || filteredPlans.length === 0}
-            className="bg-green-600 hover:bg-green-700 text-white px-8 py-3.5 rounded-xl font-bold transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+            disabled={importMutation.status === 'pending' || syncMutation.status === 'pending' || filteredPlans.length === 0}
+            className={`px-8 py-3.5 rounded-xl font-bold transition-all shadow-md hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2 ${appPlans.length > 0 && providerCode.toLowerCase() === 'ibdata'
+              ? 'bg-amber-600 hover:bg-amber-700 text-white'
+              : 'bg-green-600 hover:bg-green-700 text-white'
+              }`}
           >
-            {importMutation.status === 'pending' ? <FiRefreshCw className="animate-spin" /> : <FiCheckCircle />}
-            <span>{importMutation.status === 'pending' ? 'Syncing...' : `Sync ${filteredPlans.length} Plans`}</span>
+            {(importMutation.status === 'pending' || syncMutation.status === 'pending') ? <FiRefreshCw className="animate-spin" /> : <FiCheckCircle />}
+            <span>
+              {(importMutation.status === 'pending' || syncMutation.status === 'pending')
+                ? 'Syncing...'
+                : (providerCode.toLowerCase() === 'ibdata'
+                  ? (appPlans.length > 0 ? 'Update & Overwrite Plans' : 'Full Sync (System)')
+                  : `Sync ${filteredPlans.length} Plans`)}
+            </span>
           </button>
         </div>
 

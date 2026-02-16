@@ -245,7 +245,7 @@ export default function WalletScreen() {
                                     style={[styles.fundBtn, { backgroundColor: brandColor }]}
                                     onPress={() => handleActionPress('/add-money')}
                                 >
-                                    <Text style={styles.fundBtnText}>Fund Wallet</Text>
+                                    <Text style={styles.fundBtnText}>Fund</Text>
                                     <Ionicons name="arrow-forward" size={18} color="#FFF" />
                                 </TouchableOpacity>
                             </View>

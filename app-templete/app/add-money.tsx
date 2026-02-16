@@ -42,7 +42,7 @@ const BANKS = [
   {
     id: 'palmpay',
     name: 'PalmPay',
-    logo: 'https://palmpay.com/wp-content/uploads/2021/04/PalmPay-Logo-1.png',
+    logo: '', // Logo handled by icon
     color: '#6f33cf',
     icon: 'wallet',
     description: 'Instant funding via PalmPay virtual account. Fast and reliable.'

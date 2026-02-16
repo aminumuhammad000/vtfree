@@ -84,7 +84,23 @@ export const updateAppConfig = async (req: Request, res: Response) => {
             // Payment
             case 'DEFAULT_PAYMENT_GATEWAY': app.payment_settings.default_gateway = value; break;
             case 'VTPAY_API_KEY': app.payment_settings.vtpay_api_key = value; break;
-            case 'VTPAY_SECRET_KEY': app.payment_settings.vtpay_secret_key = value; break;
+            case 'VTPAY_SECRET_KEY':
+            case 'VTSTACK_SECRET_KEY': // Alias
+                // Validate API Key
+                if (value && value.length > 5) {
+                    try {
+                        const { VTStackService } = await import('../../services/vtstack.service.js');
+                        // Use getBalance to verify the key works
+                        await VTStackService.getBalance(value);
+                    } catch (err: any) {
+                        return res.status(400).json({
+                            success: false,
+                            message: `Invalid API Key: Connection failed. ${err.message}`
+                        });
+                    }
+                }
+                app.payment_settings.vtpay_secret_key = value;
+                break;
             case 'VTPAY_PUBLIC_KEY': app.payment_settings.vtpay_public_key = value; break;
             case 'PAYSTACK_SECRET_KEY': app.payment_settings.paystack_secret_key = value; break;
             case 'PAYSTACK_PUBLIC_KEY': app.payment_settings.paystack_public_key = value; break;

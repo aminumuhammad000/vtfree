@@ -23,8 +23,8 @@ export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
         let appSpecificApiKey: string | undefined;
         if (user.app_id) {
             const app = await CreatedApp.findOne({ app_id: user.app_id });
-            if (app?.payment_settings?.vtstack_secret_key || app?.payment_settings?.vtpay_secret_key) {
-                appSpecificApiKey = app.payment_settings?.vtstack_secret_key || app.payment_settings?.vtpay_secret_key;
+            if ((app as any)?.payment_settings?.vtstack_secret_key || (app as any)?.payment_settings?.vtpay_secret_key) {
+                appSpecificApiKey = (app as any).payment_settings?.vtstack_secret_key || (app as any).payment_settings?.vtpay_secret_key;
             }
         }
         // ----------------------------------

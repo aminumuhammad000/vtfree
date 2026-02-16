@@ -40,49 +40,50 @@ export class BillPaymentController {
         providerId = normalized;
       }
 
-      // Fetch from the same model the admin manages
+      // Only fetch plans belonging to this app
       const filter: any = {
+        app_id,
         type: 'DATA',
-        active: true,
-        $or: [
-          { app_id: app_id },
-          { app_id: null },
-          { app_id: { $exists: false } }
-        ]
+        active: true
       };
       if (providerId) filter.providerId = providerId;
 
-      // If app_id plans exist, prioritize them. 
-      // Actually, we should probably sort so app-specific plans come first or are the only ones.
-      // Usually, if an admin has setup plans, we only show those.
-      const appPlans = await AirtimePlan.find({ app_id, type: 'DATA', active: true });
+      const dbPlans = await AirtimePlan.find(filter).sort({ providerId: 1, price: 1, name: 1 });
 
-      let dbPlans;
-      if (appPlans.length > 0) {
-        // If app-specific plans exist, filter them by network if requested
-        if (providerId) {
-          dbPlans = appPlans.filter(p => p.providerId === providerId);
-        } else {
-          dbPlans = appPlans;
-        }
-        // sort
-        dbPlans.sort((a, b) => (a.price || 0) - (b.price || 0));
-      } else {
-        // Fallback to global plans
-        dbPlans = await AirtimePlan.find(filter).sort({ providerId: 1, price: 1, name: 1 });
-      }
+      const payload = dbPlans.map((p: any) => {
+        let name = p.name || '';
+        // Clean common technical labels from customer-facing plan names
+        const cleanName = name
+          .replace(/\(SME\)/gi, '')
+          .replace(/\bSME\b/gi, '') // Word boundary to avoid matching substrings
+          .replace(/\(CG\)/gi, '')
+          .replace(/\bCG\b/gi, '')
+          .replace(/\(Gifting\)/gi, '')
+          .replace(/\bGifting\b/gi, '')
+          .replace(/\(Corporate\)/gi, '')
+          .replace(/\bCorporate\b/gi, '')
+          .replace(/\(Direct\)/gi, '')
+          .replace(/\bDirect\b/gi, '')
+          .replace(/\b\d+\s*days?\b/gi, '') // Remove "30 days", "1 day"
+          .replace(/\bweekly\b/gi, '')
+          .replace(/\bmonthly\b/gi, '')
+          .replace(/\bdaily\b/gi, '')
+          .replace(/\bvalid for \d+ days?\b/gi, '')
+          .replace(/\s+/g, ' ')
+          .replace(/\s-\s*$/, '') // Remove trailing " - "
+          .trim();
 
-      // Map to frontend expected shape
-      const payload = dbPlans.map((p: any) => ({
-        plan_id: String(p._id),
-        network: String(p.providerId),
-        plan_name: p.name,
-        plan_type: 'DATA',
-        validity: p.meta?.validity || '',
-        price: Number(p.price),
-        data_value: p.meta?.data_value || p.code || '',
-        providerName: p.providerName,
-      }));
+        return {
+          plan_id: String(p._id),
+          network: String(p.providerId),
+          plan_name: cleanName || name, // Fallback to original if cleaning empties it
+          plan_type: 'DATA',
+          validity: p.meta?.validity || '',
+          price: Number(p.price),
+          data_value: p.meta?.data_value || p.code || '',
+          providerName: p.providerName,
+        };
+      });
 
       return ApiResponse.success(res, 'Data plans retrieved successfully', payload);
     } catch (error) {
@@ -302,7 +303,7 @@ export class BillPaymentController {
       // Get plan details from DB
       let dbPlan;
       const mongoose = await import('mongoose').then(m => m.default || m);
-      if (mongoose.Types.ObjectId.isValid(plan)) {
+      if (plan && typeof plan === 'string' && /^[0-9a-fA-F]{24}$/.test(plan)) {
         dbPlan = await AirtimePlan.findById(plan);
       }
 
@@ -313,7 +314,7 @@ export class BillPaymentController {
             { externalPlanId: plan },
             { code: plan }
           ],
-          app_id: req.user?.app_id || { $exists: false }
+          app_id: req.user?.app_id
         });
       }
       if (!dbPlan) {
@@ -360,14 +361,16 @@ export class BillPaymentController {
             network: String(providerId),
             phone: String(phone),
             ref,
-            plan: String(dbPlan.externalPlanId || dbPlan.code), // Use external ID from DB
+            plan: String(dbPlan.externalPlanId || dbPlan.code),
+            amount: Number(dbPlan.price), // Essential for VTPLUG
             ported_number,
           })
           : topupmateService.purchaseData({
             network: String(providerId),
             phone: String(phone),
             ref,
-            plan: String(dbPlan.externalPlanId || dbPlan.code), // Use external ID from DB
+            plan: String(dbPlan.externalPlanId || dbPlan.code),
+            amount: Number(dbPlan.price),
             ported_number,
           }));
 

@@ -458,7 +458,7 @@ export class AppAdminFundingController {
             const providers = [
                 {
                     code: 'ibdata',
-                    name: 'IBData',
+                    name: 'VTPLUG',
                     balance: ibdataBalance,
                     currency: 'NGN',
                     status: 'ok'
@@ -477,18 +477,12 @@ export class AppAdminFundingController {
                     currency: 'NGN',
                     status: (topupmateRes as any).error ? 'error' : 'ok'
                 },
-                {
-                    code: 'vtstack',
-                    name: 'VTStack',
-                    balance: vtpayBalance,
-                    currency: 'NGN',
-                    status: (vtpayRes as any).error ? 'error' : 'ok'
-                }
+
             ];
 
             return ApiResponse.success(res, 'Provider balances retrieved', {
                 providers,
-                total: ibdataBalance + (Number(smeplugBalance) || 0) + (Number(topupmateBalance) || 0) + (Number(vtpayBalance) || 0),
+                total: ibdataBalance + (Number(smeplugBalance) || 0) + (Number(topupmateBalance) || 0),
                 vtpayBalance: vtpayBalance ?? 0
             });
         } catch (error: any) {

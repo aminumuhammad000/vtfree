@@ -368,160 +368,49 @@ export default function BuyDataScreen() {
         </SafeAreaView>
       )}
 
-      {/* PIN Modal - Native Keyboard with Visual Display */}
+      {/* PIN Modal */}
       <Modal visible={showPinModal} transparent animationType="slide">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={{ flex: 1 }}
-        >
-          <View style={styles.modalOverlay}>
-            <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowPinModal(false)} />
+        <Pressable style={styles.modalOverlay} onPress={() => setShowPinModal(false)}>
+          <Animated.View entering={SlideInDown} style={[styles.pinSheet, { backgroundColor: theme.surface }]}>
+            <Text style={[styles.pinTitle, { color: textColor }]}>Authorize Transaction</Text>
+            <Text style={[styles.pinSubtitle, { color: theme.textSecondary }]}>
+              Confirm purchase of {selectedPlan?.data} for {phoneNumber}
+            </Text>
 
-            <SafeAreaView style={{ backgroundColor: cardBg }}>
-              <Animated.View
-                entering={SlideInDown.springify()}
-                style={[styles.pinBottomSheet, { backgroundColor: cardBg }]}
+            <View style={[styles.pinBox, { backgroundColor: cardBg }]}>
+              <TextInput
+                style={[styles.pinInput, { color: textColor }]}
+                secureTextEntry
+                maxLength={4}
+                keyboardType="numeric"
+                value={pin}
+                onChangeText={setPin}
+                autoFocus={!isBiometricEnabled}
+              />
+            </View>
+
+            <View style={{ gap: 15 }}>
+              <TouchableOpacity
+                style={[styles.confirmBtn, { backgroundColor: brandColor }]}
+                onPress={() => handleBuyData()}
+                disabled={isLoading}
               >
-                {/* Handle Bar */}
-                <View style={styles.handleBar} />
+                {isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.btnText}>Pay Now</Text>}
+              </TouchableOpacity>
 
-                {/* Header */}
-                <View style={styles.pinSheetHeader}>
-                  <View>
-                    <Text style={[styles.pinSheetTitle, { color: textColor }]}>Enter Transaction PIN</Text>
-                    <Text style={[styles.pinSheetSubtitle, { color: theme.textSecondary }]}>
-                      Confirm your purchase
-                    </Text>
-                  </View>
-                  <TouchableOpacity onPress={() => setShowPinModal(false)}>
-                    <Ionicons name="close" size={24} color={textColor} />
-                  </TouchableOpacity>
-                </View>
-
-                <ScrollView
-                  showsVerticalScrollIndicator={false}
-                  keyboardShouldPersistTaps="handled"
-                  contentContainerStyle={{ paddingBottom: 20 }}
+              {isBiometricEnabled && (
+                <TouchableOpacity
+                  style={[styles.confirmBtn, { backgroundColor: cardBg, marginTop: 0 }]}
+                  onPress={triggerBiometricAuth}
+                  disabled={isLoading}
                 >
-                  {/* Transaction Card */}
-                  <View style={[styles.transactionCard, { backgroundColor: theme.surface }]}>
-                    <View style={styles.transactionRow}>
-                      <Text style={[styles.transactionLabel, { color: theme.textSecondary }]}>Plan</Text>
-                      <Text style={[styles.transactionValue, { color: textColor }]}>{selectedPlan?.data}</Text>
-                    </View>
-                    <View style={styles.transactionRow}>
-                      <Text style={[styles.transactionLabel, { color: theme.textSecondary }]}>Amount</Text>
-                      <Text style={[styles.transactionValue, { color: brandColor, fontWeight: '800' }]}>
-                        ₦{selectedPlan?.price.toLocaleString()}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* PIN Input Section */}
-                  <View style={styles.pinInputSection}>
-                    <Text style={[styles.pinInputLabel, { color: theme.textSecondary }]}>
-                      Enter 4-digit PIN
-                    </Text>
-
-                    {/* Visual PIN Dots - Tappable to focus */}
-                    <Pressable
-                      onPress={() => {
-                        // Focus the hidden input to show keyboard
-                        const input = document.getElementById?.('pin-input') as any;
-                        input?.focus?.();
-                      }}
-                      style={styles.pinDotsDisplay}
-                    >
-                      {[0, 1, 2, 3].map((index) => (
-                        <Animated.View
-                          key={index}
-                          entering={FadeInDown.delay(index * 50)}
-                          style={[
-                            styles.pinDotLarge,
-                            {
-                              backgroundColor: pin.length > index ? brandColor : 'transparent',
-                              borderColor: pin.length > index ? brandColor : theme.border,
-                              transform: [{ scale: pin.length === index ? 1.1 : 1 }],
-                            }
-                          ]}
-                        >
-                          {pin.length > index && (
-                            <Animated.View entering={FadeInDown.springify()}>
-                              <Ionicons name="checkmark" size={16} color="#FFF" />
-                            </Animated.View>
-                          )}
-                        </Animated.View>
-                      ))}
-                    </Pressable>
-
-                    {/* Hidden TextInput - Triggers native keyboard */}
-                    <TextInput
-                      nativeID="pin-input"
-                      style={styles.hiddenPinInput}
-                      value={pin}
-                      onChangeText={(text) => {
-                        // Only allow numbers and max 4 digits
-                        const numericText = text.replace(/[^0-9]/g, '').slice(0, 4);
-                        setPin(numericText);
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      }}
-                      keyboardType="number-pad"
-                      maxLength={4}
-                      autoFocus={!isBiometricEnabled}
-                      secureTextEntry={false}
-                      caretHidden
-                    />
-
-                    <Text style={[styles.pinHint, { color: theme.textSecondary }]}>
-                      Tap the dots above to enter your PIN
-                    </Text>
-                  </View>
-
-                  {/* Biometric Option */}
-                  {isBiometricEnabled && (
-                    <TouchableOpacity
-                      style={[styles.biometricOption, { backgroundColor: theme.surface }]}
-                      onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                        triggerBiometricAuth();
-                      }}
-                    >
-                      <MaterialCommunityIcons name="fingerprint" size={28} color={brandColor} />
-                      <Text style={[styles.biometricText, { color: textColor }]}>Use Fingerprint</Text>
-                    </TouchableOpacity>
-                  )}
-
-                  {/* Submit Button */}
-                  <TouchableOpacity
-                    style={[
-                      styles.pinSubmitButton,
-                      {
-                        backgroundColor: pin.length === 4 ? brandColor : theme.border,
-                        opacity: pin.length === 4 ? 1 : 0.5,
-                      }
-                    ]}
-                    onPress={() => {
-                      if (pin.length === 4) {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                        handleBuyData();
-                      }
-                    }}
-                    disabled={pin.length < 4 || isLoading}
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator color="#FFF" />
-                    ) : (
-                      <>
-                        <Text style={styles.pinSubmitText}>Continue</Text>
-                        <Ionicons name="arrow-forward" size={20} color="#FFF" />
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </ScrollView>
-              </Animated.View>
-            </SafeAreaView>
-          </View>
-        </KeyboardAvoidingView>
+                  <MaterialCommunityIcons name="fingerprint" size={24} color={brandColor} />
+                  <Text style={[styles.btnText, { color: textColor, marginLeft: 10 }]}>Pay with Biometrics</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </Animated.View>
+        </Pressable>
       </Modal>
 
       {/* Contacts Modal */}
@@ -825,4 +714,12 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     gap: 8,
   },
+
+  // PIN Modal Styles (Matched to Airtime)
+  pinSheet: { borderTopLeftRadius: 35, borderTopRightRadius: 35, padding: 30, paddingBottom: 50 },
+  pinTitle: { fontSize: 22, fontWeight: '800' },
+  pinSubtitle: { marginTop: 10, marginBottom: 30, fontSize: 14 },
+  pinBox: { height: 75, borderRadius: 20, justifyContent: 'center', paddingHorizontal: 20, marginBottom: 30 },
+  pinInput: { textAlign: 'center', fontSize: 32, letterSpacing: 20, fontWeight: '800' },
+  confirmBtn: { height: 60, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
 });

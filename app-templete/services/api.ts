@@ -20,7 +20,7 @@ import { Config } from '../constants/Config';
 
 // Log the API URL being used
 export const API_BASE_URL = Config.API_URL;
-// export const API_BASE_URL = 'https://api.ibdata.com.ng/api'; // Production
+// export const API_BASE_URL = 'https://api.example.com/api'; // Production
 
 
 // Log the API URL being used
