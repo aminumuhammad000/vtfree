@@ -71,6 +71,7 @@ router.put('/providers/:id', authenticateAppAdmin, AppAdminProviderController.up
 router.delete('/providers/:id', authenticateAppAdmin, AppAdminProviderController.remove);
 router.post('/providers/test/:code', authenticateAppAdmin, AppAdminProviderController.testConnection);
 router.post('/providers/test-purchase/:code', authenticateAppAdmin, AppAdminProviderController.testPurchase);
+router.post('/providers/sync/:code', authenticateAppAdmin, AppAdminProviderController.syncProviderData);
 router.get('/providers/data/:code', authenticateAppAdmin, AppAdminProviderController.getProviderData);
 router.get('/providers/:id/env', authenticateAppAdmin, AppAdminProviderController.getEnv);
 router.put('/providers/:id/env', authenticateAppAdmin, AppAdminProviderController.updateEnv);

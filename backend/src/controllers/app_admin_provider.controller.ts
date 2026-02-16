@@ -357,6 +357,94 @@ export class AppAdminProviderController {
             return ApiResponse.error(res, 'Failed to update provider env', 500);
         }
     }
+    static async syncProviderData(req: AuthRequest, res: Response) {
+        try {
+            const app_id = req.user?.app_id;
+            const { code } = req.params;
+
+            if (code.toLowerCase() !== 'ibdata') {
+                return ApiResponse.error(res, 'Sync only supported for IBData currently', 400);
+            }
+
+            const AirtimePlan = (await import('../models/airtime_plan.model.js')).default;
+
+            // Fetch global plans (defined by Super Admin)
+            // We want plans that are global (app_id is null)
+            const globalPlans = await AirtimePlan.find({
+                app_id: null,
+                active: true
+            });
+
+            if (globalPlans.length === 0) {
+                return ApiResponse.success(res, 'No global plans found to sync', { count: 0 });
+            }
+
+            let syncedCount = 0;
+
+            for (const globalPlan of globalPlans) {
+                // Check if plan already exists for this app
+                // We match by unique identifier. externalPlanId is the best bet, or code.
+                const matchQuery: any = {
+                    app_id,
+                    providerId: globalPlan.providerId
+                };
+
+                if (globalPlan.externalPlanId) {
+                    matchQuery.externalPlanId = globalPlan.externalPlanId;
+                } else {
+                    // Fallback to code if externalPlanId is missing (unlikely for proper plans)
+                    matchQuery.code = globalPlan.code;
+                }
+
+                const existingPlan = await AirtimePlan.findOne(matchQuery);
+
+                if (existingPlan) {
+                    // OPTIONAL: Update details but PRESERVE PRICE if user changed it?
+                    // The user request says "make it saved".
+                    // If we overwrite, we lose custom pricing.
+                    // Usually "Sync" implies "Update descriptions/meta", but maybe not price.
+                    // For now, let's skip if exists, or maybe update only non-critical fields?
+                    // Let's safe-guard: only create if not exists.
+                    // Or maybe update "cost price" in meta if we track that.
+                    // But for this task "save in database", creation is the key.
+
+                    // If we strictly follow "Sync", we might want to ensure the plan exists.
+                    // Let's just continue.
+                    continue;
+                }
+
+                // Create new plan for app
+                await AirtimePlan.create({
+                    app_id,
+                    providerId: globalPlan.providerId,
+                    providerName: globalPlan.providerName,
+                    externalPlanId: globalPlan.externalPlanId,
+                    code: globalPlan.code,
+                    name: globalPlan.name,
+                    // Use the global price as the base/cost price.
+                    // The App Admin will sell at this price or higher.
+                    price: globalPlan.price,
+                    type: globalPlan.type,
+                    discount: 0,
+                    source_provider: 'ibdata',
+                    active: true,
+                    meta: {
+                        ...(globalPlan.meta || {}),
+                        original_global_id: globalPlan._id,
+                        cost_price: globalPlan.price // Track cost price for profit calc
+                    }
+                });
+                syncedCount++;
+            }
+
+            logger.info(`Synced ${syncedCount} IBData plans for app ${app_id}`);
+            return ApiResponse.success(res, 'Plans synced successfully', { count: syncedCount });
+
+        } catch (error) {
+            logger.error('Error syncing provider data:', error);
+            return ApiResponse.error(res, 'Failed to sync provider data', 500);
+        }
+    }
 }
 
 export default AppAdminProviderController;
