@@ -1,7 +1,7 @@
 const ENV = {
     DEV_API: 'http://localhost:5000',
     PROD_API: 'https://api.vtfree.com.ng',
-    IS_LOCAL: true, // Set to false to use the live API
+    IS_LOCAL: false, // Set to false to use the live API
 };
 
 export const Config = {

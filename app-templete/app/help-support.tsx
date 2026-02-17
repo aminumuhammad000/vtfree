@@ -306,7 +306,7 @@ export default function HelpSupportScreen() {
               <View style={styles.resourceTextContainer}>
                 <Text style={[styles.resourceTitle, { color: textColor }]}>Visit Website</Text>
                 <Text style={[styles.resourceDescription, { color: textBodyColor }]}>
-                  {supportContent?.websiteUrl || 'www.vtuapp.com'}
+                  {supportContent?.websiteUrl || 'www.dadsub.com'}
                 </Text>
               </View>
             </View>

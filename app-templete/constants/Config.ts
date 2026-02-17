@@ -1,6 +1,6 @@
 const ENV = {
-    DEV_API: 'http://192.168.43.204:5000', // Change this to your local IP for physical device testing
-    PROD_API: 'http://192.168.43.204:5000',
+    DEV_API: 'https://api.vtfree.com.ng', // Change this to your local IP for physical device testing
+    PROD_API: 'https://api.vtfree.com.ng',
     IS_LOCAL: false, // Quick toggle if .env is missing or for explicit control
 };
 

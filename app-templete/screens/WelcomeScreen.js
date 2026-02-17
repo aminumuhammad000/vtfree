@@ -83,7 +83,7 @@ const WelcomeScreen = () => {
             resizeMode="contain"
           />
           <Text style={[styles.brandName, { color: textColor }]}>
-            {branding?.app_display_name || 'VTFree'}
+            {branding?.app_display_name || 'DADSUB'}
           </Text>
         </Animated.View>
 

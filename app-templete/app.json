@@ -5,18 +5,18 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
-    "scheme": "vtuapp",
+    "scheme": "dadsub",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.aminuamee.vtuapp"
+      "bundleIdentifier": "com.dadsub.app"
     },
     "android": {
-      "package": "com.aminuamee.vtuapp",
+      "package": "com.dadsub.app",
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#e0b105",
         "foregroundImage": "./assets/images/logo.png",
         "monochromeImage": "./assets/images/logo.png"
       },
@@ -40,7 +40,9 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

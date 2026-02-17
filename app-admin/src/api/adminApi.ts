@@ -30,7 +30,7 @@ export const getAuditLogs = (params?: { page?: number; limit?: number }) =>
 export const deleteAuditLog = (id: string) => api.delete(`/audit-logs/${id}`);
 
 // Pricing Management
-export const getPricingPlans = (params?: { page?: number; limit?: number; providerId?: number; type?: string; active?: boolean }) =>
+export const getPricingPlans = (params?: { page?: number; limit?: number; providerId?: number; providerCode?: string; type?: string; active?: boolean }) =>
   api.get('/pricing', { params });
 export const getPricingPlanById = (id: string) => api.get(`/pricing/${id}`);
 export const getPlansByProvider = (providerId: number, type?: string) =>

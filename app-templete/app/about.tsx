@@ -35,9 +35,9 @@ export default function AboutScreen() {
   const textSecondaryColor = isDark ? theme.textSecondaryDark : theme.textSecondaryLight;
 
   const developerInfo = {
-    name: 'AmeeTech',
-    email: 'aminuamee@yahoo.com',
-    website: 'https://www.ameetech.org.ng',
+    name: 'DADSUB',
+    email: 'support@dadsub.com',
+    website: 'https://www.dadsub.com',
   };
 
   const legalLinks = [
@@ -62,25 +62,25 @@ export default function AboutScreen() {
     {
       title: 'Twitter',
       icon: 'logo-twitter',
-      url: 'https://twitter.com/vtuapp',
+      url: 'https://twitter.com/dadsub',
       color: '#1DA1F2'
     },
     {
       title: 'Facebook',
       icon: 'logo-facebook',
-      url: 'https://facebook.com/vtuapp',
+      url: 'https://facebook.com/dadsub',
       color: '#4267B2'
     },
     {
       title: 'Instagram',
       icon: 'logo-instagram',
-      url: 'https://instagram.com/vtuapp',
+      url: 'https://instagram.com/dadsub',
       color: '#E1306C'
     },
     {
       title: 'LinkedIn',
       icon: 'logo-linkedin',
-      url: 'https://linkedin.com/company/vtuapp',
+      url: 'https://linkedin.com/company/dadsub',
       color: '#0077B5'
     }
   ];
@@ -185,7 +185,7 @@ export default function AboutScreen() {
 
         <View style={styles.footer}>
           <Text style={[styles.versionText, { color: textSecondaryColor }]}>Version 1.0.0</Text>
-          <Text style={[styles.copyrightText, { color: textSecondaryColor }]}>© 2024 VTU App</Text>
+          <Text style={[styles.copyrightText, { color: textSecondaryColor }]}>© 2024 DADSUB</Text>
         </View>
 
       </ScrollView>

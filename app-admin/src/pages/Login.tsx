@@ -85,7 +85,7 @@ const Login: React.FC = () => {
   });
 
   const forgotPasswordMutation = useMutation({
-    mutationFn: async (data: { email: string; app_id: string }) => {
+    mutationFn: async (_data: { email: string; app_id: string }) => {
       // This would call your backend API to send password reset request to super admin
       // For now, we'll simulate it
       return new Promise((resolve) => {
