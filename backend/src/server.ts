@@ -23,6 +23,7 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
+console.log('--- STARTING SERVER ---');
 async function startServer() {
   try {
     console.log('Loading app module...');

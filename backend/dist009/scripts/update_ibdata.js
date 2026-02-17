@@ -11,7 +11,7 @@ const updateIBData = async () => {
     try {
         await connectDB();
         console.log('Connected to MongoDB');
-        const key = process.env.IBDATA_API_KEY;
+        const key = process.env.IBDATA_API_KEY || 'sk_live_dummy_placeholder';
         // Update both system default (app_id: null)
         const filter = { code: 'ibdata', app_id: null };
         const update = {
