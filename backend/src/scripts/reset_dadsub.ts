@@ -20,7 +20,12 @@ async function resetAndRegisterDadsub() {
         console.log('\n🗑️  Cleaning up old DADSUB data...');
 
         // Delete existing App, Admins, and Owner to ensure a fresh start
-        const deletedApp = await CreatedApp.deleteMany({ app_id });
+        const deletedApp = await CreatedApp.deleteMany({
+            $or: [
+                { app_id: app_id },
+                { package_name: package_name }
+            ]
+        });
         console.log(`❌ Deleted ${deletedApp.deletedCount} app records.`);
 
         const deletedAdmins = await AppAdmin.deleteMany({ app_id });
