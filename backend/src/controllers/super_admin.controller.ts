@@ -127,12 +127,37 @@ export const createApp = async (req: Request, res: Response) => {
         // Create the initial AppAdmin
         const newAdmin = new AppAdmin({
             app_id,
-            email: admin_email,
+            email: admin_email.trim().toLowerCase(),
             password: passwordHash,
             role: 'owner',
             status: 'active'
         });
         await newAdmin.save();
+
+        // Notify Admins of new app creation
+        try {
+            const adminNotifyEmail = 'vtfree2025@gmail.com';
+            const secondAdminNotifyEmail = 'aminumuhammad00015@gmail.com';
+            const subject = `[New App Created] ${app_name} by Super Admin`;
+            const html = `
+                <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                    <h2 style="color: #4F46E5;">New App Created (Super Admin)</h2>
+                    <p>A new app has been created via the Super Admin panel.</p>
+                    <div style="background-color: #F3F4F6; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                        <p><strong>App Name:</strong> ${app_name}</p>
+                        <p><strong>Package Name:</strong> ${package_name}</p>
+                        <p><strong>App ID:</strong> ${app_id}</p>
+                        <p><strong>Owner ID:</strong> ${owner_id}</p>
+                        <p><strong>Admin Email:</strong> ${admin_email}</p>
+                    </div>
+                    <p>Date: ${new Date().toLocaleString()}</p>
+                </div>
+            `;
+            EmailService.sendEmail(adminNotifyEmail, subject, html);
+            EmailService.sendEmail(secondAdminNotifyEmail, subject, html);
+        } catch (err) {
+            console.error('Failed to send app creation notification:', err);
+        }
 
         res.status(201).json({
             success: true,
@@ -554,7 +579,7 @@ export const getAllTransactions = async (req: Request, res: Response) => {
     try {
         const { limit = 50, offset = 0, source = 'local' } = req.query;
 
-        if (source === 'vtpay' || source === 'vtstack') {
+        if (source === 'vtstack' || source === 'vtstack') {
             // @ts-ignore
             const result = await VTStackService.getAllTransactions(Number(limit), Number(offset));
             const normalized = result.data.transactions.map((tx: any) => ({
@@ -565,7 +590,7 @@ export const getAllTransactions = async (req: Request, res: Response) => {
                 status: tx.status,
                 customer_phone: tx.userId?.phone || 'N/A',
                 customer_name: tx.userId ? `${tx.userId.firstName} ${tx.userId.lastName}` : 'N/A',
-                app_name: tx.userId?.businessName || 'VTPay Platform',
+                app_name: tx.userId?.businessName || 'VTStack Platform',
                 user_name: tx.userId?.email || 'N/A',
                 created_at: tx.createdAt,
                 commission: tx.feeNaira || (tx.fee / 100) || 0
@@ -606,11 +631,14 @@ export const getAllPayments = async (req: Request, res: Response) => {
 
 export const createAdmin = async (req: Request, res: Response) => {
     try {
-        const { app_id, email, password, first_name, last_name, role } = req.body;
+        const { app_id, password, first_name, last_name, role } = req.body;
+        let { email } = req.body;
 
         if (!app_id || !email || !password) {
             return res.status(400).json({ success: false, message: 'Missing required fields' });
         }
+
+        email = email.trim().toLowerCase();
 
         const existingAdmin = await AppAdmin.findOne({ email, app_id });
         if (existingAdmin) {
@@ -788,8 +816,8 @@ export const getSystemSettings = async (req: Request, res: Response) => {
 
         const settings = {
             general: {
-                companyName: await configService.get('COMPANY_NAME', 'VTPay Systems'),
-                supportEmail: await configService.get('SUPPORT_EMAIL', 'support@vtpay.com'),
+                companyName: await configService.get('COMPANY_NAME', 'VTStack Systems'),
+                supportEmail: await configService.get('SUPPORT_EMAIL', 'support@vtstack.com'),
                 timezone: await configService.get('TIMEZONE', 'Africa/Lagos'),
                 currency: await configService.get('CURRENCY', 'NGN'),
                 maintenanceMode: (await configService.get('MAINTENANCE_MODE', 'false')) === 'true',
@@ -1089,89 +1117,89 @@ export const getIBDataBalance = async (req: Request, res: Response) => {
 };
 
 // ============================================
-// VTPAY MANAGEMENT
+// VTSTACK MANAGEMENT
 // ============================================
 
-export const getVTPaySettings = async (req: Request, res: Response) => {
+export const getVTStackSettings = async (req: Request, res: Response) => {
     try {
-        const apiKey = await configService.get('VTPAY_API_KEY');
-        const baseURL = await configService.get('VTPAY_BASE_URL');
+        const apiKey = await configService.get('VTSTACK_API_KEY');
+        const baseURL = await configService.get('VTSTACK_BASE_URL');
 
         res.json({
             success: true,
             data: {
                 apiKey: apiKey || '',
-                baseURL: baseURL || 'https://api.vtpay.com/api'
+                baseURL: baseURL || 'https://api.vtstack.com.ng/api'
             }
         });
     } catch (error: any) {
-        logger.error('Error getting VTPay settings:', error);
+        logger.error('Error getting VTStack settings:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
-export const updateVTPaySettings = async (req: Request, res: Response) => {
+export const updateVTStackSettings = async (req: Request, res: Response) => {
     try {
         const { apiKey, baseURL } = req.body;
 
-        if (apiKey !== undefined) await configService.set('VTPAY_API_KEY', apiKey);
-        if (baseURL !== undefined) await configService.set('VTPAY_BASE_URL', baseURL);
+        if (apiKey !== undefined) await configService.set('VTSTACK_API_KEY', apiKey);
+        if (baseURL !== undefined) await configService.set('VTSTACK_BASE_URL', baseURL);
 
-        res.json({ success: true, message: 'VTPay settings updated successfully' });
+        res.json({ success: true, message: 'VTStack settings updated successfully' });
     } catch (error: any) {
-        logger.error('Error updating VTPay settings:', error);
+        logger.error('Error updating VTStack settings:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
-export const getVTPayPlatformBalance = async (req: Request, res: Response) => {
+export const getVTStackPlatformBalance = async (req: Request, res: Response) => {
     try {
         const result = await VTStackService.getPlatformBalance();
         res.json(result);
     } catch (error: any) {
-        logger.error('Error getting VTPay platform balance:', error);
+        logger.error('Error getting VTStack platform balance:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
-export const getVTPayAccounts = async (req: Request, res: Response) => {
+export const getVTStackAccounts = async (req: Request, res: Response) => {
     try {
         const result = await VTStackService.getVirtualAccounts();
         res.json(result);
     } catch (error: any) {
-        logger.error('Error fetching VTPay accounts:', error);
+        logger.error('Error fetching VTStack accounts:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
-export const createVTPayAccount = async (req: Request, res: Response) => {
+export const createVTStackAccount = async (req: Request, res: Response) => {
     try {
         const result = await VTStackService.createVirtualAccount(req.body);
         res.status(201).json(result);
     } catch (error: any) {
-        logger.error('Error creating VTPay account:', error);
+        logger.error('Error creating VTStack account:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
-export const getVTPayAccountBalance = async (req: Request, res: Response) => {
+export const getVTStackAccountBalance = async (req: Request, res: Response) => {
     try {
         const { accountNumber } = req.params;
         const result = await VTStackService.getAccountBalance(accountNumber);
         res.json(result);
     } catch (error: any) {
-        logger.error('Error fetching VTPay account balance:', error);
+        logger.error('Error fetching VTStack account balance:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
-export const getVTPayAccountTransactions = async (req: Request, res: Response) => {
+export const getVTStackAccountTransactions = async (req: Request, res: Response) => {
     try {
         const { accountNumber } = req.params;
         const result = await VTStackService.getTransactions(accountNumber);
         res.json(result);
     } catch (error: any) {
-        logger.error('Error fetching VTPay account transactions:', error);
+        logger.error('Error fetching VTStack account transactions:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };

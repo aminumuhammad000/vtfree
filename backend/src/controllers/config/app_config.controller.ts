@@ -27,10 +27,10 @@ export const getAppConfigs = async (req: Request, res: Response) => {
             { key: 'MAIL_FROM_ADDRESS', value: app.email_settings?.from_address || '', group: 'EMAIL' },
 
             // Payment Settings
-            { key: 'DEFAULT_PAYMENT_GATEWAY', value: app.payment_settings?.default_gateway || 'vtpay', group: 'PAYMENT' },
-            { key: 'VTPAY_API_KEY', value: app.payment_settings?.vtpay_api_key || '', group: 'PAYMENT' },
-            { key: 'VTPAY_SECRET_KEY', value: app.payment_settings?.vtpay_secret_key || '', group: 'PAYMENT' },
-            { key: 'VTPAY_PUBLIC_KEY', value: app.payment_settings?.vtpay_public_key || '', group: 'PAYMENT' },
+            { key: 'DEFAULT_PAYMENT_GATEWAY', value: app.payment_settings?.default_gateway || 'vtstack', group: 'PAYMENT' },
+            { key: 'VTSTACK_API_KEY', value: app.payment_settings?.vtstack_api_key || '', group: 'PAYMENT' },
+            { key: 'VTSTACK_SECRET_KEY', value: app.payment_settings?.vtstack_secret_key || '', group: 'PAYMENT' },
+            { key: 'VTSTACK_PUBLIC_KEY', value: app.payment_settings?.vtstack_public_key || '', group: 'PAYMENT' },
             { key: 'PAYSTACK_SECRET_KEY', value: app.payment_settings?.paystack_secret_key || '', group: 'PAYMENT' },
             { key: 'PAYSTACK_PUBLIC_KEY', value: app.payment_settings?.paystack_public_key || '', group: 'PAYMENT' },
             { key: 'MONNIFY_API_KEY', value: app.payment_settings?.monnify_api_key || '', group: 'PAYMENT' },
@@ -83,8 +83,8 @@ export const updateAppConfig = async (req: Request, res: Response) => {
 
             // Payment
             case 'DEFAULT_PAYMENT_GATEWAY': app.payment_settings.default_gateway = value; break;
-            case 'VTPAY_API_KEY': app.payment_settings.vtpay_api_key = value; break;
-            case 'VTPAY_SECRET_KEY':
+            case 'VTSTACK_API_KEY': app.payment_settings.vtstack_api_key = value; break;
+            case 'VTSTACK_SECRET_KEY':
             case 'VTSTACK_SECRET_KEY': // Alias
                 // Validate API Key
                 if (value && value.length > 5) {
@@ -99,9 +99,9 @@ export const updateAppConfig = async (req: Request, res: Response) => {
                         });
                     }
                 }
-                app.payment_settings.vtpay_secret_key = value;
+                app.payment_settings.vtstack_secret_key = value;
                 break;
-            case 'VTPAY_PUBLIC_KEY': app.payment_settings.vtpay_public_key = value; break;
+            case 'VTSTACK_PUBLIC_KEY': app.payment_settings.vtstack_public_key = value; break;
             case 'PAYSTACK_SECRET_KEY': app.payment_settings.paystack_secret_key = value; break;
             case 'PAYSTACK_PUBLIC_KEY': app.payment_settings.paystack_public_key = value; break;
             case 'MONNIFY_API_KEY': app.payment_settings.monnify_api_key = value; break;

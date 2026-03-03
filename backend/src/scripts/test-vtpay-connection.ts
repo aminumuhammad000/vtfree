@@ -7,7 +7,7 @@ dotenv.config();
 // Connect to MongoDB
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/vtfree';
 
-async function testVTPay() {
+async function testVTStack() {
     try {
         console.log('Connecting to MongoDB...');
         await mongoose.connect(MONGODB_URI);
@@ -18,10 +18,10 @@ async function testVTPay() {
         // Explicitly point to the collection 'systemconfigs' (case sensitive check usually needed, but mongoose tries plural)
         const SystemConfig = mongoose.model('SystemConfig', ConfigSchema);
 
-        const config = await SystemConfig.findOne({ key: 'VTPAY_SECRET_KEY' });
+        const config = await SystemConfig.findOne({ key: 'VTSTACK_SECRET_KEY' });
 
         if (!config || !config.value) {
-            console.error('❌ VTPAY_SECRET_KEY not found in database!');
+            console.error('❌ VTSTACK_SECRET_KEY not found in database!');
             process.exit(1);
         }
 
@@ -29,7 +29,7 @@ async function testVTPay() {
         // Mask key for log
         console.log(`🔑 Found Secret Key: ${secretKey.substring(0, 8)}...`);
 
-        const baseURL = 'https://vtpayapi.vtfree.com.ng/api'; // Hardcoded base URL to be sure
+        const baseURL = 'https://vtstackapi.vtfree.com.ng/api'; // Hardcoded base URL to be sure
 
         console.log(`📡 Testing Direct Connection to: ${baseURL}/wallet/balance`);
 
@@ -59,7 +59,7 @@ async function testVTPay() {
         console.log('---------------------------------------------------');
         console.log('📡 Testing POST /virtual-accounts (Dry Run/Bad Request Check)');
         // We expect this might fail validation, but we want to see IF it reaches the server 
-        // and returns a VTPay error (which means auth works) vs a 500/401.
+        // and returns a VTStack error (which means auth works) vs a 500/401.
 
         try {
             // Sending dummy data to check connectivity/auth specifically
@@ -84,7 +84,7 @@ async function testVTPay() {
                 if (postError.response.status === 401 || postError.response.status === 403) {
                     console.log('❌ Auth Failed on POST. Key might be invalid for this endpoint.');
                 } else if (postError.response.status === 500) {
-                    console.log('❌ Server Error 500 on VTPay side.');
+                    console.log('❌ Server Error 500 on VTStack side.');
                 } else {
                     console.log('✅ Connection Valid (received application-level error as expected).');
                 }
@@ -101,4 +101,4 @@ async function testVTPay() {
     }
 }
 
-testVTPay();
+testVTStack();

@@ -22,7 +22,7 @@ const Transactions = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
-  const [source, setSource] = useState<'local' | 'vtpay'>('local');
+  const [source, setSource] = useState<'local' | 'vtstack'>('local');
 
   useEffect(() => {
     fetchTransactions();
@@ -93,10 +93,10 @@ const Transactions = () => {
             Local Transactions
           </button>
           <button
-            onClick={() => setSource('vtpay')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${source === 'vtpay' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}
+            onClick={() => setSource('vtstack')}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${source === 'vtstack' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}
           >
-            VTPay Transactions
+            VTStack Transactions
           </button>
         </div>
       </div>

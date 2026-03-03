@@ -46,8 +46,8 @@ export const createApp = async (req: Request, res: Response) => {
         if (payment_method === 'card') {
             return res.status(400).json({ success: false, message: 'Card payment is temporarily unavailable. Please use Wallet.' });
             /*
-            const vtpayService = new VtpayService();
-            const transactionRecord = await vtpayService.initializeTransaction(
+            const vtstackService = new VtstackService();
+            const transactionRecord = await vtstackService.initializeTransaction(
                 owner_email,
                 totalAmount,
                 `APP-${uuidv4()}`
@@ -128,6 +128,32 @@ export const createApp = async (req: Request, res: Response) => {
             publish_app_store,
             publish_web
         });
+
+        // Notify Admins of new app creation
+        try {
+            const adminNotifyEmail = 'vtfree2025@gmail.com';
+            const secondAdminNotifyEmail = 'aminumuhammad00015@gmail.com';
+            const isPaid = result.app.payment_status === 'paid';
+            const subject = `[New App ${isPaid ? 'Created' : 'Pending'}] ${app_name}`;
+            const html = `
+                <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                    <h2 style="color: #4F46E5;">New App ${isPaid ? 'Created (Paid)' : 'Draft (Pending Payment)'}</h2>
+                    <p>A new app request has been received on VTFree.</p>
+                    <div style="background-color: #F3F4F6; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                        <p><strong>App Name:</strong> ${app_name}</p>
+                        <p><strong>Package Name:</strong> ${package_name}</p>
+                        <p><strong>Owner Email:</strong> ${owner_email}</p>
+                        <p><strong>Payment Status:</strong> ${result.app.payment_status}</p>
+                        <p><strong>Total Amount:</strong> ₦${totalAmount.toLocaleString()}</p>
+                    </div>
+                    <p>Date: ${new Date().toLocaleString()}</p>
+                </div>
+            `;
+            EmailService.sendEmail(adminNotifyEmail, subject, html);
+            EmailService.sendEmail(secondAdminNotifyEmail, subject, html);
+        } catch (err) {
+            console.error('Failed to send app creation notification:', err);
+        }
 
         res.status(201).json({
             success: true,
@@ -719,6 +745,32 @@ export const payAndStartBuild = async (req: Request, res: Response) => {
                 user_email: owner_email
             }
         });
+
+        // Notify Admins of payment
+        try {
+            const adminNotifyEmail = 'vtfree2025@gmail.com';
+            const secondAdminNotifyEmail = 'aminumuhammad00015@gmail.com';
+            const subject = `[App Paid & Building] ${app.app_name}`;
+            const html = `
+                <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                    <h2 style="color: #4F46E5;">App Payment Confirmed</h2>
+                    <p>Payment has been confirmed for an app, and the build process has started.</p>
+                    <div style="background-color: #F3F4F6; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                        <p><strong>App Name:</strong> ${app.app_name}</p>
+                        <p><strong>Package Name:</strong> ${app.package_name}</p>
+                        <p><strong>App ID:</strong> ${app.app_id}</p>
+                        <p><strong>Owner Email:</strong> ${owner_email}</p>
+                        <p><strong>Total Paid:</strong> ₦${app.total_paid.toLocaleString()}</p>
+                        <p><strong>Build Type:</strong> ${req.body.build_type || 'automated'}</p>
+                    </div>
+                    <p>Date: ${new Date().toLocaleString()}</p>
+                </div>
+            `;
+            EmailService.sendEmail(adminNotifyEmail, subject, html);
+            EmailService.sendEmail(secondAdminNotifyEmail, subject, html);
+        } catch (err) {
+            console.error('Failed to send payment notification:', err);
+        }
 
         res.json({
             success: true,

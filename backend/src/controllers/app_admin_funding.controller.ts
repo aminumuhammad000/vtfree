@@ -179,7 +179,7 @@ export class AppAdminFundingController {
             const lastName = admin?.last_name || owner.last_name || '';
             const email = admin?.email || owner.email;
             const phone = owner.phone_number || '08000000000';
-            const bvn = owner.bvn; // Get BVN from owner (required for VTPay)
+            const bvn = owner.bvn; // Get BVN from owner (required for VTStack)
 
             if (!bvn) {
                 return ApiResponse.error(res, 'App owner BVN is required to generate a virtual account', 400);
@@ -197,17 +197,17 @@ export class AppAdminFundingController {
 
             if (existingAccounts.length >= 3) {
                 // Relaxed check or keep as is? 
-                // If VTPay only supports 1 account type, multiple accounts might be redundant unless for different references.
+                // If VTStack only supports 1 account type, multiple accounts might be redundant unless for different references.
                 // We'll keep the limit check.
                 return ApiResponse.error(res, 'Maximum of 3 virtual accounts allowed for IBData per admin', 400);
             }
 
             // Also check if this specific bank already exists for this user/provider
-            // With new VTPay, it's always "active" (PalmPay). 
-            // We can check if ANY VTPay/IBData account exists if we want to enforce 1 account total, 
+            // With new VTStack, it's always "active" (PalmPay). 
+            // We can check if ANY VTStack/IBData account exists if we want to enforce 1 account total, 
             // but the code allows 3. We'll skip specific bank check since bankType requested might not matter.
 
-            // Map requested bank to Zainpay supported bank types (Legacy logic, mostly ignored by new VTPay)
+            // Map requested bank to Zainpay supported bank types (Legacy logic, mostly ignored by new VTStack)
             const bankMapping: Record<string, string> = {
                 'palmpay': 'moniepoint',
                 'wema': 'moniepoint',
@@ -235,7 +235,7 @@ export class AppAdminFundingController {
                     bvn: bvn,
                     identityType: 'INDIVIDUAL',
                     reference: `REF-${app_id}-${Date.now()}`
-                }, app.payment_settings?.vtpay_secret_key || app.payment_settings?.vtpay_api_key);
+                }, app.payment_settings?.vtstack_secret_key || app.payment_settings?.vtstack_api_key);
 
                 if (result && result.success && result.data) {
                     // Clean account name: remove "Zainpay" prefix if present
@@ -268,11 +268,11 @@ export class AppAdminFundingController {
                     // Try to sync and find the existing account
                     try {
                         const { VTStackService } = await import('../services/vtstack.service.js');
-                        const vtpayResult = await VTStackService.getVirtualAccounts(app.payment_settings?.vtpay_api_key);
-                        const vtpayAccounts = Array.isArray(vtpayResult.data) ? vtpayResult.data : (vtpayResult.data?.accounts || vtpayResult.accounts || []);
+                        const vtstackResult = await VTStackService.getVirtualAccounts(app.payment_settings?.vtstack_api_key);
+                        const vtstackAccounts = Array.isArray(vtstackResult.data) ? vtstackResult.data : (vtstackResult.data?.accounts || vtstackResult.accounts || []);
 
-                        if (vtpayAccounts.length > 0) {
-                            for (const va of vtpayAccounts) {
+                        if (vtstackAccounts.length > 0) {
+                            for (const va of vtstackAccounts) {
                                 const exists = await VirtualAccount.findOne({ accountNumber: va.accountNumber });
                                 if (!exists) {
                                     await VirtualAccount.create({
@@ -336,18 +336,18 @@ export class AppAdminFundingController {
                 generatedBy: req.user?.id
             });
 
-            // Sync with VTPay to ensure we have the latest
+            // Sync with VTStack to ensure we have the latest
             try {
                 const { VTStackService } = await import('../services/vtstack.service.js');
-                const vtpayResult = await VTStackService.getVirtualAccounts(app.payment_settings?.vtpay_api_key);
-                const vtpayAccounts = Array.isArray(vtpayResult.data) ? vtpayResult.data : (vtpayResult.data?.accounts || vtpayResult.accounts || []);
+                const vtstackResult = await VTStackService.getVirtualAccounts(app.payment_settings?.vtstack_api_key);
+                const vtstackAccounts = Array.isArray(vtstackResult.data) ? vtstackResult.data : (vtstackResult.data?.accounts || vtstackResult.accounts || []);
 
-                if (vtpayAccounts.length > 0) {
+                if (vtstackAccounts.length > 0) {
                     // Check against ALL accounts for this owner to avoid duplicates
                     const allOwnerAccounts = await VirtualAccount.find({ user: owner._id });
 
                     let synced = false;
-                    for (const va of vtpayAccounts) {
+                    for (const va of vtstackAccounts) {
                         const exists = allOwnerAccounts.find(a => a.accountNumber === va.accountNumber);
                         if (!exists) {
                             await VirtualAccount.create({
@@ -369,7 +369,7 @@ export class AppAdminFundingController {
                     }
                 }
             } catch (syncErr) {
-                logger.error('Failed to sync VTPay accounts in getIBDataBalance:', syncErr);
+                logger.error('Failed to sync VTStack accounts in getIBDataBalance:', syncErr);
             }
 
             // Get total count for the current admin to enforce limit correctly in UI
@@ -391,20 +391,20 @@ export class AppAdminFundingController {
     }
 
     /**
-     * Get list of virtual accounts from VTPay
+     * Get list of virtual accounts from VTStack
      */
-    static async getVTPayAccounts(req: AuthRequest, res: Response) {
+    static async getVTStackAccounts(req: AuthRequest, res: Response) {
         try {
             const { VTStackService } = await import('../services/vtstack.service.js');
             const CreatedApp = (await import('../models/created_app.model.js')).default;
             const app = await CreatedApp.findOne({ app_id: req.user?.app_id });
-            const result = await VTStackService.getVirtualAccounts(app?.payment_settings?.vtpay_api_key);
+            const result = await VTStackService.getVirtualAccounts(app?.payment_settings?.vtstack_api_key);
 
             const accounts = Array.isArray(result.data) ? result.data : (result.data?.accounts || result.accounts || []);
 
-            return ApiResponse.success(res, 'VTPay accounts retrieved successfully', { accounts });
+            return ApiResponse.success(res, 'VTStack accounts retrieved successfully', { accounts });
         } catch (error: any) {
-            logger.error('Error getting VTPay accounts:', error);
+            logger.error('Error getting VTStack accounts:', error);
             return ApiResponse.error(res, error.message, 500);
         }
     }
@@ -431,18 +431,18 @@ export class AppAdminFundingController {
             const smeplugService = (await import('../services/smeplug.service.js')).default;
             const topupmateService = (await import('../services/topupmate.service.js')).default;
 
-            // Check if VTPay API key is configured for this app
+            // Check if VTStack API key is configured for this app
             // Use Secret Key as per latest update
-            const vtpayApiKey = app.payment_settings?.vtpay_secret_key || app.payment_settings?.vtpay_api_key;
-            const hasVtpayKey = vtpayApiKey && vtpayApiKey.trim().length > 0;
+            const vtstackApiKey = app.payment_settings?.vtstack_secret_key || app.payment_settings?.vtstack_api_key;
+            const hasVtstackKey = vtstackApiKey && vtstackApiKey.trim().length > 0;
 
             // Fetch external balances with error tracking
-            const [smeplugRes, topupmateRes, vtpayRes] = await Promise.all([
+            const [smeplugRes, topupmateRes, vtstackRes] = await Promise.all([
                 smeplugService.getWalletBalance().catch(() => ({ balance: null, error: true })),
                 topupmateService.getWalletBalance().catch(() => ({ balance: null, error: true })),
-                hasVtpayKey
-                    ? VTStackService.getPlatformBalance(vtpayApiKey).catch((err) => {
-                        logger.error('VTPay Balance Fetch Error:', err?.message);
+                hasVtstackKey
+                    ? VTStackService.getPlatformBalance(vtstackApiKey).catch((err) => {
+                        logger.error('VTStack Balance Fetch Error:', err?.message);
                         return { data: { balance: null }, error: true, message: err?.message };
                     })
                     : Promise.resolve({ data: { balance: null }, error: true })
@@ -451,9 +451,9 @@ export class AppAdminFundingController {
             const ibdataBalance = owner.wallet_balance || 0;
             const smeplugBalance = smeplugRes?.balance;
             const topupmateBalance = topupmateRes?.balance;
-            // VTPay returns balance in kobo, convert to Naira by dividing by 100
-            const vtpayBalanceKobo = vtpayRes?.data?.balance ?? vtpayRes?.balance;
-            const vtpayBalance = vtpayBalanceKobo ? Number(vtpayBalanceKobo) / 100 : 0;
+            // VTStack returns balance in kobo, convert to Naira by dividing by 100
+            const vtstackBalanceKobo = vtstackRes?.data?.balance ?? vtstackRes?.balance;
+            const vtstackBalance = vtstackBalanceKobo ? Number(vtstackBalanceKobo) / 100 : 0;
 
             const providers = [
                 {
@@ -483,7 +483,7 @@ export class AppAdminFundingController {
             return ApiResponse.success(res, 'Provider balances retrieved', {
                 providers,
                 total: ibdataBalance + (Number(smeplugBalance) || 0) + (Number(topupmateBalance) || 0),
-                vtpayBalance: vtpayBalance ?? 0
+                vtstackBalance: vtstackBalance ?? 0
             });
         } catch (error: any) {
             logger.error('Error getting provider balances:', error);

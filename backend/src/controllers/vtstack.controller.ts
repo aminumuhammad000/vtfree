@@ -5,7 +5,7 @@ import VirtualAccount from '../models/VirtualAccount.js';
 import { User, CreatedApp } from '../models/index.js';
 
 /**
- * @desc Create a personal virtual account via VTStack (Legacy VTPay Controller)
+ * @desc Create a personal virtual account via VTStack (Legacy VTStack Controller)
  */
 export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
     try {
@@ -23,8 +23,8 @@ export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
         let appSpecificApiKey: string | undefined;
         if (user.app_id) {
             const app = await CreatedApp.findOne({ app_id: user.app_id });
-            if ((app as any)?.payment_settings?.vtstack_secret_key || (app as any)?.payment_settings?.vtpay_secret_key) {
-                appSpecificApiKey = (app as any).payment_settings?.vtstack_secret_key || (app as any).payment_settings?.vtpay_secret_key;
+            if ((app as any)?.payment_settings?.vtstack_secret_key) {
+                appSpecificApiKey = (app as any).payment_settings?.vtstack_secret_key;
             }
         }
         // ----------------------------------
@@ -130,7 +130,7 @@ export const getVirtualAccounts = async (req: AuthRequest, res: Response) => {
 
         const accounts = await VirtualAccount.find({
             user: userId,
-            provider: { $in: ['vtpay', 'vtstack'] }
+            provider: { $in: ['vtstack', 'vtstack'] }
         });
         res.status(200).json({
             success: true,

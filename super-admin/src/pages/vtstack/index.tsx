@@ -3,7 +3,7 @@ import { Icon } from '@iconify/react';
 import superAdminApi from '../../api/superAdminApi';
 import { toast } from 'react-hot-toast';
 
-interface VTPayAccount {
+interface VTStackAccount {
     id: string;
     accountNumber: string;
     accountName: string;
@@ -14,7 +14,7 @@ interface VTPayAccount {
     balance?: number;
 }
 
-interface VTPayTransaction {
+interface VTStackTransaction {
     reference: string;
     amount: number;
     type: 'credit' | 'debit';
@@ -23,14 +23,14 @@ interface VTPayTransaction {
     status: string;
 }
 
-const VTPayManagement = () => {
+const VTStackManagement = () => {
     const [activeTab, setActiveTab] = useState<'accounts' | 'settings'>('accounts');
-    const [accounts, setAccounts] = useState<VTPayAccount[]>([]);
+    const [accounts, setAccounts] = useState<VTStackAccount[]>([]);
     const [loading, setLoading] = useState(false);
     const [settings, setSettings] = useState({ apiKey: '', baseURL: '' });
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [showDetailsModal, setShowDetailsModal] = useState<VTPayAccount | null>(null);
-    const [transactions, setTransactions] = useState<VTPayTransaction[]>([]);
+    const [showDetailsModal, setShowDetailsModal] = useState<VTStackAccount | null>(null);
+    const [transactions, setTransactions] = useState<VTStackTransaction[]>([]);
     const [loadingTransactions, setLoadingTransactions] = useState(false);
     const [accountBalance, setAccountBalance] = useState<{ balance: number; currency: string } | null>(null);
     const [platformBalance, setPlatformBalance] = useState<{ balance: number; availableBalance: number; availableBalanceNaira?: number; currency: string } | null>(null);
@@ -56,12 +56,12 @@ const VTPayManagement = () => {
     const fetchPlatformBalance = async () => {
         setLoadingBalance(true);
         try {
-            const res = await superAdminApi.getVTPayPlatformBalance();
+            const res = await superAdminApi.getVTStackPlatformBalance();
             if (res.data.success) {
                 setPlatformBalance(res.data.data);
             }
         } catch (error) {
-            console.error('Error fetching VTPay platform balance:', error);
+            console.error('Error fetching VTStack platform balance:', error);
         } finally {
             setLoadingBalance(false);
         }
@@ -70,12 +70,12 @@ const VTPayManagement = () => {
     const fetchSettings = async () => {
         setLoading(true);
         try {
-            const res = await superAdminApi.getVTPaySettings();
+            const res = await superAdminApi.getVTStackSettings();
             if (res.data.success) {
                 setSettings(res.data.data);
             }
         } catch (error) {
-            console.error('Error fetching VTPay settings:', error);
+            console.error('Error fetching VTStack settings:', error);
         } finally {
             setLoading(false);
         }
@@ -84,12 +84,12 @@ const VTPayManagement = () => {
     const fetchAccounts = async () => {
         setLoading(true);
         try {
-            const res = await superAdminApi.getVTPayAccounts();
+            const res = await superAdminApi.getVTStackAccounts();
             // The response might be directly the array or { success, data }
             const data = res.data.success ? res.data.data : res.data;
             setAccounts(Array.isArray(data) ? data : []);
         } catch (error) {
-            console.error('Error fetching VTPay accounts:', error);
+            console.error('Error fetching VTStack accounts:', error);
         } finally {
             setLoading(false);
         }
@@ -99,10 +99,10 @@ const VTPayManagement = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            await superAdminApi.updateVTPaySettings(settings);
+            await superAdminApi.updateVTStackSettings(settings);
             toast.success('Settings updated successfully');
         } catch (error) {
-            console.error('Error updating VTPay settings:', error);
+            console.error('Error updating VTStack settings:', error);
             toast.error('Failed to update settings');
         } finally {
             setLoading(false);
@@ -113,27 +113,27 @@ const VTPayManagement = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            await superAdminApi.createVTPayAccount(newAccount);
+            await superAdminApi.createVTStackAccount(newAccount);
             toast.success('Virtual account created successfully');
             setShowCreateModal(false);
             fetchAccounts();
         } catch (error: any) {
-            console.error('Error creating VTPay account:', error);
+            console.error('Error creating VTStack account:', error);
             toast.error(error.response?.data?.message || 'Failed to create virtual account');
         } finally {
             setLoading(false);
         }
     };
 
-    const viewAccountDetails = async (account: VTPayAccount) => {
+    const viewAccountDetails = async (account: VTStackAccount) => {
         setShowDetailsModal(account);
         setLoadingTransactions(true);
         setAccountBalance(null);
         setTransactions([]);
         try {
             const [balanceRes, transRes] = await Promise.all([
-                superAdminApi.getVTPayAccountBalance(account.accountNumber),
-                superAdminApi.getVTPayAccountTransactions(account.accountNumber)
+                superAdminApi.getVTStackAccountBalance(account.accountNumber),
+                superAdminApi.getVTStackAccountTransactions(account.accountNumber)
             ]);
 
             if (balanceRes.data.success) setAccountBalance(balanceRes.data.data);
@@ -152,7 +152,7 @@ const VTPayManagement = () => {
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
                         <Icon icon="solar:bank-bold-duotone" className="text-emerald-600" />
-                        VTPay Management
+                        VTStack Management
                     </h1>
                     <p className="text-slate-500">Manage virtual accounts and API integration</p>
                 </div>
@@ -284,7 +284,7 @@ const VTPayManagement = () => {
                             </div>
                             <div>
                                 <h2 className="text-lg font-bold text-slate-800">API Configuration</h2>
-                                <p className="text-sm text-slate-500">Configure your VTPay credentials</p>
+                                <p className="text-sm text-slate-500">Configure your VTStack credentials</p>
                             </div>
                         </div>
 
@@ -296,7 +296,7 @@ const VTPayManagement = () => {
                                     value={settings.baseURL}
                                     onChange={(e) => setSettings({ ...settings, baseURL: e.target.value })}
                                     className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                    placeholder="https://api.vtpay.com/api"
+                                    placeholder="https://api.vtstack.com/api"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -505,4 +505,4 @@ const VTPayManagement = () => {
     );
 };
 
-export default VTPayManagement;
+export default VTStackManagement;

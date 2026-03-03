@@ -93,7 +93,7 @@ router.post('/notifications/broadcast', authMiddleware, async (req, res) => {
     return NotificationController.sendBroadcastNotification(req, res);
 });
 
-// Payout/VTPay routes
+// Payout/VTStack routes
 router.get('/payout/banks', authMiddleware, PayoutController.getBanksList);
 router.post('/payout/validate-account', authMiddleware, PayoutController.validateAccount);
 router.get('/payout/balance', authMiddleware, PayoutController.getVTStackBalance);

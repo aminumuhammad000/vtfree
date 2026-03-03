@@ -10,9 +10,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 dotenv.config({ path: join(__dirname, '../../.env') });
 
-async function debugVTPayCreate() {
+async function debugVTStackCreate() {
     try {
-        console.log('--- VTPay Creation Debug (SYSTEM CONFIG) ---');
+        console.log('--- VTStack Creation Debug (SYSTEM CONFIG) ---');
 
         if (!process.env.MONGO_URI) {
             throw new Error('MONGO_URI not found in env');
@@ -25,7 +25,7 @@ async function debugVTPayCreate() {
         let apiKey = '';
 
         // Fetch from systemconfigs directly
-        const sysConfig = await mongoose.connection.collection('systemconfigs').findOne({ key: 'VTPAY_SECRET_KEY' });
+        const sysConfig = await mongoose.connection.collection('systemconfigs').findOne({ key: 'VTSTACK_SECRET_KEY' });
         if (sysConfig && sysConfig.value) {
             apiKey = sysConfig.value;
             console.log(`🔑 Found System Config Key: ${apiKey.substring(0, 5)}...`);
@@ -49,7 +49,7 @@ async function debugVTPayCreate() {
             dob: '1990-01-01'
         };
 
-        const baseURL = 'https://vtpayapi.vtfree.com.ng/api';
+        const baseURL = 'https://vtstackapi.vtfree.com.ng/api';
         console.log(`🚀 Sending POST to ${baseURL}/virtual-accounts`);
 
         try {
@@ -82,4 +82,4 @@ async function debugVTPayCreate() {
     }
 }
 
-debugVTPayCreate();
+debugVTStackCreate();

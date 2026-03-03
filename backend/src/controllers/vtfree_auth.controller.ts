@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import VTfreeUser from '../models/vtfree_user.model.js';
 import { logger } from '../config/bootstrap.js';
 import { VTStackService } from '../services/vtstack.service.js';
+import { EmailService } from '../services/email.service.js';
 
 export const createVirtualAccount = async (req: Request, res: Response) => {
     try {
@@ -92,6 +93,26 @@ export const register = async (req: Request, res: Response) => {
         });
 
         await user.save();
+
+        // Notify Admin of new registration
+        const adminEmail = 'vtfree2025@gmail.com';
+        const secondAdminEmail = 'aminumuhammad00015@gmail.com';
+        const subject = `[New User] ${first_name} ${last_name} registered on VTFree`;
+        const html = `
+            <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                <h2 style="color: #4F46E5;">New User Registration</h2>
+                <p>A new user has registered on VTFree.</p>
+                <div style="background-color: #F3F4F6; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                    <p><strong>Name:</strong> ${first_name} ${last_name}</p>
+                    <p><strong>Email:</strong> ${email}</p>
+                    <p><strong>Phone:</strong> ${phone_number}</p>
+                    <p><strong>Company:</strong> ${company_name || 'N/A'}</p>
+                </div>
+                <p>Date: ${new Date().toLocaleString()}</p>
+            </div>
+        `;
+        EmailService.sendEmail(adminEmail, subject, html);
+        EmailService.sendEmail(secondAdminEmail, subject, html);
 
         // Generate token
         const token = jwt.sign(

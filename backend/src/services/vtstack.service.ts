@@ -13,20 +13,19 @@ export interface CreateVirtualAccountDto {
 }
 
 export class VTStackService {
-    private static baseURL = 'https://vtpayapi.vtfree.com.ng/api';
+    private static baseURL = 'https://api.vtstack.com.ng/api';
 
     private static async getClient(customApiKey?: string) {
         let apiKey = customApiKey
             || await configService.get('VTSTACK_SECRET_KEY')
-            || await configService.get('VTPAY_SECRET_KEY')
-            || await configService.get('VTPAY_API_KEY');
+            || await configService.get('VTSTACK_API_KEY');
 
         // Mask key for logging
         const maskedKey = apiKey ? apiKey.substring(0, 8) + '...' : 'MISSING';
         logger.info(`[VTStackService] Using API Key: ${maskedKey}`);
 
         if (!apiKey) {
-            throw new Error('VTStack API Key is not configured (VTSTACK_SECRET_KEY or VTPAY_SECRET_KEY)');
+            throw new Error('VTStack API Key is not configured (VTSTACK_SECRET_KEY)');
         }
 
         return axios.create({

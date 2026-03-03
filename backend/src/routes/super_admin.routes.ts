@@ -59,14 +59,14 @@ router.get('/settings', SuperAdminController.getSystemSettings);
 router.patch('/settings', SuperAdminController.updateSystemSettings);
 router.get('/logs', SuperAdminController.getLogs);
 
-// VTPay Management
-router.get('/vtpay/settings', SuperAdminController.getVTPaySettings);
-router.post('/vtpay/settings', SuperAdminController.updateVTPaySettings);
-router.get('/vtpay/balance', SuperAdminController.getVTPayPlatformBalance);
-router.get('/vtpay/accounts', SuperAdminController.getVTPayAccounts);
-router.post('/vtpay/accounts', SuperAdminController.createVTPayAccount);
-router.get('/vtpay/accounts/:accountNumber/balance', SuperAdminController.getVTPayAccountBalance);
-router.get('/vtpay/accounts/:accountNumber/transactions', SuperAdminController.getVTPayAccountTransactions);
+// VTStack Management
+router.get('/vtstack/settings', SuperAdminController.getVTStackSettings);
+router.post('/vtstack/settings', SuperAdminController.updateVTStackSettings);
+router.get('/vtstack/balance', SuperAdminController.getVTStackPlatformBalance);
+router.get('/vtstack/accounts', SuperAdminController.getVTStackAccounts);
+router.post('/vtstack/accounts', SuperAdminController.createVTStackAccount);
+router.get('/vtstack/accounts/:accountNumber/balance', SuperAdminController.getVTStackAccountBalance);
+router.get('/vtstack/accounts/:accountNumber/transactions', SuperAdminController.getVTStackAccountTransactions);
 
 // Tickets
 router.get('/tickets', SuperAdminController.getAllTickets);

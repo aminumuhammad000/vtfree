@@ -32,8 +32,8 @@ export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
         }
 
         let gateway = (app as any).payment_settings?.default_gateway || 'vtstack';
-        // Treat vtpay as vtstack
-        if (gateway === 'vtpay') gateway = 'vtstack';
+        // Treat vtstack as vtstack
+        if (gateway === 'vtstack') gateway = 'vtstack';
 
         if (user.kyc_status !== 'verified') {
             return res.status(403).json({
@@ -110,10 +110,8 @@ export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
             };
 
             // Use VTStack Service
-            // Fallback to vtpay keys for compatibility if vtstack keys are missing
             const apiKey = (app as any).payment_settings?.vtstack_secret_key
-                || (app as any).payment_settings?.vtpay_secret_key
-                || (app as any).payment_settings?.vtpay_api_key;
+                || (app as any).payment_settings?.vtstack_api_key;
 
             result = await VTStackService.createVirtualAccount(payload, apiKey);
         }
@@ -186,7 +184,7 @@ export const getVirtualAccounts = async (req: AuthRequest, res: Response) => {
         const user = await User.findById(userId);
         const app = await CreatedApp.findOne({ app_id: user?.app_id });
         let gateway = app?.payment_settings?.default_gateway || 'vtstack';
-        if (gateway === 'vtpay') gateway = 'vtstack';
+        if (gateway === 'vtstack') gateway = 'vtstack';
 
         res.status(200).json({
             success: true,
@@ -223,8 +221,8 @@ export const getAccountBalance = async (req: AuthRequest, res: Response) => {
         } else {
             // Use VTStack Service
             const apiKey = (app as any)?.payment_settings?.vtstack_secret_key
-                || (app as any)?.payment_settings?.vtpay_secret_key
-                || (app as any)?.payment_settings?.vtpay_api_key;
+                || (app as any)?.payment_settings?.vtstack_secret_key
+                || (app as any)?.payment_settings?.vtstack_api_key;
 
             result = await VTStackService.getAccountBalance(accountNumber, apiKey);
         }

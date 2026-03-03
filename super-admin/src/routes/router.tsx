@@ -34,7 +34,7 @@ const LogsPage = lazy(() => import('pages/logs'));
 // Support & Providers
 const Support = lazy(() => import('pages/support'));
 const Providers = lazy(() => import('pages/providers'));
-const VTPayManagement = lazy(() => import('pages/vtpay'));
+const VTStackManagement = lazy(() => import('pages/vtstack'));
 
 const SignIn = lazy(() => import('pages/authentication/SignIn'));
 // const ResetPassword = lazy(() => import('pages/authentication/ResetPassword'));
@@ -124,8 +124,8 @@ const routes = [
                 element: <Settings />,
               },
               {
-                path: paths.vtpay,
-                element: <VTPayManagement />,
+                path: paths.vtstack,
+                element: <VTStackManagement />,
               },
               {
                 path: paths.profile,

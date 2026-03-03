@@ -99,9 +99,9 @@ export interface ICreatedApp extends Document {
     // Payment Settings
     payment_settings: {
         default_gateway: string;
-        vtpay_api_key?: string;
-        vtpay_secret_key?: string;
-        vtpay_public_key?: string;
+        vtstack_api_key?: string;
+        vtstack_secret_key?: string;
+        vtstack_public_key?: string;
         paystack_secret_key?: string;
         paystack_public_key?: string;
         monnify_api_key?: string;
@@ -340,10 +340,10 @@ const CreatedAppSchema: Schema = new Schema({
 
     // Payment Settings
     payment_settings: {
-        default_gateway: { type: String, default: 'vtpay' },
-        vtpay_api_key: { type: String },
-        vtpay_secret_key: { type: String },
-        vtpay_public_key: { type: String },
+        default_gateway: { type: String, default: 'vtstack' },
+        vtstack_api_key: { type: String },
+        vtstack_secret_key: { type: String },
+        vtstack_public_key: { type: String },
         paystack_secret_key: { type: String },
         paystack_public_key: { type: String },
         monnify_api_key: { type: String },

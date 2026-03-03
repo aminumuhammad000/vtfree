@@ -35,7 +35,7 @@ export default {
   // Settings & Profile
   settings: `/${rootPaths.pagesRoot}/settings`,
   profile: `/${rootPaths.pagesRoot}/profile`,
-  vtpay: `/${rootPaths.pagesRoot}/vtpay`,
+  vtstack: `/${rootPaths.pagesRoot}/vtstack`,
 
   // Auth
   signin: `/${rootPaths.authRoot}/sign-in`,

@@ -38,10 +38,10 @@ export class PayoutController {
             if (gateway === 'payrant') {
                 return (app as any)?.payment_settings?.payrant_api_key;
             }
-            // Prefer secret key, fallback to api key - supports both VTStack and VTPay keys
+            // Prefer secret key, fallback to api key - supports both VTStack and VTStack keys
             return (app as any)?.payment_settings?.vtstack_secret_key
-                || (app as any)?.payment_settings?.vtpay_secret_key
-                || (app as any)?.payment_settings?.vtpay_api_key;
+                || (app as any)?.payment_settings?.vtstack_secret_key
+                || (app as any)?.payment_settings?.vtstack_api_key;
         } catch (e) {
             return undefined;
         }
@@ -60,7 +60,7 @@ export class PayoutController {
             // @ts-ignore
             const result = await service.getBanksList(apiKey); // Note: VTStackService might not implement this yet?
 
-            // VTStack/VTPay returns { status, data: { banks } }
+            // VTStack/VTStack returns { status, data: { banks } }
             const banks = Array.isArray(result) ? result : (result?.data?.banks || result?.banks || []);
 
             return ApiResponse.success(res, banks, 'Banks list retrieved successfully');

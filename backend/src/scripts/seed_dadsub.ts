@@ -54,7 +54,7 @@ async function seedDadSub() {
                 admin_email: owner_email,
                 admin_password_hash: hashedPassword,
                 payment_settings: {
-                    default_gateway: 'vtpay'
+                    default_gateway: 'vtstack'
                 },
                 version: '1.0.0',
                 services: ['bills', 'airtime', 'data', 'cable', 'electricity']
@@ -69,7 +69,7 @@ async function seedDadSub() {
                 app_display_name: app_name
             };
             app.payment_settings = {
-                default_gateway: 'vtpay'
+                default_gateway: 'vtstack'
             };
             app.status = 'live';
             app.payment_status = 'paid';

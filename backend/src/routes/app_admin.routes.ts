@@ -95,9 +95,9 @@ router.put('/funding/accounts/:id', authenticateAppAdmin, AppAdminFundingControl
 router.delete('/funding/accounts/:id', authenticateAppAdmin, AppAdminFundingController.deleteAccount);
 router.post('/funding/virtual-account', authenticateAppAdmin, AppAdminFundingController.generateVirtualAccount);
 router.get('/funding/ibdata-balance', authenticateAppAdmin, AppAdminFundingController.getIBDataBalance);
-router.get('/funding/vtpay-accounts', authenticateAppAdmin, AppAdminFundingController.getVTPayAccounts);
+router.get('/funding/vtstack-accounts', authenticateAppAdmin, AppAdminFundingController.getVTStackAccounts);
 
-// Payout & Payment Gateway (VTPay)
+// Payout & Payment Gateway (VTStack)
 import { PayoutController } from '../controllers/payout.controller.js';
 router.get('/payout/banks', authenticateAppAdmin, PayoutController.getBanksList);
 router.post('/payout/validate-account', authenticateAppAdmin, PayoutController.validateAccount);

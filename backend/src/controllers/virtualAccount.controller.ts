@@ -21,7 +21,7 @@ export const createOrUpdateVirtualAccount = async (req: AuthRequest, res: Respon
       accountNumber,
       accountName,
       bankName = 'PalmPay',
-      provider = 'vtpay',
+      provider = 'vtstack',
       reference,
       status = 'active',
       metadata = {}

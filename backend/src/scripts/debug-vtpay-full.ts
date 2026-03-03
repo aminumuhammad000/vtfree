@@ -12,9 +12,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 dotenv.config({ path: join(__dirname, '../../.env') });
 
-async function debugVTPay() {
+async function debugVTStack() {
     try {
-        console.log('--- VTPay Debug Script ---');
+        console.log('--- VTStack Debug Script ---');
 
         // 1. Connect to DB
         if (!process.env.MONGO_URI) {
@@ -24,8 +24,8 @@ async function debugVTPay() {
         console.log('✅ Connected to MongoDB');
 
         // 2. Check System Config URL
-        const config = await SystemConfig.findOne({ key: 'VTPAY_BASE_URL' });
-        console.log(`📌 SystemConfig VTPAY_BASE_URL: ${config?.value || 'NOT FOUND'}`);
+        const config = await SystemConfig.findOne({ key: 'VTSTACK_BASE_URL' });
+        console.log(`📌 SystemConfig VTSTACK_BASE_URL: ${config?.value || 'NOT FOUND'}`);
 
         // 3. Get App Key
         const app = await CreatedApp.findOne({}); // Get first app
@@ -35,8 +35,8 @@ async function debugVTPay() {
         }
 
         console.log(`📌 Found App: ${app.app_name} (${app.app_id})`);
-        const secretKey = app.payment_settings?.vtpay_secret_key;
-        const apiKey = app.payment_settings?.vtpay_api_key;
+        const secretKey = app.payment_settings?.vtstack_secret_key;
+        const apiKey = app.payment_settings?.vtstack_api_key;
 
         console.log(`🔑 App Secret Key: ${secretKey ? secretKey.substring(0, 10) + '...' : 'MISSING'}`);
         console.log(`🔑 App API Key: ${apiKey ? apiKey.substring(0, 10) + '...' : 'MISSING'}`);
@@ -48,7 +48,7 @@ async function debugVTPay() {
         }
 
         // 4. Test Connectivity
-        const baseURL = 'https://vtpayapi.vtfree.com.ng/api';
+        const baseURL = 'https://vtstackapi.vtfree.com.ng/api';
         console.log(`🚀 Testing connection to: ${baseURL}/wallet/balance`);
 
         try {
@@ -78,4 +78,4 @@ async function debugVTPay() {
     }
 }
 
-debugVTPay();
+debugVTStack();

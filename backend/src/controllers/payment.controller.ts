@@ -39,7 +39,7 @@ export class PaymentController {
   }
 
   static async initiatePayment(req: AuthRequest, res: Response) {
-    return ApiResponse.error(res, 'Payment initiation via this route is deprecated. Please use VTPay.', 400);
+    return ApiResponse.error(res, 'Payment initiation via this route is deprecated. Please use VTStack.', 400);
   }
 
   /**
@@ -53,7 +53,7 @@ export class PaymentController {
    * Create Virtual Account
    */
   static async createVirtualAccount(req: AuthRequest, res: Response) {
-    return ApiResponse.error(res, 'Please use VTPay dedicated endpoint for virtual accounts.', 400);
+    return ApiResponse.error(res, 'Please use VTStack dedicated endpoint for virtual accounts.', 400);
   }
 
   /**

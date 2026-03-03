@@ -21,9 +21,9 @@ const PaymentSettings = () => {
     const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
     const [formData, setFormData] = useState({
         DEFAULT_PAYMENT_GATEWAY: 'vtstack',
-        VTPAY_API_KEY: '',
-        VTPAY_SECRET_KEY: '',
-        VTPAY_PUBLIC_KEY: '',
+        VTSTACK_API_KEY: '',
+        VTSTACK_SECRET_KEY: '',
+        VTSTACK_PUBLIC_KEY: '',
         PAYSTACK_SECRET_KEY: '',
         PAYSTACK_PUBLIC_KEY: '',
         MONNIFY_API_KEY: '',
@@ -217,19 +217,19 @@ const PaymentSettings = () => {
                                         <div className="relative">
                                             <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                                             <input
-                                                type={showSecrets['VTPAY_SECRET_KEY'] ? 'text' : 'password'}
-                                                name="VTPAY_SECRET_KEY"
-                                                value={(formData as any).VTPAY_SECRET_KEY}
+                                                type={showSecrets['VTSTACK_SECRET_KEY'] ? 'text' : 'password'}
+                                                name="VTSTACK_SECRET_KEY"
+                                                value={(formData as any).VTSTACK_SECRET_KEY}
                                                 onChange={handleChange}
                                                 className="w-full pl-11 pr-12 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-green-500/10 focus:border-green-500 outline-none font-mono text-xs transition-all"
                                                 placeholder="sk_live_..."
                                             />
                                             <button
                                                 type="button"
-                                                onClick={() => toggleSecret('VTPAY_SECRET_KEY')}
+                                                onClick={() => toggleSecret('VTSTACK_SECRET_KEY')}
                                                 className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                                             >
-                                                {showSecrets['VTPAY_SECRET_KEY'] ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+                                                {showSecrets['VTSTACK_SECRET_KEY'] ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
                                             </button>
                                         </div>
                                     </div>

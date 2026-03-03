@@ -57,7 +57,7 @@ async function registerDadsub() {
                 payment_status: 'paid',
                 total_paid: 0,
                 payment_settings: {
-                    default_gateway: 'vtpay'
+                    default_gateway: 'vtstack'
                 },
                 version: '1.0.0'
             });

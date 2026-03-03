@@ -35,7 +35,7 @@ export default function AboutScreen() {
   const textSecondaryColor = isDark ? theme.textSecondaryDark : theme.textSecondaryLight;
 
   const developerInfo = {
-    name: 'DADSUB',
+    name: 'DadSub',
     email: 'support@dadsub.com',
     website: 'https://www.dadsub.com',
   };
@@ -185,7 +185,7 @@ export default function AboutScreen() {
 
         <View style={styles.footer}>
           <Text style={[styles.versionText, { color: textSecondaryColor }]}>Version 1.0.0</Text>
-          <Text style={[styles.copyrightText, { color: textSecondaryColor }]}>© 2024 DADSUB</Text>
+          <Text style={[styles.copyrightText, { color: textSecondaryColor }]}>© 2024 DadSub</Text>
         </View>
 
       </ScrollView>

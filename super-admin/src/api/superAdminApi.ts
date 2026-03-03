@@ -135,14 +135,14 @@ export const updateTicketStatusApi = async (id: string, status: string, priority
   return api.patch(`/tickets/${id}/status`, { status, priority });
 };
 
-// VTPay
-export const getVTPaySettings = async () => api.get('/vtpay/settings');
-export const updateVTPaySettings = async (data: any) => api.post('/vtpay/settings', data);
-export const getVTPayPlatformBalance = async () => api.get('/vtpay/balance');
-export const getVTPayAccounts = async () => api.get('/vtpay/accounts');
-export const createVTPayAccount = async (data: any) => api.post('/vtpay/accounts', data);
-export const getVTPayAccountBalance = async (accountNumber: string) => api.get(`/vtpay/accounts/${accountNumber}/balance`);
-export const getVTPayAccountTransactions = async (accountNumber: string) => api.get(`/vtpay/accounts/${accountNumber}/transactions`);
+// VTStack
+export const getVTStackSettings = async () => api.get('/vtstack/settings');
+export const updateVTStackSettings = async (data: any) => api.post('/vtstack/settings', data);
+export const getVTStackPlatformBalance = async () => api.get('/vtstack/balance');
+export const getVTStackAccounts = async () => api.get('/vtstack/accounts');
+export const createVTStackAccount = async (data: any) => api.post('/vtstack/accounts', data);
+export const getVTStackAccountBalance = async (accountNumber: string) => api.get(`/vtstack/accounts/${accountNumber}/balance`);
+export const getVTStackAccountTransactions = async (accountNumber: string) => api.get(`/vtstack/accounts/${accountNumber}/transactions`);
 
 const superAdminApi = {
   getDashboardStats,
@@ -170,13 +170,13 @@ const superAdminApi = {
   getLogs,
   getTickets,
   updateTicketStatus: updateTicketStatusApi,
-  getVTPaySettings,
-  updateVTPaySettings,
-  getVTPayPlatformBalance,
-  getVTPayAccounts,
-  createVTPayAccount,
-  getVTPayAccountBalance,
-  getVTPayAccountTransactions,
+  getVTStackSettings,
+  updateVTStackSettings,
+  getVTStackPlatformBalance,
+  getVTStackAccounts,
+  createVTStackAccount,
+  getVTStackAccountBalance,
+  getVTStackAccountTransactions,
   getOwner,
   updateOwner,
   deleteOwner,

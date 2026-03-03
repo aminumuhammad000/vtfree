@@ -111,7 +111,7 @@ const OnboardingScreen = ({ navigation }) => {
             style={styles.logo}
           />
           <Text style={[styles.logoText, { color: textColor }]}>
-            {branding?.app_display_name || 'DADSUB'}
+            {branding?.app_display_name || 'DadSub'}
           </Text>
         </View>
       </View>

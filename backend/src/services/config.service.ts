@@ -52,7 +52,7 @@ class ConfigService {
             { key: 'MAIL_FROM_NAME', group: 'EMAIL', description: 'Sender Name' },
             { key: 'MAIL_FROM_ADDRESS', group: 'EMAIL', description: 'Sender Email Address' },
             { key: 'MAIL_PROVIDER', group: 'EMAIL', description: 'Email Provider (gmail/other)' },
-            { key: 'DEFAULT_PAYMENT_GATEWAY', group: 'PAYMENT', description: 'Default Payment Gateway (vtpay/paystack/monnify)' },
+            { key: 'DEFAULT_PAYMENT_GATEWAY', group: 'PAYMENT', description: 'Default Payment Gateway (vtstack/paystack/monnify)' },
 
             { key: 'TERMII_API_KEY', group: 'SMS', description: 'Termii API Key' },
             { key: 'TERMII_SENDER_ID', group: 'SMS', description: 'Termii Sender ID' },
@@ -70,11 +70,11 @@ class ConfigService {
             { key: 'ZAINPAY_BASE_URL', group: 'PAYMENT', description: 'Zainpay Base URL' },
             { key: 'ZAINPAY_IS_LIVE', group: 'PAYMENT', description: 'Zainpay Live Mode' },
 
-            { key: 'VTPAY_API_KEY', group: 'PAYMENT', description: 'VTPay API Key (Default Gateway)' },
-            { key: 'VTPAY_BASE_URL', group: 'PAYMENT', description: 'VTPay Base URL' },
-            { key: 'VTPAY_SECRET_KEY', group: 'PAYMENT', description: 'VTPay Secret Key' },
-            { key: 'VTPAY_PUBLIC_KEY', group: 'PAYMENT', description: 'VTPay Public Key' },
-            { key: 'VTPAY_IS_ACTIVE', group: 'PAYMENT', description: 'VTPay Gateway Status (true/false)' },
+            { key: 'VTSTACK_API_KEY', group: 'PAYMENT', description: 'VTStack API Key (Default Gateway)' },
+            { key: 'VTSTACK_BASE_URL', group: 'PAYMENT', description: 'VTStack Base URL' },
+            { key: 'VTSTACK_SECRET_KEY', group: 'PAYMENT', description: 'VTStack Secret Key' },
+            { key: 'VTSTACK_PUBLIC_KEY', group: 'PAYMENT', description: 'VTStack Public Key' },
+            { key: 'VTSTACK_IS_ACTIVE', group: 'PAYMENT', description: 'VTStack Gateway Status (true/false)' },
 
             { key: 'PAYSTACK_SECRET_KEY', group: 'PAYMENT', description: 'Paystack Secret Key' },
             { key: 'PAYSTACK_PUBLIC_KEY', group: 'PAYMENT', description: 'Paystack Public Key' },

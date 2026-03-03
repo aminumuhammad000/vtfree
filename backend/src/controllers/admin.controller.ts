@@ -567,7 +567,7 @@ export class AdminController {
         fullKey,
         environment,
         scopes,
-        tenantName: 'VTPay Admin', // Default for now
+        tenantName: 'VTStack Admin', // Default for now
         status: 'active'
       });
 
@@ -681,8 +681,8 @@ export class AdminController {
 
       const settings = {
         general: {
-          companyName: await configService.get('COMPANY_NAME', 'VTPay Systems'),
-          supportEmail: await configService.get('SUPPORT_EMAIL', 'support@vtpay.com'),
+          companyName: await configService.get('COMPANY_NAME', 'VTStack Systems'),
+          supportEmail: await configService.get('SUPPORT_EMAIL', 'support@vtstack.com'),
           timezone: await configService.get('TIMEZONE', 'Africa/Lagos'),
           currency: await configService.get('CURRENCY', 'NGN'),
           maintenanceMode: (await configService.get('MAINTENANCE_MODE', 'false')) === 'true',

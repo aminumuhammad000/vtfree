@@ -26,8 +26,8 @@ export const updatePaymentSettings = async (req: Request, res: Response) => {
         const app_id = (req as any).user.app_id;
         const {
             default_gateway,
-            vtpay_api_key,
-            vtpay_secret_key,
+            vtstack_api_key,
+            vtstack_secret_key,
             payrant_api_key,
             payrant_webhook_secret,
             payrant_is_active,
@@ -42,8 +42,8 @@ export const updatePaymentSettings = async (req: Request, res: Response) => {
         if (!app.payment_settings) app.payment_settings = {} as any;
 
         if (default_gateway) app.payment_settings.default_gateway = default_gateway;
-        if (vtpay_api_key !== undefined) app.payment_settings.vtpay_api_key = vtpay_api_key;
-        if (vtpay_secret_key !== undefined) app.payment_settings.vtpay_secret_key = vtpay_secret_key;
+        if (vtstack_api_key !== undefined) app.payment_settings.vtstack_api_key = vtstack_api_key;
+        if (vtstack_secret_key !== undefined) app.payment_settings.vtstack_secret_key = vtstack_secret_key;
 
         // Payrant
         if (payrant_api_key !== undefined) app.payment_settings.payrant_api_key = payrant_api_key;

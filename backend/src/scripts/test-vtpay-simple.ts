@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // Key retrieved from previous DB query
 const SECRET_KEY = 'YOUR_API_KEY_HERE';
-const BASE_URL = 'https://vtpayapi.vtfree.com.ng/api';
+const BASE_URL = 'https://vtstackapi.vtfree.com.ng/api';
 
 async function testDirect() {
     console.log(`🔑 Testing with key: ${SECRET_KEY.substring(0, 10)}... (Hardcoded from DB)`);

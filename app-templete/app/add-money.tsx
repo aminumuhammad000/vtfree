@@ -62,6 +62,9 @@ export default function AddMoneyScreen() {
   const [generationStep, setGenerationStep] = useState('');
   const [showBankModal, setShowBankModal] = useState(false);
   const [selectedBankId, setSelectedBankId] = useState<string | null>(null);
+  const [showBVNModal, setShowBVNModal] = useState(false);
+  const [bvnInput, setBvnInput] = useState('');
+  const [isSubmittingBVN, setIsSubmittingBVN] = useState(false);
 
   const bgColor = theme.background;
   const textColor = theme.text;
@@ -111,20 +114,25 @@ export default function AddMoneyScreen() {
   };
 
   const handleGenerateAccount = async (bankType: string) => {
-    if (profileData.kyc_status !== 'verified') {
-      showWarning('Identity verification is required before generating a bank account.');
-      router.push('/kyc');
+    // REMOVED: kyc_status !== 'verified' check as per user request
+    // Users can now generate virtual accounts even if not verified, but MUST have BVN
+
+    const currentBVN = profileData.bvn || bvnInput;
+
+    if (!currentBVN) {
+      closeBankModal();
+      setShowBVNModal(true);
       return;
     }
 
-    if (!profileData.bvn) {
-      showError('Your BVN is required for virtual account generation. Please update it in your profile.');
-      router.push('/edit-profile');
+    if (currentBVN.length !== 11) {
+      showError('Please provide a valid 11-digit BVN.');
       return;
     }
 
     try {
       closeBankModal();
+      setShowBVNModal(false);
       setIsGenerating(true);
       setGenerationStep('Validating identity...');
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -133,7 +141,11 @@ export default function AddMoneyScreen() {
       setGenerationStep('Contacting PalmPay...');
 
       // bankType is ignored by backend, but we pass it compliant with interface
-      const res = await vtpayService.createVirtualAccount({ bankType: 'palmpay' });
+      // We also pass the BVN in case it's not yet saved in the user's profile on the backend
+      const res = await vtpayService.createVirtualAccount({
+        bankType: 'palmpay',
+        bvn: currentBVN
+      });
 
       await new Promise(resolve => setTimeout(resolve, 800));
       setGenerationStep('Securing Account Details...');
@@ -143,6 +155,7 @@ export default function AddMoneyScreen() {
         showSuccess(`Great! Your PalmPay account has been linked to your wallet.`);
         loadVirtualAccounts();
         refreshProfile();
+        setBvnInput(''); // Reset input
       } else {
         showError(res.message || 'Failed to create account. Please try again.');
       }
@@ -421,6 +434,54 @@ export default function AddMoneyScreen() {
           </Animated.View>
         </View>
       )}
+
+      <Modal visible={showBVNModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <Pressable style={styles.modalDismiss} onPress={() => setShowBVNModal(false)} />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ width: '100%' }}
+          >
+            <View style={[styles.modalBox, { backgroundColor: theme.surface }]}>
+              <View style={styles.modalIndi} />
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: textColor }]}>Verification Required</Text>
+                <Text style={[styles.modalSub, { color: textSecondaryColor }]}>
+                  To generate a virtual account, you need to provide your 11-digit BVN as per CBN regulations.
+                </Text>
+              </View>
+
+              <View style={[styles.inputContainer, { backgroundColor: theme.background }]}>
+                <Ionicons name="finger-print" size={20} color={brandColor} style={{ marginRight: 12 }} />
+                <TextInput
+                  style={[styles.modalInput, { color: textColor }]}
+                  placeholder="Enter 11-digit BVN"
+                  placeholderTextColor={textSecondaryColor}
+                  value={bvnInput}
+                  onChangeText={setBvnInput}
+                  keyboardType="numeric"
+                  maxLength={11}
+                />
+              </View>
+
+              <TouchableOpacity
+                style={[styles.modalGenerateBtn, { backgroundColor: brandColor, marginTop: 20 }]}
+                onPress={() => handleGenerateAccount('palmpay')}
+              >
+                <Text style={styles.modalGenerateText}>Verify & Generate</Text>
+                <Ionicons name="checkmark-circle" size={18} color="#FFF" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.closeBtn, { backgroundColor: cardBg, marginTop: 15 }]}
+                onPress={() => setShowBVNModal(false)}
+              >
+                <Text style={[styles.closeBtnText, { color: textColor }]}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -653,5 +714,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 13,
     marginTop: 10,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    height: 60,
+    borderRadius: 15,
+    marginBottom: 10,
+  },
+  modalInput: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '700',
   }
 });

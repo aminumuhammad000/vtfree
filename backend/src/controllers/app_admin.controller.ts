@@ -13,47 +13,50 @@ export const login = async (req: Request, res: Response) => {
 
         // Sanitize inputs
         email = email?.trim().toLowerCase();
-        app_id = app_id?.trim(); // The frontend should now send package_name as 'app_id'
+        app_id = app_id?.trim();
 
-        console.log(`Login attempt for Package Name: ${app_id}, Email: ${email}`);
-        console.log(`Connected to DB: ${mongoose.connection.name}`);
+        console.log(`Login attempt for App identifier: ${app_id}, Email: ${email}`);
 
-        // First, find the app by package_name to get the app_id
-        const app = await CreatedApp.findOne({ package_name: app_id });
+        // Try to find the app by package_name OR app_id
+        let app = await CreatedApp.findOne({
+            $or: [
+                { package_name: app_id },
+                { app_id: app_id }
+            ]
+        });
 
         if (!app) {
             // Fallback: Try case-insensitive package name
-            const appCaseInsensitive = await CreatedApp.findOne({
+            app = await CreatedApp.findOne({
                 package_name: { $regex: new RegExp(`^${app_id}$`, 'i') }
             });
-
-            if (!appCaseInsensitive) {
-                console.log(`Login failed: App not found for package_name ${app_id}`);
-                return res.status(400).json({ success: false, message: 'Invalid credentials' });
-            }
-
-            // Use the actual app_id from the found app
-            app_id = appCaseInsensitive.app_id;
-        } else {
-            app_id = app.app_id;
         }
 
-        console.log(`Found app with app_id: ${app_id} for package_name: ${req.body.app_id}`);
+        if (!app) {
+            console.log(`Login failed: App not found for identifier ${app_id}`);
+            return res.status(400).json({ success: false, message: 'Invalid credentials' });
+        }
 
-        // Find admin for specific app using the actual app_id
-        const admin = await AppAdmin.findOne({ app_id, email });
+        const actual_app_id = app.app_id;
+        console.log(`Resolved app_id: ${actual_app_id}`);
+
+        // Find admin for specific app
+        let admin = await AppAdmin.findOne({ app_id: actual_app_id, email });
+
+        if (!admin) {
+            // Fallback: Admin might have been created with the provided identifier as app_id directly
+            admin = await AppAdmin.findOne({ app_id, email });
+        }
 
         console.log('Admin query result:', admin ? 'Found' : 'Not Found');
 
         if (!admin) {
-            console.log(`Login failed: Admin not found for email ${email} and app_id ${app_id}`);
+            console.log(`Login failed: Admin not found for email ${email} and app identifier ${app_id}`);
             return res.status(400).json({ success: false, message: 'Invalid credentials' });
         }
 
         // Check password
-        console.log('Comparing passwords...');
         const isMatch = await bcrypt.compare(password, admin.password);
-        console.log('Password match result:', isMatch);
 
         if (!isMatch) {
             console.log(`Login failed: Password mismatch for email ${email}`);

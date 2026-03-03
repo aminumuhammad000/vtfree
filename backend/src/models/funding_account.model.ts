@@ -7,7 +7,7 @@ export interface IFundingAccount extends Document {
   accountNumber: string;
   instructions?: string;
   active: boolean;
-  provider?: string; // e.g. 'ibdata', 'vtpay', 'manual'
+  provider?: string; // e.g. 'ibdata', 'vtstack', 'manual'
   type: 'manual' | 'virtual';
   createdAt: Date;
   updatedAt: Date;

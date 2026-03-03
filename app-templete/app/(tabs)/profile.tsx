@@ -328,7 +328,7 @@ export default function ProfileScreen() {
             <Text style={styles.logoutText}>Log Out</Text>
           </TouchableOpacity>
 
-          <Text style={[styles.versionText, { color: textSecondaryColor }]}>v1.0.0 • Powered by DADSUB</Text>
+          <Text style={[styles.versionText, { color: textSecondaryColor }]}>v1.0.0 • Powered by DadSub</Text>
           <View style={{ height: 40 }} />
         </Animated.View>
       </ScrollView>

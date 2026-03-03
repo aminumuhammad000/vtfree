@@ -12,8 +12,8 @@ const Settings = () => {
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState({
     general: {
-      companyName: 'VTPay Systems',
-      supportEmail: 'support@vtpay.com',
+      companyName: 'VTStack Systems',
+      supportEmail: 'support@vtstack.com',
       timezone: 'Africa/Lagos',
       currency: 'NGN',
       maintenanceMode: false,
