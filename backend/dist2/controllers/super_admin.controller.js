@@ -87,8 +87,8 @@ export const createApp = async (req, res) => {
         if (existingApp) {
             return res.status(400).json({ success: false, message: 'Package name already taken' });
         }
-        // Generate app_id
-        const app_id = `APP_${Date.now()}_${Math.random().toString(36).substring(7).toUpperCase()}`;
+        // Generate app_id from package_name
+        const app_id = package_name;
         // Hash admin password
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(admin_password, salt);
@@ -146,6 +146,28 @@ export const createApp = async (req, res) => {
     }
     catch (error) {
         console.error('Create app error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+export const deleteApp = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const app = await CreatedApp.findById(id);
+        if (!app) {
+            return res.status(404).json({ success: false, message: 'App not found' });
+        }
+        const app_id = app.app_id;
+        // Delete the app
+        await CreatedApp.findByIdAndDelete(id);
+        // Delete associated admins
+        await AppAdmin.deleteMany({ app_id });
+        // Delete associated users
+        await User.deleteMany({ app_id });
+        logger.info(`Super Admin deleted app: ${app.app_name} (${app_id})`);
+        res.json({ success: true, message: 'App and associated data deleted successfully' });
+    }
+    catch (error) {
+        console.error('Delete app error:', error);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 };

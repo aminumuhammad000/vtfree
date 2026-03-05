@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Icon } from '@iconify/react';
+import { deleteApp } from 'api/superAdminApi';
 
 interface App {
     _id: string;
@@ -31,9 +32,10 @@ interface AppDetailsModalProps {
     app: App;
     onClose: () => void;
     onStatusChange?: (appId: string, newStatus: string) => void;
+    onDelete?: (appId: string) => void;
 }
 
-const AppDetailsModal = ({ app, onClose, onStatusChange }: AppDetailsModalProps) => {
+const AppDetailsModal = ({ app, onClose, onStatusChange, onDelete }: AppDetailsModalProps) => {
     const [activeTab, setActiveTab] = useState<'overview' | 'technical' | 'owner'>('overview');
     const [isProcessing, setIsProcessing] = useState(false);
 
@@ -62,6 +64,27 @@ const AppDetailsModal = ({ app, onClose, onStatusChange }: AppDetailsModalProps)
                 // Logic to update status would go here
             }
         }, 1000);
+    };
+
+    const handleDelete = async () => {
+        if (!window.confirm(`Are you SURE you want to delete ${app.app_name}? This will remove everything including app accounts, users and admin.`)) {
+            return;
+        }
+
+        setIsProcessing(true);
+        try {
+            const response = await deleteApp(app._id);
+            if (response.data.success) {
+                if (onDelete) onDelete(app._id);
+            } else {
+                alert(response.data.message || 'Failed to delete app');
+            }
+        } catch (error) {
+            console.error('Delete app error:', error);
+            alert('Failed to delete app. Please try again.');
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     return (
@@ -366,6 +389,15 @@ const AppDetailsModal = ({ app, onClose, onStatusChange }: AppDetailsModalProps)
                                 Reactivate App
                             </button>
                         )}
+                        <button
+                            onClick={handleDelete}
+                            disabled={isProcessing}
+                            className="px-4 py-2.5 border border-red-200 text-red-500 hover:bg-red-50 font-bold rounded-xl transition-all disabled:opacity-50 flex items-center gap-2"
+                            title="Delete App"
+                        >
+                            <Icon icon="solar:trash-bin-trash-bold" />
+                            Delete
+                        </button>
                     </div>
                 </div>
 

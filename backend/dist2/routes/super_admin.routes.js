@@ -8,6 +8,7 @@ router.post('/login', SuperAdminController.login);
 router.use(authenticateSuperAdmin);
 router.get('/apps', SuperAdminController.getAllApps);
 router.post('/apps', SuperAdminController.createApp);
+router.delete('/apps/:id', SuperAdminController.deleteApp);
 router.get('/users', SuperAdminController.getAllUsers);
 router.get('/owners', SuperAdminController.getAllOwners);
 router.post('/owners', SuperAdminController.createOwner);

@@ -39,6 +39,9 @@ export const getApps = async () => {
 export const createApp = async (data: any) => {
   return api.post('/apps', data);
 };
+export const deleteApp = async (id: string) => {
+  return api.delete(`/apps/${id}`);
+};
 
 // This will fetch VTfreeUsers who are app owners
 export const getOwners = async () => {
@@ -185,6 +188,7 @@ const superAdminApi = {
   updateAdmin,
   deleteAdmin,
   updateUserStatus,
+  deleteApp,
   creditOwnerWallet,
 };
 

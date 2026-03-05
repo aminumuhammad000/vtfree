@@ -324,6 +324,10 @@ const Apps = () => {
             fetchApps();
             setSelectedApp(null);
           }}
+          onDelete={() => {
+            fetchApps();
+            setSelectedApp(null);
+          }}
         />
       )}
 
