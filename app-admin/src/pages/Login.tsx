@@ -187,7 +187,7 @@ const Login: React.FC = () => {
           {/* App ID Field */}
           <div className="mb-6">
             <label className="block text-sm font-semibold text-slate-700 mb-2">
-              App ID
+              App ID / Package Name
             </label>
             <input
               type="text"
@@ -200,8 +200,9 @@ const Login: React.FC = () => {
               })}
               className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-900 focus:border-transparent transition-all ${errors.app_id ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-slate-50'
                 }`}
-              placeholder="e.g. vtu_app_001 or owner-john-vtuapp-abc123"
+              placeholder="e.g. com.example.myapp"
             />
+            <p className="text-xs text-slate-500 mt-1">Enter the package name assigned to your app (e.g. com.example.myapp)</p>
             {errors.app_id && (
               <p className="text-red-500 text-sm mt-2 flex items-center">
                 <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
