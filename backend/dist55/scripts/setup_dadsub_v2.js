@@ -5,23 +5,19 @@ import VTfreeUser from '../models/vtfree_user.model.js';
 import CreatedApp from '../models/created_app.model.js';
 import AppAdmin from '../models/app_admin.model.js';
 import SuperAdmin from '../models/super_admin.model.js';
-
 async function setupDadsub() {
     try {
         console.log('--- STARTING SETUP ---');
         console.log('Connecting to:', config.mongoUri);
         await mongoose.connect(config.mongoUri);
         console.log('✅ Connected to MongoDB');
-
         const app_id = 'dadsub';
         const app_name = 'DadSub';
         const package_name = 'com.dadsub.app';
         const email = 'sadikdad3807@gmail.com';
         const password = 'Admin@123456';
         const hashedPassword = await bcrypt.hash(password, 10);
-
         console.log(`\n🚀 Setting up ${app_name} (${app_id})...`);
-
         // 1. Create/Update Owner User
         let owner = await VTfreeUser.findOne({ email });
         if (!owner) {
@@ -36,13 +32,13 @@ async function setupDadsub() {
                 wallet_balance: 50000
             });
             console.log('✅ Owner user created.');
-        } else {
+        }
+        else {
             owner.password = hashedPassword;
             owner.status = 'active';
             await owner.save();
             console.log('✅ Owner user updated.');
         }
-
         // 2. Create/Update App Record
         // First check if an app with this package name already exists with a different ID
         const existingByPackage = await CreatedApp.findOne({ package_name });
@@ -50,7 +46,6 @@ async function setupDadsub() {
             console.log(`⚠️  Found conflicting app with same package name: ${existingByPackage.app_id}. Deleting...`);
             await CreatedApp.findByIdAndDelete(existingByPackage._id);
         }
-
         let app = await CreatedApp.findOne({ app_id });
         if (!app) {
             app = await CreatedApp.create({
@@ -76,15 +71,15 @@ async function setupDadsub() {
                 }
             });
             console.log('✅ App record created.');
-        } else {
+        }
+        else {
             app.status = 'live';
-            app.owner_id = owner._id as any;
+            app.owner_id = owner._id;
             app.admin_email = email;
             app.admin_password_hash = hashedPassword;
             await app.save();
             console.log('✅ App record updated.');
         }
-
         // 3. Create/Update App Admin
         let admin = await AppAdmin.findOne({ app_id, email });
         if (!admin) {
@@ -99,13 +94,13 @@ async function setupDadsub() {
                 permissions: ['all']
             });
             console.log('✅ App admin access granted.');
-        } else {
+        }
+        else {
             admin.password = hashedPassword;
             admin.status = 'active';
             await admin.save();
             console.log('✅ App admin updated.');
         }
-
         // 4. Create/Update Super Admin (to be sure)
         let superAdmin = await SuperAdmin.findOne({ email });
         if (!superAdmin) {
@@ -119,26 +114,25 @@ async function setupDadsub() {
                 status: 'active'
             });
             console.log('✅ Super admin created.');
-        } else {
+        }
+        else {
             superAdmin.password = hashedPassword;
             superAdmin.status = 'active';
             await superAdmin.save();
             console.log('✅ Super admin updated.');
         }
-
         console.log('\n✨ SETUP COMPLETE ✨');
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         console.log(`📧 Email:      ${email}`);
         console.log(`🔑 Password:   ${password}`);
         console.log(`🆔 App ID:     ${app_id}`);
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-
         await mongoose.disconnect();
         process.exit(0);
-    } catch (error) {
+    }
+    catch (error) {
         console.error('❌ Setup Error:', error);
         process.exit(1);
     }
 }
-
 setupDadsub();
