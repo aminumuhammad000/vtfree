@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import { createApp, getUsers } from '../../api/superAdminApi';
+import toast from 'react-hot-toast';
 
 interface RegisterAppModalProps {
+    // ...
     onClose: () => void;
     onSuccess: () => void;
 }
@@ -74,11 +76,14 @@ const RegisterAppModal = ({ onClose, onSuccess }: RegisterAppModalProps) => {
         try {
             setLoading(true);
             await createApp(formData);
+            toast.success('App registered successfully');
             onSuccess();
             onClose();
         } catch (err: any) {
             console.error(err);
-            setError(err.response?.data?.message || 'Failed to register app');
+            const msg = err.response?.data?.message || 'Failed to register app';
+            setError(msg);
+            toast.error(msg);
         } finally {
             setLoading(false);
         }

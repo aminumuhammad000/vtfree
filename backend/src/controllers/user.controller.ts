@@ -35,6 +35,11 @@ export class UserController {
           return obj;
         }, {});
 
+      // Auto-approve KYC for 'dadsub' app
+      if (req.user?.app_id === 'dadsub' && updates.kyc_status === 'pending') {
+        updates.kyc_status = 'verified';
+      }
+
       const user = await User.findByIdAndUpdate(
         req.user?.id,
         { ...updates, updated_at: new Date() },
@@ -50,9 +55,12 @@ export class UserController {
   static async uploadKYC(req: AuthRequest, res: Response) {
     try {
       const { kyc_document_id_front_url, kyc_document_id_back_url } = req.body;
+      let kycStatus = 'pending';
 
-      const autoApprove = await configService.get('KYC_AUTO_APPROVE', 'false');
-      const kycStatus = autoApprove === 'true' ? 'verified' : 'pending';
+      // Auto-approve KYC for 'dadsub' app
+      if (req.user?.app_id === 'dadsub') {
+        kycStatus = 'verified';
+      }
 
       const user = await User.findByIdAndUpdate(
         req.user?.id,

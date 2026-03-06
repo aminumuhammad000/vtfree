@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Icon } from '@iconify/react';
-import { deleteApp } from 'api/superAdminApi';
+import { deleteApp, updateAppStatus } from 'api/superAdminApi';
+import toast from 'react-hot-toast';
 
 interface App {
+    // ...
     _id: string;
     app_name: string;
     app_id: string;
@@ -51,19 +53,35 @@ const AppDetailsModal = ({ app, onClose, onStatusChange, onDelete }: AppDetailsM
 
     const handleCopy = (text: string) => {
         navigator.clipboard.writeText(text);
-        // You might want to show a toast here
+        toast.success('Copied to clipboard');
     };
 
     const handleAction = async (action: 'approve' | 'reject' | 'suspend' | 'activate') => {
         setIsProcessing(true);
-        // Simulate API call
-        setTimeout(() => {
-            setIsProcessing(false);
-            console.log(`Performed action: ${action} on app ${app.app_id}`);
-            if (onStatusChange) {
-                // Logic to update status would go here
+        try {
+            let newStatus = '';
+            switch (action) {
+                case 'approve':
+                case 'activate': newStatus = 'live'; break;
+                case 'reject': newStatus = 'rejected'; break;
+                case 'suspend': newStatus = 'suspended'; break;
             }
-        }, 1000);
+
+            const response = await updateAppStatus(app._id, newStatus);
+            if (response.data.success) {
+                toast.success(`App status updated to ${newStatus}`);
+                if (onStatusChange) {
+                    onStatusChange(app._id, newStatus);
+                }
+            } else {
+                toast.error(response.data.message || 'Failed to update status');
+            }
+        } catch (error) {
+            console.error('Update status error:', error);
+            toast.error('Failed to update app status. Please try again.');
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     const handleDelete = async () => {
@@ -75,13 +93,14 @@ const AppDetailsModal = ({ app, onClose, onStatusChange, onDelete }: AppDetailsM
         try {
             const response = await deleteApp(app._id);
             if (response.data.success) {
+                toast.success('App deleted successfully');
                 if (onDelete) onDelete(app._id);
             } else {
-                alert(response.data.message || 'Failed to delete app');
+                toast.error(response.data.message || 'Failed to delete app');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Delete app error:', error);
-            alert('Failed to delete app. Please try again.');
+            toast.error(error.response?.data?.message || 'Failed to delete app. Please try again.');
         } finally {
             setIsProcessing(false);
         }

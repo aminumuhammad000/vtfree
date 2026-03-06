@@ -36,6 +36,7 @@ export default function KYCScreen() {
     const { profileData, refreshProfile } = useProfile();
     const { showSuccess, showError } = useAlert();
     const [loading, setLoading] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
 
     const [formData, setFormData] = useState({
         phone_number: '',
@@ -99,9 +100,12 @@ export default function KYCScreen() {
             });
 
             if (response.success) {
-                showSuccess('KYC details submitted successfully. We will review it shortly.');
+                showSuccess(isEditing ? 'KYC details updated successfully.' : 'KYC details submitted successfully. We will review it shortly.');
                 await refreshProfile();
-                router.back();
+                setIsEditing(false);
+                if (!isEditing) {
+                    router.back();
+                }
             }
         } catch (error: any) {
             showError(error.message || 'Failed to submit KYC details');
@@ -109,6 +113,28 @@ export default function KYCScreen() {
             setLoading(false);
         }
     };
+
+    const kycStatus = profileData?.kyc_status || 'not_submitted';
+    const hasSubmitted = (kycStatus === 'pending' || kycStatus === 'verified') && !!profileData?.bvn;
+
+    const getStatusColor = () => {
+        if (kycStatus === 'verified') return '#16a34a';
+        if (kycStatus === 'rejected') return '#dc2626';
+        return '#f59e0b';
+    };
+
+    const maskValue = (val: string) => {
+        if (!val) return 'N/A';
+        if (val.length <= 4) return val;
+        return val.substring(0, 3) + '****' + val.substring(val.length - 3);
+    };
+
+    const DetailRow = ({ label, value }: { label: string, value: string }) => (
+        <View style={styles.detailRow}>
+            <Text style={[styles.detailLabel, { color: textSecondary }]}>{label}</Text>
+            <Text style={[styles.detailValue, { color: textColor }]}>{value}</Text>
+        </View>
+    );
 
     const bgColor = theme.background;
     const cardBg = theme.surface;
@@ -152,133 +178,181 @@ export default function KYCScreen() {
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={styles.content}
                 >
-                    <Animated.View entering={FadeInUp.delay(200)} style={[styles.infoCard, { backgroundColor: brandColor + '15' }]}>
-                        <MaterialCommunityIcons name="shield-check" size={24} color={brandColor} />
-                        <View style={{ flex: 1 }}>
-                            <Text style={[styles.infoTitle, { color: brandColor }]}>Identity Verification</Text>
-                            <Text style={[styles.infoText, { color: textColor }]}>
-                                Complete verification to enable virtual accounts and increase transaction limits.
-                            </Text>
-                        </View>
-                    </Animated.View>
-
-                    <Animated.View entering={FadeInDown.delay(400)} style={styles.formSection}>
-                        <View style={styles.formGroup}>
-                            <Text style={[styles.label, { color: textSecondary }]}>Phone Number</Text>
-                            <TextInput
-                                style={[styles.input, { backgroundColor: cardBg, color: textColor }]}
-                                placeholder="08012345678"
-                                placeholderTextColor={textSecondary}
-                                value={formData.phone_number}
-                                onChangeText={(text) => handleUpdate('phone_number', text)}
-                                keyboardType="phone-pad"
-                            />
-                        </View>
-
-                        <View style={styles.formGroup}>
-                            <Text style={[styles.label, { color: textSecondary }]}>BVN (11 Digits)</Text>
-                            <TextInput
-                                style={[styles.input, { backgroundColor: cardBg, color: textColor }]}
-                                placeholder="222XXXXXXXX"
-                                placeholderTextColor={textSecondary}
-                                value={formData.bvn}
-                                onChangeText={(text) => handleUpdate('bvn', text)}
-                                keyboardType="numeric"
-                                maxLength={11}
-                            />
-                        </View>
-
-                        <View style={styles.formGroup}>
-                            <Text style={[styles.label, { color: textSecondary }]}>Date of Birth</Text>
-                            <TouchableOpacity
-                                style={[styles.input, { backgroundColor: cardBg, justifyContent: 'center' }]}
-                                onPress={() => setShowDatePicker(true)}
-                            >
-                                <Text style={{ color: formData.date_of_birth ? textColor : textSecondary, fontSize: 16 }}>
-                                    {formData.date_of_birth || "Select Date of Birth"}
+                    {hasSubmitted && !isEditing ? (
+                        <Animated.View entering={FadeInDown.delay(200)} style={styles.statusView}>
+                            <View style={[styles.statusCard, { backgroundColor: cardBg }]}>
+                                <View style={[styles.statusIconContainer, { backgroundColor: getStatusColor() + '20' }]}>
+                                    <MaterialCommunityIcons
+                                        name={kycStatus === 'verified' ? "shield-check" : "clock-outline"}
+                                        size={40}
+                                        color={getStatusColor()}
+                                    />
+                                </View>
+                                <Text style={[styles.statusTitle, { color: textColor }]}>
+                                    KYC {kycStatus === 'verified' ? 'Verified' : 'Submitted'}
                                 </Text>
-                                <Ionicons name="calendar-outline" size={20} color={brandColor} style={styles.inputIcon} />
-                            </TouchableOpacity>
-                            {showDatePicker && (
-                                <DateTimePicker
-                                    value={date}
-                                    mode="date"
-                                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                    onChange={onDateChange}
-                                    maximumDate={new Date()}
-                                />
-                            )}
-                        </View>
+                                <Text style={[styles.statusDescription, { color: textSecondary }]}>
+                                    {kycStatus === 'verified'
+                                        ? "Your identity has been verified. You now have access to all features."
+                                        : "Your KYC details have been submitted and are currently under review."
+                                    }
+                                </Text>
 
-                        <View style={styles.formGroup}>
-                            <Text style={[styles.label, { color: textSecondary }]}>Residential Address</Text>
-                            <TextInput
-                                style={[styles.input, { backgroundColor: cardBg, color: textColor, height: 80, paddingTop: 12 }]}
-                                placeholder="No 12. Example Street"
-                                placeholderTextColor={textSecondary}
-                                value={formData.address}
-                                onChangeText={(text) => handleUpdate('address', text)}
-                                multiline
-                                textAlignVertical="top"
-                            />
-                        </View>
+                                <View style={[styles.detailList, { borderTopColor: theme.border + '20' }]}>
+                                    <DetailRow label="BVN" value={maskValue(formData.bvn)} />
+                                    <DetailRow label="Phone" value={formData.phone_number} />
+                                    <DetailRow label="Address" value={formData.address} />
+                                    <DetailRow label="State" value={formData.state} />
+                                </View>
 
-                        <View style={styles.row}>
-                            <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
-                                <Text style={[styles.label, { color: textSecondary }]}>City</Text>
-                                <TextInput
-                                    style={[styles.input, { backgroundColor: cardBg, color: textColor }]}
-                                    placeholder="Ikeja"
-                                    placeholderTextColor={textSecondary}
-                                    value={formData.city}
-                                    onChangeText={(text) => handleUpdate('city', text)}
-                                />
-                            </View>
-                            <View style={[styles.formGroup, { flex: 1, marginLeft: 8 }]}>
-                                <Text style={[styles.label, { color: textSecondary }]}>State</Text>
                                 <TouchableOpacity
-                                    style={[styles.input, { backgroundColor: cardBg, justifyContent: 'center' }]}
-                                    onPress={() => setShowStateModal(true)}
+                                    style={[styles.editButton, { borderColor: brandColor }]}
+                                    onPress={() => setIsEditing(true)}
                                 >
-                                    <Text style={{ color: textColor, fontSize: 16 }}>{formData.state}</Text>
-                                    <Ionicons name="chevron-down" size={20} color={brandColor} style={styles.inputIcon} />
+                                    <Text style={[styles.editButtonText, { color: brandColor }]}>Edit Details</Text>
                                 </TouchableOpacity>
                             </View>
-                        </View>
+                        </Animated.View>
+                    ) : (
+                        <>
+                            <Animated.View entering={FadeInUp.delay(200)} style={[styles.infoCard, { backgroundColor: brandColor + '15' }]}>
+                                <MaterialCommunityIcons name="shield-check" size={24} color={brandColor} />
+                                <View style={{ flex: 1 }}>
+                                    <Text style={[styles.infoTitle, { color: brandColor }]}>Identity Verification</Text>
+                                    <Text style={[styles.infoText, { color: textColor }]}>
+                                        Complete verification to enable virtual accounts and increase transaction limits.
+                                    </Text>
+                                </View>
+                            </Animated.View>
 
-                        <View style={styles.formGroup}>
-                            <Text style={[styles.label, { color: textSecondary }]}>Country</Text>
-                            <View style={[styles.input, { backgroundColor: cardBg, justifyContent: 'center', opacity: 0.7 }]}>
-                                <Text style={{ color: textColor, fontSize: 16 }}>Nigeria</Text>
-                                <MaterialCommunityIcons name="flag-variant" size={20} color={brandColor} style={styles.inputIcon} />
-                            </View>
-                        </View>
+                            <Animated.View entering={FadeInDown.delay(400)} style={styles.formSection}>
+                                <View style={styles.formGroup}>
+                                    <Text style={[styles.label, { color: textSecondary }]}>Phone Number</Text>
+                                    <TextInput
+                                        style={[styles.input, { backgroundColor: cardBg, color: textColor }]}
+                                        placeholder="08012345678"
+                                        placeholderTextColor={textSecondary}
+                                        value={formData.phone_number}
+                                        onChangeText={(text) => handleUpdate('phone_number', text)}
+                                        keyboardType="phone-pad"
+                                    />
+                                </View>
 
-                        <View style={styles.formGroup}>
-                            <Text style={[styles.label, { color: textSecondary }]}>NIN (Optional)</Text>
-                            <TextInput
-                                style={[styles.input, { backgroundColor: cardBg, color: textColor }]}
-                                placeholder="Enter NIN (11 digits)"
-                                placeholderTextColor={textSecondary}
-                                value={formData.nin}
-                                onChangeText={(text) => handleUpdate('nin', text)}
-                                keyboardType="numeric"
-                                maxLength={11}
-                            />
-                        </View>
-                    </Animated.View>
+                                <View style={styles.formGroup}>
+                                    <Text style={[styles.label, { color: textSecondary }]}>BVN (11 Digits)</Text>
+                                    <TextInput
+                                        style={[styles.input, { backgroundColor: cardBg, color: textColor }]}
+                                        placeholder="222XXXXXXXX"
+                                        placeholderTextColor={textSecondary}
+                                        value={formData.bvn}
+                                        onChangeText={(text) => handleUpdate('bvn', text)}
+                                        keyboardType="numeric"
+                                        maxLength={11}
+                                    />
+                                </View>
 
-                    <TouchableOpacity
-                        style={[styles.submitButton, { backgroundColor: brandColor }]}
-                        onPress={handleSubmit}
-                        disabled={loading}
-                    >
-                        {loading ? (
-                            <ActivityIndicator color="#FFF" />
-                        ) : (
-                            <Text style={styles.submitButtonText}>Submit for Verification</Text>
-                        )}
-                    </TouchableOpacity>
+                                <View style={styles.formGroup}>
+                                    <Text style={[styles.label, { color: textSecondary }]}>Date of Birth</Text>
+                                    <TouchableOpacity
+                                        style={[styles.input, { backgroundColor: cardBg, justifyContent: 'center' }]}
+                                        onPress={() => setShowDatePicker(true)}
+                                    >
+                                        <Text style={{ color: formData.date_of_birth ? textColor : textSecondary, fontSize: 16 }}>
+                                            {formData.date_of_birth || "Select Date of Birth"}
+                                        </Text>
+                                        <Ionicons name="calendar-outline" size={20} color={brandColor} style={styles.inputIcon} />
+                                    </TouchableOpacity>
+                                    {showDatePicker && (
+                                        <DateTimePicker
+                                            value={date}
+                                            mode="date"
+                                            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                            onChange={onDateChange}
+                                            maximumDate={new Date()}
+                                        />
+                                    )}
+                                </View>
+
+                                <View style={styles.formGroup}>
+                                    <Text style={[styles.label, { color: textSecondary }]}>Residential Address</Text>
+                                    <TextInput
+                                        style={[styles.input, { backgroundColor: cardBg, color: textColor, height: 80, paddingTop: 12 }]}
+                                        placeholder="No 12. Example Street"
+                                        placeholderTextColor={textSecondary}
+                                        value={formData.address}
+                                        onChangeText={(text) => handleUpdate('address', text)}
+                                        multiline
+                                        textAlignVertical="top"
+                                    />
+                                </View>
+
+                                <View style={styles.row}>
+                                    <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
+                                        <Text style={[styles.label, { color: textSecondary }]}>City</Text>
+                                        <TextInput
+                                            style={[styles.input, { backgroundColor: cardBg, color: textColor }]}
+                                            placeholder="Ikeja"
+                                            placeholderTextColor={textSecondary}
+                                            value={formData.city}
+                                            onChangeText={(text) => handleUpdate('city', text)}
+                                        />
+                                    </View>
+                                    <View style={[styles.formGroup, { flex: 1, marginLeft: 8 }]}>
+                                        <Text style={[styles.label, { color: textSecondary }]}>State</Text>
+                                        <TouchableOpacity
+                                            style={[styles.input, { backgroundColor: cardBg, justifyContent: 'center' }]}
+                                            onPress={() => setShowStateModal(true)}
+                                        >
+                                            <Text style={{ color: textColor, fontSize: 16 }}>{formData.state}</Text>
+                                            <Ionicons name="chevron-down" size={20} color={brandColor} style={styles.inputIcon} />
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+
+                                <View style={styles.formGroup}>
+                                    <Text style={[styles.label, { color: textSecondary }]}>Country</Text>
+                                    <View style={[styles.input, { backgroundColor: cardBg, justifyContent: 'center', opacity: 0.7 }]}>
+                                        <Text style={{ color: textColor, fontSize: 16 }}>Nigeria</Text>
+                                        <MaterialCommunityIcons name="flag-variant" size={20} color={brandColor} style={styles.inputIcon} />
+                                    </View>
+                                </View>
+
+                                <View style={styles.formGroup}>
+                                    <Text style={[styles.label, { color: textSecondary }]}>NIN (Optional)</Text>
+                                    <TextInput
+                                        style={[styles.input, { backgroundColor: cardBg, color: textColor }]}
+                                        placeholder="Enter NIN (11 digits)"
+                                        placeholderTextColor={textSecondary}
+                                        value={formData.nin}
+                                        onChangeText={(text) => handleUpdate('nin', text)}
+                                        keyboardType="numeric"
+                                        maxLength={11}
+                                    />
+                                </View>
+                            </Animated.View>
+
+                            <TouchableOpacity
+                                style={[styles.submitButton, { backgroundColor: brandColor }]}
+                                onPress={handleSubmit}
+                                disabled={loading}
+                            >
+                                {loading ? (
+                                    <ActivityIndicator color="#FFF" />
+                                ) : (
+                                    <Text style={styles.submitButtonText}>{isEditing ? "Update Details" : "Submit for Verification"}</Text>
+                                )}
+                            </TouchableOpacity>
+
+                            {isEditing && (
+                                <TouchableOpacity
+                                    style={[styles.cancelButton]}
+                                    onPress={() => setIsEditing(false)}
+                                >
+                                    <Text style={[styles.cancelButtonText, { color: textSecondary }]}>Cancel Editing</Text>
+                                </TouchableOpacity>
+                            )}
+                        </>
+                    )}
                 </ScrollView>
             </KeyboardAvoidingView>
 
@@ -433,4 +507,78 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '500',
     },
+    statusView: {
+        marginTop: 10,
+    },
+    statusCard: {
+        borderRadius: 24,
+        padding: 24,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 5,
+    },
+    statusIconContainer: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    statusTitle: {
+        fontSize: 22,
+        fontWeight: '800',
+        marginBottom: 8,
+    },
+    statusDescription: {
+        fontSize: 14,
+        textAlign: 'center',
+        lineHeight: 20,
+        marginBottom: 24,
+        paddingHorizontal: 10,
+    },
+    detailList: {
+        width: '100%',
+        borderTopWidth: 1,
+        paddingTop: 16,
+        marginBottom: 24,
+    },
+    detailRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingVertical: 10,
+    },
+    detailLabel: {
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    detailValue: {
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    editButton: {
+        width: '100%',
+        height: 50,
+        borderRadius: 25,
+        borderWidth: 1.5,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    editButtonText: {
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    cancelButton: {
+        height: 50,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 40,
+    },
+    cancelButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
+    }
 });

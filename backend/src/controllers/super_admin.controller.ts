@@ -199,6 +199,30 @@ export const deleteApp = async (req: Request, res: Response) => {
     }
 };
 
+export const updateAppStatus = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        const validStatuses = ['pending', 'building', 'live', 'suspended', 'rejected', 'failed'];
+        if (!status || !validStatuses.includes(status)) {
+            return res.status(400).json({ success: false, message: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
+        }
+
+        const app = await CreatedApp.findByIdAndUpdate(id, { status }, { new: true });
+        if (!app) {
+            return res.status(404).json({ success: false, message: 'App not found' });
+        }
+
+        logger.info(`Super Admin updated app status: ${app.app_name} (${app.app_id}) -> ${status}`);
+
+        res.json({ success: true, message: `App status updated to ${status}`, data: { app } });
+    } catch (error) {
+        console.error('Update app status error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
 export const getAllUsers = async (req: Request, res: Response) => {
     try {
         const { app_id, owner_id, search } = req.query;
