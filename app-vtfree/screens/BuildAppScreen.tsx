@@ -362,7 +362,7 @@ export default function BuildAppScreen() {
                                 style={[
                                     styles.buildButton,
                                     (submitting || (walletBalance < totalCost && !isBuilding)) && styles.buildButtonDisabled,
-                                    isBuilding && { backgroundColor: Colors.yellow[600] }
+                                    isBuilding && { backgroundColor: Colors.yellow[500] }
                                 ]}
                                 onPress={() => handleBuild()}
                                 disabled={submitting || isBuilding}

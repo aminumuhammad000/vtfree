@@ -456,7 +456,7 @@ export default function EditAppScreen() {
                                     <TouchableOpacity
                                         style={[
                                             styles.buildActionButton,
-                                            isBuilding && { backgroundColor: Colors.yellow[600] },
+                                            isBuilding && { backgroundColor: Colors.yellow[500] },
                                             isFailed && { backgroundColor: Colors.red[600] }
                                         ]}
                                         onPress={() => router.push({

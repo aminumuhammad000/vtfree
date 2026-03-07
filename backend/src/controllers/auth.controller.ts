@@ -63,7 +63,11 @@ export class AuthController {
 
       await WalletService.createWallet(user._id);
 
-      await OTPService.createOTP(phone_number, email, user._id.toString());
+      if (app_id !== 'dadsub') {
+        await OTPService.createOTP(phone_number, email, user._id.toString(), app_id);
+      } else {
+        console.log(`[AuthController] Skipping OTP for dadsub registration: ${email}`);
+      }
 
       if (status !== 'active') {
         return ApiResponse.success(res, { user }, 'Registration successful. Your account is pending approval by the administrator.', 201);

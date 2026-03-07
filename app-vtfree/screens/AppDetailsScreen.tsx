@@ -200,7 +200,7 @@ export default function AppDetailsScreen() {
                             style={[
                                 styles.actionCard,
                                 styles.primaryCard,
-                                { backgroundColor: Colors.purple[600] },
+                                { backgroundColor: Colors.accent },
                                 !isLive && { opacity: 0.5, backgroundColor: Colors.gray[400] }
                             ]}
                             onPress={() => handleDownload('web')}

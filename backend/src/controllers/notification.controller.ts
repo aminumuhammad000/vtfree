@@ -152,11 +152,37 @@ export class NotificationController {
         return ApiResponse.error(res, 'No users found to send email to', 404);
       }
 
+      // Load app-specific email settings
+      let appEmailSettings: any = null;
+      if (app_id) {
+        try {
+          const CreatedApp = (await import('../models/created_app.model.js')).default;
+          const app = await CreatedApp.findOne({ app_id });
+          if (app?.email_settings?.user && app?.email_settings?.password) {
+            appEmailSettings = {
+              provider: app.email_settings.provider,
+              host: app.email_settings.host,
+              port: app.email_settings.port,
+              user: app.email_settings.user,
+              pass: app.email_settings.password,
+              fromName: app.email_settings.from_name || app.app_name,
+              fromAddress: app.email_settings.from_address || app.email_settings.user,
+            };
+          }
+        } catch (err) {
+          console.warn('[NotificationController] Could not load app email settings, using global config');
+        }
+      }
+
       // Send emails (in background or sequentially for now)
-      // For a real app, this should be a background job
       let successCount = 0;
       for (const user of users) {
-        const sent = await EmailService.sendEmail(user.email, subject, message);
+        let sent = false;
+        if (appEmailSettings) {
+          sent = await EmailService.sendAppEmail(user.email, subject, message, appEmailSettings);
+        } else {
+          sent = await EmailService.sendEmail(user.email, subject, message);
+        }
         if (sent) successCount++;
       }
 

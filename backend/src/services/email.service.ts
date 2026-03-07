@@ -1,6 +1,16 @@
 import nodemailer from 'nodemailer';
 import { configService } from './config.service.js';
 
+interface AppEmailSettings {
+    provider?: string;
+    host?: string;
+    port?: string;
+    user?: string;
+    pass?: string;
+    fromName?: string;
+    fromAddress?: string;
+}
+
 export class EmailService {
     private static async getTransporter() {
         const provider = await configService.get('MAIL_PROVIDER', 'other');
@@ -16,6 +26,31 @@ export class EmailService {
 
         if (!host || !user || !pass) {
             console.warn('⚠️ Email configuration missing. Emails will not be sent.');
+            return null;
+        }
+
+        return nodemailer.createTransport({
+            host,
+            port: parseInt(port || '587'),
+            secure: parseInt(port || '587') === 465, // true for 465, false for other ports
+            auth: { user, pass },
+        });
+    }
+
+    private static async getAppTransporter(emailSettings: AppEmailSettings) {
+        const provider = emailSettings.provider || 'other';
+        let host = emailSettings.host;
+        let port = emailSettings.port;
+        const user = emailSettings.user;
+        const pass = emailSettings.pass;
+
+        if (provider === 'gmail') {
+            host = 'smtp.gmail.com';
+            port = '465';
+        }
+
+        if (!host || !user || !pass) {
+            console.warn('⚠️ App-specific email configuration missing. Emails will not be sent.');
             return null;
         }
 
@@ -50,7 +85,30 @@ export class EmailService {
         }
     }
 
-    static async sendOTP(email: string, otp: string) {
+    static async sendAppEmail(to: string, subject: string, html: string, emailSettings: AppEmailSettings) {
+        try {
+            const transporter = await this.getAppTransporter(emailSettings);
+            if (!transporter) return false;
+
+            const fromName = emailSettings.fromName || 'App Notification';
+            const fromAddress = emailSettings.fromAddress || 'noreply@app.com';
+
+            const info = await transporter.sendMail({
+                from: `"${fromName}" <${fromAddress}>`,
+                to,
+                subject,
+                html,
+            });
+
+            console.log('📧 App Email sent:', info.messageId);
+            return true;
+        } catch (error) {
+            console.error('❌ Failed to send app email:', error);
+            return false;
+        }
+    }
+
+    static async sendOTP(email: string, otp: string, appId?: string) {
         const subject = 'Your Verification Code';
         const html = `
       <div style="font-family: Arial, sans-serif; padding: 20px;">
@@ -60,6 +118,27 @@ export class EmailService {
         <p>This code will expire in 10 minutes.</p>
       </div>
     `;
+        // Use app-specific email settings if app_id is provided
+        if (appId) {
+            try {
+                const CreatedApp = (await import('../models/created_app.model.js')).default;
+                const app = await CreatedApp.findOne({ app_id: appId });
+                if (app && app.email_settings?.user && app.email_settings?.password) {
+                    const settings: AppEmailSettings = {
+                        provider: app.email_settings.provider,
+                        host: app.email_settings.host,
+                        port: app.email_settings.port,
+                        user: app.email_settings.user,
+                        pass: app.email_settings.password,
+                        fromName: app.email_settings.from_name || app.app_name,
+                        fromAddress: app.email_settings.from_address || app.email_settings.user,
+                    };
+                    return await this.sendAppEmail(email, subject, html, settings);
+                }
+            } catch (err) {
+                console.warn(`[EmailService] Could not load app email settings for ${appId}, falling back to global config`);
+            }
+        }
         return await this.sendEmail(email, subject, html);
     }
 
@@ -99,28 +178,102 @@ export class EmailService {
                             <div class="success-badge">Identity Verified</div>
                         </div>
                         <h2 class="title">Everything is ready, ${userName}!</h2>
-                        <p class="body-text">
-                            Great news! Your identity verification (KYC) documents have been reviewed and approved by our team. 
-                            You now have full access to all features on the <strong>${appName}</strong> app, including higher transaction limits and premium services.
-                        </p>
-                        <div style="text-align: center;">
-                            <a href="#" class="btn" style="background-color: ${primaryColor};">Explore App Now</a>
+                        <p class="body-text">We are excited to inform you that your KYC verification for <strong>${appName}</strong> has been approved. You now have full access to all our premium features.</p>
+                        <p class="body-text">You can now fund your wallet, purchase airtime, data, and perform more transactions with ease.</p>
+                        <div style="text-align: center; margin-top: 30px;">
+                            <a href="${appDetails.app_url || '#'}" class="btn">Get Started Now</a>
                         </div>
-                        <p class="body-text" style="margin-top: 30px; border-top: 1px solid #f3f4f6; padding-top: 20px;">
-                            If you have any questions or need further assistance, feel free to contact our support team.
-                        </p>
                     </div>
                     <div class="footer">
                         <div class="company-info">${companyName}</div>
                         ${companyAddress ? `<div>${companyAddress}</div>` : ''}
                         ${companyPhone ? `<div>Tel: ${companyPhone}</div>` : ''}
-                        <p style="margin-top: 20px;">&copy; ${new Date().getFullYear()} ${companyName}. All rights reserved.</p>
-                        <p>You received this email because your account status on ${appName} was updated.</p>
+                        <div style="margin-top: 20px;">© ${new Date().getFullYear()} ${companyName}. All rights reserved.</div>
                     </div>
                 </div>
             </body>
             </html>
         `;
+
+        if (appDetails.email_settings?.user && appDetails.email_settings?.password) {
+            const settings: AppEmailSettings = {
+                provider: appDetails.email_settings.provider,
+                host: appDetails.email_settings.host,
+                port: appDetails.email_settings.port,
+                user: appDetails.email_settings.user,
+                pass: appDetails.email_settings.password,
+                fromName: appDetails.email_settings.from_name || appName,
+                fromAddress: appDetails.email_settings.from_address || appDetails.email_settings.user,
+            };
+            return await this.sendAppEmail(email, subject, html, settings);
+        }
+
+        return await this.sendEmail(email, subject, html);
+    }
+
+    static async sendKYCRejection(email: string, userName: string, reason: string, appDetails: any) {
+        const primaryColor = appDetails.branding?.primary_color || '#dc2626';
+        const logoUrl = appDetails.branding?.logo_url;
+        const appName = appDetails.app_name || 'Our Platform';
+
+        const subject = `Action Required: KYC Verification Update for ${appName}`;
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    .container { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9fafb; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; }
+                    .header { background-color: ${primaryColor}; padding: 30px; text-align: center; }
+                    .logo { max-width: 150px; height: auto; margin-bottom: 20px; }
+                    .content { padding: 40px 30px; background-color: #ffffff; }
+                    .title { color: #111827; font-size: 24px; font-weight: 800; margin-bottom: 16px; text-align: center; }
+                    .body-text { color: #4b5563; font-size: 16px; line-height: 1.6; margin-bottom: 24px; }
+                    .reason-box { background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 20px; margin: 24px 0; }
+                    .reason-title { color: #991b1b; font-weight: 700; margin-bottom: 8px; }
+                    .reason-text { color: #b91c1c; }
+                    .footer { background-color: #f3f4f6; padding: 30px; text-align: center; color: #9ca3af; font-size: 12px; }
+                    .btn { display: inline-block; background-color: ${primaryColor}; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 700; margin-top: 10px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        ${logoUrl ? `<img src="${logoUrl}" alt="${appName}" class="logo">` : `<h1 style="color: white; margin: 0;">${appName}</h1>`}
+                    </div>
+                    <div class="content">
+                        <h2 class="title">KYC Verification Update</h2>
+                        <p class="body-text">Hi ${userName},</p>
+                        <p class="body-text">We were unable to verify your identity documents for <strong>${appName}</strong> due to the following reason:</p>
+                        <div class="reason-box">
+                            <div class="reason-title">Reason for Rejection:</div>
+                            <div class="reason-text">${reason}</div>
+                        </div>
+                        <p class="body-text">Please log in to your dashboard to re-submit your verification documents correctly.</p>
+                        <div style="text-align: center; margin-top: 30px;">
+                            <a href="${appDetails.app_url || '#'}" class="btn">Re-submit Documents</a>
+                        </div>
+                    </div>
+                    <div class="footer">
+                        © ${new Date().getFullYear()} ${appName}. All rights reserved.
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+
+        if (appDetails.email_settings?.user && appDetails.email_settings?.password) {
+            const settings: AppEmailSettings = {
+                provider: appDetails.email_settings.provider,
+                host: appDetails.email_settings.host,
+                port: appDetails.email_settings.port,
+                user: appDetails.email_settings.user,
+                pass: appDetails.email_settings.password,
+                fromName: appDetails.email_settings.from_name || appName,
+                fromAddress: appDetails.email_settings.from_address || appDetails.email_settings.user,
+            };
+            return await this.sendAppEmail(email, subject, html, settings);
+        }
+
         return await this.sendEmail(email, subject, html);
     }
     static async sendAppBuildSuccess(email: string, appName: string, downloadLinks: { android?: string, web?: string }) {

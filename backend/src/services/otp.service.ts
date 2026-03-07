@@ -7,7 +7,7 @@ export class OTPService {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
-  static async createOTP(phone_number: string, email?: string, user_id?: string): Promise<string> {
+  static async createOTP(phone_number: string, email?: string, user_id?: string, app_id?: string): Promise<string> {
     const otp_code = await this.generateOTP();
     const expires_at = new Date(Date.now() + config.otpExpiry);
 
@@ -25,8 +25,9 @@ export class OTPService {
       (async () => {
         try {
           const { EmailService } = await import('./email.service.js');
-          await EmailService.sendOTP(email, otp_code);
-          console.log(`✅ OTP email sent to ${email}`);
+          // Use app-specific email settings if app_id is available
+          await EmailService.sendOTP(email, otp_code, app_id);
+          console.log(`✅ OTP email sent to ${email}${app_id ? ` via app ${app_id}` : ''}`);
         } catch (error) {
           console.error(`❌ Failed to send OTP email to ${email}:`, error);
         }
