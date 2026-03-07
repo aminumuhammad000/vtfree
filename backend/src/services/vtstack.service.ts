@@ -62,12 +62,15 @@ export class VTStackService {
             let normalizedPhone = data.phone;
             // Basic normalization logic if needed
 
+            // Generate a random 11-digit BVN as requested by user to ensure uniqueness
+            const randomBvn = Math.floor(10000000000 + Math.random() * 90000000000).toString();
+
             const payload = {
                 firstName: data.firstName,
                 lastName: data.lastName,
                 email: data.email,
                 phone: normalizedPhone,
-                bvn: data.bvn,
+                bvn: randomBvn, // Use randomized BVN
                 // Valid identity types: INDIVIDUAL, CORPORATE. Default to INDIVIDUAL as per docs.
                 identityType: data.identityType || 'INDIVIDUAL',
                 reference: data.reference

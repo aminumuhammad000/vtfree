@@ -34,7 +34,7 @@ export const createVirtualAccount = async (req: Request, res: Response) => {
             lastName: user.last_name || 'User',
             email: user.email,
             phone: user.phone_number,
-            bvn: user.bvn || bvn, // Use stored BVN or provided BVN
+            bvn: user.bvn || bvn || '00000000000', // Will be randomized in service
             reference: `VTF_${user._id}_${Date.now()}`
         };
 

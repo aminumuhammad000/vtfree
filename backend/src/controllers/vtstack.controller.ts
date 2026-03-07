@@ -55,20 +55,13 @@ export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
 
         const reference = `VTS-${userId}-${Date.now().toString(36)}`;
 
-        if (!user.bvn) {
-            return res.status(400).json({
-                success: false,
-                message: 'Your BVN is required to generate a virtual account. Please update your profile.'
-            });
-        }
-
         const payload = {
             firstName: user.first_name,
             lastName: user.last_name,
             email: user.email,
             phone: user.phone_number || '08000000000',
             reference,
-            bvn: user.bvn
+            bvn: user.bvn || '00000000000' // This will be overridden by the random BVN in the service
         };
 
         // Pass the app-specific key if available
