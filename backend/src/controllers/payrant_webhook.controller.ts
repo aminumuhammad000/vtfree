@@ -13,8 +13,9 @@ export const handlePayrantWebhook = async (req: Request, res: Response) => {
     try {
         const signature = req.headers['x-payrant-signature'] as string;
         const payload = req.body;
+        const appId = req.params.appId;
 
-        logger.info('Received Payrant Webhook:', JSON.stringify(payload));
+        logger.info(`Received Payrant Webhook${appId ? ` for App: ${appId}` : ''}:`, JSON.stringify(payload));
 
         if (payload.status !== 'success') {
             return res.status(200).json({ status: 'received' });
@@ -44,7 +45,11 @@ export const handlePayrantWebhook = async (req: Request, res: Response) => {
         }
 
         // 1. Try to find an App User with this virtual account
-        const appUser = await User.findOne({ 'virtual_account.account_number': accountNumber });
+        let userQuery: any = { 'virtual_account.account_number': accountNumber };
+        if (appId) {
+            userQuery.app_id = appId;
+        }
+        const appUser = await User.findOne(userQuery);
 
         if (appUser) {
             const app = await CreatedApp.findOne({ app_id: appUser.app_id });

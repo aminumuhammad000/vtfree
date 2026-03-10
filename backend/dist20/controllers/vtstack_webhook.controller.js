@@ -10,7 +10,8 @@ import logger from '../utils/logger.js';
 export const handleVTStackWebhook = async (req, res) => {
     try {
         const payload = req.body;
-        logger.info('Received VTStack Webhook:', JSON.stringify(payload, null, 2));
+        const appId = req.params.appId;
+        logger.info(`Received VTStack Webhook${appId ? ` for App: ${appId}` : ''}:`, JSON.stringify(payload, null, 2));
         if (!payload || !payload.data) {
             return res.status(400).json({ success: false, message: 'Invalid payload' });
         }
@@ -29,7 +30,11 @@ export const handleVTStackWebhook = async (req, res) => {
                 return res.status(200).json({ success: true, message: 'Already processed' });
             }
             // A. Check for App User
-            const appUser = await User.findOne({ 'virtual_account.account_number': accountNumber });
+            let userQuery = { 'virtual_account.account_number': accountNumber };
+            if (appId) {
+                userQuery.app_id = appId;
+            }
+            const appUser = await User.findOne(userQuery);
             if (appUser) {
                 let wallet = await Wallet.findOne({ user_id: appUser._id });
                 if (!wallet)
