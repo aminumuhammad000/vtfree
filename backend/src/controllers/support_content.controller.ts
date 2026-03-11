@@ -6,7 +6,8 @@ import { ApiResponse } from '../utils/response.js';
 export class SupportContentController {
     static async getContent(req: AuthRequest, res: Response) {
         try {
-            const query = req.user?.app_id ? { app_id: req.user.app_id } : {};
+            const app_id = req.user?.app_id || req.query.app_id;
+            const query = app_id ? { app_id } : {};
             let content = await SupportContent.findOne(query);
 
             if (!content) {
@@ -15,7 +16,7 @@ export class SupportContentController {
                     email: 'support@example.com',
                     phoneNumber: '+2340000000000',
                     whatsappNumber: '+2340000000000',
-                    app_id: req.user?.app_id
+                    app_id: app_id
                 });
             }
 

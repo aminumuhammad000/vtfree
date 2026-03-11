@@ -1,5 +1,6 @@
 import { useAlert } from '@/components/AlertContext';
 import { SupportContent, supportService } from '@/services/support.service';
+import { Config } from '@/constants/Config';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -51,7 +52,7 @@ export default function HelpSupportScreen() {
 
   const fetchSupportContent = async () => {
     try {
-      const response = await supportService.getSupportContent();
+      const response = await supportService.getSupportContent(Config.APP_ID);
       if (response.success) {
         setSupportContent(response.data);
       }

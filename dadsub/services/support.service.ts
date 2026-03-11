@@ -132,9 +132,11 @@ export const supportService = {
   /**
    * Get support contact content
    */
-  getSupportContent: async (): Promise<SupportContentResponse> => {
+  getSupportContent: async (appId?: string): Promise<SupportContentResponse> => {
     try {
-      const response = await api.get<SupportContentResponse>('/support-content');
+      const response = await api.get<SupportContentResponse>('/support-content', {
+        params: appId ? { app_id: appId } : {},
+      });
       return response.data;
     } catch (error: any) {
       throw error.response?.data || { success: false, message: 'Failed to fetch support content' };

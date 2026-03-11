@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { SupportContent, supportService } from '@/services/support.service';
+import { Config } from '@/constants/Config';
 import {
     View,
     Text,
@@ -15,6 +17,22 @@ import { useTheme } from '@/components/ThemeContext';
 export default function SupportScreen() {
     const router = useRouter();
     const { isDark } = useTheme();
+    const [supportContent, setSupportContent] = useState<SupportContent | null>(null);
+
+    useEffect(() => {
+        fetchSupportContent();
+    }, []);
+
+    const fetchSupportContent = async () => {
+        try {
+            const response = await supportService.getSupportContent(Config.APP_ID);
+            if (response.success) {
+                setSupportContent(response.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch support content:', error);
+        }
+    };
 
     const theme = {
         primary: '#00ADFF',
@@ -36,24 +54,43 @@ export default function SupportScreen() {
     const supportContacts = [
         {
             title: 'Email Support',
-            description: 'Send us an email',
+            description: supportContent?.email || 'support@vtfree.com',
             icon: 'mail',
             color: '#EA4335',
-            action: () => Linking.openURL('mailto:support@vtfree.com')
+            action: () => {
+                if (supportContent?.email) {
+                    Linking.openURL(`mailto:${supportContent.email}`);
+                } else {
+                    Linking.openURL('mailto:support@vtfree.com');
+                }
+            }
         },
         {
             title: 'WhatsApp Support',
-            description: 'Chat with us on WhatsApp',
+            description: supportContent?.whatsappNumber || 'Chat with us on WhatsApp',
             icon: 'logo-whatsapp',
             color: '#25D366',
-            action: () => Linking.openURL('https://wa.me/2348000000000') // Replace with actual number
+            action: () => {
+                if (supportContent?.whatsappNumber) {
+                    const cleanNumber = supportContent.whatsappNumber.replace(/[^0-9]/g, '');
+                    Linking.openURL(`https://wa.me/${cleanNumber}`);
+                } else {
+                    Linking.openURL('https://wa.me/2348000000000');
+                }
+            }
         },
         {
             title: 'Phone Support',
-            description: 'Call our customer care',
+            description: supportContent?.phoneNumber || 'Call our customer care',
             icon: 'call',
             color: '#00ADFF',
-            action: () => Linking.openURL('tel:+2348000000000') // Replace with actual number
+            action: () => {
+                if (supportContent?.phoneNumber) {
+                    Linking.openURL(`tel:${supportContent.phoneNumber}`);
+                } else {
+                    Linking.openURL('tel:+2348000000000');
+                }
+            }
         }
     ];
 
