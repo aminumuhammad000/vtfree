@@ -17,8 +17,8 @@ import {
 } from 'react-native';
 
 const theme = {
-  primary: '#0A2540',
-  accent: '#FF9F43',
+  primary: '#1E40AF',
+  accent: '#3B82F6',
   success: '#00D4AA',
   error: '#FF5B5B',
   backgroundLight: '#F8F9FA',
@@ -306,7 +306,7 @@ export default function HelpSupportScreen() {
               <View style={styles.resourceTextContainer}>
                 <Text style={[styles.resourceTitle, { color: textColor }]}>Visit Website</Text>
                 <Text style={[styles.resourceDescription, { color: textBodyColor }]}>
-                  {supportContent?.websiteUrl || 'www.dadsub.com'}
+                  {supportContent?.websiteUrl || 'www.abbasalehsub.com'}
                 </Text>
               </View>
             </View>

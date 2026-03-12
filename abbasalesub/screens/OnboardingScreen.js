@@ -77,8 +77,8 @@ const OnboardingScreen = ({ navigation }) => {
 
   // Default theme colors
   const theme = {
-    primary: "#0A2540",
-    accent: "#FF9F43",
+    primary: "#1E40AF",
+    accent: "#3B82F6",
     background: "#111418",
     text: "#FFFFFF",
     textSecondary: "#9dabb8",
@@ -111,7 +111,7 @@ const OnboardingScreen = ({ navigation }) => {
             style={styles.logo}
           />
           <Text style={[styles.logoText, { color: textColor }]}>
-            {branding?.app_display_name || 'DadSub'}
+            {branding?.app_display_name || 'AbbaSalehSub'}
           </Text>
         </View>
       </View>

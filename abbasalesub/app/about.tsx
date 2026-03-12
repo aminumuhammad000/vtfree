@@ -18,7 +18,7 @@ export default function AboutScreen() {
   const { isDark } = useTheme();
 
   const theme = {
-    primary: '#00ADFF',
+    primary: '#1E40AF',
     backgroundLight: '#FFFFFF',
     backgroundDark: '#000000',
     cardLight: '#F2F2F2',
@@ -35,9 +35,9 @@ export default function AboutScreen() {
   const textSecondaryColor = isDark ? theme.textSecondaryDark : theme.textSecondaryLight;
 
   const developerInfo = {
-    name: 'DadSub',
-    email: 'support@dadsub.com',
-    website: 'https://www.dadsub.com',
+    name: 'AbbaSalehSub',
+    email: 'support@abbasalehsub.com',
+    website: 'https://www.abbasalehsub.com',
   };
 
   const legalLinks = [
@@ -62,25 +62,25 @@ export default function AboutScreen() {
     {
       title: 'Twitter',
       icon: 'logo-twitter',
-      url: 'https://twitter.com/dadsub',
+      url: 'https://twitter.com/abbasalehsub',
       color: '#1DA1F2'
     },
     {
       title: 'Facebook',
       icon: 'logo-facebook',
-      url: 'https://facebook.com/dadsub',
+      url: 'https://facebook.com/abbasalehsub',
       color: '#4267B2'
     },
     {
       title: 'Instagram',
       icon: 'logo-instagram',
-      url: 'https://instagram.com/dadsub',
+      url: 'https://instagram.com/abbasalehsub',
       color: '#E1306C'
     },
     {
       title: 'LinkedIn',
       icon: 'logo-linkedin',
-      url: 'https://linkedin.com/company/dadsub',
+      url: 'https://linkedin.com/company/abbasalehsub',
       color: '#0077B5'
     }
   ];
@@ -185,7 +185,7 @@ export default function AboutScreen() {
 
         <View style={styles.footer}>
           <Text style={[styles.versionText, { color: textSecondaryColor }]}>Version 1.0.0</Text>
-          <Text style={[styles.copyrightText, { color: textSecondaryColor }]}>© 2024 DadSub</Text>
+          <Text style={[styles.copyrightText, { color: textSecondaryColor }]}>© 2024 AbbaSalehSub</Text>
         </View>
 
       </ScrollView>

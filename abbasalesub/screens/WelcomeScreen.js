@@ -70,7 +70,7 @@ const WelcomeScreen = () => {
     setCurrentIndex(index);
   };
 
-  const brandColor = branding?.primary_color || "#00ADFF";
+  const brandColor = branding?.primary_color || "#1E40AF";
   const textColor = isDark ? "#FFF" : "#000";
 
   return (
@@ -83,7 +83,7 @@ const WelcomeScreen = () => {
             resizeMode="contain"
           />
           <Text style={[styles.brandName, { color: textColor }]}>
-            {branding?.app_display_name || 'DadSub'}
+            {branding?.app_display_name || 'AbbaSalehSub'}
           </Text>
         </Animated.View>
 

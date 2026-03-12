@@ -1,22 +1,22 @@
 {
   "expo": {
-    "name": "DADSUB",
-    "slug": "dadsub",
+    "name": "ABBASALEHSUB",
+    "slug": "abbasalehsub",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
-    "scheme": "dadsub",
+    "scheme": "abbasalehsub",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.dadsub.app"
+      "bundleIdentifier": "com.abbasalehsub.app"
     },
     "android": {
-      "package": "com.dadsub.app",
+      "package": "com.abbasalehsub.app",
       "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#e0b105",
+        "backgroundColor": "#0066CC",
         "foregroundImage": "./assets/images/logo.png",
         "monochromeImage": "./assets/images/logo.png"
       },
@@ -51,7 +51,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "da22f6af-2bea-4f0e-ada5-b927cdb67239"
+        "projectId": "70594816-32c3-4f5b-b74a-88f5c363e209"
       }
     }
   }

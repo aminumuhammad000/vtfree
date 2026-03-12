@@ -53,6 +53,8 @@ export const handleVTStackWebhook = async (req: Request, res: Response) => {
                     wallet_id: wallet._id,
                     type: 'wallet_topup',
                     amount: creditAmount,
+                    fee: 0,
+                    total_charged: creditAmount,
                     status: 'successful',
                     reference_number: reference,
                     payment_method: 'vtstack',

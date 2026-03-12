@@ -5,7 +5,7 @@ const ENV = {
 };
 
 export const Config = {
-    APP_ID: 'dadsub',
+    APP_ID: 'abbasalehsub',
     API_URL: process.env.EXPO_PUBLIC_API_URL
         ? `${process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, '')}/api`
         : (ENV.IS_LOCAL ? `${ENV.DEV_API}/api` : `${ENV.PROD_API}/api`),
