@@ -180,6 +180,69 @@ class SMEPlugService {
   }
 
   /**
+   * Get cable providers
+   */
+  async getCableProviders() {
+    return { success: false, msg: 'Cable service not supported by this provider' };
+  }
+
+  /**
+   * Get cable TV plans
+   */
+  async getCableTVPlans() {
+    return [];
+  }
+
+  /**
+   * Verify cable account
+   */
+  async verifyCableAccount(data: any) {
+    return { status: false, msg: 'Cable verification not supported' };
+  }
+
+  /**
+   * Purchase cable TV
+   */
+  async purchaseCableTV(data: any) {
+    return { status: false, msg: 'Cable purchase not supported' };
+  }
+
+  /**
+   * Get electricity providers
+   */
+  async getElectricityProviders() {
+    return { success: false, msg: 'Electricity service not supported by this provider' };
+  }
+
+  /**
+   * Verify electricity meter
+   */
+  async verifyElectricityMeter(data: any) {
+    return { status: false, msg: 'Electricity verification not supported' };
+  }
+
+  /**
+   * Purchase electricity
+   */
+  async purchaseElectricity(data: any) {
+    return { status: false, msg: 'Electricity purchase not supported' };
+  }
+
+  /**
+   * Get exam pin providers
+   */
+  async getExamPinProviders() {
+    return [];
+  }
+
+  /**
+   * Purchase exam pin
+   */
+  async purchaseExamPin(data: any) {
+    return { status: false, msg: 'Exam pin purchase not supported' };
+  }
+
+  /**
    * Get transaction status
    * GET /v1/transactions/:reference
    */

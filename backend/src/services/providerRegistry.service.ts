@@ -1,8 +1,5 @@
 import ProviderConfig from '../models/provider.model.js';
-import topupmateService from './topupmate.service.js';
-import vtpassService from './vtpass.service.js';
 import smeplugService from './smeplug.service.js';
-import ibdataService from './ibdata.service.js';
 
 interface ProviderClient {
   getNetworks?: () => Promise<any>;
@@ -24,10 +21,7 @@ interface ProviderClient {
 
 class ProviderRegistryService {
   private clients: Record<string, ProviderClient> = {
-    topupmate: topupmateService,
-    vtpass: vtpassService,
     smeplug: smeplugService,
-    ibdata: ibdataService,
   };
 
   register(code: string, client: ProviderClient) {
@@ -54,32 +48,13 @@ class ProviderRegistryService {
 
     const providers = await ProviderConfig.find(filter).sort({ priority: 1, name: 1 });
 
-    // Check for IBData first regardless of other providers
-    const ibdataProvider = providers.find(p => p.code === 'ibdata');
-    if (ibdataProvider) {
-      const ibdataClient = this.getClient('ibdata');
-      if (ibdataClient) {
-        return { code: 'ibdata', client: ibdataClient };
-      }
-    }
-
-    // Then check other providers
+    // Iterate through providers and return the first one that has a registered client
     for (const p of providers) {
-      if (p.code !== 'ibdata') {
-        const client = this.getClient(p.code);
-        if (client) return { code: p.code, client };
-      }
+      const client = this.getClient(p.code);
+      if (client) return { code: p.code, client };
     }
 
-    // Final fallback to IBData if no provider found for this app
-    if (app_id) {
-      // Check if there is a global IBData fallback or if we should just use the client
-      const fallback = this.getClient('ibdata');
-      return fallback ? { code: 'ibdata', client: fallback } : null;
-    }
-
-    const fallback = this.getClient('ibdata');
-    return fallback ? { code: 'ibdata', client: fallback } : null;
+    return null;
   }
 }
 

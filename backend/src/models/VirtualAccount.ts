@@ -47,7 +47,7 @@ const VirtualAccountSchema = new Schema<IVirtualAccount>(
     provider: {
       type: String,
       default: 'vtstack',
-      enum: ['monnify', 'flutterwave', 'vtstack', 'ibdata'],
+      enum: ['vtstack'],
       required: true
     },
     reference: {

@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { Request, Response } from 'express';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { config } from '../config/bootstrap.js';
-import { AdminUser, AuditLog, Transaction, User, Zainbox, ApiKey, FeeRule, RiskRule, CreatedApp } from '../models/index.js';
+import { AdminUser, AuditLog, Transaction, User, ApiKey, FeeRule, RiskRule, CreatedApp } from '../models/index.js';
 import { AdminService } from '../services/admin.service.js';
 import { EmailService } from '../services/email.service.js';
 import { AuthRequest } from '../types/index.js';
@@ -537,24 +537,6 @@ export class AdminController {
     }
   }
 
-  // Zainbox Management
-  static async createZainbox(req: AuthRequest, res: Response) {
-    try {
-      const zainbox = await Zainbox.create(req.body);
-      return ApiResponse.success(res, zainbox, 'Zainbox created successfully', 201);
-    } catch (error: any) {
-      return ApiResponse.error(res, error.message, 500);
-    }
-  }
-
-  static async getAllZainboxes(req: AuthRequest, res: Response) {
-    try {
-      const zainboxes = await Zainbox.find().sort({ createdAt: -1 });
-      return ApiResponse.success(res, zainboxes, 'Zainboxes retrieved successfully');
-    } catch (error: any) {
-      return ApiResponse.error(res, error.message, 500);
-    }
-  }
 
   // API Key Management
   static async generateApiKey(req: AuthRequest, res: Response) {
@@ -700,11 +682,11 @@ export class AdminController {
           ipWhitelist: await configService.get('IP_WHITELIST', ''),
         },
         integrations: {
-          zainpay: {
-            apiKey: await configService.get('ZAINPAY_API_KEY', ''),
-            secretKey: await configService.get('ZAINPAY_SECRET_KEY', ''),
-            baseUrl: await configService.get('ZAINPAY_BASE_URL', 'https://api.zainpay.ng'),
-            isLive: (await configService.get('ZAINPAY_IS_LIVE', 'false')) === 'true',
+          vtstack: {
+            apiKey: await configService.get('VTSTACK_API_KEY', ''),
+            secretKey: await configService.get('VTSTACK_SECRET_KEY', ''),
+            baseUrl: await configService.get('VTSTACK_BASE_URL', 'https://api.vtstack.com.ng'),
+            isLive: (await configService.get('VTSTACK_IS_ACTIVE', 'false')) === 'true',
           }
         }
       };
@@ -746,13 +728,13 @@ export class AdminController {
         if (settings.security.ipWhitelist !== undefined) await configService.set('IP_WHITELIST', settings.security.ipWhitelist);
       }
 
-      if (settings.integrations && settings.integrations.zainpay) {
-        const zp = settings.integrations.zainpay;
-        console.log('Setting Zainpay config:', zp);
-        if (zp.apiKey !== undefined) await configService.set('ZAINPAY_API_KEY', zp.apiKey);
-        if (zp.secretKey !== undefined) await configService.set('ZAINPAY_SECRET_KEY', zp.secretKey);
-        if (zp.baseUrl !== undefined) await configService.set('ZAINPAY_BASE_URL', zp.baseUrl);
-        if (zp.isLive !== undefined) await configService.set('ZAINPAY_IS_LIVE', String(zp.isLive));
+      if (settings.integrations && settings.integrations.vtstack) {
+        const vts = settings.integrations.vtstack;
+        console.log('Setting VTStack config:', vts);
+        if (vts.apiKey !== undefined) await configService.set('VTSTACK_API_KEY', vts.apiKey);
+        if (vts.secretKey !== undefined) await configService.set('VTSTACK_SECRET_KEY', vts.secretKey);
+        if (vts.baseUrl !== undefined) await configService.set('VTSTACK_BASE_URL', vts.baseUrl);
+        if (vts.isLive !== undefined) await configService.set('VTSTACK_IS_ACTIVE', String(vts.isLive));
       }
 
       console.log('System settings updated successfully');

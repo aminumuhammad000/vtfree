@@ -32,12 +32,12 @@ router.delete('/virtual-account', authenticate, PaymentController.deactivateVirt
 
 /**
  * @route   POST /api/payment/initiate
- * @desc    Initialize payment for wallet funding (Monnify or Paystack)
+ * @desc    Initialize payment for wallet funding (VTStack)
  * @access  Private
  * @body    { 
  *   amount: number, 
- *   gateway?: 'monnify' | 'paystack',
- *   email?: string (required for Paystack)
+ *   gateway?: 'vtstack',
+ *   email?: string
  * }
  */
 router.post('/initiate', authenticate, PaymentController.initiatePayment);

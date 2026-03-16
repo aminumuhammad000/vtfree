@@ -22,7 +22,7 @@ router.post(
     body('accountNumber').notEmpty().withMessage('Account number is required'),
     body('accountName').notEmpty().withMessage('Account name is required'),
     body('reference').notEmpty().withMessage('Reference is required'),
-    body('provider').optional().isIn(['monnify', 'flutterwave']),
+    body('provider').optional().isIn(['vtstack']),
     body('status').optional().isIn(['active', 'inactive', 'suspended']),
   ],
   createOrUpdateVirtualAccount

@@ -4,7 +4,7 @@ import { Types } from 'mongoose';
 
 export class PaymentService {
   static async processPayment(data: any): Promise<any> {
-    // TODO: Integrate with payment gateway (Paystack, Flutterwave, etc.)
+    // TODO: Integrate with payment gateway (VTStack)
     return {
       success: true,
       reference: `REF-${Date.now()}`

@@ -29,7 +29,10 @@ export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
         }
         // ----------------------------------
 
-        if (user.kyc_status !== 'verified') {
+        const kycOptionalApps = ['dadsub', 'abbasalehsub'];
+        const isKycOptional = user.app_id && kycOptionalApps.includes(user.app_id);
+
+        if (!isKycOptional && user.kyc_status !== 'verified') {
             return res.status(403).json({
                 success: false,
                 message: 'KYC verification required. Please complete your profile verification to generate a virtual account.',

@@ -26,10 +26,6 @@ router.put('/admins/:id', SuperAdminController.updateAdmin);
 router.delete('/admins/:id', SuperAdminController.deleteAdmin);
 
 // Pricing & Plans
-router.get('/pricing/ibdata-plans', SuperAdminController.getIBDataPlans);
-router.post('/pricing/update-profit', SuperAdminController.updatePlanProfit);
-router.post('/pricing/sync-ibdata', SuperAdminController.syncIBDataPlans);
-router.get('/pricing/ibdata-balance', SuperAdminController.getIBDataBalance);
 router.get('/pricing/build-prices', SuperAdminController.getBuildPrices);
 router.post('/pricing/build-price', SuperAdminController.updateBuildPrice);
 
@@ -41,8 +37,6 @@ router.get('/dashboard', SuperAdminController.getDashboardStats);
 router.get('/transactions', SuperAdminController.getAllTransactions);
 router.get('/payments', SuperAdminController.getAllPayments);
 router.get('/wallets', SuperAdminController.getUserWallets);
-router.get('/withdrawals', SuperAdminController.getAllWithdrawals);
-router.patch('/withdrawals/:id/status', SuperAdminController.updateWithdrawalStatus);
 
 // Plans
 router.get('/plans', SuperAdminController.getAllPlans);

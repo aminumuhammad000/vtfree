@@ -2,8 +2,8 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IProviderConfig extends Document {
   app_id?: string; // Optional: if null, it's a global default
-  name: string; // e.g., Topupmate, VTpass, SME Plug
-  code: string; // machine code e.g., topupmate, vtpass, smeplug
+  name: string; // e.g., VTStack, SME Plug
+  code: string; // machine code e.g., vtstack, smeplug
   base_url?: string;
   api_key?: string;
   secret_key?: string;

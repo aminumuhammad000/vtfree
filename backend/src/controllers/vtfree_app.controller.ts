@@ -11,7 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { AppCreationService } from '../services/app_creation.service.js';
 import VTfreeUser from '../models/vtfree_user.model.js';
 import VTfreeTransaction from '../models/vtfree_transaction.model.js';
-// import { PaystackService } from '../services/paystack.service.js';
+// import { VTStackService } from '../services/vtstack.service.js';
 import { PricingService } from '../services/pricing.service.js';
 import { GitHubAutomationService } from '../services/github_automation.service.js';
 import { AppGeneratorService } from '../services/app_generator.service.js';
@@ -42,25 +42,8 @@ export const createApp = async (req: Request, res: Response) => {
         if (services && services.includes('giftcard')) totalAmount += PRICES.SERVICE_GIFTCARD;
 
         // 3. Handle Payment Method Checks
-        // If Card payment, initiate Paystack transaction
         if (payment_method === 'card') {
             return res.status(400).json({ success: false, message: 'Card payment is temporarily unavailable. Please use Wallet.' });
-            /*
-            const vtstackService = new VtstackService();
-            const transactionRecord = await vtstackService.initializeTransaction(
-                owner_email,
-                totalAmount,
-                `APP-${uuidv4()}`
-            );
-
-            return res.status(200).json({
-                success: true,
-                payment_required: true,
-                payment_url: transactionRecord.data.authorization_url,
-                reference: transactionRecord.data.reference,
-                amount: totalAmount
-            });
-            */
         }
 
         // If Wallet payment (default), check balance
@@ -172,36 +155,8 @@ export const verifyAppPayment = async (req: Request, res: Response) => {
         const owner_id = (req as any).user.id;
         const owner_email = (req as any).user.email;
 
-        // 1. Verify Paystack Payment
-        /*
-        const paystackService = new PaystackService();
-        const verification = await paystackService.verifyTransaction(reference);
-
-        if (!verification.status || verification.data.status !== 'success') {
-            return res.status(400).json({ success: false, message: 'Payment verification failed' });
-        }
-        */
+        // 1. Verify VTStack Payment
         return res.status(400).json({ success: false, message: 'Card payment verification unavailable.' });
-
-        /*
-        // 2. Check if reference already used (Idempotency)
-        const existingTx = await VTfreeTransaction.findOne({ reference });
-        if (existingTx) {
-            // App might already be created, check CreatedApp or just return error
-            return res.status(400).json({ success: false, message: 'Transaction already processed' });
-        }
-
-        // 3. Record Transaction
-        await VTfreeTransaction.create({
-            user_id: owner_id,
-            type: 'debit', // Recorded as debit/payment
-            amount: verification.data.amount / 100, // Convert Kobo to Naira
-            reference: reference,
-            description: `Card Payment for App Creation: ${appPayload.app_name}`,
-            status: 'success',
-            metadata: { ...appPayload, method: 'card', paystack_ref: reference }
-        });
-        */
 
         // 4. Create App
         const { app_name, package_name, platforms, branding, services } = appPayload;

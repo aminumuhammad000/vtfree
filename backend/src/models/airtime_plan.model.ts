@@ -10,7 +10,7 @@ export interface IAirtimePlan extends Document {
   price: number; // in Naira
   type: 'AIRTIME' | 'DATA' | 'CABLE' | 'UTILITY'; // AIRTIME, DATA, CABLE or UTILITY
   discount?: number; // discount percentage
-  source_provider?: string; // e.g., 'ibdata', 'smeplug', etc.
+  source_provider?: string; // e.g., 'vtstack', 'smeplug', etc.
   meta?: Record<string, any>;
   active: boolean;
   createdAt: Date;

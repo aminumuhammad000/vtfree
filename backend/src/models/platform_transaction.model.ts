@@ -58,7 +58,7 @@ const PlatformTransactionSchema: Schema = new Schema({
     },
     payment_provider: {
         type: String,
-        default: 'paystack',
+        default: 'vtstack',
     },
     status: {
         type: String,

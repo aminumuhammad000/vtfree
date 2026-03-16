@@ -3,7 +3,7 @@ import { NextFunction, Request, Response } from 'express';
 import AirtimePlan from '../models/airtime_plan.model.js';
 import { Transaction, User } from '../models/index.js';
 import providerRegistry from '../services/providerRegistry.service.js';
-import topupmateService from '../services/topupmate.service.js';
+import smeplugService from '../services/smeplug.service.js';
 import { WalletService } from '../services/wallet.service.js';
 import { AuthRequest } from '../types/index.js';
 import { normalizeNetwork } from '../utils/network.js';
@@ -15,8 +15,8 @@ export class BillPaymentController {
     try {
       const app_id = req.user?.app_id;
       const selected = await providerRegistry.getPreferredProviderFor('airtime', app_id);
-      const client = selected?.client || topupmateService;
-      const networks = await (client.getNetworks ? client.getNetworks() : topupmateService.getNetworks());
+      const client = selected?.client || smeplugService;
+      const networks = await (client.getNetworks ? client.getNetworks() : smeplugService.getNetworks());
       const payload = (networks as any).response || networks;
       return ApiResponse.success(res, 'Networks retrieved successfully', payload);
     } catch (error) {
@@ -96,8 +96,8 @@ export class BillPaymentController {
     try {
       const app_id = req.user?.app_id;
       const selected = await providerRegistry.getPreferredProviderFor('cable', app_id);
-      const client = selected?.client || topupmateService;
-      const providers = await (client.getCableProviders ? client.getCableProviders() : topupmateService.getCableProviders());
+      const client = selected?.client || smeplugService;
+      const providers = await (client.getCableProviders ? client.getCableProviders() : smeplugService.getCableProviders());
       const payload = (providers as any).response || providers;
       return ApiResponse.success(res, 'Cable providers retrieved successfully', payload);
     } catch (error) {
@@ -110,8 +110,8 @@ export class BillPaymentController {
     try {
       const app_id = req.user?.app_id;
       const selected = await providerRegistry.getPreferredProviderFor('electricity', app_id);
-      const client = selected?.client || topupmateService;
-      const providers = await (client.getElectricityProviders ? client.getElectricityProviders() : topupmateService.getElectricityProviders());
+      const client = selected?.client || smeplugService;
+      const providers = await (client.getElectricityProviders ? client.getElectricityProviders() : smeplugService.getElectricityProviders());
       const payload = (providers as any).response || providers;
       return ApiResponse.success(res, 'Electricity providers retrieved successfully', payload);
     } catch (error) {
@@ -124,8 +124,8 @@ export class BillPaymentController {
     try {
       const app_id = req.user?.app_id;
       const selected = await providerRegistry.getPreferredProviderFor('exampin', app_id);
-      const client = selected?.client || topupmateService;
-      const providers = await (client.getExamPinProviders ? client.getExamPinProviders() : topupmateService.getExamPinProviders());
+      const client = selected?.client || smeplugService;
+      const providers = await (client.getExamPinProviders ? client.getExamPinProviders() : smeplugService.getExamPinProviders());
       const payload = (providers as any).response || providers;
       return ApiResponse.success(res, 'Exam pin providers retrieved successfully', payload);
     } catch (error) {
@@ -179,7 +179,7 @@ export class BillPaymentController {
       }
 
       // Generate reference
-      const ref = topupmateService.generateReference('AIRTIME');
+      const ref = `AIR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
       // Get wallet for wallet_id
       const walletData = await WalletService.getWalletByUserId(userId);
@@ -203,7 +203,7 @@ export class BillPaymentController {
 
       try {
         const selected = await providerRegistry.getPreferredProviderFor('airtime', req.user?.app_id);
-        const client = selected?.client || topupmateService;
+        const client = selected?.client || smeplugService;
         const result = await (client.purchaseAirtime
           ? client.purchaseAirtime({
             network: String(providerId),
@@ -213,7 +213,7 @@ export class BillPaymentController {
             ported_number,
             amount: String(amount),
           })
-          : topupmateService.purchaseAirtime({
+          : smeplugService.purchaseAirtime({
             network: String(providerId),
             phone: String(phone),
             ref,
@@ -245,7 +245,7 @@ export class BillPaymentController {
             error_message: result.msg || 'Unknown error',
             updated_at: new Date()
           });
-          console.error('❌ Airtime purchase failed - TopUpMate Response:', JSON.stringify(result, null, 2));
+          console.error('❌ Airtime purchase failed - Provider Response:', JSON.stringify(result, null, 2));
           return ApiResponse.error(res, `Airtime purchase failed: ${result.msg || 'Unknown error'}`, 400);
         }
       } catch (error: any) {
@@ -330,7 +330,7 @@ export class BillPaymentController {
       }
 
       // Generate reference
-      const ref = topupmateService.generateReference('DATA');
+      const ref = `DATA-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
       // Get wallet for wallet_id
       const walletData = await WalletService.getWalletByUserId(userId);
@@ -355,17 +355,17 @@ export class BillPaymentController {
 
       try {
         const selected = await providerRegistry.getPreferredProviderFor('data', req.user?.app_id, dbPlan.source_provider);
-        const client = selected?.client || topupmateService;
+        const client = selected?.client || smeplugService;
         const result = await (client.purchaseData
           ? client.purchaseData({
             network: String(providerId),
             phone: String(phone),
             ref,
             plan: String(dbPlan.externalPlanId || dbPlan.code),
-            amount: Number(dbPlan.price), // Essential for VTPLUG
+            amount: Number(dbPlan.price),
             ported_number,
           })
-          : topupmateService.purchaseData({
+          : smeplugService.purchaseData({
             network: String(providerId),
             phone: String(phone),
             ref,
@@ -420,10 +420,10 @@ export class BillPaymentController {
       const { provider, iucnumber } = req.body;
       const app_id = (req as AuthRequest).user?.app_id;
       const selected = await providerRegistry.getPreferredProviderFor('cable', app_id);
-      const client = selected?.client || topupmateService;
+      const client = selected?.client || smeplugService;
       const result = await (client.verifyCableAccount
         ? client.verifyCableAccount({ provider: String(provider), iucnumber: String(iucnumber) })
-        : topupmateService.verifyCableAccount({ provider: String(provider), iucnumber: String(iucnumber) }));
+        : smeplugService.verifyCableAccount({ provider: String(provider), iucnumber: String(iucnumber) }));
 
       if (result.status === 'success' || result.status === true || result.status === 'true') {
         return ApiResponse.success(res, 'Account verification successful', {
@@ -452,9 +452,10 @@ export class BillPaymentController {
         });
       }
 
-      // Get plan details
-      const plans = await topupmateService.getCableTVPlans();
-      const selectedPlan = plans.response?.find((p: any) => p.id === plan);
+      // Get plan details (Note: SMEPlug and others might have different ways to fetch plans, normally from DB)
+      const plansArray = await smeplugService.getCableTVPlans();
+      const plans = (plansArray as any).response || plansArray;
+      const selectedPlan = plans?.find((p: any) => p.id === plan);
 
       if (!selectedPlan) {
         return ApiResponse.error(res, 'Invalid plan selected', 400);
@@ -469,7 +470,7 @@ export class BillPaymentController {
       }
 
       // Generate reference
-      const ref = topupmateService.generateReference('CABLE');
+      const ref = `CABLE-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
       // Deduct from wallet
       await WalletService.debit(userId, amount, 'Cable TV purchase');
@@ -486,10 +487,10 @@ export class BillPaymentController {
 
       try {
         const selected = await providerRegistry.getPreferredProviderFor('cable', req.user?.app_id);
-        const client = selected?.client || topupmateService;
+        const client = selected?.client || smeplugService;
         const result = await (client.purchaseCableTV
           ? client.purchaseCableTV({ provider, iucnumber, plan, ref, subtype, phone })
-          : topupmateService.purchaseCableTV({ provider, iucnumber, plan, ref, subtype, phone }));
+          : smeplugService.purchaseCableTV({ provider, iucnumber, plan, ref, subtype, phone }));
 
         // Update transaction status
         if (result.status === 'success' || result.status === true || result.status === 'true') {
@@ -530,10 +531,10 @@ export class BillPaymentController {
       const { provider, meternumber, metertype } = req.body;
       const app_id = (req as AuthRequest).user?.app_id;
       const selected = await providerRegistry.getPreferredProviderFor('electricity', app_id);
-      const client = selected?.client || topupmateService;
+      const client = selected?.client || smeplugService;
       const result = await (client.verifyElectricityMeter
         ? client.verifyElectricityMeter({ provider, meternumber, metertype })
-        : topupmateService.verifyElectricityMeter({ provider, meternumber, metertype }));
+        : smeplugService.verifyElectricityMeter({ provider, meternumber, metertype }));
 
       if (result.status === 'success' || result.status === true || result.status === 'true') {
         return ApiResponse.success(res, 'Meter verification successful', {
@@ -569,7 +570,7 @@ export class BillPaymentController {
       }
 
       // Generate reference
-      const ref = topupmateService.generateReference('ELECTRIC');
+      const ref = `ELEC-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
       // Deduct from wallet
       await WalletService.debit(userId, parseFloat(amount), 'Electricity purchase');
@@ -586,10 +587,10 @@ export class BillPaymentController {
 
       try {
         const selected = await providerRegistry.getPreferredProviderFor('electricity', req.user?.app_id);
-        const client = selected?.client || topupmateService;
+        const client = selected?.client || smeplugService;
         const result = await (client.purchaseElectricity
           ? client.purchaseElectricity({ provider, meternumber, amount, metertype, phone, ref })
-          : topupmateService.purchaseElectricity({ provider, meternumber, amount, metertype, phone, ref }));
+          : smeplugService.purchaseElectricity({ provider, meternumber, amount, metertype, phone, ref }));
 
         // Update transaction status
         if (result.status === 'success' || result.status === true || result.status === 'true') {
@@ -640,8 +641,9 @@ export class BillPaymentController {
       }
 
       // Get provider details
-      const providers = await topupmateService.getExamPinProviders();
-      const selectedProvider = providers.response?.find((p: any) => p.id === provider);
+      const providersArray = await smeplugService.getExamPinProviders();
+      const providers = (providersArray as any).response || providersArray;
+      const selectedProvider = providers?.find((p: any) => p.id === provider);
 
       if (!selectedProvider) {
         return ApiResponse.error(res, 'Invalid provider selected', 400);
@@ -656,7 +658,7 @@ export class BillPaymentController {
       }
 
       // Generate reference
-      const ref = topupmateService.generateReference('EXAMPIN');
+      const ref = `PIN-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
       // Deduct from wallet
       await WalletService.debit(userId, amount, 'Exam pin purchase');
@@ -673,10 +675,10 @@ export class BillPaymentController {
 
       try {
         const selected = await providerRegistry.getPreferredProviderFor('exampin', req.user?.app_id);
-        const client = selected?.client || topupmateService;
+        const client = selected?.client || smeplugService;
         const result = await (client.purchaseExamPin
           ? client.purchaseExamPin({ provider, quantity, ref })
-          : topupmateService.purchaseExamPin({ provider, quantity, ref }));
+          : smeplugService.purchaseExamPin({ provider, quantity, ref }));
 
         // Update transaction status
         if (result.status === 'success' || result.status === true || result.status === 'true') {
@@ -719,10 +721,10 @@ export class BillPaymentController {
       const app_id = (req as AuthRequest).user?.app_id;
 
       const selected = await providerRegistry.getPreferredProviderFor('airtime', app_id);
-      const client = selected?.client || topupmateService;
+      const client = selected?.client || smeplugService;
       const result = await (client.getTransactionStatus
         ? client.getTransactionStatus(reference)
-        : topupmateService.getTransactionStatus(reference));
+        : smeplugService.getTransactionStatus(reference));
 
       if (result.status === 'success' || result.status === true || result.status === 'true') {
         return ApiResponse.success(res, 'Transaction status retrieved', result.response);

@@ -31,14 +31,6 @@ export const getAppConfigs = async (req: Request, res: Response) => {
             { key: 'VTSTACK_API_KEY', value: app.payment_settings?.vtstack_api_key || '', group: 'PAYMENT' },
             { key: 'VTSTACK_SECRET_KEY', value: app.payment_settings?.vtstack_secret_key || '', group: 'PAYMENT' },
             { key: 'VTSTACK_PUBLIC_KEY', value: app.payment_settings?.vtstack_public_key || '', group: 'PAYMENT' },
-            { key: 'PAYSTACK_SECRET_KEY', value: app.payment_settings?.paystack_secret_key || '', group: 'PAYMENT' },
-            { key: 'PAYSTACK_PUBLIC_KEY', value: app.payment_settings?.paystack_public_key || '', group: 'PAYMENT' },
-            { key: 'MONNIFY_API_KEY', value: app.payment_settings?.monnify_api_key || '', group: 'PAYMENT' },
-            { key: 'MONNIFY_SECRET_KEY', value: app.payment_settings?.monnify_secret_key || '', group: 'PAYMENT' },
-            { key: 'MONNIFY_CONTRACT_CODE', value: app.payment_settings?.monnify_contract_code || '', group: 'PAYMENT' },
-            { key: 'PAYRANT_API_KEY', value: app.payment_settings?.payrant_api_key || '', group: 'PAYMENT' },
-            { key: 'PAYRANT_WEBHOOK_SECRET', value: app.payment_settings?.payrant_webhook_secret || '', group: 'PAYMENT' },
-            { key: 'PAYRANT_IS_ACTIVE', value: app.payment_settings?.payrant_is_active ? 'true' : 'false', group: 'PAYMENT' },
 
             // Referral Settings
             { key: 'REFERRAL_ENABLED', value: app.referral_settings?.enabled ? 'true' : 'false', group: 'REFERRAL' },
@@ -85,7 +77,6 @@ export const updateAppConfig = async (req: Request, res: Response) => {
             case 'DEFAULT_PAYMENT_GATEWAY': app.payment_settings.default_gateway = value; break;
             case 'VTSTACK_API_KEY': app.payment_settings.vtstack_api_key = value; break;
             case 'VTSTACK_SECRET_KEY':
-            case 'VTSTACK_SECRET_KEY': // Alias
                 // Validate API Key
                 if (value && value.length > 5) {
                     try {
@@ -102,14 +93,6 @@ export const updateAppConfig = async (req: Request, res: Response) => {
                 app.payment_settings.vtstack_secret_key = value;
                 break;
             case 'VTSTACK_PUBLIC_KEY': app.payment_settings.vtstack_public_key = value; break;
-            case 'PAYSTACK_SECRET_KEY': app.payment_settings.paystack_secret_key = value; break;
-            case 'PAYSTACK_PUBLIC_KEY': app.payment_settings.paystack_public_key = value; break;
-            case 'MONNIFY_API_KEY': app.payment_settings.monnify_api_key = value; break;
-            case 'MONNIFY_SECRET_KEY': app.payment_settings.monnify_secret_key = value; break;
-            case 'MONNIFY_CONTRACT_CODE': app.payment_settings.monnify_contract_code = value; break;
-            case 'PAYRANT_API_KEY': app.payment_settings.payrant_api_key = value; break;
-            case 'PAYRANT_WEBHOOK_SECRET': app.payment_settings.payrant_webhook_secret = value; break;
-            case 'PAYRANT_IS_ACTIVE': app.payment_settings.payrant_is_active = value === 'true'; break;
 
             // Referral
             case 'REFERRAL_ENABLED':

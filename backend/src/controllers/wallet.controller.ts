@@ -115,30 +115,6 @@ export class WalletController {
     }
   }
 
-  static async transferFunds(req: AuthRequest, res: Response) {
-    try {
-      const { recipient_email, amount, remarks } = req.body;
-
-      if (amount <= 0) {
-        return ApiResponse.error(res, 'Invalid amount', 400);
-      }
-
-      const senderWallet = await Wallet.findOne({ user_id: req.user?.id });
-      if (!senderWallet) {
-        return ApiResponse.error(res, 'Sender wallet not found', 404);
-      }
-
-      if (senderWallet.balance < amount) {
-        return ApiResponse.error(res, 'Insufficient balance', 400);
-      }
-
-      await WalletService.debitWallet(senderWallet.user_id, amount);
-
-      return ApiResponse.success(res, null, 'Transfer initiated successfully');
-    } catch (error: any) {
-      return ApiResponse.error(res, error.message, 500);
-    }
-  }
   static async creditWallet(req: AuthRequest, res: Response) {
     try {
       const { userId, amount, description } = req.body;

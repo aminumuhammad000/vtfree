@@ -102,14 +102,6 @@ export interface ICreatedApp extends Document {
         vtstack_api_key?: string;
         vtstack_secret_key?: string;
         vtstack_public_key?: string;
-        paystack_secret_key?: string;
-        paystack_public_key?: string;
-        monnify_api_key?: string;
-        monnify_secret_key?: string;
-        monnify_contract_code?: string;
-        payrant_api_key?: string;
-        payrant_webhook_secret?: string;
-        payrant_is_active?: boolean;
     };
 
     // Referral Settings
@@ -344,14 +336,6 @@ const CreatedAppSchema: Schema = new Schema({
         vtstack_api_key: { type: String },
         vtstack_secret_key: { type: String },
         vtstack_public_key: { type: String },
-        paystack_secret_key: { type: String },
-        paystack_public_key: { type: String },
-        monnify_api_key: { type: String },
-        monnify_secret_key: { type: String },
-        monnify_contract_code: { type: String },
-        payrant_api_key: { type: String },
-        payrant_webhook_secret: { type: String },
-        payrant_is_active: { type: Boolean, default: false },
     },
 
     // Referral Settings

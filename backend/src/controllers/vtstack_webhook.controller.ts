@@ -97,39 +97,6 @@ export const handleVTStackWebhook = async (req: Request, res: Response) => {
             }
         }
 
-        // 2. Handle Transfer (Payout) Updates
-        if (event === 'transfer.success' || event === 'transfer.failed') {
-            const isSuccess = event === 'transfer.success';
-
-            // Look for the transaction by reference
-            const tx = await Transaction.findOne({ reference_number: reference });
-            if (tx) {
-                tx.status = isSuccess ? 'successful' : 'failed';
-                if (data.reason || data.message) {
-                    tx.description = `${tx.description} - ${data.reason || data.message}`;
-                }
-                await tx.save();
-
-                // If failed, refund the user
-                if (!isSuccess) {
-                    await WalletService.creditWallet(tx.user_id, tx.amount + (tx.fee || 0));
-                    logger.info(`VTStack Payout: Refunded ${tx.amount} to user ${tx.user_id} due to failure`);
-                }
-
-                // Notify User
-                await NotificationService.createNotification({
-                    user_id: tx.user_id,
-                    type: 'payout_update',
-                    title: isSuccess ? 'Transfer Successful' : 'Transfer Failed',
-                    message: isSuccess
-                        ? `Your transfer of ₦${tx.amount.toLocaleString()} was successful.`
-                        : `Your transfer of ₦${tx.amount.toLocaleString()} failed. Amount has been refunded to your wallet.`,
-                    action_link: '/(tabs)/transactions'
-                });
-
-                return res.status(200).json({ success: true });
-            }
-        }
 
         return res.status(200).json({ success: true, message: 'Event received but no action taken' });
 

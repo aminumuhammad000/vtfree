@@ -35,8 +35,9 @@ export class UserController {
           return obj;
         }, {});
 
-      // Auto-approve KYC for 'dadsub' app
-      if (req.user?.app_id === 'dadsub' && updates.kyc_status === 'pending') {
+      // Auto-approve KYC for specific apps
+      const autoApproveApps = ['dadsub', 'abbasalehsub'];
+      if (req.user?.app_id && autoApproveApps.includes(req.user.app_id) && updates.kyc_status === 'pending') {
         updates.kyc_status = 'verified';
       }
 
@@ -57,8 +58,9 @@ export class UserController {
       const { kyc_document_id_front_url, kyc_document_id_back_url } = req.body;
       let kycStatus = 'pending';
 
-      // Auto-approve KYC for 'dadsub' app
-      if (req.user?.app_id === 'dadsub') {
+      // Auto-approve KYC for specific apps
+      const autoApproveApps = ['dadsub', 'abbasalehsub'];
+      if (req.user?.app_id && autoApproveApps.includes(req.user.app_id)) {
         kycStatus = 'verified';
       }
 

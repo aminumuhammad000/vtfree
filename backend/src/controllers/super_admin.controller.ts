@@ -12,7 +12,6 @@ import AppAdmin from '../models/app_admin.model.js';
 import AirtimePlan from '../models/airtime_plan.model.js';
 import Feature from '../models/Feature.js';
 import { Plan } from '../models/plan.model.js';
-import ibdataService from '../services/ibdata.service.js';
 import logger from '../utils/logger.js';
 import { normalizeNetwork, getNetworkName, NetworkId } from '../utils/network.js';
 import { VTStackService } from '../services/vtstack.service.js';
@@ -325,7 +324,7 @@ export const getAllAdmins = async (req: Request, res: Response) => {
             return {
                 ...admin.toObject(),
                 app_name: appName,
-                ibdata_balance: ownerBalance,
+                owner_balance: ownerBalance,
                 owner_id: ownerId
             };
         }));
@@ -591,48 +590,13 @@ export const getUserWallets = async (req: Request, res: Response) => {
     }
 };
 
-export const getAllWithdrawals = async (req: Request, res: Response) => {
-    try {
-        const { Withdrawal } = await import('../models/withdrawal.model.js');
-        const withdrawals = await Withdrawal.find()
-            .populate('user_id', 'first_name last_name email')
-            .sort({ created_at: -1 });
 
-        res.json({ success: true, data: { withdrawals } });
-    } catch (error) {
-        console.error('Get withdrawals error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-};
-
-export const updateWithdrawalStatus = async (req: Request, res: Response) => {
-    try {
-        const { id } = req.params;
-        const { status, reason } = req.body;
-        const { Withdrawal } = await import('../models/withdrawal.model.js');
-
-        const withdrawal = await Withdrawal.findByIdAndUpdate(
-            id,
-            { status, reason, updated_at: new Date() },
-            { new: true }
-        );
-
-        if (!withdrawal) {
-            return res.status(404).json({ success: false, message: 'Withdrawal not found' });
-        }
-
-        res.json({ success: true, message: 'Withdrawal status updated', data: { withdrawal } });
-    } catch (error) {
-        console.error('Update withdrawal status error:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-};
 
 export const getAllTransactions = async (req: Request, res: Response) => {
     try {
         const { limit = 50, offset = 0, source = 'local' } = req.query;
 
-        if (source === 'vtstack' || source === 'vtstack') {
+        if (source === 'vtstack') {
             // @ts-ignore
             const result = await VTStackService.getAllTransactions(Number(limit), Number(offset));
             const normalized = result.data.transactions.map((tx: any) => ({
@@ -888,11 +852,11 @@ export const getSystemSettings = async (req: Request, res: Response) => {
                 ipWhitelist: await configService.get('IP_WHITELIST', ''),
             },
             integrations: {
-                zainpay: {
-                    apiKey: await configService.get('ZAINPAY_API_KEY', ''),
-                    secretKey: await configService.get('ZAINPAY_SECRET_KEY', ''),
-                    baseUrl: await configService.get('ZAINPAY_BASE_URL', 'https://api.zainpay.ng'),
-                    isLive: (await configService.get('ZAINPAY_IS_LIVE', 'false')) === 'true',
+                vtstack: {
+                    apiKey: await configService.get('VTSTACK_API_KEY', ''),
+                    secretKey: await configService.get('VTSTACK_SECRET_KEY', ''),
+                    baseUrl: await configService.get('VTSTACK_BASE_URL', 'https://api.vtstack.com.ng'),
+                    isLive: (await configService.get('VTSTACK_IS_LIVE', 'false')) === 'true',
                 }
             }
         };
@@ -930,12 +894,12 @@ export const updateSystemSettings = async (req: Request, res: Response) => {
             if (settings.security.ipWhitelist !== undefined) await configService.set('IP_WHITELIST', settings.security.ipWhitelist);
         }
 
-        if (settings.integrations && settings.integrations.zainpay) {
-            const zp = settings.integrations.zainpay;
-            if (zp.apiKey !== undefined) await configService.set('ZAINPAY_API_KEY', zp.apiKey);
-            if (zp.secretKey !== undefined) await configService.set('ZAINPAY_SECRET_KEY', zp.secretKey);
-            if (zp.baseUrl !== undefined) await configService.set('ZAINPAY_BASE_URL', zp.baseUrl);
-            if (zp.isLive !== undefined) await configService.set('ZAINPAY_IS_LIVE', String(zp.isLive));
+        if (settings.integrations && settings.integrations.vtstack) {
+            const vts = settings.integrations.vtstack;
+            if (vts.apiKey !== undefined) await configService.set('VTSTACK_API_KEY', vts.apiKey);
+            if (vts.secretKey !== undefined) await configService.set('VTSTACK_SECRET_KEY', vts.secretKey);
+            if (vts.baseUrl !== undefined) await configService.set('VTSTACK_BASE_URL', vts.baseUrl);
+            if (vts.isLive !== undefined) await configService.set('VTSTACK_IS_LIVE', String(vts.isLive));
         }
 
         res.json({ success: true, message: 'System settings updated successfully' });
@@ -1002,172 +966,6 @@ export const updateTicketStatus = async (req: Request, res: Response) => {
     }
 };
 
-export const getIBDataPlans = async (req: Request, res: Response) => {
-    try {
-        const { type } = req.query;
-        let apiPlans: any[] = [];
-
-        // Fetch from API based on type
-        if (type === 'data' || !type) {
-            const dataPlans = await ibdataService.getDataPlans();
-            apiPlans = [...apiPlans, ...(Array.isArray(dataPlans) ? dataPlans.map((p: any) => ({ ...p, type: 'data' })) : [])];
-        }
-
-        if (type === 'airtime' || !type) {
-            // IBData usually returns airtime as part of networks or separate, 
-            // but for now let's assume we want to show it.
-            // If IBData doesn't have a specific airtime plans endpoint, we might just show networks.
-            const networks = await ibdataService.getNetworks();
-            if (Array.isArray(networks)) {
-                apiPlans = [...apiPlans, ...networks.map((n: any) => ({
-                    plan_id: `airtime_${n.network_id || n.id}`,
-                    plan_name: `${n.name} Airtime`,
-                    price: 100, // Base price for 100 airtime
-                    network: n.network_id || n.id,
-                    type: 'airtime'
-                }))];
-            }
-        }
-
-        if (type === 'cable' || !type) {
-            const cablePlans = await ibdataService.getCablePlans();
-            apiPlans = [...apiPlans, ...(Array.isArray(cablePlans) ? cablePlans.map((p: any) => ({ ...p, type: 'cable' })) : [])];
-        }
-
-        if (type === 'utility' || !type) {
-            const utilityPlans = await ibdataService.getUtilityPlans();
-            apiPlans = [...apiPlans, ...(Array.isArray(utilityPlans) ? utilityPlans.map((p: any) => ({ ...p, type: 'utility' })) : [])];
-        }
-
-        // Fetch global profit settings
-        const globalPlans = await AirtimePlan.find({ app_id: null });
-
-        // Merge API plans with global settings
-        const mergedPlans = apiPlans.map(apiPlan => {
-            const planIdStr = String(apiPlan.plan_id);
-            const globalPlan = globalPlans.find(gp => String(gp.externalPlanId) === planIdStr || gp.code === `IBDATA_${planIdStr}`);
-
-            const profit_percentage = Math.ceil(globalPlan?.meta?.profit_percentage || 0);
-            const base_price = Math.ceil(apiPlan.price || 0);
-            const selling_price = globalPlan ? Math.ceil(globalPlan.price) : base_price;
-
-            // Resolve network name
-            let networkName = apiPlan.network_name || apiPlan.network || 'Unknown';
-            const normalized = normalizeNetwork(networkName);
-            if (normalized) {
-                networkName = getNetworkName(normalized as NetworkId);
-            }
-
-            return {
-                id: apiPlan.plan_id,
-                network: networkName,
-                type: apiPlan.type,
-                plan_name: apiPlan.plan_name,
-                base_price,
-                profit_percentage,
-                selling_price,
-                status: globalPlan ? (globalPlan.active ? 'active' : 'inactive') : 'active'
-            };
-        });
-
-        res.json({ success: true, data: mergedPlans });
-    } catch (error) {
-        console.error('Error fetching IBData plans:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-};
-
-export const updatePlanProfit = async (req: Request, res: Response) => {
-    try {
-        const { planId, profitPercentage, type, name, basePrice, network } = req.body;
-
-        if (planId === undefined || profitPercentage === undefined || !type || !name || basePrice === undefined) {
-            const missing = [];
-            if (planId === undefined) missing.push('planId');
-            if (profitPercentage === undefined) missing.push('profitPercentage');
-            if (!type) missing.push('type');
-            if (!name) missing.push('name');
-            if (basePrice === undefined) missing.push('basePrice');
-
-            logger.error('Missing fields in updatePlanProfit:', { missing, body: req.body });
-            return res.status(400).json({ success: false, message: `Missing required fields: ${missing.join(', ')}` });
-        }
-
-        const sellingPrice = Math.ceil(Number(basePrice) * (1 + Number(profitPercentage) / 100));
-        const planIdStr = String(planId);
-
-        let plan = await AirtimePlan.findOne({ app_id: null, externalPlanId: planIdStr });
-
-        if (plan) {
-            plan.price = sellingPrice;
-            plan.meta = { ...plan.meta, profit_percentage: Math.ceil(Number(profitPercentage)), base_price: Math.ceil(Number(basePrice)), network };
-            await plan.save();
-        } else {
-            plan = await AirtimePlan.create({
-                app_id: null,
-                providerId: 1, // Default to 1 for IBData
-                providerName: 'IBData',
-                externalPlanId: planIdStr,
-                code: `IBDATA_${planIdStr}`,
-                name: name,
-                price: sellingPrice,
-                type: type.toUpperCase(),
-                meta: { profit_percentage: Math.ceil(Number(profitPercentage)), base_price: Math.ceil(Number(basePrice)), network },
-                active: true
-            });
-        }
-
-        res.json({ success: true, message: 'Profit updated successfully', data: plan });
-    } catch (error: any) {
-        logger.error('Error updating plan profit:', error);
-        res.status(500).json({ success: false, message: error.message || 'Server error' });
-    }
-};
-
-export const syncIBDataPlans = async (req: Request, res: Response) => {
-    try {
-        // This could be a background job, but for now let's do it synchronously
-        const dataPlans = await ibdataService.getDataPlans();
-        const globalPlans = await AirtimePlan.find({ app_id: null });
-
-        let syncedCount = 0;
-        if (Array.isArray(dataPlans)) {
-            for (const p of dataPlans) {
-                const existing = globalPlans.find(gp => gp.externalPlanId === p.plan_id);
-                if (!existing) {
-                    await AirtimePlan.create({
-                        app_id: null,
-                        providerId: 1,
-                        providerName: 'IBData',
-                        externalPlanId: String(p.plan_id),
-                        code: `IBDATA_${p.plan_id}`,
-                        name: p.plan_name,
-                        price: Math.ceil(p.price), // Default selling price = base price (0 profit)
-                        type: 'DATA',
-                        meta: { profit_percentage: 0, base_price: Math.ceil(p.price), network: p.network_name },
-                        active: true
-                    });
-                    syncedCount++;
-                }
-            }
-        }
-
-        res.json({ success: true, message: `Synced ${syncedCount} new plans` });
-    } catch (error) {
-        logger.error('Error syncing IBData plans:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-};
-
-export const getIBDataBalance = async (req: Request, res: Response) => {
-    try {
-        const balance = await ibdataService.getWalletBalance();
-        res.json({ success: true, data: balance });
-    } catch (error) {
-        logger.error('Error fetching IBData balance:', error);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-};
 
 // ============================================
 // VTSTACK MANAGEMENT

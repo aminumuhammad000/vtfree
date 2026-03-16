@@ -52,7 +52,7 @@ class ConfigService {
             { key: 'MAIL_FROM_NAME', group: 'EMAIL', description: 'Sender Name' },
             { key: 'MAIL_FROM_ADDRESS', group: 'EMAIL', description: 'Sender Email Address' },
             { key: 'MAIL_PROVIDER', group: 'EMAIL', description: 'Email Provider (gmail/other)' },
-            { key: 'DEFAULT_PAYMENT_GATEWAY', group: 'PAYMENT', description: 'Default Payment Gateway (vtstack/paystack/monnify)' },
+            { key: 'DEFAULT_PAYMENT_GATEWAY', group: 'PAYMENT', description: 'Default Payment Gateway (vtstack)' },
 
             { key: 'TERMII_API_KEY', group: 'SMS', description: 'Termii API Key' },
             { key: 'TERMII_SENDER_ID', group: 'SMS', description: 'Termii Sender ID' },
@@ -60,30 +60,11 @@ class ConfigService {
             { key: 'JWT_SECRET', group: 'SECURITY', description: 'JWT Secret Key' },
             { key: 'JWT_EXPIRY', group: 'SECURITY', description: 'JWT Expiry Time' },
 
-            { key: 'MONNIFY_API_KEY', group: 'PAYMENT', description: 'Monnify API Key' },
-            { key: 'MONNIFY_SECRET_KEY', group: 'PAYMENT', description: 'Monnify Secret Key' },
-            { key: 'MONNIFY_CONTRACT_CODE', group: 'PAYMENT', description: 'Monnify Contract Code' },
-            { key: 'MONNIFY_BASE_URL', group: 'PAYMENT', description: 'Monnify Base URL' },
-
-            { key: 'ZAINPAY_API_KEY', group: 'PAYMENT', description: 'Zainpay API Key' },
-            { key: 'ZAINPAY_SECRET_KEY', group: 'PAYMENT', description: 'Zainpay Secret Key' },
-            { key: 'ZAINPAY_BASE_URL', group: 'PAYMENT', description: 'Zainpay Base URL' },
-            { key: 'ZAINPAY_IS_LIVE', group: 'PAYMENT', description: 'Zainpay Live Mode' },
-
             { key: 'VTSTACK_API_KEY', group: 'PAYMENT', description: 'VTStack API Key (Default Gateway)' },
             { key: 'VTSTACK_BASE_URL', group: 'PAYMENT', description: 'VTStack Base URL' },
             { key: 'VTSTACK_SECRET_KEY', group: 'PAYMENT', description: 'VTStack Secret Key' },
             { key: 'VTSTACK_PUBLIC_KEY', group: 'PAYMENT', description: 'VTStack Public Key' },
             { key: 'VTSTACK_IS_ACTIVE', group: 'PAYMENT', description: 'VTStack Gateway Status (true/false)' },
-
-            { key: 'PAYSTACK_SECRET_KEY', group: 'PAYMENT', description: 'Paystack Secret Key' },
-            { key: 'PAYSTACK_PUBLIC_KEY', group: 'PAYMENT', description: 'Paystack Public Key' },
-            { key: 'PAYSTACK_IS_ACTIVE', group: 'PAYMENT', description: 'Paystack Gateway Status' },
-
-            { key: 'FLUTTERWAVE_SECRET_KEY', group: 'PAYMENT', description: 'Flutterwave Secret Key' },
-            { key: 'FLUTTERWAVE_PUBLIC_KEY', group: 'PAYMENT', description: 'Flutterwave Public Key' },
-            { key: 'FLUTTERWAVE_ENCRYPTION_KEY', group: 'PAYMENT', description: 'Flutterwave Encryption Key' },
-            { key: 'FLUTTERWAVE_IS_ACTIVE', group: 'PAYMENT', description: 'Flutterwave Gateway Status' },
 
             { key: 'KYC_AUTO_APPROVE', group: 'SECURITY', description: 'Auto-approve KYC uploads (true/false)' },
             { key: 'NODE_ENV', group: 'SYSTEM', description: 'Environment (development/production)' },
@@ -97,10 +78,6 @@ class ConfigService {
             { key: 'APP_UPGRADE_FEE', group: 'PRICING', description: 'Fee for upgrading app to latest version', value: '5000' },
             { key: 'APP_UPGRADE_ENABLED', group: 'SYSTEM', description: 'Enable/Disable App Upgrades', value: 'true' },
             { key: 'LATEST_TEMPLATE_VERSION', group: 'SYSTEM', description: 'Latest App Template Version', value: '2.0.0' },
-
-            { key: 'PAYRANT_API_KEY', group: 'PAYMENT', description: 'Payrant API Key (Admin Default)' },
-            { key: 'PAYRANT_BASE_URL', group: 'PAYMENT', description: 'Payrant Base URL', value: 'https://api-core.payrant.com/' },
-            { key: 'PAYRANT_IS_ACTIVE', group: 'PAYMENT', description: 'Payrant Gateway Status (true/false)', value: 'false' },
         ];
 
         for (const def of defaults) {

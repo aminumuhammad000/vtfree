@@ -11,16 +11,16 @@ const APP_ID = 'vtu_app_001';
 const PROVIDERS = [
     {
         app_id: APP_ID,
-        name: 'IBDATA',
-        code: 'ibdata',
-        base_url: 'https://api.ibdata.com.ng/api',
-        api_key: process.env.IBDATA_API_KEY || '',
+        name: 'VTStack',
+        code: 'vtstack',
+        base_url: 'https://api.vtstack.com.ng/api',
+        api_key: process.env.VTSTACK_API_KEY || '',
         active: true,
         priority: 1,
-        supported_services: ['airtime', 'data'],
+        supported_services: ['payment', 'virtual_account'],
         metadata: {
             env: {
-                IBDATA_API_KEY: process.env.IBDATA_API_KEY || ''
+                VTSTACK_API_KEY: process.env.VTSTACK_API_KEY || ''
             }
         }
     },
@@ -36,21 +36,6 @@ const PROVIDERS = [
         metadata: {
             env: {
                 SMEPLUG_API_KEY: 'acc5a5e0c43bcd66498b0bf68aa38f2bf3290019e09f7305f6d158106f09475f'
-            }
-        }
-    },
-    {
-        app_id: APP_ID,
-        name: 'TOPUPMATE',
-        code: 'topupmate',
-        base_url: 'https://connect.topupmate.com/api',
-        api_key: '',
-        active: false,
-        priority: 3,
-        supported_services: ['airtime', 'data', 'cable', 'electricity', 'exampin'],
-        metadata: {
-            env: {
-                TOPUPMATE_API_KEY: ''
             }
         }
     }

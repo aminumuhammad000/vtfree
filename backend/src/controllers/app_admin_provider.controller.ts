@@ -15,31 +15,7 @@ export class AppAdminProviderController {
             const filter: any = { app_id };
             if (active !== undefined) filter.active = String(active) === 'true';
 
-            let providers = await ProviderConfig.find(filter).sort({ priority: 1, name: 1 });
-
-            // Ensure IBData exists and is first
-            let ibdataProvider = providers.find(p => p.code === 'ibdata');
-
-            if (!ibdataProvider) {
-                // Auto-create IBData provider if it doesn't exist
-                ibdataProvider = await ProviderConfig.create({
-                    app_id,
-                    name: 'VTPLUG (Default)',
-                    code: 'ibdata',
-                    active: true,
-                    priority: 0,
-                    supported_services: ['airtime', 'data'],
-                    metadata: {
-                        is_default: true,
-                        auto_configured: true,
-                        description: 'Pre-configured provider. No API key needed - funded via VTFree wallet.'
-                    }
-                });
-                logger.info(`Auto-created IBData provider for app: ${app_id}`);
-
-                // Refresh the list
-                providers = await ProviderConfig.find(filter).sort({ priority: 1, name: 1 });
-            }
+            const providers = await ProviderConfig.find(filter).sort({ priority: 1, name: 1 });
 
             const sanitized = providers.map((p: any) => {
                 const obj = p.toObject();
@@ -47,9 +23,8 @@ export class AppAdminProviderController {
                     obj.metadata = { ...obj.metadata };
                     delete obj.metadata.env;
                 }
-                // Add flag to indicate if it's the default provider
-                obj.is_default = obj.code === 'ibdata';
-                obj.requires_api_key = obj.code !== 'ibdata';
+                obj.is_default = false; // Priority handles default now
+                obj.requires_api_key = true;
                 return obj;
             });
 
@@ -142,9 +117,9 @@ export class AppAdminProviderController {
             const provider = await ProviderConfig.findOne({ _id: id, app_id });
             if (!provider) return ApiResponse.error(res, 'Provider not found', 404);
 
-            // Prevent deletion of default IBData provider
-            if (provider.code === 'ibdata' && provider.metadata?.is_default) {
-                return ApiResponse.error(res, 'Cannot delete the default IBData provider. You can disable it instead.', 403);
+            // Prevent deletion of protected systems providers if necessary
+            if (provider.metadata?.is_default) {
+                return ApiResponse.error(res, 'Cannot delete a default provider. You can disable it instead.', 403);
             }
 
             const removed = await ProviderConfig.findOneAndDelete({ _id: id, app_id });
@@ -171,21 +146,8 @@ export class AppAdminProviderController {
 
             if (client.getWalletBalance) {
                 try {
-                    if (code.toLowerCase() === 'ibdata') {
-                        // For IBData, show the App Owner's wallet balance
-                        const CreatedApp = (await import('../models/created_app.model.js')).default;
-                        const app = await CreatedApp.findOne({ app_id });
-                        if (app) {
-                            const VTfreeUser = (await import('../models/vtfree_user.model.js')).default;
-                            const user = await VTfreeUser.findById(app.owner_id);
-                            results.balance = user ? user.wallet_balance : 0;
-                        } else {
-                            results.balance = 0;
-                        }
-                    } else {
-                        const balance = await (client as any).getWalletBalance(provider);
-                        results.balance = balance;
-                    }
+                    const balance = await (client as any).getWalletBalance(provider);
+                    results.balance = balance;
                     results.balanceStatus = 'success';
                 } catch (error: any) {
                     results.balanceStatus = 'failed';
@@ -271,47 +233,13 @@ export class AppAdminProviderController {
             let data: any = null;
             switch (type) {
                 case 'balance':
-                    if (code.toLowerCase() === 'ibdata') {
-                        // For IBData, show the App Owner's wallet balance
-                        const CreatedApp = (await import('../models/created_app.model.js')).default;
-                        const app = await CreatedApp.findOne({ app_id });
-                        if (app) {
-                            const VTfreeUser = (await import('../models/vtfree_user.model.js')).default;
-                            const user = await VTfreeUser.findById(app.owner_id);
-                            data = { balance: user ? user.wallet_balance : 0, currency: 'NGN' };
-                        } else {
-                            data = { balance: 0, currency: 'NGN' };
-                        }
-                    } else {
-                        data = await client.getWalletBalance?.();
-                    }
+                    data = await client.getWalletBalance?.();
                     break;
                 case 'networks':
                     data = await client.getNetworks?.();
                     break;
                 case 'plans':
-                    if (code.toLowerCase() === 'ibdata') {
-                        // Fetch plans defined by Super Admin (where app_id is null)
-                        const AirtimePlan = (await import('../models/airtime_plan.model.js')).default;
-                        const superAdminPlans = await AirtimePlan.find({
-                            app_id: null, // Global plans
-                            active: true
-                        }).sort({ providerId: 1, price: 1 });
-
-                        // Transform to standard format expected by frontend
-                        data = superAdminPlans.map((plan: any) => ({
-                            plan_id: plan.externalPlanId || plan.code?.replace('IBDATA_', ''),
-                            network: plan.providerId,
-                            plan_name: plan.name,
-                            amount: plan.price, // Cost price for App Admin
-                            validity: plan.meta?.validity || '30 Days',
-                            plan_type: plan.type,
-                            data_value: plan.meta?.data_value || plan.name
-                        }));
-                    } else {
-                        data = await client.getDataPlans?.();
-                    }
-                    break;
+                    return ApiResponse.error(res, 'Plan fetching from provider is disabled. Please add custom plans manually.', 400);
                 default:
                     return ApiResponse.error(res, 'Invalid type', 400);
             }
@@ -358,115 +286,7 @@ export class AppAdminProviderController {
         }
     }
     static async syncProviderData(req: AuthRequest, res: Response) {
-        try {
-            const app_id = req.user?.app_id;
-            const { code } = req.params;
-            const { profitConfig } = req.body;
-
-            if (code.toLowerCase() !== 'ibdata') {
-                return ApiResponse.error(res, 'Sync only supported for VTPLUG currently', 400);
-            }
-
-            const AirtimePlan = (await import('../models/airtime_plan.model.js')).default;
-
-            // Fetch global plans (defined by Super Admin)
-            // We want plans that are global (app_id is null)
-            const globalPlans = await AirtimePlan.find({
-                app_id: null,
-                active: true
-            });
-
-            if (globalPlans.length === 0) {
-                return ApiResponse.success(res, 'No global plans found to sync', { count: 0 });
-            }
-
-            let syncedCount = 0;
-
-            for (const globalPlan of globalPlans) {
-                // Calculate Price with Profit
-                let sellingPrice = globalPlan.price;
-                if (profitConfig) {
-                    const { profitType, globalProfit, customProfits } = profitConfig;
-                    // Use externalPlanId (or _id) to match custom profits
-                    // The frontend sends customProfits keyed by plan ID. 
-                    // Global plans from `getProviderData` in frontend use externalPlanId as ID.
-                    const planId = globalPlan.externalPlanId || globalPlan._id.toString();
-                    
-                    const planProfit = (customProfits && customProfits[planId] !== undefined)
-                        ? Number(customProfits[planId])
-                        : Number(globalProfit || 0);
-
-                    if (profitType === 'percent') {
-                        sellingPrice = globalPlan.price + (globalPlan.price * (planProfit / 100));
-                    } else {
-                        sellingPrice = globalPlan.price + planProfit;
-                    }
-                    sellingPrice = Math.ceil(sellingPrice);
-                }
-
-                // Check if plan already exists for this app
-                // We match by unique identifier. externalPlanId is the best bet, or code.
-                const matchQuery: any = {
-                    app_id,
-                    providerId: globalPlan.providerId,
-                    code: globalPlan.code
-                };
-
-                const existingPlan = await AirtimePlan.findOne(matchQuery);
-
-                if (existingPlan) {
-                    // Overwrite existing plan with global details
-                    existingPlan.providerId = globalPlan.providerId;
-                    existingPlan.externalPlanId = globalPlan.externalPlanId;
-                    existingPlan.code = globalPlan.code;
-                    existingPlan.providerName = globalPlan.providerName;
-                    existingPlan.name = globalPlan.name;
-                    existingPlan.price = sellingPrice;
-                    existingPlan.type = globalPlan.type;
-                    existingPlan.discount = globalPlan.discount || 0;
-                    existingPlan.source_provider = 'ibdata'; // Ensure source checks out
-                    existingPlan.active = true; // Re-activate if it was inactive
-                    existingPlan.meta = {
-                        ...(globalPlan.meta || {}),
-                        original_global_id: globalPlan._id,
-                        cost_price: globalPlan.price
-                    };
-
-                    await existingPlan.save();
-                    syncedCount++;
-                    continue;
-                }
-
-                // Create new plan for app
-                await AirtimePlan.create({
-                    app_id,
-                    providerId: globalPlan.providerId,
-                    providerName: globalPlan.providerName,
-                    externalPlanId: globalPlan.externalPlanId,
-                    code: globalPlan.code,
-                    name: globalPlan.name,
-                    // Use the calculated selling price
-                    price: sellingPrice,
-                    type: globalPlan.type,
-                    discount: 0,
-                    source_provider: 'ibdata',
-                    active: true,
-                    meta: {
-                        ...(globalPlan.meta || {}),
-                        original_global_id: globalPlan._id,
-                        cost_price: globalPlan.price // Track cost price for profit calc
-                    }
-                });
-                syncedCount++;
-            }
-
-            logger.info(`Synced ${syncedCount} IBData plans for app ${app_id}`);
-            return ApiResponse.success(res, 'Plans synced successfully', { count: syncedCount });
-
-        } catch (error) {
-            logger.error('Error syncing provider data:', error);
-            return ApiResponse.error(res, 'Failed to sync provider data', 500);
-        }
+        return ApiResponse.error(res, 'Data syncing is disabled. Please add and manage your custom plans manually.', 400);
     }
 }
 

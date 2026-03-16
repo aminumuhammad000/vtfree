@@ -26,7 +26,7 @@ const checkApp = async () => {
         const apps = await CreatedApp.find({}).select('app_id app_name');
         console.log('Found apps:', JSON.stringify(apps, null, 2));
 
-        const appId = 'IBDataSub';
+        const appId = 'abbasalehsub';
         const app = await CreatedApp.findOne({ app_id: appId });
 
         if (app) {

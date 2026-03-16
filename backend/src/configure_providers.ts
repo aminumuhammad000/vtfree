@@ -22,25 +22,25 @@ const configureProviders = async () => {
         );
         console.log('✅ SME Plug configured: Active, Priority 1');
 
-        // 2. Configure Topupmate (Active, Priority 2 - Fallback)
+        // 2. Configure VTStack (Active, Priority 1 for Virtual Accounts/Payments)
         await ProviderConfig.findOneAndUpdate(
-            { code: 'topupmate' },
+            { code: 'vtstack' },
             {
+                name: 'VTStack',
                 active: true,
-                priority: 2,
-                supported_services: ['airtime', 'data', 'cable', 'electricity', 'exampin']
+                priority: 1,
+                supported_services: ['payment', 'virtual_account']
             },
             { upsert: true, new: true }
         );
-        console.log('✅ Topupmate configured: Active, Priority 2');
+        console.log('✅ VTStack configured: Active, Priority 1');
 
-        // 4. VTpass (Inactive)
-        await ProviderConfig.findOneAndUpdate(
-            { code: 'vtpass' },
-            { active: false },
-            { new: true }
+        // 3. Deactivate all others
+        await ProviderConfig.updateMany(
+            { code: { $nin: ['smeplug', 'vtstack'] } },
+            { active: false }
         );
-        console.log('✅ VTpass configured: Inactive');
+        console.log('✅ Legacy providers deactivated');
 
         console.log('\n--- Final Provider State ---');
         const providers = await ProviderConfig.find({}).sort({ priority: 1 });

@@ -1,24 +1,6 @@
 // config/env.ts
 
 
-interface PaystackConfig {
-  secretKey: string;
-  publicKey: string;
-  baseUrl: string;
-  webhookSecret: string;
-}
-
-interface MonnifyConfig {
-  apiKey: string;
-  secretKey: string;
-  contractCode: string;
-  baseUrl: string;
-}
-
-interface TopupmateConfig {
-  apiKey: string;
-  baseUrl: string;
-}
 
 interface CloudinaryConfig {
   cloudName: string;
@@ -45,9 +27,6 @@ export interface Config {
   otpExpiry: number;
   corsOrigin: string;
   logLevel: string;
-  paystack: PaystackConfig;
-  monnify: MonnifyConfig;
-  topupmate: TopupmateConfig;
   cloudinary: CloudinaryConfig;
   serviceCharges: ServiceCharges;
   fundingAccount: {
@@ -78,27 +57,6 @@ export const config: Config = {
   corsOrigin: process.env.CORS_ORIGIN || '*',
   logLevel: process.env.LOG_LEVEL || 'info',
 
-  // Paystack Configuration
-  paystack: {
-    secretKey: process.env.PAYSTACK_SECRET_KEY || '111111111111111111111111',
-    publicKey: process.env.PAYSTACK_PUBLIC_KEY || '111111111111111111111111',
-    baseUrl: 'https://api.paystack.co',
-    webhookSecret: process.env.PAYSTACK_WEBHOOK_SECRET || '',
-  },
-
-  // Monnify Configuration (if needed)
-  monnify: {
-    apiKey: process.env.MONNIFY_API_KEY || '111111111111111111111111',
-    secretKey: process.env.MONNIFY_SECRET_KEY || '111111111111111111111111',
-    contractCode: process.env.MONNIFY_CONTRACT_CODE || '',
-    baseUrl: process.env.MONNIFY_BASE_URL || 'https://api.monnify.com/api/v1',
-  },
-
-  // TopupMate Configuration
-  topupmate: {
-    apiKey: process.env.TOPUPMATE_API_KEY || '',
-    baseUrl: process.env.TOPUPMATE_BASE_URL || 'https://connect.topupmate.com/api',
-  },
 
   // Cloudinary Configuration
   cloudinary: {
@@ -119,7 +77,7 @@ export const config: Config = {
   // Default funding account details
   fundingAccount: {
     bankName: process.env.FUNDING_BANK_NAME || 'Access Bank',
-    accountName: process.env.FUNDING_ACCOUNT_NAME || 'Topupmate connect/ Aminu(Topupmate)',
+    accountName: process.env.FUNDING_ACCOUNT_NAME || 'VTStack Funding Account',
     accountNumber: process.env.FUNDING_ACCOUNT_NUMBER || '6600392859',
     instructions: process.env.FUNDING_INSTRUCTIONS || 'Transfer to this account and notify support with your reference.',
   }

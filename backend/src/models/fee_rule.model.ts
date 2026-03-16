@@ -8,7 +8,7 @@ export interface IFeeRule extends Document {
     minAmount?: number;
     maxAmount?: number;
     cap?: number;
-    category: 'deposit' | 'transfer' | 'withdrawal' | 'utility';
+    category: 'deposit' | 'utility';
     paymentMethod?: string;
     status: 'active' | 'inactive';
     createdAt: Date;
@@ -23,7 +23,7 @@ const FeeRuleSchema: Schema = new Schema({
     minAmount: { type: Number },
     maxAmount: { type: Number },
     cap: { type: Number },
-    category: { type: String, enum: ['deposit', 'transfer', 'withdrawal', 'utility'], required: true },
+    category: { type: String, enum: ['deposit', 'utility'], required: true },
     paymentMethod: { type: String },
     status: { type: String, enum: ['active', 'inactive'], default: 'active' }
 }, { timestamps: true });

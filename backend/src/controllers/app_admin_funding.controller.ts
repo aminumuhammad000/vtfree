@@ -185,8 +185,8 @@ export class AppAdminFundingController {
                 return ApiResponse.error(res, 'App owner BVN is required to generate a virtual account', 400);
             }
 
-            // Restrict to IBData as per user requirement
-            const provider = 'ibdata';
+            // Restrict to VTStack
+            const provider = 'vtstack';
 
             // Check if account already exists for this admin and provider
             const existingAccounts = await VirtualAccount.find({
@@ -199,31 +199,21 @@ export class AppAdminFundingController {
                 // Relaxed check or keep as is? 
                 // If VTStack only supports 1 account type, multiple accounts might be redundant unless for different references.
                 // We'll keep the limit check.
-                return ApiResponse.error(res, 'Maximum of 3 virtual accounts allowed for IBData per admin', 400);
+                return ApiResponse.error(res, 'Maximum of 3 virtual accounts allowed for VTStack per admin', 400);
             }
 
             // Also check if this specific bank already exists for this user/provider
             // With new VTStack, it's always "active" (PalmPay). 
-            // We can check if ANY VTStack/IBData account exists if we want to enforce 1 account total, 
+            // We can check if ANY VTStack account exists if we want to enforce 1 account total, 
             // but the code allows 3. We'll skip specific bank check since bankType requested might not matter.
 
-            // Map requested bank to Zainpay supported bank types (Legacy logic, mostly ignored by new VTStack)
-            const bankMapping: Record<string, string> = {
-                'palmpay': 'moniepoint',
-                'wema': 'moniepoint',
-                'fidelity': 'fidelity',
-                'sterling': 'sterling',
-                'moniepoint': 'moniepoint',
-                'gtbank': 'gtBank',
-                'fcmb': 'fcmb'
-            };
-
-            const bankType = bankMapping[requestedBank?.toLowerCase()] || 'fidelity';
+            // Default to PalmPay for VTStack
+            const bankType = 'palmpay';
 
             let account;
 
             // Generate new account
-            logger.info(`Generating virtual account for ${email} (${app_id}) using ${provider} (Bank: ${bankType})`);
+            logger.info(`Generating virtual account for ${email} (${app_id}) using VTStack (Bank: ${bankType})`);
 
             try {
                 const { VTStackService } = await import('../services/vtstack.service.js');
@@ -238,8 +228,8 @@ export class AppAdminFundingController {
                 }, app.payment_settings?.vtstack_secret_key || app.payment_settings?.vtstack_api_key);
 
                 if (result && result.success && result.data) {
-                    // Clean account name: remove "Zainpay" prefix if present
-                    const cleanedAccountName = result.data.accountName.replace(/Zainpay/gi, '').trim();
+                    // Clean account name if necessary
+                    const cleanedAccountName = result.data.accountName.trim();
 
                     // Save to VirtualAccount model
                     account = await VirtualAccount.create({
@@ -248,7 +238,7 @@ export class AppAdminFundingController {
                         accountNumber: result.data.accountNumber,
                         accountName: cleanedAccountName,
                         bankName: result.data.bankName || 'Virtual Bank',
-                        provider: provider,
+                        provider: 'vtstack',
                         reference: result.data.reference,
                         status: 'active',
                         metadata: {
@@ -257,18 +247,18 @@ export class AppAdminFundingController {
                         }
                     });
                 } else {
-                    throw new Error(result?.message || 'Failed to create IBData virtual account');
+                    throw new Error(result?.message || 'Failed to create virtual account');
                 }
 
                 return ApiResponse.success(res, 'Virtual account generated successfully', { account });
             } catch (err: any) {
-                logger.error(`Failed to generate virtual account (${provider}):`, err);
+                logger.error(`Failed to generate virtual account:`, err);
 
                 if (err.message?.includes('already exists')) {
                     // Try to sync and find the existing account
                     try {
                         const { VTStackService } = await import('../services/vtstack.service.js');
-                        const vtstackResult = await VTStackService.getVirtualAccounts(app.payment_settings?.vtstack_api_key);
+                        const vtstackResult = await VTStackService.getVirtualAccounts(app.payment_settings?.vtstack_api_key || app.payment_settings?.vtstack_secret_key);
                         const vtstackAccounts = Array.isArray(vtstackResult.data) ? vtstackResult.data : (vtstackResult.data?.accounts || vtstackResult.accounts || []);
 
                         if (vtstackAccounts.length > 0) {
@@ -279,16 +269,16 @@ export class AppAdminFundingController {
                                         user: owner._id,
                                         generatedBy: admin_id,
                                         accountNumber: va.accountNumber,
-                                        accountName: va.accountName,
+                                        accountName: va.accountName.trim(),
                                         bankName: va.bankName || 'Virtual Bank',
-                                        provider: provider,
+                                        provider: 'vtstack',
                                         reference: va.reference || `SYNC-${Date.now()}`,
                                         status: 'active',
                                         metadata: va
                                     });
                                 }
                             }
-                            const account = await VirtualAccount.findOne({ user: owner._id, provider, 'metadata.bankType': bankType });
+                            const account = await VirtualAccount.findOne({ user: owner._id, provider: 'vtstack' });
                             if (account) {
                                 return ApiResponse.success(res, 'Virtual account already exists and has been synced', { account });
                             }
@@ -309,9 +299,9 @@ export class AppAdminFundingController {
     }
 
     /**
-     * Get the App Admin's IBData (Wallet) Balance
+     * Get the App Admin's Owner (Wallet) Balance and associated virtual accounts
      */
-    static async getIBDataBalance(req: AuthRequest, res: Response) {
+    static async getOwnerBalance(req: AuthRequest, res: Response) {
         try {
             const app_id = req.user?.app_id;
 
@@ -332,14 +322,14 @@ export class AppAdminFundingController {
             // Get Virtual Account details - filter by generatedBy
             let accounts = await VirtualAccount.find({
                 user: owner._id,
-                provider: 'ibdata',
+                provider: 'vtstack',
                 generatedBy: req.user?.id
             });
 
             // Sync with VTStack to ensure we have the latest
             try {
                 const { VTStackService } = await import('../services/vtstack.service.js');
-                const vtstackResult = await VTStackService.getVirtualAccounts(app.payment_settings?.vtstack_api_key);
+                const vtstackResult = await VTStackService.getVirtualAccounts(app.payment_settings?.vtstack_api_key || app.payment_settings?.vtstack_secret_key);
                 const vtstackAccounts = Array.isArray(vtstackResult.data) ? vtstackResult.data : (vtstackResult.data?.accounts || vtstackResult.accounts || []);
 
                 if (vtstackAccounts.length > 0) {
@@ -354,9 +344,9 @@ export class AppAdminFundingController {
                                 user: owner._id,
                                 generatedBy: req.user?.id,
                                 accountNumber: va.accountNumber,
-                                accountName: va.accountName.replace(/Zainpay/gi, '').trim(),
+                                accountName: va.accountName.trim(),
                                 bankName: va.bankName || 'Virtual Bank',
-                                provider: 'ibdata',
+                                provider: 'vtstack',
                                 reference: va.reference || `SYNC-${Date.now()}`,
                                 status: 'active',
                                 metadata: va
@@ -365,27 +355,27 @@ export class AppAdminFundingController {
                         }
                     }
                     if (synced) {
-                        accounts = await VirtualAccount.find({ user: owner._id, provider: 'ibdata' });
+                        accounts = await VirtualAccount.find({ user: owner._id, provider: 'vtstack', generatedBy: req.user?.id });
                     }
                 }
             } catch (syncErr) {
-                logger.error('Failed to sync VTStack accounts in getIBDataBalance:', syncErr);
+                logger.error('Failed to sync VTStack accounts in getOwnerBalance:', syncErr);
             }
 
             // Get total count for the current admin to enforce limit correctly in UI
             const totalOwnerAccounts = await VirtualAccount.countDocuments({
                 user: owner._id,
-                provider: 'ibdata',
+                provider: 'vtstack',
                 generatedBy: req.user?.id
             });
 
-            return ApiResponse.success(res, 'IBData balance retrieved', {
+            return ApiResponse.success(res, 'Owner balance and accounts retrieved', {
                 balance: owner.wallet_balance || 0,
                 accounts,
                 totalOwnerAccounts: totalOwnerAccounts || 0
             });
         } catch (error: any) {
-            logger.error('Error fetching IBData balance:', error);
+            logger.error('Error fetching owner balance:', error);
             return ApiResponse.error(res, error.message || 'Internal server error', 500);
         }
     }
@@ -398,7 +388,7 @@ export class AppAdminFundingController {
             const { VTStackService } = await import('../services/vtstack.service.js');
             const CreatedApp = (await import('../models/created_app.model.js')).default;
             const app = await CreatedApp.findOne({ app_id: req.user?.app_id });
-            const result = await VTStackService.getVirtualAccounts(app?.payment_settings?.vtstack_api_key);
+            const result = await VTStackService.getVirtualAccounts(app?.payment_settings?.vtstack_secret_key || app?.payment_settings?.vtstack_api_key);
 
             const accounts = Array.isArray(result.data) ? result.data : (result.data?.accounts || result.accounts || []);
 
@@ -429,17 +419,14 @@ export class AppAdminFundingController {
 
             const { VTStackService } = await import('../services/vtstack.service.js');
             const smeplugService = (await import('../services/smeplug.service.js')).default;
-            const topupmateService = (await import('../services/topupmate.service.js')).default;
 
             // Check if VTStack API key is configured for this app
-            // Use Secret Key as per latest update
             const vtstackApiKey = app.payment_settings?.vtstack_secret_key || app.payment_settings?.vtstack_api_key;
             const hasVtstackKey = vtstackApiKey && vtstackApiKey.trim().length > 0;
 
             // Fetch external balances with error tracking
-            const [smeplugRes, topupmateRes, vtstackRes] = await Promise.all([
+            const [smeplugRes, vtstackRes] = await Promise.all([
                 smeplugService.getWalletBalance().catch(() => ({ balance: null, error: true })),
-                topupmateService.getWalletBalance().catch(() => ({ balance: null, error: true })),
                 hasVtstackKey
                     ? VTStackService.getPlatformBalance(vtstackApiKey).catch((err) => {
                         logger.error('VTStack Balance Fetch Error:', err?.message);
@@ -448,18 +435,17 @@ export class AppAdminFundingController {
                     : Promise.resolve({ data: { balance: null }, error: true })
             ]);
 
-            const ibdataBalance = owner.wallet_balance || 0;
+            const ownerBalance = owner.wallet_balance || 0;
             const smeplugBalance = smeplugRes?.balance;
-            const topupmateBalance = topupmateRes?.balance;
             // VTStack returns balance in kobo, convert to Naira by dividing by 100
             const vtstackBalanceKobo = vtstackRes?.data?.balance ?? vtstackRes?.balance;
             const vtstackBalance = vtstackBalanceKobo ? Number(vtstackBalanceKobo) / 100 : 0;
 
             const providers = [
                 {
-                    code: 'ibdata',
-                    name: 'VTPLUG',
-                    balance: ibdataBalance,
+                    code: 'vtstack',
+                    name: 'VTStack',
+                    balance: ownerBalance,
                     currency: 'NGN',
                     status: 'ok'
                 },
@@ -469,20 +455,12 @@ export class AppAdminFundingController {
                     balance: smeplugBalance ?? 0,
                     currency: 'NGN',
                     status: (smeplugRes as any).error ? 'error' : 'ok'
-                },
-                {
-                    code: 'topupmate',
-                    name: 'Topupmate',
-                    balance: topupmateBalance ?? 0,
-                    currency: 'NGN',
-                    status: (topupmateRes as any).error ? 'error' : 'ok'
-                },
-
+                }
             ];
 
             return ApiResponse.success(res, 'Provider balances retrieved', {
                 providers,
-                total: ibdataBalance + (Number(smeplugBalance) || 0) + (Number(topupmateBalance) || 0),
+                total: ownerBalance + (Number(smeplugBalance) || 0),
                 vtstackBalance: vtstackBalance ?? 0
             });
         } catch (error: any) {
@@ -509,7 +487,7 @@ export class AppAdminFundingController {
 
             const accounts = await VirtualAccount.find({
                 user: owner._id,
-                provider: 'ibdata',
+                provider: 'vtstack',
                 generatedBy: req.user?.id
             });
 

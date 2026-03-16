@@ -3,7 +3,6 @@ import { AdminController } from '../controllers/admin.controller.js';
 import AdminFundingController from '../controllers/admin_funding.controller.js';
 import AdminPricingController from '../controllers/admin_pricing.controller.js';
 import AdminProviderController from '../controllers/admin_provider.controller.js';
-import { PayoutController } from '../controllers/payout.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import configRoutes from './config.routes.js';
 
@@ -93,14 +92,6 @@ router.post('/notifications/broadcast', authMiddleware, async (req, res) => {
     return NotificationController.sendBroadcastNotification(req, res);
 });
 
-// Payout/VTStack routes
-router.get('/payout/banks', authMiddleware, PayoutController.getBanksList);
-router.post('/payout/validate-account', authMiddleware, PayoutController.validateAccount);
-router.get('/payout/balance', authMiddleware, PayoutController.getVTStackBalance);
-
-// Zainbox Management
-router.post('/zainboxes', authMiddleware, AdminController.createZainbox);
-router.get('/zainboxes', authMiddleware, AdminController.getAllZainboxes);
 
 // API Key Management
 router.post('/api-keys', authMiddleware, AdminController.generateApiKey);

@@ -87,18 +87,26 @@ export default function WalletScreen() {
     };
 
     const handleCreateVirtualAccount = () => {
-        setShowBVNModal(true);
+        const kycOptionalApps = ['dadsub', 'abbasalehsub'];
+        if (user?.app_id && kycOptionalApps.includes(user.app_id)) {
+            // Skill BVN and create account with dummy value
+            submitBVNAndCreateAccount('00000000000');
+        } else {
+            setShowBVNModal(true);
+        }
     };
 
-    const submitBVNAndCreateAccount = async () => {
-        if (!bvnInput || bvnInput.length !== 11) {
+    const submitBVNAndCreateAccount = async (manualBvn?: string) => {
+        const bvnToUse = manualBvn || bvnInput;
+        
+        if (!bvnToUse || bvnToUse.length !== 11) {
             Alert.alert('Invalid BVN', 'Please enter a valid 11-digit BVN.');
             return;
         }
 
         setIsGenerating(true);
         try {
-            const res = await AuthService.createVirtualAccount('wema', bvnInput);
+            const res = await AuthService.createVirtualAccount('wema', bvnToUse);
             if (res.success) {
                 // Update local user state
                 const updatedUser = { ...user, virtual_account: res.data };

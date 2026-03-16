@@ -94,14 +94,8 @@ router.post('/funding/accounts', authenticateAppAdmin, AppAdminFundingController
 router.put('/funding/accounts/:id', authenticateAppAdmin, AppAdminFundingController.updateAccount);
 router.delete('/funding/accounts/:id', authenticateAppAdmin, AppAdminFundingController.deleteAccount);
 router.post('/funding/virtual-account', authenticateAppAdmin, AppAdminFundingController.generateVirtualAccount);
-router.get('/funding/ibdata-balance', authenticateAppAdmin, AppAdminFundingController.getIBDataBalance);
+router.get('/funding/owner-balance', authenticateAppAdmin, AppAdminFundingController.getOwnerBalance);
 router.get('/funding/vtstack-accounts', authenticateAppAdmin, AppAdminFundingController.getVTStackAccounts);
-
-// Payout & Payment Gateway (VTStack)
-import { PayoutController } from '../controllers/payout.controller.js';
-router.get('/payout/banks', authenticateAppAdmin, PayoutController.getBanksList);
-router.post('/payout/validate-account', authenticateAppAdmin, PayoutController.validateAccount);
-router.get('/payout/balance', authenticateAppAdmin, PayoutController.getVTStackBalance);
 
 // Notifications & Broadcasts
 import { NotificationController } from '../controllers/notification.controller.js';
