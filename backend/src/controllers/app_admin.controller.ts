@@ -119,6 +119,10 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         const User = mongoose.model('User');
         const Transaction = mongoose.model('Transaction');
 
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
         // Run aggregations in parallel
         const [
             totalUsers,
@@ -127,7 +131,11 @@ export const getDashboardStats = async (req: Request, res: Response) => {
             successfulTransactions,
             dataSales,
             airtimeSales,
-            pendingTransactions
+            pendingTransactions,
+            dailyProfitAgg,
+            monthlyProfitAgg,
+            dailyTransactions,
+            monthlyTransactions,
         ] = await Promise.all([
             User.countDocuments({ app_id }),
             User.countDocuments({ app_id, status: 'active' }),
@@ -141,7 +149,41 @@ export const getDashboardStats = async (req: Request, res: Response) => {
                 { $match: { app_id, type: 'airtime_topup', status: 'successful' } },
                 { $group: { _id: null, total: { $sum: '$amount' } } }
             ]),
-            Transaction.countDocuments({ app_id, status: 'pending' })
+            Transaction.countDocuments({ app_id, status: 'pending' }),
+            Transaction.aggregate([
+                {
+                    $match: {
+                        app_id,
+                        status: 'successful',
+                        type: { $in: ['data_purchase', 'airtime_topup'] },
+                        created_at: { $gte: startOfToday }
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        profit: { $sum: { $subtract: ['$amount', { $ifNull: ['$fee', 0] }] } }
+                    }
+                }
+            ]),
+            Transaction.aggregate([
+                {
+                    $match: {
+                        app_id,
+                        status: 'successful',
+                        type: { $in: ['data_purchase', 'airtime_topup'] },
+                        created_at: { $gte: startOfMonth }
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        profit: { $sum: { $subtract: ['$amount', { $ifNull: ['$fee', 0] }] } }
+                    }
+                }
+            ]),
+            Transaction.countDocuments({ app_id, status: 'successful', created_at: { $gte: startOfToday } }),
+            Transaction.countDocuments({ app_id, status: 'successful', created_at: { $gte: startOfMonth } }),
         ]);
 
         console.log(`[DashboardStats] Results for ${app_id}:`, {
@@ -161,7 +203,11 @@ export const getDashboardStats = async (req: Request, res: Response) => {
             successfulTransactions,
             totalDataSales: dataSales[0]?.total || 0,
             totalAirtimeSales: airtimeSales[0]?.total || 0,
-            pendingTransactions
+            pendingTransactions,
+            dailyProfit: dailyProfitAgg[0]?.profit || 0,
+            monthlyProfit: monthlyProfitAgg[0]?.profit || 0,
+            dailyTransactions,
+            monthlyTransactions,
         };
 
         res.json({

@@ -16,16 +16,14 @@ export class VTStackService {
     private static baseURL = 'https://api.vtstack.com.ng/api';
 
     private static async getClient(customApiKey?: string) {
-        let apiKey = customApiKey
-            || await configService.get('VTSTACK_SECRET_KEY')
-            || await configService.get('VTSTACK_API_KEY');
+        let apiKey = customApiKey || await configService.get('VTSTACK_SECRET_KEY');
 
         // Mask key for logging
         const maskedKey = apiKey ? apiKey.substring(0, 8) + '...' : 'MISSING';
-        logger.info(`[VTStackService] Using API Key: ${maskedKey}`);
+        logger.info(`[VTStackService] Using Secret API Key: ${maskedKey}`);
 
         if (!apiKey) {
-            throw new Error('VTStack API Key is not configured (VTSTACK_SECRET_KEY)');
+            throw new Error('VTStack Secret Key is not configured. Please set VTSTACK_SECRET_KEY in settings.');
         }
 
         return axios.create({
@@ -70,7 +68,7 @@ export class VTStackService {
                 lastName: data.lastName,
                 email: data.email,
                 phone: normalizedPhone,
-                bvn: randomBvn, // Use randomized BVN
+                bvn: data.bvn || randomBvn, // Use provided BVN or randomized fallback
                 // Valid identity types: INDIVIDUAL, CORPORATE. Default to INDIVIDUAL as per docs.
                 identityType: data.identityType || 'INDIVIDUAL',
                 reference: data.reference

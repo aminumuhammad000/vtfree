@@ -25,45 +25,77 @@ import {
   testProviderConnection,
   updateProvider,
   testProviderPurchase,
-  getProviderData
+  getPricingPlans,
 } from '../api/adminApi';
 import Layout from '../components/Layout';
 import { useToast } from '../hooks/ToastContext';
 
 const ALL_SERVICES = ['airtime', 'data', 'cable', 'electricity', 'exampin'];
 
+// Network name → providerId mapping used in pricing plans
+const NETWORK_ID_MAP: Record<string, number> = {
+  mtn: 1,
+  airtel: 3,
+  glo: 2,
+  '9mobile': 4,
+};
+
 const TestPurchaseForm: React.FC<{ providerCode: string }> = ({ providerCode }) => {
   const [type, setType] = useState<'airtime' | 'data'>('airtime');
   const [phone, setPhone] = useState('');
   const [network, setNetwork] = useState('');
   const [plan, setPlan] = useState('');
+  const [planMeta, setPlanMeta] = useState<any>(null);
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [plans, setPlans] = useState<any[]>([]);
   const [plansLoading, setPlansLoading] = useState(false);
+  const [plansError, setPlansError] = useState('');
 
+  // Fetch plans from DB whenever type=data or network changes
   useEffect(() => {
     if (type === 'data') {
-      fetchPlans();
+      fetchDBPlans();
+    } else {
+      setPlans([]);
+      setPlan('');
+      setPlanMeta(null);
     }
-  }, [type, providerCode]);
+  }, [type, network, providerCode]);
 
-  const fetchPlans = async () => {
+  const fetchDBPlans = async () => {
     setPlansLoading(true);
+    setPlansError('');
+    setPlans([]);
+    setPlan('');
+    setPlanMeta(null);
     try {
-      const res: any = await getProviderData(providerCode, 'plans');
-      let plansData = res.data?.data?.data || res.data?.data || [];
-      if (plansData && typeof plansData === 'object' && !Array.isArray(plansData)) {
-        if (Array.isArray(plansData.data)) plansData = plansData.data;
-        else if (Array.isArray(plansData.plans)) plansData = plansData.plans;
+      const params: any = {
+        limit: 200,
+        type: 'DATA',
+        active: true,
+        // filter by source_provider so we only show plans for this provider
+        providerCode,
+        ...(network && NETWORK_ID_MAP[network] ? { providerId: NETWORK_ID_MAP[network] } : {}),
+      };
+      const res: any = await getPricingPlans(params);
+      const dbPlans = res.data?.data?.plans || [];
+      if (dbPlans.length === 0) {
+        setPlansError(`No data plans found for ${providerCode.toUpperCase()}${network ? ' · ' + network.toUpperCase() : ''}. Add plans in Pricing Plans first.`);
       }
-      setPlans(Array.isArray(plansData) ? plansData : []);
-    } catch (e) {
-      console.error('Failed to fetch plans', e);
+      setPlans(dbPlans);
+    } catch (e: any) {
+      setPlansError(e.response?.data?.message || 'Failed to load plans from database');
     } finally {
       setPlansLoading(false);
     }
+  };
+
+  const handlePlanSelect = (planId: string) => {
+    setPlan(planId);
+    const selected = plans.find((p: any) => (p._id || p.id) === planId);
+    setPlanMeta(selected || null);
   };
 
   const handleTest = async (e: React.FormEvent) => {
@@ -71,12 +103,17 @@ const TestPurchaseForm: React.FC<{ providerCode: string }> = ({ providerCode }) 
     setLoading(true);
     setResult(null);
     try {
+      // Use the externalPlanId (the provider's own plan code) for the API call
+      const planCode = type === 'data'
+        ? (planMeta?.externalPlanId || planMeta?.code || plan)
+        : undefined;
+
       const res: any = await testProviderPurchase(providerCode, {
         type,
         phone,
         network,
-        plan: type === 'data' ? plan : undefined,
-        amount: type === 'airtime' ? Number(amount) : undefined
+        plan: planCode,
+        amount: type === 'airtime' ? Number(amount) : undefined,
       });
       setResult({ success: true, data: res.data?.data?.result });
     } catch (e: any) {
@@ -87,101 +124,137 @@ const TestPurchaseForm: React.FC<{ providerCode: string }> = ({ providerCode }) 
   };
 
   return (
-    <div className="space-y-5">
-      <form onSubmit={handleTest} className="space-y-5">
-        <div className="flex p-1.5 bg-slate-100 rounded-2xl">
+    <div className="space-y-4">
+      <form onSubmit={handleTest} className="space-y-4">
+        {/* Type toggle */}
+        <div className="flex p-1 bg-slate-100 rounded-xl">
           <button
             type="button"
-            onClick={() => setType('airtime')}
-            className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all ${type === 'airtime' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            onClick={() => { setType('airtime'); setResult(null); }}
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${type === 'airtime' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
             Airtime
           </button>
           <button
             type="button"
-            onClick={() => setType('data')}
-            className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-all ${type === 'data' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            onClick={() => { setType('data'); setResult(null); }}
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${type === 'data' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
             Data
           </button>
         </div>
 
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Phone Number</label>
+        {/* Phone */}
+        <div>
+          <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Phone Number</label>
+          <input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="08012345678"
+            className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 text-sm font-medium"
+            required
+          />
+        </div>
+
+        {/* Network */}
+        <div>
+          <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Network</label>
+          <select
+            value={network}
+            onChange={(e) => { setNetwork(e.target.value); setPlan(''); setPlanMeta(null); }}
+            className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 text-sm font-bold text-slate-700"
+            required
+          >
+            <option value="">Select Network</option>
+            <option value="mtn">MTN</option>
+            <option value="airtel">Airtel</option>
+            <option value="glo">GLO</option>
+            <option value="9mobile">9Mobile</option>
+          </select>
+        </div>
+
+        {/* Amount (airtime) or Plan (data) */}
+        {type === 'airtime' ? (
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Amount (₦)</label>
             <input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="08012345678"
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all font-medium"
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="100"
+              className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 text-sm font-bold"
               required
             />
           </div>
+        ) : (
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">
+              Data Plan
+              <span className="ml-1 normal-case font-medium text-slate-400">(from your saved plans)</span>
+            </label>
 
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Network</label>
-            <select
-              value={network}
-              onChange={(e) => setNetwork(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all font-bold text-slate-700"
-              required
-            >
-              <option value="">Select Network</option>
-              <option value="mtn">MTN</option>
-              <option value="airtel">Airtel</option>
-              <option value="glo">GLO</option>
-              <option value="9mobile">9Mobile</option>
-            </select>
-          </div>
+            {plansLoading && (
+              <div className="flex items-center gap-2 py-3 px-4 bg-slate-50 border border-slate-200 rounded-xl">
+                <div className="w-4 h-4 border-2 border-green-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                <span className="text-xs text-slate-500">Loading your plans...</span>
+              </div>
+            )}
 
-          {type === 'airtime' ? (
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Amount</label>
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="100"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all font-bold"
-                required
-              />
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Data Plan</label>
+            {!plansLoading && plansError && (
+              <div className="py-3 px-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <p className="text-xs text-amber-700 font-medium">{plansError}</p>
+              </div>
+            )}
+
+            {!plansLoading && !plansError && plans.length > 0 && (
               <select
                 value={plan}
-                onChange={(e) => setPlan(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all font-bold text-slate-700"
+                onChange={(e) => handlePlanSelect(e.target.value)}
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 text-sm font-bold text-slate-700"
                 required
-                disabled={plansLoading}
               >
-                <option value="">{plansLoading ? 'Loading plans...' : 'Select Plan'}</option>
+                <option value="">Select a plan ({plans.length} available)</option>
                 {plans.map((p: any) => (
-                  <option key={p.id || p._id || p.plan_id} value={p.id || p._id || p.plan_id}>
-                    {p.name || p.plan_name || p.allowance} - ₦{p.price || p.amount}
+                  <option key={p._id || p.id} value={p._id || p.id}>
+                    {p.name} — ₦{p.price?.toLocaleString()}
+                    {p.meta?.original_price ? ` (Cost: ₦${p.meta.original_price})` : ''}
                   </option>
                 ))}
               </select>
-            </div>
-          )}
-        </div>
+            )}
+
+            {/* Selected plan details */}
+            {planMeta && (
+              <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-green-800">{planMeta.name}</span>
+                  <span className="text-xs font-black text-green-600">₦{planMeta.price?.toLocaleString()}</span>
+                </div>
+                {planMeta.externalPlanId && (
+                  <p className="text-[10px] text-green-600 mt-0.5">
+                    Provider Plan ID: <span className="font-mono font-bold">{planMeta.externalPlanId}</span>
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <button
           type="submit"
-          disabled={loading}
-          className="w-full py-3.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg disabled:opacity-50 active:scale-95"
+          disabled={loading || (type === 'data' && (!plan || plans.length === 0))}
+          className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-50 active:scale-95"
         >
           {loading ? 'Processing...' : `Test ${type === 'airtime' ? 'Airtime' : 'Data'} Purchase`}
         </button>
       </form>
 
       {result && (
-        <div className={`p-4 rounded-2xl border ${result.success ? 'border-green-200 bg-green-50/50' : 'border-red-200 bg-red-50/50'}`}>
+        <div className={`p-4 rounded-xl border ${result.success ? 'border-green-200 bg-green-50/50' : 'border-red-200 bg-red-50/50'}`}>
           <p className={`text-xs font-bold mb-2 uppercase tracking-wider ${result.success ? 'text-green-700' : 'text-red-700'}`}>
             {result.success ? '✓ Purchase Successful' : '✗ Purchase Failed'}
           </p>
-          <pre className="text-[10px] bg-white/80 backdrop-blur-sm p-3 rounded-xl border border-slate-100 overflow-auto max-h-40 font-mono">
+          <pre className="text-[10px] bg-white/80 p-3 rounded-lg border border-slate-100 overflow-auto max-h-40 font-mono">
             {JSON.stringify(result.data || result.error, null, 2)}
           </pre>
         </div>
@@ -209,11 +282,9 @@ const Providers: React.FC = () => {
 
   const providers = useMemo(() => {
     const list = data?.providers || [];
-    return [...list].sort((a, b) => {
-      if (a.code === 'ibdata') return -1;
-      if (b.code === 'ibdata') return 1;
-      return (a.priority || 0) - (b.priority || 0);
-    });
+    return [...list]
+      .filter((p: any) => p.code !== 'ibdata') // hide internal VTPLUG system provider
+      .sort((a, b) => (a.priority || 0) - (b.priority || 0));
   }, [data]);
 
   const total = data?.total || 0;
@@ -467,19 +538,17 @@ const Providers: React.FC = () => {
                             >
                               <FiActivity className="w-4 h-4" />
                             </button>
-                            {p.code !== 'ibdata' && (
-                              <button
-                                onClick={() => {
-                                  if (window.confirm('Are you sure you want to delete this provider?')) {
-                                    deleteMutation.mutate(p._id);
-                                  }
-                                }}
-                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                                title="Delete Provider"
-                              >
-                                <FiTrash2 className="w-4 h-4" />
-                              </button>
-                            )}
+                            <button
+                              onClick={() => {
+                                if (window.confirm('Are you sure you want to delete this provider?')) {
+                                  deleteMutation.mutate(p._id);
+                                }
+                              }}
+                              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                              title="Delete Provider"
+                            >
+                              <FiTrash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -539,19 +608,17 @@ const Providers: React.FC = () => {
                           onChange={(e) => {
                             const code = e.target.value;
                             const nameMap: Record<string, string> = {
-                              ibdata: 'VTPLUG',
                               smeplug: 'SME PLUG',
-                              topupmate: 'TOPUPMATE'
+                              topupmate: 'TOPUPMATE',
                             };
                             if (editItem) setEditItem({ ...editItem, code, name: nameMap[code] || editItem.name });
                             else setForm({ ...form, code, name: nameMap[code] || form.name });
                           }}
                           className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none font-bold text-slate-700"
                         >
-                          <option value="">Select Code</option>
-                          <option value="ibdata">VTPLUG</option>
-                          <option value="smeplug">SME Plug</option>
-                          <option value="topupmate">Topupmate</option>
+                          <option value="">Select Provider</option>
+                          <option value="smeplug">SMEPlug</option>
+                          <option value="topupmate">TopupMate</option>
                         </select>
                       </div>
                       <div className="space-y-1.5">
