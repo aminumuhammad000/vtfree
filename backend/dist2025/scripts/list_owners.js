@@ -1,0 +1,8 @@
+import User from '../models/vtfree_user.model.js';
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+dotenv.config();
+await mongoose.connect(process.env.MONGODB_URI);
+const users = await User.find().limit(5);
+console.log(JSON.stringify(users));
+process.exit(0);

@@ -1,0 +1,12 @@
+import { logger } from '../config/bootstrap.js';
+import { configService } from '../services/config.service.js';
+export const errorHandler = (err, req, res, next) => {
+    logger.error('Error:', err);
+    const statusCode = err.statusCode || 500;
+    const message = err.message || 'Internal Server Error';
+    res.status(statusCode).json({
+        success: false,
+        message,
+        ...(configService.getSync('NODE_ENV') === 'development' && { stack: err.stack })
+    });
+};
