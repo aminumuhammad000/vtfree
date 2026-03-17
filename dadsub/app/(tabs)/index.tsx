@@ -79,7 +79,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { isDark, theme } = useTheme();
   const { profileData } = useProfile();
-  const { showWarning } = useAlert();
+  const { } = useAlert();
   const [isBalanceHidden, setIsBalanceHidden] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [wallet, setWallet] = useState<WalletData | null>(null);
@@ -243,12 +243,7 @@ export default function HomeScreen() {
                 style={styles.addMoneyBtn}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                  if (profileData.kyc_status !== 'verified') {
-                    showWarning('KYC Verification Required: Please complete your verification to generate a virtual account.');
-                    router.push('/kyc');
-                  } else {
-                    router.push('/add-money');
-                  }
+                  router.push('/add-money');
                 }}
               >
                 <Ionicons name="add" size={20} color={brandColor} />

@@ -142,7 +142,6 @@ export default function ProfileScreen() {
 
   const menuItems = [
     { icon: 'person', label: 'Personal Information', route: '/edit-profile', color: theme.primary },
-    { icon: 'shield-checkmark', label: 'Identity (KYC)', route: '/kyc', color: '#10B981' },
     { icon: 'lock-closed', label: 'Change PIN', route: '/set-pin', color: '#F59E0B' },
     { icon: 'key', label: 'Change Password', route: '/change-password', color: '#EF4444' },
     { icon: 'people', label: 'My Referrals', route: '/referrals', color: '#8B5CF6' },
@@ -214,13 +213,6 @@ export default function ProfileScreen() {
                   <Ionicons name="pencil" size={14} color={theme.primary} />
                 </TouchableOpacity>
 
-                {profileData?.kyc_status === 'verified' && (
-                  <View style={[styles.kycChip, { backgroundColor: theme.success + '15' }]}>
-                    <Ionicons name="shield-checkmark" size={12} color={theme.success} />
-                    <Text style={[styles.kycText, { color: theme.success, marginLeft: 4 }]}>Verified</Text>
-                  </View>
-                )}
-
                 {user?.referral_code && (
                   <TouchableOpacity style={[styles.referralChip, { backgroundColor: cardBg }]} onPress={() => handleCopyReferral(user.referral_code)}>
                     <Text style={[styles.referralText, { color: textSecondaryColor }]}>Ref: {user.referral_code}</Text>
@@ -231,7 +223,7 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {/* Stats Row */}
+          {/* Wallet Stats */}
           <View style={styles.statsContainer}>
             <TouchableOpacity
               style={[styles.statItem, { backgroundColor: theme.primary }]}
@@ -242,29 +234,9 @@ export default function ProfileScreen() {
                 <Ionicons name="wallet" size={18} color="#FFF" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.statLabel, { color: 'rgba(255,255,255,0.8)' }]} numberOfLines={1}>WALLET</Text>
+                <Text style={[styles.statLabel, { color: 'rgba(255,255,255,0.8)' }]} numberOfLines={1}>WALLET BALANCE</Text>
                 <Text style={[styles.statValue, { color: '#FFF' }]} numberOfLines={1} adjustsFontSizeToFit>
                   ₦{wallet?.balance?.toLocaleString() || '0'}
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.statItem, { backgroundColor: cardBg, borderWidth: 1, borderColor: isDark ? '#333' : '#E5E7EB' }]}
-              activeOpacity={0.9}
-              onPress={() => router.push('/kyc')}
-            >
-              <View style={[styles.statIconContainer, { backgroundColor: profileData?.kyc_status === 'verified' ? theme.success + '20' : '#F59E0B20' }]}>
-                <Ionicons
-                  name={profileData?.kyc_status === 'verified' ? "checkmark-circle" : "alert-circle"}
-                  size={18}
-                  color={profileData?.kyc_status === 'verified' ? theme.success : '#F59E0B'}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.statLabel, { color: textSecondaryColor }]} numberOfLines={1}>KYC STATUS</Text>
-                <Text style={[styles.statValue, { color: profileData?.kyc_status === 'verified' ? theme.success : '#F59E0B' }]} numberOfLines={1}>
-                  {profileData?.kyc_status?.toUpperCase() || 'NOT VERIFIED'}
                 </Text>
               </View>
             </TouchableOpacity>
