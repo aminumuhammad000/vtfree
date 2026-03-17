@@ -173,6 +173,7 @@ export class BillPaymentController {
             await WalletService.debit(userId, parseFloat(amount), 'Airtime purchase');
             // Create transaction record
             const transaction = await Transaction.create({
+                app_id: req.user?.app_id,
                 user_id: userId,
                 wallet_id: walletData._id,
                 type: 'airtime_topup',
@@ -311,6 +312,7 @@ export class BillPaymentController {
             await WalletService.debit(userId, amount, 'Data purchase');
             // Create transaction record
             const transaction = await Transaction.create({
+                app_id: req.user?.app_id,
                 user_id: userId,
                 wallet_id: walletData._id,
                 type: 'data_purchase',
@@ -439,6 +441,7 @@ export class BillPaymentController {
             await WalletService.debit(userId, amount, 'Cable TV purchase');
             // Create transaction record
             const transaction = await Transaction.create({
+                app_id: req.user?.app_id,
                 user_id: userId,
                 type: 'cable',
                 amount,
@@ -535,6 +538,7 @@ export class BillPaymentController {
             await WalletService.debit(userId, parseFloat(amount), 'Electricity purchase');
             // Create transaction record
             const transaction = await Transaction.create({
+                app_id: req.user?.app_id,
                 user_id: userId,
                 type: 'electricity',
                 amount: parseFloat(amount),
@@ -616,6 +620,7 @@ export class BillPaymentController {
             await WalletService.debit(userId, amount, 'Exam pin purchase');
             // Create transaction record
             const transaction = await Transaction.create({
+                app_id: req.user?.app_id,
                 user_id: userId,
                 type: 'exampin',
                 amount,
