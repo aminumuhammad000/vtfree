@@ -107,6 +107,7 @@ app.use("/api/wallet", walletRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/billpayment", billpaymentRoutes);
 app.use("/api/vtstack", vtstackRoutes);
+app.use("/api/support-content", supportContentRoutes);
 app.use("/api/v1/support-content", supportContentRoutes);
 
 

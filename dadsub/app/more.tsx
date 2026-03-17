@@ -105,7 +105,7 @@ export default function MoreScreen() {
             <Ionicons name="chevron-back" size={24} color={textColor} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: textColor }]}>Services</Text>
-          <TouchableOpacity style={styles.iconBtn}>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/support')}>
             <Ionicons name="help-circle-outline" size={24} color={textColor} />
           </TouchableOpacity>
         </View>

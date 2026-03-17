@@ -104,8 +104,8 @@ export default function SupportScreen() {
             answer: 'If a transaction fails, your money will be automatically refunded to your wallet. If not, please contact support.'
         },
         {
-            question: 'How do I upgrade my account?',
-            answer: 'Complete your KYC verification in the Security section to upgrade your account limits.'
+            question: 'How do I contact support?',
+            answer: 'You can reach us through any of the channels listed above. We are available 24/7 to assist you.'
         }
     ];
 
