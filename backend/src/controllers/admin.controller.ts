@@ -1,4 +1,5 @@
 // controllers/admin.controller.ts
+import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { Request, Response } from 'express';
 import jwt, { SignOptions } from 'jsonwebtoken';
@@ -56,6 +57,36 @@ export class AdminController {
     } catch (error: any) {
       console.error('Admin login error:', error);
       return ApiResponse.error(res, error.message, 500);
+    }
+  }
+
+  static async verifyConnectivity(req: Request, res: Response) {
+    try {
+      // Basic check: DB is already connected if we are here, but let's be sure
+      const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+      
+      return ApiResponse.success(res, { 
+        status: 'connected', 
+        timestamp: new Date(),
+        db: dbStatus,
+        uptime: process.uptime()
+      }, 'Connectivity verified');
+    } catch (error: any) {
+      return ApiResponse.error(res, 'Connectivity check failed', 500);
+    }
+  }
+
+  static async getCronStatus(req: Request, res: Response) {
+    try {
+      // In this version, we'll just report system status
+      return ApiResponse.success(res, { 
+        status: 'active', 
+        time: new Date(),
+        worker_enabled: process.env.ENABLE_WORKER === 'true',
+        environment: process.env.NODE_ENV
+      }, 'Cron status retrieved');
+    } catch (error: any) {
+      return ApiResponse.error(res, 'System status check failed', 500);
     }
   }
 

@@ -10,6 +10,8 @@ const router = Router();
 router.use('/config', configRoutes);
 // Admin routes
 router.post('/login', AdminController.login);
+router.get('/verify-connectivity', authMiddleware, AdminController.verifyConnectivity);
+router.get('/system/cron-status', authMiddleware, AdminController.getCronStatus);
 router.get('/dashboard', authMiddleware, AdminController.getDashboardStats);
 // Admin profile
 router.get('/profile', authMiddleware, AdminController.getProfile);

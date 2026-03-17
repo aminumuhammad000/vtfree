@@ -1,4 +1,5 @@
-import { User, Wallet, Transaction } from '../models/index.js';
+import crypto from 'crypto';
+import { User, CreatedApp, Wallet, Transaction } from '../models/index.js';
 import VTfreeUser from '../models/vtfree_user.model.js';
 import VTfreeTransaction from '../models/vtfree_transaction.model.js';
 import { WalletService } from '../services/wallet.service.js';
@@ -9,8 +10,51 @@ import logger from '../utils/logger.js';
  */
 export const handleVTStackWebhook = async (req, res) => {
     try {
-        const payload = req.body;
         const appIdFromUrl = req.params.appId;
+        const secretHeader = req.headers['x-vtstack-secret'];
+        const signatureHeader = req.headers['x-vtstack-signature'];
+        // Capture raw body for signature verification and parse it
+        const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body));
+        let payload;
+        try {
+            payload = JSON.parse(rawBody.toString());
+        }
+        catch (e) {
+            logger.error('[VTStack Webhook] Failed to parse payload:', e);
+            return res.status(400).json({ success: false, message: 'Invalid JSON payload' });
+        }
+        // --- SECURITY VERIFICATION ---
+        let expectedSecret = process.env.USER_WEBHOOK_SECRET ||
+            process.env.VTSTACK_SECRET_KEY ||
+            process.env.VTSTACK_API_KEY ||
+            process.env.VTPAY_WEBHOOK_SECRET ||
+            process.env.PALMPAY_WEBHOOK_SECRET ||
+            'default-webhook-secret';
+        // If appId is provided in URL, try to get that specific app's secret
+        if (appIdFromUrl) {
+            const app = await CreatedApp.findOne({ app_id: appIdFromUrl });
+            if (app?.payment_settings?.vtstack_secret_key) {
+                expectedSecret = app.payment_settings.vtstack_secret_key;
+            }
+        }
+        // 1. Verify Secret Header (X-VTStack-Secret)
+        if (secretHeader && secretHeader !== expectedSecret) {
+            logger.warn(`[VTStack Webhook] Secret mismatch for appId: ${appIdFromUrl || 'platform'}`);
+            return res.status(403).json({ success: false, message: 'Invalid webhook secret' });
+        }
+        // 2. Verify Signature Header (X-VTStack-Signature) - HMAC-SHA256
+        if (signatureHeader) {
+            const hmac = crypto.createHmac('sha256', expectedSecret);
+            hmac.update(rawBody);
+            const calculatedSignature = hmac.digest('hex');
+            if (signatureHeader !== calculatedSignature) {
+                logger.warn(`[VTStack Webhook] Signature mismatch for appId: ${appIdFromUrl || 'platform'}`);
+                return res.status(403).json({ success: false, message: 'Invalid webhook signature' });
+            }
+        }
+        // 3. Optional: Fallback check if no security headers are present but we expect them
+        // If we want to strictly require security, we could add a check here.
+        // For now, we'll proceed if either check passes or if none are provided (legacy support).
         logger.info(`[VTStack Webhook] Received Event: ${payload?.event}${appIdFromUrl ? ` | AppId: ${appIdFromUrl}` : ''}`);
         // Detailed log for debugging
         logger.debug(`[VTStack Webhook] Full Payload: ${JSON.stringify(payload)}`);

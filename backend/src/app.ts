@@ -63,7 +63,7 @@ app.use(cors({
 }));
 
 // For webhook routes, we need to capture the raw body for signature verification
-app.use('/api/payment/webhook', express.raw({ type: 'application/json' }));
+app.use(['/api/payment/webhook', '/api/v1/webhooks'], express.raw({ type: 'application/json' }));
 
 // Parse JSON for all other routes
 app.use(express.json({ limit: "50mb" }));
