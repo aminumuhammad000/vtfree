@@ -77,16 +77,22 @@ export const updateAppConfig = async (req: Request, res: Response) => {
             case 'DEFAULT_PAYMENT_GATEWAY': app.payment_settings.default_gateway = value; break;
             case 'VTSTACK_API_KEY': app.payment_settings.vtstack_api_key = value; break;
             case 'VTSTACK_SECRET_KEY':
-                // Validate API Key
-                if (value && value.length > 5) {
+                // Validate API Key - inform the user but don't block saving if verification fails
+                // (except for obviously invalid short keys)
+                if (value && value.length > 8) {
                     try {
                         const { VTStackService } = await import('../../services/vtstack.service.js');
-                        // Use getBalance to verify the key works
-                        await VTStackService.getBalance(value);
+                        // Use a reliable endpoint to verify the key works
+                        await VTStackService.getVirtualAccounts(value);
                     } catch (err: any) {
-                        return res.status(400).json({
-                            success: false,
-                            message: `Invalid API Key: Connection failed. ${err.message}`
+                        console.warn('[AppConfigController] VTStack Key Verification Failed:', err.message);
+                        // Save but warn the user in the response
+                        app.payment_settings.vtstack_secret_key = value;
+                        await app.save();
+                        return res.json({
+                            success: true,
+                            message: `API Key saved, but verification failed: ${err.message}. Please double-check your credentials on VTStack.`,
+                            data: { key, value }
                         });
                     }
                 }
