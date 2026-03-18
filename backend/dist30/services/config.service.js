@@ -52,6 +52,7 @@ class ConfigService {
             { key: 'VTSTACK_SECRET_KEY', group: 'PAYMENT', description: 'VTStack Secret Key' },
             { key: 'VTSTACK_PUBLIC_KEY', group: 'PAYMENT', description: 'VTStack Public Key' },
             { key: 'VTSTACK_IS_ACTIVE', group: 'PAYMENT', description: 'VTStack Gateway Status (true/false)' },
+            { key: 'USER_WEBHOOK_SECRET', group: 'SECURITY', description: 'Global Webhook Secret' },
             { key: 'KYC_AUTO_APPROVE', group: 'SECURITY', description: 'Auto-approve KYC uploads (true/false)' },
             { key: 'NODE_ENV', group: 'SYSTEM', description: 'Environment (development/production)' },
             // App Pricing

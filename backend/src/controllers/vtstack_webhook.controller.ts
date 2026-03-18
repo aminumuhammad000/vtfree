@@ -5,6 +5,7 @@ import VTfreeUser from '../models/vtfree_user.model.js';
 import VTfreeTransaction from '../models/vtfree_transaction.model.js';
 import { WalletService } from '../services/wallet.service.js';
 import { NotificationService } from '../services/notification.service.js';
+import { configService } from '../services/config.service.js';
 import logger from '../utils/logger.js';
 
 /**
@@ -27,9 +28,14 @@ export const handleVTStackWebhook = async (req: Request, res: Response) => {
         }
 
         // --- SECURITY VERIFICATION ---
-        let expectedSecret = process.env.USER_WEBHOOK_SECRET || 
-                             process.env.VTSTACK_SECRET_KEY ||
-                             process.env.VTSTACK_API_KEY ||
+        // Try to get secrets from ConfigService (DB) or process.env
+        const userWebhookSecret = await configService.get('USER_WEBHOOK_SECRET') || process.env.USER_WEBHOOK_SECRET;
+        const vtstackSecretKey = await configService.get('VTSTACK_SECRET_KEY') || process.env.VTSTACK_SECRET_KEY;
+        const vtstackApiKey = await configService.get('VTSTACK_API_KEY') || process.env.VTSTACK_API_KEY;
+        
+        let expectedSecret = userWebhookSecret || 
+                             vtstackSecretKey ||
+                             vtstackApiKey ||
                              process.env.VTPAY_WEBHOOK_SECRET || 
                              process.env.PALMPAY_WEBHOOK_SECRET || 
                              'default-webhook-secret';
@@ -56,6 +62,9 @@ export const handleVTStackWebhook = async (req: Request, res: Response) => {
             
             if (signatureHeader !== calculatedSignature) {
                 logger.warn(`[VTStack Webhook] Signature mismatch for appId: ${appIdFromUrl || 'platform'}`);
+                logger.debug(`[VTStack Webhook] Expected Secret: ${expectedSecret.substring(0, 5)}...`);
+                logger.debug(`[VTStack Webhook] Received Signature: ${signatureHeader}`);
+                logger.debug(`[VTStack Webhook] Calculated Signature: ${calculatedSignature}`);
                 return res.status(403).json({ success: false, message: 'Invalid webhook signature' });
             }
         }

@@ -54,7 +54,7 @@ app.use(cors({
     origin: "*", // or restrict later to your Expo dev IP if you want
 }));
 // For webhook routes, we need to capture the raw body for signature verification
-app.use(['/api/payment/webhook', '/api/v1/webhooks'], express.raw({ type: 'application/json' }));
+app.use(['/api/payment/webhook', '/api/v1/webhooks'], express.raw({ type: '*/*' }));
 // Parse JSON for all other routes
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
