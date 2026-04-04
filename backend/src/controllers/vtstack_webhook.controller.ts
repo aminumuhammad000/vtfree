@@ -34,24 +34,32 @@ export const handleVTStackWebhook = async (req: Request, res: Response) => {
             return res.status(401).json({ success: false, message: 'Missing security headers' });
         }
 
-        // Try to get secrets from ConfigService (DB) or process.env
-        const userWebhookSecret = await configService.get('USER_WEBHOOK_SECRET') || process.env.USER_WEBHOOK_SECRET;
-        const vtstackSecretKey = await configService.get('VTSTACK_SECRET_KEY') || process.env.VTSTACK_SECRET_KEY;
-        const vtstackApiKey = await configService.get('VTSTACK_API_KEY') || process.env.VTSTACK_API_KEY;
-        
-        let expectedSecret = userWebhookSecret || 
+        let expectedSecret = '';
+
+        if (appIdFromUrl) {
+            // Get that specific app's secret strictly from the database
+            const app = await CreatedApp.findOne({ app_id: appIdFromUrl });
+            if (!app) {
+                logger.warn(`[VTStack Webhook] App not found for appId: ${appIdFromUrl}`);
+                return res.status(404).json({ success: false, message: 'App not found' });
+            }
+            if (!app.payment_settings?.vtstack_secret_key) {
+                logger.warn(`[VTStack Webhook] No vtstack_secret_key configured for appId: ${appIdFromUrl}`);
+                return res.status(403).json({ success: false, message: 'Webhook secret not configured for app' });
+            }
+            expectedSecret = app.payment_settings.vtstack_secret_key;
+        } else {
+            // Global/Platform webhook fallback logic
+            const userWebhookSecret = await configService.get('USER_WEBHOOK_SECRET') || process.env.USER_WEBHOOK_SECRET;
+            const vtstackSecretKey = await configService.get('VTSTACK_SECRET_KEY') || process.env.VTSTACK_SECRET_KEY;
+            const vtstackApiKey = await configService.get('VTSTACK_API_KEY') || process.env.VTSTACK_API_KEY;
+            
+            expectedSecret = userWebhookSecret || 
                              vtstackSecretKey ||
                              vtstackApiKey ||
                              process.env.VTPAY_WEBHOOK_SECRET || 
                              process.env.PALMPAY_WEBHOOK_SECRET || 
                              'default-webhook-secret';
-        
-        // If appId is provided in URL, try to get that specific app's secret
-        if (appIdFromUrl) {
-            const app = await CreatedApp.findOne({ app_id: appIdFromUrl });
-            if (app?.payment_settings?.vtstack_secret_key) {
-                expectedSecret = app.payment_settings.vtstack_secret_key;
-            }
         }
 
         // 2. Verify Secret Header (X-VTStack-Secret) - Case sensitive check
