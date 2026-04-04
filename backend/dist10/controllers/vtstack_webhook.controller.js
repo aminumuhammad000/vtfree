@@ -25,6 +25,11 @@ export const handleVTStackWebhook = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid JSON payload' });
         }
         // --- SECURITY VERIFICATION ---
+        // 1. Check for required headers
+        if (!secretHeader || !signatureHeader) {
+            logger.warn(`[VTStack Webhook] Missing security headers for appId: ${appIdFromUrl || 'platform'}`);
+            return res.status(401).json({ success: false, message: 'Missing security headers' });
+        }
         // Try to get secrets from ConfigService (DB) or process.env
         const userWebhookSecret = await configService.get('USER_WEBHOOK_SECRET') || process.env.USER_WEBHOOK_SECRET;
         const vtstackSecretKey = await configService.get('VTSTACK_SECRET_KEY') || process.env.VTSTACK_SECRET_KEY;
@@ -42,27 +47,22 @@ export const handleVTStackWebhook = async (req, res) => {
                 expectedSecret = app.payment_settings.vtstack_secret_key;
             }
         }
-        // 1. Verify Secret Header (X-VTStack-Secret)
-        if (secretHeader && secretHeader !== expectedSecret) {
+        // 2. Verify Secret Header (X-VTStack-Secret) - Case sensitive check
+        if (secretHeader !== expectedSecret) {
             logger.warn(`[VTStack Webhook] Secret mismatch for appId: ${appIdFromUrl || 'platform'}`);
             return res.status(403).json({ success: false, message: 'Invalid webhook secret' });
         }
-        // 2. Verify Signature Header (X-VTStack-Signature) - HMAC-SHA256
-        if (signatureHeader) {
-            const hmac = crypto.createHmac('sha256', expectedSecret);
-            hmac.update(rawBody);
-            const calculatedSignature = hmac.digest('hex');
-            if (signatureHeader !== calculatedSignature) {
-                logger.warn(`[VTStack Webhook] Signature mismatch for appId: ${appIdFromUrl || 'platform'}`);
-                logger.debug(`[VTStack Webhook] Expected Secret: ${expectedSecret.substring(0, 5)}...`);
-                logger.debug(`[VTStack Webhook] Received Signature: ${signatureHeader}`);
-                logger.debug(`[VTStack Webhook] Calculated Signature: ${calculatedSignature}`);
-                return res.status(403).json({ success: false, message: 'Invalid webhook signature' });
-            }
+        // 3. Verify Signature Header (X-VTStack-Signature) - HMAC-SHA256
+        const hmac = crypto.createHmac('sha256', expectedSecret);
+        hmac.update(rawBody);
+        const calculatedSignature = hmac.digest('hex');
+        if (signatureHeader !== calculatedSignature) {
+            logger.warn(`[VTStack Webhook] Signature mismatch for appId: ${appIdFromUrl || 'platform'}`);
+            logger.debug(`[VTStack Webhook] Expected Secret: ${expectedSecret.substring(0, 5)}...`);
+            logger.debug(`[VTStack Webhook] Received Signature: ${signatureHeader}`);
+            logger.debug(`[VTStack Webhook] Calculated Signature: ${calculatedSignature}`);
+            return res.status(403).json({ success: false, message: 'Invalid webhook signature' });
         }
-        // 3. Optional: Fallback check if no security headers are present but we expect them
-        // If we want to strictly require security, we could add a check here.
-        // For now, we'll proceed if either check passes or if none are provided (legacy support).
         logger.info(`[VTStack Webhook] Received Event: ${payload?.event}${appIdFromUrl ? ` | AppId: ${appIdFromUrl}` : ''}`);
         // Detailed log for debugging
         logger.debug(`[VTStack Webhook] Full Payload: ${JSON.stringify(payload)}`);
@@ -70,9 +70,13 @@ export const handleVTStackWebhook = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid payload' });
         }
         const { event, data } = payload;
-        const { reference, accountNumber, amount } = data;
-        // VTStack documentation says event is 'payment.success' for completions
-        if (event !== 'payment.success') {
+        const reference = data?.reference;
+        const amount = data?.amount;
+        // Prioritize virtualAccount as it typically represents the receiving account
+        const accountNumber = data?.virtualAccount || data?.customer?.accountNumber;
+        logger.info(`[VTStack Webhook] Received Event: ${event}${appIdFromUrl ? ` | AppId: ${appIdFromUrl}` : ''} | Ref: ${reference} | Account: ${accountNumber}`);
+        // Handle both standard VTStack event and any legacy 'payment.success'
+        if (event !== 'transaction.deposit' && event !== 'payment.success') {
             logger.info(`[VTStack Webhook] Ignoring non-payment event: ${event}`);
             return res.status(200).json({ success: true, message: 'Event ignored' });
         }

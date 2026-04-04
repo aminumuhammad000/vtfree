@@ -1,15 +1,22 @@
 import crypto from 'crypto';
 import axios from 'axios';
 const PAYLOAD = {
-    event: 'payment.success',
-    data: {
-        reference: 'TEST_REF_' + Date.now(),
-        accountNumber: '1234567890', // We need this to match a user in the DB
-        amount: '500',
-        bankName: 'PalmPay'
-    }
+    "event": "transaction.deposit",
+    "data": {
+        "reference": "TXN-" + Date.now(),
+        "amount": 10000,
+        "currency": "NGN",
+        "status": "success",
+        "customer": {
+            "name": "AMINU MUHAMMAD",
+            "accountNumber": "8100015498"
+        },
+        "virtualAccount": "6654762099",
+        "timestamp": new Date().toISOString()
+    },
+    "timestamp": new Date().toISOString()
 };
-const SECRET = 'default-webhook-secret'; // Fallback used in the controller
+const SECRET = 'default-webhook-secret'; // Match fallback in controller for local test
 async function testWebhook() {
     try {
         const payloadString = JSON.stringify(PAYLOAD);
@@ -24,8 +31,8 @@ async function testWebhook() {
         const response = await axios.post('http://localhost:5000/api/v1/webhooks/vtstack', PAYLOAD, {
             headers: {
                 'Content-Type': 'application/json',
-                'x-vtstack-signature': signature,
-                'x-vtstack-secret': SECRET
+                'X-VTStack-Signature': signature,
+                'X-VTStack-Secret': SECRET
             }
         });
         console.log('Response:', response.status, response.data);
