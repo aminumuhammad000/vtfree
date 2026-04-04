@@ -1,0 +1,14 @@
+{
+  "event": "transaction.deposit",
+  "data": {
+    "reference": "TXN-f23ea3af-e004-4ac1-90fc-bc655838c90e",
+    "amount": 1000,
+    "currency": "NGN",
+    "status": "success",
+    "customer": {
+      "name": "AMEINU MUHAMMAD",
+      "accountNumber": "8100015498"
+    },
+    "timestamp": "2026-04-04T12:36:04.722Z"
+  }
+}
