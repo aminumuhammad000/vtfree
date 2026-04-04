@@ -14,16 +14,13 @@ export const handleVTStackWebhook = async (req, res) => {
         const appIdFromUrl = req.params.appId;
         const secretHeader = req.headers['x-vtstack-secret'];
         const signatureHeader = req.headers['x-vtstack-signature'];
-        // Capture raw body for signature verification and parse it
-        const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body));
-        let payload;
-        try {
-            payload = JSON.parse(rawBody.toString());
+        logger.info("HEADERS: " + JSON.stringify(req.headers));
+        const rawBody = req.rawBody;
+        if (!rawBody) {
+            logger.error('[VTStack Webhook] req.rawBody is missing! Express middleware not configured correctly.');
+            return res.status(500).json({ success: false, message: 'Server configuration error' });
         }
-        catch (e) {
-            logger.error('[VTStack Webhook] Failed to parse payload:', e);
-            return res.status(400).json({ success: false, message: 'Invalid JSON payload' });
-        }
+        const payload = req.body;
         // --- SECURITY VERIFICATION ---
         // 1. Check for required headers
         if (!secretHeader || !signatureHeader) {
