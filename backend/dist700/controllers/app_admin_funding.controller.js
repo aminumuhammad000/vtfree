@@ -387,8 +387,7 @@ export class AppAdminFundingController {
             const ownerBalance = owner.wallet_balance || 0;
             const smeplugBalance = smeplugRes?.balance;
             // VTStack returns balance in kobo, convert to Naira by dividing by 100
-            const vtstackBalanceKobo = vtstackRes?.data?.balance ?? vtstackRes?.balance;
-            const vtstackBalance = vtstackBalanceKobo ? Number(vtstackBalanceKobo) / 100 : 0;
+            const vtstackBalance = vtstackRes?.data?.balance ?? vtstackRes?.balance ?? 0;
             const providers = [
                 {
                     code: 'vtstack',

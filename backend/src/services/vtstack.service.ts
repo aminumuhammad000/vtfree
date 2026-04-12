@@ -111,7 +111,14 @@ export class VTStackService {
             logger.info(`[VTStackService] Fetching balance for account: ${accountNumber}`);
 
             const response = await client.get(`/virtual-accounts/${accountNumber}/balance`);
-            return response.data;
+            const data = response.data;
+            
+            // Convert kobo to Naira if balance is present
+            if (data && data.success && data.data && typeof data.data.balance === 'number') {
+                data.data.balance = data.data.balance / 100;
+            }
+            
+            return data;
         } catch (error: any) {
             this.handleError(error, 'getAccountBalance');
         }
@@ -148,7 +155,20 @@ export class VTStackService {
         try {
             const client = await this.getClient(customApiKey);
             const response = await client.get(`/admin/transactions?limit=${limit}&offset=${offset}`);
-            return response.data;
+            const data = response.data;
+
+            // Convert kobo to Naira for all transactions
+            if (data && data.success && data.data && Array.isArray(data.data.transactions)) {
+                data.data.transactions = data.data.transactions.map((tx: any) => ({
+                    ...tx,
+                    amount: typeof tx.amount === 'number' ? tx.amount / 100 : tx.amount,
+                    fee: typeof tx.fee === 'number' ? tx.fee / 100 : tx.fee,
+                    amountNaira: typeof tx.amount === 'number' ? tx.amount / 100 : tx.amount, // Set amountNaira for compatibility
+                    feeNaira: typeof tx.fee === 'number' ? tx.fee / 100 : tx.fee // Set feeNaira for compatibility
+                }));
+            }
+
+            return data;
         } catch (error: any) {
             // Handle 404 gracefully
             if (error.response && error.response.status === 404) {
@@ -167,7 +187,14 @@ export class VTStackService {
             const client = await this.getClient(customApiKey);
             // Attempt standard wallet balance endpoint
             const response = await client.get('/wallet/balance');
-            return response.data;
+            const data = response.data;
+
+            // Convert kobo to Naira if balance is present
+            if (data && data.success && data.data && typeof data.data.balance === 'number') {
+                data.data.balance = data.data.balance / 100;
+            }
+
+            return data;
         } catch (error: any) {
             if (error.response && error.response.status === 404) {
                 return { success: true, data: { balance: 0, currency: 'NGN' } };

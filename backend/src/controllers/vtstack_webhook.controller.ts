@@ -124,7 +124,7 @@ export const handleVTStackWebhook = async (req: Request, res: Response) => {
             return res.status(200).json({ success: true, message: 'Event ignored' });
         }
 
-        const creditAmount = Number(amount);
+        const creditAmount = Number(amount) / 100;
         if (!accountNumber || !creditAmount || creditAmount <= 0) {
             logger.warn(`[VTStack Webhook] Incomplete data: account=${accountNumber}, amount=${amount}`);
             return res.status(400).json({ success: false, message: 'Incomplete payment data' });
