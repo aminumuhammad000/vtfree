@@ -75,7 +75,7 @@ export const updateAppConfig = async (req: Request, res: Response) => {
 
             // Payment
             case 'DEFAULT_PAYMENT_GATEWAY': app.payment_settings.default_gateway = value; break;
-            case 'VTSTACK_API_KEY': app.payment_settings.vtstack_api_key = value; break;
+            case 'VTSTACK_API_KEY': app.payment_settings.vtstack_api_key = value?.trim(); break;
             case 'VTSTACK_SECRET_KEY':
                 // Validate API Key - inform the user but don't block saving if verification fails
                 // (except for obviously invalid short keys)
@@ -96,9 +96,9 @@ export const updateAppConfig = async (req: Request, res: Response) => {
                         });
                     }
                 }
-                app.payment_settings.vtstack_secret_key = value;
+                app.payment_settings.vtstack_secret_key = value?.trim();
                 break;
-            case 'VTSTACK_PUBLIC_KEY': app.payment_settings.vtstack_public_key = value; break;
+            case 'VTSTACK_PUBLIC_KEY': app.payment_settings.vtstack_public_key = value?.trim(); break;
 
             // Referral
             case 'REFERRAL_ENABLED':

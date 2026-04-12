@@ -29,11 +29,11 @@ export const updatePaymentSettings = async (req, res) => {
             app.payment_settings = { default_gateway: 'vtstack' };
         app.payment_settings.default_gateway = 'vtstack';
         if (vtstack_api_key !== undefined)
-            app.payment_settings.vtstack_api_key = vtstack_api_key;
+            app.payment_settings.vtstack_api_key = vtstack_api_key?.trim();
         if (vtstack_secret_key !== undefined)
-            app.payment_settings.vtstack_secret_key = vtstack_secret_key;
+            app.payment_settings.vtstack_secret_key = vtstack_secret_key?.trim();
         if (vtstack_public_key !== undefined)
-            app.payment_settings.vtstack_public_key = vtstack_public_key;
+            app.payment_settings.vtstack_public_key = vtstack_public_key?.trim();
         await app.save();
         return ApiResponse.success(res, app.payment_settings, 'Payment settings updated');
     }

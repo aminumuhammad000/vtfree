@@ -1,7 +1,7 @@
 import mongoose, { Schema } from 'mongoose';
 const SystemConfigSchema = new Schema({
     key: { type: String, required: true, unique: true, uppercase: true, trim: true },
-    value: { type: String, default: '' },
+    value: { type: String, default: '', trim: true },
     description: { type: String },
     group: { type: String, required: true, default: 'GENERAL' },
     is_editable: { type: Boolean, default: true },

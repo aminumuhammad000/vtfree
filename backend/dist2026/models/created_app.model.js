@@ -201,9 +201,9 @@ const CreatedAppSchema = new Schema({
     // Payment Settings
     payment_settings: {
         default_gateway: { type: String, default: 'vtstack' },
-        vtstack_api_key: { type: String },
-        vtstack_secret_key: { type: String },
-        vtstack_public_key: { type: String },
+        vtstack_api_key: { type: String, trim: true },
+        vtstack_secret_key: { type: String, trim: true },
+        vtstack_public_key: { type: String, trim: true },
     },
     // Referral Settings
     referral_settings: {

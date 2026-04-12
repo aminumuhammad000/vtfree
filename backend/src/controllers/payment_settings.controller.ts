@@ -36,9 +36,9 @@ export const updatePaymentSettings = async (req: Request, res: Response) => {
         if (!app.payment_settings) app.payment_settings = { default_gateway: 'vtstack' } as any;
 
         app.payment_settings.default_gateway = 'vtstack';
-        if (vtstack_api_key !== undefined) app.payment_settings.vtstack_api_key = vtstack_api_key;
-        if (vtstack_secret_key !== undefined) app.payment_settings.vtstack_secret_key = vtstack_secret_key;
-        if (vtstack_public_key !== undefined) app.payment_settings.vtstack_public_key = vtstack_public_key;
+        if (vtstack_api_key !== undefined) app.payment_settings.vtstack_api_key = vtstack_api_key?.trim();
+        if (vtstack_secret_key !== undefined) app.payment_settings.vtstack_secret_key = vtstack_secret_key?.trim();
+        if (vtstack_public_key !== undefined) app.payment_settings.vtstack_public_key = vtstack_public_key?.trim();
 
         await app.save();
 
