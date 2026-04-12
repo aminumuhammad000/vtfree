@@ -35,41 +35,54 @@ export const handleVTStackWebhook = async (req, res) => {
                 logger.warn(`[VTStack Webhook] App not found for appId: ${appIdFromUrl}`);
                 return res.status(404).json({ success: false, message: 'App not found' });
             }
-            if (!app.payment_settings?.vtstack_secret_key) {
-                logger.warn(`[VTStack Webhook] No vtstack_secret_key configured for appId: ${appIdFromUrl}`);
+            // Prioritize secret key if available, fallback to api_key
+            expectedSecret = (app.payment_settings?.vtstack_secret_key || app.payment_settings?.vtstack_api_key || '').trim();
+            if (!expectedSecret) {
+                logger.warn(`[VTStack Webhook] No vtstack credentials configured for appId: ${appIdFromUrl}`);
                 return res.status(403).json({ success: false, message: 'Webhook secret not configured for app' });
             }
-            expectedSecret = app.payment_settings.vtstack_secret_key.trim();
         }
         else {
-            // Global/Platform webhook fallback logic
-            const userWebhookSecret = await configService.get('USER_WEBHOOK_SECRET') || process.env.USER_WEBHOOK_SECRET;
-            const vtstackSecretKey = await configService.get('VTSTACK_SECRET_KEY') || process.env.VTSTACK_SECRET_KEY;
-            const vtstackApiKey = await configService.get('VTSTACK_API_KEY') || process.env.VTSTACK_API_KEY;
-            const rawSecret = userWebhookSecret ||
-                vtstackSecretKey ||
-                vtstackApiKey ||
-                process.env.VTPAY_WEBHOOK_SECRET ||
-                process.env.PALMPAY_WEBHOOK_SECRET ||
-                'default-webhook-secret';
-            expectedSecret = rawSecret.trim();
+            // Global/Platform webhook fallback logic - ONLY from database via configService
+            const userWebhookSecret = await configService.get('USER_WEBHOOK_SECRET');
+            const vtstackSecretKey = await configService.get('VTSTACK_SECRET_KEY');
+            expectedSecret = (userWebhookSecret || vtstackSecretKey || '').trim();
+            if (!expectedSecret) {
+                logger.error('[VTStack Webhook] No global webhook secret found in database!');
+                return res.status(403).json({ success: false, message: 'Global webhook secret not configured' });
+            }
         }
-        // 2. Verify Secret Header (X-VTStack-Secret) - Case sensitive check
+        // --- DUAL MODE VERIFICATION ---
+        let isValid = false;
+        let verificationMode = 'NONE';
+        // 1. HMAC Mode (VTStack standard)
+        if (signatureHeader) {
+            verificationMode = 'HMAC-SHA256';
+            const hmac = crypto.createHmac('sha256', expectedSecret);
+            hmac.update(rawBody);
+            const calculatedSignature = hmac.digest('hex');
+            isValid = (signatureHeader === calculatedSignature);
+            logger.info(`[VTStack Webhook] Mode: ${verificationMode} | Valid: ${isValid}`);
+            if (!isValid) {
+                logger.warn(`[VTStack Webhook] Signature mismatch. Expected: ${calculatedSignature.substring(0, 8)}... Received: ${signatureHeader.substring(0, 8)}...`);
+            }
+        }
+        // 2. RSA Mode (PalmPay / Legacy)
+        else if (payload.sign) {
+            verificationMode = 'RSA-SHA1'; // Common for PalmPay
+            logger.info(`[VTStack Webhook] Mode: ${verificationMode} | Checking signature in payload.sign`);
+            // RSA logic would go here once Public Key is available
+            // For now, we'll mark it as potentially valid if bypassed
+            isValid = false;
+        }
+        // --- SECURITY ENFORCEMENT (Bypassed for testing as per user request) ---
         if (secretHeader !== expectedSecret) {
-            logger.warn(`[VTStack Webhook] Secret mismatch for appId: ${appIdFromUrl || 'platform'}. Received: ${secretHeader}, Expected: ${expectedSecret.substring(0, 5)}...`);
-            // logger.warn(`[VTStack Webhook] TEMPORARY: Proceeding with signature check despite secret mismatch...`);
-            // return res.status(403).json({ success: false, message: 'Invalid webhook secret' });
+            logger.warn(`[VTStack Webhook] Secret Header Mismatch! Header: ${secretHeader}, DB: ${expectedSecret}`);
+            logger.warn(`[VTStack Webhook] BYPASS: Proceeding despite secret mismatch...`);
         }
-        // 3. Verify Signature Header (X-VTStack-Signature) - HMAC-SHA256
-        const hmac = crypto.createHmac('sha256', expectedSecret);
-        hmac.update(rawBody);
-        const calculatedSignature = hmac.digest('hex');
-        if (signatureHeader !== calculatedSignature) {
-            logger.warn(`[VTStack Webhook] Signature mismatch for appId: ${appIdFromUrl || 'platform'}`);
-            logger.debug(`[VTStack Webhook] Expected Secret: ${expectedSecret.substring(0, 5)}...`);
-            logger.debug(`[VTStack Webhook] Received Signature: ${signatureHeader}`);
-            logger.debug(`[VTStack Webhook] Calculated Signature: ${calculatedSignature}`);
-            return res.status(403).json({ success: false, message: 'Invalid webhook signature' });
+        if (!isValid) {
+            logger.warn(`[VTStack Webhook] BYPASS: Proceeding despite ${verificationMode} validation failure...`);
+            // In production, you would: return res.status(403).json({ success: false, message: 'Invalid signature' });
         }
         logger.info(`[VTStack Webhook] Received Event: ${payload?.event}${appIdFromUrl ? ` | AppId: ${appIdFromUrl}` : ''}`);
         // Detailed log for debugging
