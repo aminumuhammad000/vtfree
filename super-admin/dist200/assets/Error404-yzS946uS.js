@@ -1,1 +1,0 @@
-import{j as t,S as e}from"./index-4fTKM2FQ.js";import{T as r}from"./Typography-BsVAwTpz.js";const a=()=>t.jsxs(e,{direction:"column",alignItems:"center",justifyContent:"center",children:[t.jsx(r,{mt:3,variant:"h1",color:"text.disabled",children:"404"}),t.jsx(r,{variant:"h6",children:"Page not found!"})]});export{a as default};
