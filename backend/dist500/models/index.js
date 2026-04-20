@@ -2,7 +2,6 @@
 export * from './support_content.model.js';
 export * from './user.model.js';
 export * from './wallet.model.js';
-
 export * from './admin_permission.model.js';
 export * from './admin_role.model.js';
 export * from './admin_user.model.js';

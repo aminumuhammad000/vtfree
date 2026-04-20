@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import { Request, Response } from 'express';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { config } from '../config/bootstrap.js';
-import { AdminUser, AuditLog, Transaction, User, ApiKey, FeeRule, RiskRule, CreatedApp } from '../models/index.js';
+import { AdminUser, AuditLog, Transaction, User, ApiKey, FeeRule, RiskRule } from '../models/index.js';
 import { AdminService } from '../services/admin.service.js';
 import { EmailService } from '../services/email.service.js';
 import { AuthRequest } from '../types/index.js';
@@ -174,16 +174,12 @@ export class AdminController {
       // If account is activated, send notification if it was previously inactive/suspended
       if (status === 'active' && oldStatus !== 'active') {
         try {
-          // Fetch App Details for branding
-          const app = await CreatedApp.findOne({ app_id: user.app_id });
-          if (app) {
-            console.log(`📧 Sending Activation email to ${user.email} (Status change)`);
-            await EmailService.sendKYCApproval(
-              user.email,
-              `${user.first_name} ${user.last_name}`,
-              app
-            );
-          }
+          console.log(`📧 Sending Activation email to ${user.email} (Status change)`);
+          await EmailService.sendKYCApproval(
+            user.email,
+            `${user.first_name} ${user.last_name}`,
+            {}
+          );
         } catch (emailError) {
           console.error('❌ Failed to send activation email:', emailError);
         }
@@ -305,16 +301,12 @@ export class AdminController {
             console.log(`✅ User ${user.email} activated upon KYC verification`);
           }
 
-          // Fetch App Details for branding
-          const app = await CreatedApp.findOne({ app_id: user.app_id });
-          if (app) {
-            console.log(`📧 Sending KYC Approval email to ${user.email} for App: ${app.app_name}`);
-            await EmailService.sendKYCApproval(
-              user.email,
-              `${user.first_name} ${user.last_name}`,
-              app
-            );
-          }
+          console.log(`📧 Sending KYC Approval email to ${user.email} `);
+          await EmailService.sendKYCApproval(
+            user.email,
+            `${user.first_name} ${user.last_name}`,
+            {}
+          );
         } catch (emailError) {
           console.error('❌ Failed to process KYC approval actions:', emailError);
         }

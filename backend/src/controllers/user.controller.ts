@@ -1,6 +1,6 @@
 // controllers/user.controller.ts
 import { Response } from 'express';
-import { User, CreatedApp } from '../models/index.js';
+import { User } from '../models/index.js';
 import { EmailService } from '../services/email.service.js';
 import { ApiResponse } from '../utils/response.js';
 import { AuthRequest } from '../types/index.js';
@@ -237,16 +237,7 @@ export class UserController {
             console.log(`✅ User ${user.email} automatically activated upon KYC approval`);
           }
 
-          // Fetch App Details for branding
-          const app = await CreatedApp.findOne({ app_id: user.app_id });
-          if (app) {
-            console.log(`📧 Sending branded approval email to ${user.email} for App: ${app.app_name}`);
-            await EmailService.sendKYCApproval(
-              user.email,
-              `${user.first_name} ${user.last_name}`,
-              app
-            );
-          }
+
         } catch (error) {
           console.error('❌ Error in after-approval hooks:', error);
         }

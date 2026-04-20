@@ -5,7 +5,7 @@ import { Request, Response } from 'express';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { config } from '../config/bootstrap.js';
 import { User } from '../models/index.js';
-import CreatedApp from '../models/created_app.model.js';
+
 import { configService } from '../services/config.service.js';
 import { OTPService } from '../services/otp.service.js';
 import { WalletService } from '../services/wallet.service.js';
@@ -37,13 +37,7 @@ export class AuthController {
       }
 
       let status = 'active';
-      let appData = null;
-      if (app_id) {
-        appData = await CreatedApp.findOne({ app_id });
-        if (appData?.require_approval) {
-          status = 'inactive';
-        }
-      }
+
 
       const user = await User.create({
         email,

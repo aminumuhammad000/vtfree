@@ -72,7 +72,7 @@ const VirtualAccountSchema = new Schema<IVirtualAccount>(
     },
     generatedBy: {
       type: Schema.Types.ObjectId,
-      ref: 'AppAdmin',
+      ref: 'AdminUser',
       index: true
     }
   },

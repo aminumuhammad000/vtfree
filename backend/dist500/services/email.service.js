@@ -1,34 +1,20 @@
 import nodemailer from 'nodemailer';
 import { configService } from './config.service.js';
-
-interface AppEmailSettings {
-    provider?: string;
-    host?: string;
-    port?: string;
-    user?: string;
-    pass?: string;
-    fromName?: string;
-    fromAddress?: string;
-}
-
 export class EmailService {
-    private static async getTransporter() {
+    static async getTransporter() {
         const provider = await configService.get('MAIL_PROVIDER', 'other');
         let host = await configService.get('MAIL_HOST');
         let port = await configService.get('MAIL_PORT');
         const user = await configService.get('MAIL_USER');
         const pass = await configService.get('MAIL_PASSWORD');
-
         if (provider === 'gmail') {
             host = 'smtp.gmail.com';
             port = '465';
         }
-
         if (!host || !user || !pass) {
             console.warn('⚠️ Email configuration missing. Emails will not be sent.');
             return null;
         }
-
         return nodemailer.createTransport({
             host,
             port: parseInt(port || '587'),
@@ -36,24 +22,20 @@ export class EmailService {
             auth: { user, pass },
         });
     }
-
-    private static async getAppTransporter(emailSettings: AppEmailSettings) {
+    static async getAppTransporter(emailSettings) {
         const provider = emailSettings.provider || 'other';
         let host = emailSettings.host;
         let port = emailSettings.port;
         const user = emailSettings.user;
         const pass = emailSettings.pass;
-
         if (provider === 'gmail') {
             host = 'smtp.gmail.com';
             port = '465';
         }
-
         if (!host || !user || !pass) {
             console.warn('⚠️ App-specific email configuration missing. Emails will not be sent.');
             return null;
         }
-
         return nodemailer.createTransport({
             host,
             port: parseInt(port || '587'),
@@ -61,54 +43,49 @@ export class EmailService {
             auth: { user, pass },
         });
     }
-
-    static async sendEmail(to: string, subject: string, html: string) {
+    static async sendEmail(to, subject, html) {
         try {
             const transporter = await this.getTransporter();
-            if (!transporter) return false;
-
+            if (!transporter)
+                return false;
             const fromName = await configService.get('MAIL_FROM_NAME', 'VTU App');
             const fromAddress = await configService.get('MAIL_FROM_ADDRESS', 'noreply@example.com');
-
             const info = await transporter.sendMail({
                 from: `"${fromName}" <${fromAddress}>`,
                 to,
                 subject,
                 html,
             });
-
             console.log('📧 Email sent:', info.messageId);
             return true;
-        } catch (error) {
+        }
+        catch (error) {
             console.error('❌ Failed to send email:', error);
             return false;
         }
     }
-
-    static async sendAppEmail(to: string, subject: string, html: string, emailSettings: AppEmailSettings) {
+    static async sendAppEmail(to, subject, html, emailSettings) {
         try {
             const transporter = await this.getAppTransporter(emailSettings);
-            if (!transporter) return false;
-
+            if (!transporter)
+                return false;
             const fromName = emailSettings.fromName || 'App Notification';
             const fromAddress = emailSettings.fromAddress || 'noreply@app.com';
-
             const info = await transporter.sendMail({
                 from: `"${fromName}" <${fromAddress}>`,
                 to,
                 subject,
                 html,
             });
-
             console.log('📧 App Email sent:', info.messageId);
             return true;
-        } catch (error) {
+        }
+        catch (error) {
             console.error('❌ Failed to send app email:', error);
             return false;
         }
     }
-
-    static async sendOTP(email: string, otp: string, appId?: string) {
+    static async sendOTP(email, otp, appId) {
         const subject = 'Your Verification Code';
         const html = `
       <div style="font-family: Arial, sans-serif; padding: 20px;">
@@ -118,18 +95,15 @@ export class EmailService {
         <p>This code will expire in 10 minutes.</p>
       </div>
     `;
-
         return await this.sendEmail(email, subject, html);
     }
-
-    static async sendKYCApproval(email: string, userName: string, appDetails: any) {
+    static async sendKYCApproval(email, userName, appDetails) {
         const primaryColor = appDetails.branding?.primary_color || '#16a34a';
         const logoUrl = appDetails.branding?.logo_url;
         const appName = appDetails.app_name || 'Our Platform';
         const companyName = appDetails.company?.name || appName;
         const companyAddress = appDetails.company?.address || '';
         const companyPhone = appDetails.company?.phone || '';
-
         const subject = `Congratulations! Your KYC for ${appName} is Verified`;
         const html = `
             <!DOCTYPE html>
@@ -174,9 +148,8 @@ export class EmailService {
             </body>
             </html>
         `;
-
         if (appDetails.email_settings?.user && appDetails.email_settings?.password) {
-            const settings: AppEmailSettings = {
+            const settings = {
                 provider: appDetails.email_settings.provider,
                 host: appDetails.email_settings.host,
                 port: appDetails.email_settings.port,
@@ -187,15 +160,12 @@ export class EmailService {
             };
             return await this.sendAppEmail(email, subject, html, settings);
         }
-
         return await this.sendEmail(email, subject, html);
     }
-
-    static async sendKYCRejection(email: string, userName: string, reason: string, appDetails: any) {
+    static async sendKYCRejection(email, userName, reason, appDetails) {
         const primaryColor = appDetails.branding?.primary_color || '#dc2626';
         const logoUrl = appDetails.branding?.logo_url;
         const appName = appDetails.app_name || 'Our Platform';
-
         const subject = `Action Required: KYC Verification Update for ${appName}`;
         const html = `
             <!DOCTYPE html>
@@ -240,9 +210,8 @@ export class EmailService {
             </body>
             </html>
         `;
-
         if (appDetails.email_settings?.user && appDetails.email_settings?.password) {
-            const settings: AppEmailSettings = {
+            const settings = {
                 provider: appDetails.email_settings.provider,
                 host: appDetails.email_settings.host,
                 port: appDetails.email_settings.port,
@@ -253,13 +222,11 @@ export class EmailService {
             };
             return await this.sendAppEmail(email, subject, html, settings);
         }
-
         return await this.sendEmail(email, subject, html);
     }
-    static async sendAppBuildSuccess(email: string, appName: string, downloadLinks: { android?: string, web?: string }) {
+    static async sendAppBuildSuccess(email, appName, downloadLinks) {
         try {
             const subject = `Build Complete: ${appName} is ready!`;
-
             let linksHtml = '';
             if (downloadLinks.android) {
                 linksHtml += `<a href="${downloadLinks.android}" class="btn" style="margin-right: 10px;">Download Android APK</a>`;
@@ -267,7 +234,6 @@ export class EmailService {
             if (downloadLinks.web) {
                 linksHtml += `<a href="${downloadLinks.web}" class="btn" style="background-color: #4b5563;">Download Web Bundle</a>`;
             }
-
             const html = `
                 <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
                     <h2 style="color: #10B981;">Build Successful!</h2>
@@ -283,13 +249,13 @@ export class EmailService {
                 </style>
             `;
             return await this.sendEmail(email, subject, html);
-        } catch (error) {
+        }
+        catch (error) {
             console.error('[EmailService] Failed to send success email:', error);
             return false;
         }
     }
-
-    static async sendAppBuildFailure(email: string, appName: string, errorMsg: string) {
+    static async sendAppBuildFailure(email, appName, errorMsg) {
         try {
             const subject = `Build Failed: ${appName}`;
             const html = `
@@ -308,13 +274,13 @@ export class EmailService {
                 </style>
             `;
             return await this.sendEmail(email, subject, html);
-        } catch (error) {
+        }
+        catch (error) {
             console.error('[EmailService] Failed to send failure email:', error);
             return false;
         }
     }
-
-    static async sendCustomBuildRequest(adminEmail: string, appDetails: any, userDetails: any) {
+    static async sendCustomBuildRequest(adminEmail, appDetails, userDetails) {
         try {
             const subject = `[Custom Build Request] ${appDetails.app_name} (${appDetails.package_name})`;
             const html = `
@@ -341,7 +307,8 @@ export class EmailService {
                 </style>
             `;
             return await this.sendEmail(adminEmail, subject, html);
-        } catch (error) {
+        }
+        catch (error) {
             console.error('[EmailService] Failed to send custom build request email:', error);
             return false;
         }

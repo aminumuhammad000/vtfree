@@ -41,17 +41,7 @@ async function startServer() {
       const { configService } = await import("./services/config.service.js");
       await configService.seedDefaults();
 
-      // Start Build Worker (Optional)
-      if (process.env.ENABLE_WORKER === 'true' && process.env.NODE_ENV !== 'test') {
-        try {
-          await import("./workers/app_build.worker.js");
-          console.log('Build Worker started successfully');
-        } catch (workerError) {
-          console.error('Failed to start Build Worker (Check Redis):', workerError);
-        }
-      } else {
-        console.log('Build Worker is disabled (set ENABLE_WORKER=true to enable)');
-      }
+      // Build Worker removed
     } catch (dbError) {
       console.error('MongoDB connection error:', dbError);
       throw dbError; // Re-throw to be caught by the outer catch

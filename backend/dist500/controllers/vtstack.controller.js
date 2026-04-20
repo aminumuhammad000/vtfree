@@ -1,29 +1,21 @@
-import { Response } from 'express';
 import { VTStackService } from '../services/vtstack.service.js';
-import { AuthRequest } from '../types/index.js';
 import VirtualAccount from '../models/VirtualAccount.js';
 import { User } from '../models/index.js';
-
 /**
  * @desc Create a personal virtual account via VTStack (Legacy VTStack Controller)
  */
-export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
+export const createVirtualAccount = async (req, res) => {
     try {
         const userId = req.user?.id;
         if (!userId) {
             return res.status(401).json({ success: false, message: 'User not authenticated' });
         }
-
         const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
-
-
-
         const kycOptionalApps = ['dadsub', 'abbasalehsub'];
         const isKycOptional = user.app_id && kycOptionalApps.includes(user.app_id);
-
         if (!isKycOptional && user.kyc_status !== 'verified') {
             return res.status(403).json({
                 success: false,
@@ -31,15 +23,12 @@ export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
                 requiresKyc: true
             });
         }
-
         // VTStack supports only PalmPay - ignore bankType
-
         // Check if user already has a VTStack account
         const existingAccount = await VirtualAccount.findOne({
             user: userId,
             provider: 'vtstack' // normalized to vtstack
         });
-
         if (existingAccount) {
             return res.status(200).json({
                 success: true,
@@ -47,9 +36,7 @@ export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
                 data: existingAccount
             });
         }
-
         const reference = `VTS-${userId}-${Date.now().toString(36)}`;
-
         const payload = {
             firstName: user.first_name,
             lastName: user.last_name,
@@ -58,11 +45,9 @@ export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
             reference,
             bvn: user.bvn || '00000000000' // This will be overridden by the random BVN in the service
         };
-
         // Pass the app-specific key if available
         const appSpecificApiKey = undefined;
         const result = await VTStackService.createVirtualAccount(payload, appSpecificApiKey);
-
         if (result && result.success && result.data) {
             // Save to our database
             const newAccount = await VirtualAccount.create({
@@ -77,7 +62,6 @@ export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
                     bankType: 'palmpay'
                 }
             });
-
             // Update user model's default virtual account info for quick access
             await User.findByIdAndUpdate(userId, {
                 $set: {
@@ -89,16 +73,15 @@ export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
                     }
                 }
             });
-
             return res.status(201).json({
                 success: true,
                 message: 'Virtual account created successfully',
                 data: newAccount
             });
         }
-
         res.status(400).json(result);
-    } catch (error: any) {
+    }
+    catch (error) {
         console.error('Create virtual account error:', error);
         res.status(500).json({
             success: false,
@@ -106,17 +89,15 @@ export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
         });
     }
 };
-
 /**
  * @desc Fetch user's virtual accounts from our database
  */
-export const getVirtualAccounts = async (req: AuthRequest, res: Response) => {
+export const getVirtualAccounts = async (req, res) => {
     try {
         const userId = req.user?.id;
         if (!userId) {
             return res.status(401).json({ success: false, message: 'Unauthorized' });
         }
-
         const accounts = await VirtualAccount.find({
             user: userId,
             provider: { $in: ['vtstack', 'vtstack'] }
@@ -125,34 +106,34 @@ export const getVirtualAccounts = async (req: AuthRequest, res: Response) => {
             success: true,
             data: accounts
         });
-    } catch (error: any) {
+    }
+    catch (error) {
         res.status(500).json({
             success: false,
             message: error.message || 'Failed to fetch virtual accounts',
         });
     }
 };
-
 /**
  * @desc Get account balance via VTStack API
  */
-export const getAccountBalance = async (req: AuthRequest, res: Response) => {
+export const getAccountBalance = async (req, res) => {
     try {
         const { accountNumber } = req.params;
         const result = await VTStackService.getAccountBalance(accountNumber);
         res.status(200).json(result);
-    } catch (error: any) {
+    }
+    catch (error) {
         res.status(500).json({
             success: false,
             message: error.message || 'Failed to fetch account balance',
         });
     }
 };
-
 /**
  * @desc Get transactions for a specific account via VTStack API
  */
-export const getTransactions = async (req: AuthRequest, res: Response) => {
+export const getTransactions = async (req, res) => {
     try {
         const { accountNumber } = req.params;
         // Check if method exists (not implemented in V1 of VTStackService based on user prompt)
@@ -163,7 +144,8 @@ export const getTransactions = async (req: AuthRequest, res: Response) => {
             return res.status(200).json(result);
         }
         res.status(200).json({ success: true, data: [] });
-    } catch (error: any) {
+    }
+    catch (error) {
         res.status(500).json({
             success: false,
             message: error.message || 'Failed to fetch transactions',

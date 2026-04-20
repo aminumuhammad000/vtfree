@@ -40,9 +40,13 @@ export class BillPaymentController {
         providerId = normalized;
       }
 
-      // Only fetch plans belonging to this app
+      // Fetch plans belonging to this app or global defaults
       const filter: any = {
-        app_id,
+        $or: [
+          { app_id },
+          { app_id: { $exists: false } },
+          { app_id: null }
+        ],
         type: 'DATA',
         active: true
       };
@@ -311,11 +315,21 @@ export class BillPaymentController {
       // Fallback search by externalPlanId or code if not found by _id
       if (!dbPlan) {
         dbPlan = await AirtimePlan.findOne({
-          $or: [
-            { externalPlanId: plan },
-            { code: plan }
-          ],
-          app_id: req.user?.app_id
+          $and: [
+            {
+              $or: [
+                { externalPlanId: plan },
+                { code: plan }
+              ]
+            },
+            {
+              $or: [
+                { app_id: req.user?.app_id },
+                { app_id: { $exists: false } },
+                { app_id: null }
+              ]
+            }
+          ]
         });
       }
       if (!dbPlan) {

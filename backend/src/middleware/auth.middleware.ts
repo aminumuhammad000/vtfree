@@ -22,19 +22,7 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
       type: decoded.type
     };
 
-    // Fallback for Super Admins: if app_id is missing, try to find the first app
-    if ((req.user.type === 'super_admin' || req.user.role === 'admin') && !req.user.app_id) {
-      try {
-        const CreatedApp = (await import('../models/created_app.model.js')).default;
-        const firstApp = await CreatedApp.findOne().select('app_id');
-        if (firstApp) {
-          req.user.app_id = firstApp.app_id;
-          console.log(`[AuthMiddleware] SuperAdmin fallback: assigned app_id ${req.user.app_id}`);
-        }
-      } catch (err) {
-        console.error('[AuthMiddleware] Failed to fetch fallback app_id:', err);
-      }
-    }
+
 
     console.log(`[AuthMiddleware] Decoded user: ${JSON.stringify(req.user)}`);
     next();
@@ -46,27 +34,7 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
 // Alias for compatibility
 export const authenticate = authMiddleware;
 
-export const authenticateVTfreeUser = (req: AuthRequest, res: Response, next: NextFunction) => {
-  authMiddleware(req, res, () => {
-    if (req.user?.type === 'vtfree_user' || req.user?.type === 'super_admin' || req.user?.role === 'admin') {
-      next();
-    } else {
-      return ApiResponse.error(res, 'Unauthorized: VTfree User access required', 403);
-    }
-  });
-};
 
-export const authenticateAppAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
-  authMiddleware(req, res, () => {
-    console.log(`[AuthMiddleware] AppAdmin check for user: ${req.user?.id}, type: ${req.user?.type}, app_id: ${req.user?.app_id}`);
-    if (req.user?.type === 'app_admin' || req.user?.type === 'super_admin' || req.user?.role === 'admin') {
-      next();
-    } else {
-      console.warn(`[AuthMiddleware] AppAdmin access denied. User: ${JSON.stringify(req.user)}`);
-      return ApiResponse.error(res, 'Unauthorized: App Admin access required', 403);
-    }
-  });
-};
 
 export const authenticateSuperAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
   authMiddleware(req, res, () => {

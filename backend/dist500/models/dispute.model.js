@@ -1,18 +1,5 @@
-import mongoose, { Schema, Document } from 'mongoose';
-
-export interface IDispute extends Document {
-    transaction_id: mongoose.Types.ObjectId;
-    user_id: mongoose.Types.ObjectId;
-    app_id: string;
-    reason: string;
-    status: 'open' | 'resolved' | 'rejected';
-    resolution_notes?: string;
-    admin_id?: mongoose.Types.ObjectId;
-    created_at: Date;
-    updated_at: Date;
-}
-
-const DisputeSchema: Schema = new Schema({
+import mongoose, { Schema } from 'mongoose';
+const DisputeSchema = new Schema({
     transaction_id: { type: Schema.Types.ObjectId, ref: 'Transaction', required: true },
     user_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     app_id: { type: String, required: true, index: true },
@@ -27,6 +14,5 @@ const DisputeSchema: Schema = new Schema({
     created_at: { type: Date, default: Date.now },
     updated_at: { type: Date, default: Date.now }
 });
-
-export const Dispute = mongoose.model<IDispute>('Dispute', DisputeSchema);
+export const Dispute = mongoose.model('Dispute', DisputeSchema);
 export default Dispute;

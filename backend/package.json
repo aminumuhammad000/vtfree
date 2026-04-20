@@ -7,84 +7,25 @@
   "scripts": {
     "dev": "nodemon --exec tsx src/server.ts",
     "build": "tsc",
-    "start": "npm run build && npm run init:admin && npm run seed:admin && npm run seed:providers && npm run seed:data-plans && node dist/server.js",
-    "start:with-seed": "npm run build && npm run seed:pricing && npm run seed:providers && node dist/server.js",
-    "test": "NODE_ENV=test jest --detectOpenHandles --forceExit",
-    "test:watch": "NODE_ENV=test jest --watch --detectOpenHandles",
-    "test:coverage": "NODE_ENV=test jest --coverage",
-    "seed:admin": "tsx src/scripts/seed-admin.ts",
-    "init:admin": "tsx src/scripts/init-admin.ts",
-    "seed:pricing": "tsx src/scripts/seed_pricing.ts",
-    "seed:providers": "tsx src/scripts/seed_providers.ts",
-    "seed:data-plans": "tsx src/scripts/seed_mtn_data_plans.ts",
-    "seed:data-generic": "tsx src/scripts/seed_pricing.ts",
-    "seed:all": "npm run seed:providers && npm run seed:data-plans",
-    "verify:seed": "tsx src/scripts/verify_seed.ts",
-    "migrate:admin-appids": "tsx src/scripts/migrate_admin_appids.ts",
-    "migrate:admin-appids:rollback": "tsx src/scripts/migrate_admin_appids.ts --rollback",
-    "migrate:test-setup": "tsx src/scripts/test_migration.ts",
-    "migrate:test-verify": "tsx src/scripts/test_migration.ts --verify",
-    "migrate:test-cleanup": "tsx src/scripts/test_migration.ts --cleanup",
-    "create:super-admin": "tsx src/scripts/create_super_admin.ts",
-    "setup:app": "tsx src/scripts/create_app_setup.ts"
-  },
-  "jest": {
-    "preset": "ts-jest/presets/default-esm",
-    "testEnvironment": "node",
-    "extensionsToTreatAsEsm": [
-      ".ts"
-    ],
-    "moduleNameMapper": {
-      "^@/(.*)": "<rootDir>/src/$1",
-      "^\\.{1,2}/.*\\.js$": "$0"
-    },
-    "transform": {
-      "^.+\\.tsx?$": [
-        "ts-jest",
-        {
-          "useESM": true,
-          "tsconfig": "tsconfig.test.json"
-        }
-      ]
-    },
-    "testMatch": [
-      "**/test/**/*.test.ts"
-    ],
-    "moduleFileExtensions": [
-      "ts",
-      "js",
-      "json",
-      "node"
-    ],
-    "setupFilesAfterEnv": [
-      "<rootDir>/test/setup.ts"
-    ]
+    "start": "npm run build && node dist/server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@octokit/auth-app": "^8.1.2",
-    "@octokit/rest": "^22.0.1",
-    "@types/archiver": "^7.0.0",
-    "@types/fs-extra": "^11.0.4",
     "@types/uuid": "^10.0.0",
-    "archiver": "^7.0.1",
     "axios": "^1.13.1",
     "bcryptjs": "^3.0.3",
-    "bullmq": "^5.67.2",
+    "bullmq": "^5.75.2",
     "cloudinary": "^2.9.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
-    "execa": "^9.6.1",
     "express": "^5.1.0",
     "express-rate-limit": "^8.2.1",
     "express-validator": "^7.3.0",
-    "fs-extra": "^11.3.3",
     "googleapis": "^170.0.0",
     "helmet": "^8.1.0",
-    "ioredis": "^5.9.2",
     "joi": "^18.0.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.2",

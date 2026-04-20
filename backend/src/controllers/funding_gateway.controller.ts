@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { VTStackService } from '../services/vtstack.service.js';
 import { AuthRequest } from '../types/index.js';
 import VirtualAccount from '../models/VirtualAccount.js';
-import { User, CreatedApp } from '../models/index.js';
+import { User } from '../models/index.js';
 import logger from '../utils/logger.js';
 
 /**
@@ -25,10 +25,7 @@ export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
             return res.status(400).json({ success: false, message: 'App ID is required' });
         }
 
-        const app = await CreatedApp.findOne({ app_id: appId });
-        if (!app) {
-            return res.status(404).json({ success: false, message: 'App not found' });
-        }
+
 
         // Always use VTStack
         const gateway = 'vtstack';
@@ -77,9 +74,8 @@ export const createVirtualAccount = async (req: AuthRequest, res: Response) => {
             bvn: user.bvn || '00000000000',
         };
 
-        // Use VTStack Service
-        const apiKey = (app as any).payment_settings?.vtstack_secret_key
-            || (app as any).payment_settings?.vtstack_api_key;
+        // Use VTStack Service without dynamic apiKey since app is gone
+        const apiKey = undefined;
 
         const result = await VTStackService.createVirtualAccount(payload, apiKey);
 
@@ -148,10 +144,7 @@ export const getVirtualAccounts = async (req: AuthRequest, res: Response) => {
         const accounts = await VirtualAccount.find({ user: userId });
 
         // Find app to get default gateway
-        const user = await User.findById(userId);
-        const app = await CreatedApp.findOne({ app_id: user?.app_id });
-        let gateway = app?.payment_settings?.default_gateway || 'vtstack';
-        if (gateway === 'vtstack') gateway = 'vtstack';
+        let gateway = 'vtstack';
 
         res.status(200).json({
             success: true,
@@ -178,13 +171,7 @@ export const getAccountBalance = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ success: false, message: 'Account not found' });
         }
 
-        const user = await User.findById(account.user);
-        const appId = user?.app_id;
-        const app = await CreatedApp.findOne({ app_id: appId });
-
-        // Use VTStack Service
-        const apiKey = (app as any)?.payment_settings?.vtstack_secret_key
-            || (app as any)?.payment_settings?.vtstack_api_key;
+        const apiKey = undefined;
 
         const result = await VTStackService.getAccountBalance(accountNumber, apiKey);
 

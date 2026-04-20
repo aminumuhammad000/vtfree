@@ -22,6 +22,7 @@ interface ProviderClient {
 class ProviderRegistryService {
   private clients: Record<string, ProviderClient> = {
     smeplug: smeplugService,
+    ibdata: smeplugService, // Register ibdata to use smeplugService
   };
 
   register(code: string, client: ProviderClient) {
