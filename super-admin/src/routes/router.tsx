@@ -22,8 +22,7 @@ const Profile = lazy(() => import('pages/profile'));
 // Finance
 const Finance = lazy(() => import('pages/finance'));
 
-// Pricing
-const PricingPlans = lazy(() => import('pages/pricing'));
+
 
 // Messaging
 const Notifications = lazy(() => import('pages/messaging/Notifications'));
@@ -34,7 +33,7 @@ const LogsPage = lazy(() => import('pages/logs'));
 // Support & Providers
 const Support = lazy(() => import('pages/support'));
 const Providers = lazy(() => import('pages/providers'));
-const VTStackManagement = lazy(() => import('pages/vtstack'));
+
 
 const SignIn = lazy(() => import('pages/authentication/SignIn'));
 // const ResetPassword = lazy(() => import('pages/authentication/ResetPassword'));
@@ -95,11 +94,7 @@ const routes = [
                 path: paths.finance,
                 element: <Finance />,
               },
-              // Pricing
-              {
-                path: paths.pricing,
-                element: <PricingPlans />,
-              },
+
               // Messaging
               {
                 path: paths.notifications,
@@ -123,10 +118,7 @@ const routes = [
                 path: paths.settings,
                 element: <Settings />,
               },
-              {
-                path: paths.vtstack,
-                element: <VTStackManagement />,
-              },
+
               {
                 path: paths.profile,
                 element: <Profile />,

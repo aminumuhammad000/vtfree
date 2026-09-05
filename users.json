@@ -1,1 +1,0 @@
-{"_id":{"$oid":"68fc1d4fbea3f44d815cc272"},"userType":"freelancer","firstName":"Aminu","lastName":"Muhammad","email":"aminu@example.com","password":"$2b$10$h9odviIaOuXgqy.u9TilmeLc24n5jFI1YoyV8GFB0O3rpzBLzzZWy","createdAt":{"$date":"2025-10-25T00:43:59.511Z"},"updatedAt":{"$date":"2025-10-25T00:43:59.511Z"},"__v":0}

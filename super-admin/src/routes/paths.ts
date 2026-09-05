@@ -17,8 +17,7 @@ export default {
   // Finance & Wallet
   finance: `/${rootPaths.pagesRoot}/finance`,
 
-  // Pricing
-  pricing: `/${rootPaths.pagesRoot}/pricing`,
+
 
   // Providers
   providers: `/${rootPaths.pagesRoot}/providers`,
@@ -35,7 +34,7 @@ export default {
   // Settings & Profile
   settings: `/${rootPaths.pagesRoot}/settings`,
   profile: `/${rootPaths.pagesRoot}/profile`,
-  vtstack: `/${rootPaths.pagesRoot}/vtstack`,
+
 
   // Auth
   signin: `/${rootPaths.authRoot}/sign-in`,

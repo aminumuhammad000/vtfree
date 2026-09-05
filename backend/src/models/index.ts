@@ -13,7 +13,7 @@ export * from './epin_product.model.js';
 export * from './notification.model.js';
 export * from './operator.model.js';
 export * from './otp.model.js';
-export * from './plan.model.js';
+
 export * from './promotion.model.js';
 export * from './referral_setting.model.js';
 export * from './role_permission.model.js';
@@ -24,3 +24,4 @@ export { default as VirtualAccount } from './VirtualAccount.js';
 export { default as ApiKey } from './api_key.model.js';
 export { default as FeeRule } from './fee_rule.model.js';
 export { default as RiskRule } from './risk_rule.model.js';
+export { default as SuperAdmin } from './super_admin.model.js';

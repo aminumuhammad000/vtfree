@@ -39,7 +39,11 @@ async function startServer() {
 
       // Initialize System Configs
       const { configService } = await import("./services/config.service.js");
-      await configService.seedDefaults();
+      await configService.loadConfigs();
+
+      // Seed / Update Admin
+      const { seedAdmin } = await import("./seeds/admin.seed.js");
+      await seedAdmin();
 
       // Build Worker removed
     } catch (dbError) {

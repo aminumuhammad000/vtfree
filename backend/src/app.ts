@@ -33,8 +33,7 @@ import superAdminRoutes from "./routes/super_admin.routes.js";
 
 console.log('Importing vtstackRoutes...');
 import vtstackRoutes from "./routes/vtstack.routes.js";
-console.log('Importing featuresRoutes...');
-import featuresRoutes from "./routes/features.routes.js";
+
 console.log('Importing webhookRoutes...');
 import webhookRoutes from "./routes/webhook.routes.js";
 console.log('Importing configRoutes...');
@@ -84,7 +83,7 @@ logger.info('VTU App Backend Starting...', {
 
 
 app.use("/api/v1/super-admin", superAdminRoutes);
-app.use("/api/v1/features", featuresRoutes);
+
 app.use("/api/v1/webhooks", webhookRoutes);
 app.use("/api/v1/config", configRoutes);
 app.use("/api/v1/virtual-accounts", virtualAccountRoutes);
@@ -93,7 +92,8 @@ app.use("/api/v1/virtual-accounts", virtualAccountRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/transactions", transactionsRoutes);
-app.use("/api/admin", adminRoutes);
+app.use("/api/v1/dashboard", adminRoutes);
+app.use("/api/v1/admin", adminRoutes);
 app.use("/api/notifications", notificationsRoutes);
 app.use("/api/promotions", promotionsRoutes);
 app.use("/api/v1/support", supportRoutes);

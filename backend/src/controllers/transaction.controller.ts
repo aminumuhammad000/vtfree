@@ -1,7 +1,7 @@
 // controllers/transaction.controller.ts
 import mongoose from 'mongoose';
 import { Response } from 'express';
-import { Transaction, Wallet, Operator, Plan, User } from '../models/index.js';
+import { Transaction, Wallet, Operator, User } from '../models/index.js';
 import { WalletService } from '../services/wallet.service.js';
 import { NotificationService } from '../services/notification.service.js';
 import { ApiResponse } from '../utils/response.js';
@@ -76,7 +76,6 @@ export class TransactionController {
 
       const transactions = await Transaction.find({ user_id: req.user?.id })
         .populate('operator_id')
-        .populate('plan_id')
         .skip(skip)
         .limit(limit)
         .sort({ created_at: -1 });
@@ -103,7 +102,7 @@ export class TransactionController {
         query.user_id = req.user?.id;
       }
 
-      const transaction = await Transaction.findOne(query).populate('operator_id').populate('plan_id');
+      const transaction = await Transaction.findOne(query).populate('operator_id');
 
       if (!transaction) {
         return ApiResponse.error(res, 'Transaction not found', 404);
@@ -190,7 +189,6 @@ export class TransactionController {
       const transactions = await Transaction.find(filter)
         .populate('user_id', 'first_name last_name email')
         .populate('operator_id')
-        .populate('plan_id')
         .skip(skip)
         .limit(limit)
         .sort({ created_at: -1 });
